@@ -1,0 +1,59 @@
+{
+  "name": "creative",
+  "version": "2.0.0",
+  "description": "turns your creative content into data",
+  "keywords": [
+    "headless-cms",
+    "generator",
+    "creative",
+    "cli",
+    "zce"
+  ],
+  "repository": "zce/api.zce.me",
+  "license": "MIT",
+  "author": "zce <w@zce.me> (https://zce.me)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": "dist/cli.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "lint": "ts-standard",
+    "test": "vitest run",
+    "prepare": "husky install .github/husky"
+  },
+  "tsup": {
+    "entry": [
+      "src/index.ts",
+      "src/cli.ts"
+    ],
+    "clean": true,
+    "minify": false,
+    "splitting": true,
+    "dts": {
+      "entry": "src/index.ts",
+      "resolve": true
+    }
+  },
+  "renovate": {
+    "extends": [
+      "zce"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "20.6.3",
+    "adm-zip": "0.5.10",
+    "cac": "6.7.14",
+    "fast-glob": "3.3.1",
+    "ora": "7.0.1",
+    "ts-standard": "12.0.2",
+    "tsup": "7.2.0",
+    "typescript": "5.2.2",
+    "vitest": "0.34.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -21,8 +21,7 @@
   "scripts": {
     "build": "tsup",
     "lint": "ts-standard",
-    "test": "vitest run",
-    "prepare": "husky install .github/husky"
+    "test": "vitest run"
   },
   "tsup": {
     "entry": [

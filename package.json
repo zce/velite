@@ -42,7 +42,7 @@
     ]
   },
   "devDependencies": {
-    "@types/node": "20.6.3",
+    "@types/node": "20.9.0",
     "adm-zip": "0.5.10",
     "cac": "6.7.14",
     "fast-glob": "3.3.1",

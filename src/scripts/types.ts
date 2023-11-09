@@ -1,7 +1,16 @@
-interface FieldBase {
+export interface Entry {
+  [name: string]: unknown
+  // source file path
+  _file?: string
+}
+
+export interface Collections {
+  [name: string]: Entry[]
+}
+
+export interface FieldBase {
   required?: boolean
   default?: unknown
-  description?: string
 }
 
 export interface StringField extends FieldBase {
@@ -31,7 +40,7 @@ export interface NestedField extends FieldBase {
   default?: Record<string, unknown>
 }
 
-interface ListFieldBase extends FieldBase {
+export interface ListFieldBase extends FieldBase {
   type: 'list'
   default?: unknown[]
 }
@@ -60,34 +69,44 @@ export interface NestedListField extends ListFieldBase {
   default?: Array<Record<string, unknown>>
 }
 
-export type ListField = StringListField | NumberListField | BooleanListField | DateListField | FileListField | NestedListField
-
-export type Field = StringField | NumberField | BooleanField | DateField | FileField | NestedField | ListField
+export type Field =
+  | StringField
+  | NumberField
+  | BooleanField
+  | DateField
+  | FileField
+  | NestedField
+  | StringListField
+  | NumberListField
+  | BooleanListField
+  | DateListField
+  | FileListField
+  | NestedListField
 
 export interface Fields {
   [name: string]: Field
 }
 
-export interface Computed {
-  (data: Record<string, unknown>): unknown | Promise<unknown>
-}
-
-export interface Computeds {
-  [name: string]: Computed
-}
-
 export interface Schema {
   name: string
   pattern: string
-  type: 'markdown' | 'yaml' | 'json'
+  type: 'yaml' | 'json' | 'markdown'
   fields: Fields
-  computeds?: Computeds
+  computeds?: Record<string, (data: Record<string, unknown>) => unknown | Promise<unknown>>
+}
+
+export interface Parsers {
+  [type: string]: (file: string) => Promise<unknown>
 }
 
 export interface Config {
   root: string
-  output: { data: string; static: string; public: string }
-  schemas: { [name: string]: Schema }
-  callback?: (collections: { [name: string]: Record<string, unknown>[] }) => void | Promise<void>
-  parsers?: { [type: string]: (file: string) => Promise<unknown> }
+  output: { data: string; public: string; publicUrl: string }
+  schemas: Record<string, Schema>
+  callback?: (collections: Collections) => void | Promise<void>
+  parsers?: Parsers
 }
+
+// for user config type inference
+export const defineConfig = (config: Config): Config => config
+export const defineNestedType = (fields: Fields): Fields => fields

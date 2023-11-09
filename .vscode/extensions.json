@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    // Linting / Formatting
+    "esbenp.prettier-vscode",
+    "usernamehw.errorlens",
+
+    // Showing todo comments
+    "gruntfuggly.todo-tree"
+  ]
+}

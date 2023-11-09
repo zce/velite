@@ -1,0 +1,10 @@
+{
+  "root": "test",
+  "output": {
+    "data": "dist/data",
+    "static": "dist/static",
+    "public": "/static"
+  },
+  "schemas": {},
+  "parsers": {}
+}

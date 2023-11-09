@@ -1,27 +1,31 @@
 {
-  "name": "creative",
-  "version": "2.0.0",
-  "description": "turns your creative content into data",
+  "name": "velite",
+  "version": "0.0.0",
+  "description": "turns your creative content into data layer",
   "keywords": [
+    "content",
+    "contentful",
+    "contentlayer",
     "headless-cms",
+    "data-layer",
     "generator",
     "creative",
+    "velite",
     "cli",
     "zce"
   ],
-  "repository": "zce/api.zce.me",
+  "repository": "zce/velite",
   "license": "MIT",
   "author": "zce <w@zce.me> (https://zce.me)",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "bin": "dist/cli.js",
+  "types": "./dist/index.d.ts",
+  "bin": "./dist/cli.js",
+  "exports": "./dist/index.js",
+  "type": "module",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
-    "lint": "ts-standard",
-    "test": "vitest run"
+    "build": "tsup"
   },
   "tsup": {
     "entry": [
@@ -31,6 +35,8 @@
     "clean": true,
     "minify": false,
     "splitting": true,
+    "format": "esm",
+    "target": "node18",
     "dts": {
       "entry": "src/index.ts",
       "resolve": true
@@ -41,16 +47,42 @@
       "zce"
     ]
   },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "none",
+    "arrowParens": "avoid",
+    "printWidth": 180,
+    "plugins": [
+      "@ianvs/prettier-plugin-sort-imports"
+    ]
+  },
   "devDependencies": {
-    "@types/node": "20.6.3",
-    "adm-zip": "0.5.10",
-    "cac": "6.7.14",
-    "fast-glob": "3.3.1",
-    "ora": "7.0.1",
-    "ts-standard": "12.0.2",
-    "tsup": "7.2.0",
-    "typescript": "5.2.2",
-    "vitest": "0.34.4"
+    "@ianvs/prettier-plugin-sort-imports": "latest",
+    "@types/node": "latest",
+    "cac": "latest",
+    "fast-glob": "latest",
+    "ora": "latest",
+    "to-vfile": "latest",
+    "tsup": "latest",
+    "typescript": "latest",
+    "hast-util-from-html": "latest",
+    "hast-util-raw": "latest",
+    "hast-util-to-html": "latest",
+    "mdast-util-from-markdown": "latest",
+    "mdast-util-gfm": "latest",
+    "mdast-util-to-hast": "latest",
+    "mdast-util-to-markdown": "latest",
+    "micromark-extension-gfm": "latest",
+    "prettier": "latest",
+    "tsx": "latest",
+    "unist-util-visit": "latest",
+    "vfile": "latest",
+    "vfile-matter": "latest",
+    "yaml": "latest"
+  },
+  "peerDependencies": {
+    "sharp": "latest"
   },
   "engines": {
     "node": ">=18"

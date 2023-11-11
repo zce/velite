@@ -1,3 +1,3 @@
-export { default as build } from './build'
-
-export { defineConfig, defineSchema, defineNestedType, defineComputeds } from './config'
+export { z } from 'zod'
+export { defineConfig } from './config'
+export { shared } from './shared'

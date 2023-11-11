@@ -10,7 +10,6 @@
 [![Dependency Status][dependency-img]][dependency-url]
 [![Code Style][style-img]][style-url]
 
-
 ## Installation
 
 ```shell
@@ -110,7 +109,6 @@ Examples:
 ## License
 
 [MIT](LICENSE) &copy; [zce](https://zce.me)
-
 
 [actions-img]: https://img.shields.io/github/workflow/status/zce/velite/CI
 [actions-url]: https://github.com/zce/velite/actions

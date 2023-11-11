@@ -17,15 +17,55 @@
   "repository": "zce/velite",
   "license": "MIT",
   "author": "zce <w@zce.me> (https://zce.me)",
+  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": "./dist/cli.js",
-  "exports": "./dist/index.js",
-  "type": "module",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "format": "prettier --write ."
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "none",
+    "arrowParens": "avoid",
+    "printWidth": 140
+  },
+  "dependencies": {
+    "sharp": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "cac": "latest",
+    "fast-glob": "latest",
+    "hast-util-from-html": "latest",
+    "hast-util-raw": "latest",
+    "hast-util-to-html": "latest",
+    "mdast-util-from-markdown": "latest",
+    "mdast-util-gfm": "latest",
+    "mdast-util-to-hast": "latest",
+    "mdast-util-to-markdown": "latest",
+    "micromark-extension-gfm": "latest",
+    "ora": "latest",
+    "prettier": "latest",
+    "tsup": "latest",
+    "typescript": "latest",
+    "unist-util-visit": "latest",
+    "vfile": "latest",
+    "vfile-reporter": "latest",
+    "yaml": "latest",
+    "zod": "latest"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "renovate": {
+    "extends": [
+      "zce"
+    ]
   },
   "tsup": {
     "entry": [
@@ -35,56 +75,10 @@
     "clean": true,
     "minify": false,
     "splitting": true,
-    "format": "esm",
     "target": "node18",
     "dts": {
       "entry": "src/index.ts",
       "resolve": true
     }
-  },
-  "renovate": {
-    "extends": [
-      "zce"
-    ]
-  },
-  "prettier": {
-    "semi": false,
-    "singleQuote": true,
-    "trailingComma": "none",
-    "arrowParens": "avoid",
-    "printWidth": 180,
-    "plugins": [
-      "@ianvs/prettier-plugin-sort-imports"
-    ]
-  },
-  "devDependencies": {
-    "@ianvs/prettier-plugin-sort-imports": "latest",
-    "@types/node": "latest",
-    "cac": "latest",
-    "fast-glob": "latest",
-    "ora": "latest",
-    "to-vfile": "latest",
-    "tsup": "latest",
-    "typescript": "latest",
-    "hast-util-from-html": "latest",
-    "hast-util-raw": "latest",
-    "hast-util-to-html": "latest",
-    "mdast-util-from-markdown": "latest",
-    "mdast-util-gfm": "latest",
-    "mdast-util-to-hast": "latest",
-    "mdast-util-to-markdown": "latest",
-    "micromark-extension-gfm": "latest",
-    "prettier": "latest",
-    "tsx": "latest",
-    "unist-util-visit": "latest",
-    "vfile": "latest",
-    "vfile-matter": "latest",
-    "yaml": "latest"
-  },
-  "peerDependencies": {
-    "sharp": "latest"
-  },
-  "engines": {
-    "node": ">=18"
   }
 }

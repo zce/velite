@@ -41,7 +41,7 @@ type Options = {
 const joycon = new JoyCon()
 
 export const resolveConfig = async (options: Options = {}): Promise<Config> => {
-  const configPaths = [options.filename, name + '.config.js', name + '..ts'].filter(Boolean) as string[]
+  const configPaths = [options.filename, name + '.config.js', name + '.config.ts'].filter(Boolean) as string[]
 
   joycon.addLoader({
     test: /\.(js|cjs|mjs|ts)$/,

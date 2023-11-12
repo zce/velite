@@ -1,5 +1,3 @@
-import { join } from 'node:path'
-import glob from 'fast-glob'
 import { fromHtml } from 'hast-util-from-html'
 import { raw } from 'hast-util-raw'
 import { toHtml } from 'hast-util-to-html'
@@ -10,7 +8,6 @@ import { toMarkdown } from 'mdast-util-to-markdown'
 import { gfm } from 'micromark-extension-gfm'
 import { visit } from 'unist-util-visit'
 import { VFile } from 'vfile'
-import reporter from 'vfile-reporter'
 import yaml from 'yaml'
 
 import { outputFile } from './static'

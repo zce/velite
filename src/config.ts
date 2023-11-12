@@ -1,9 +1,19 @@
-import { resolve } from 'node:path'
-import { setPublic } from './static'
+import { bundleRequire } from 'bundle-require'
+import JoyCon from 'joycon'
+
+import { name } from '../package.json'
+import { addLoader } from './loader'
+import { init } from './static'
+
+import type { Loader } from './loader'
 import type { Collections } from './types'
 import type { ZodType } from 'zod'
 
-type Schema = { name: string; pattern: string; fields: ZodType }
+type Schema = {
+  name: string
+  pattern: string
+  fields: ZodType
+}
 
 type Config = {
   root: string
@@ -12,7 +22,12 @@ type Config = {
     static: string
     base: string
   }
+  image?: {
+    sizes?: number[]
+    quality?: number
+  }
   schemas: { [name: string]: Schema }
+  loaders?: Loader[]
   callback: (collections: Collections) => void | Promise<void>
 }
 
@@ -22,19 +37,32 @@ type Options = {
   verbose?: boolean
 }
 
-export const resolveConfig = async (options: Options): Promise<Config> => {
-  const filename = options.filename ?? 'velite.config.js'
-  try {
-    const configPath = resolve(filename)
-    options.verbose && console.log(`using config '${configPath}'`)
-    const config = require(configPath)
-    if (options.root != null) config.root = options.root
-    setPublic(config.output.static, config.output.base)
-    return config
-  } catch (err: any) {
-    if (err.code !== 'ERR_MODULE_NOT_FOUND') throw err
-    throw new Error(filename + ' not found in cwd')
+const joycon = new JoyCon()
+
+export const resolveConfig = async (options: Options = {}): Promise<Config> => {
+  const configPaths = [options.filename, name + '.config.js', name + '..ts'].filter(Boolean) as string[]
+
+  joycon.addLoader({
+    test: /\.(js|cjs|mjs|ts)$/,
+    load: async filepath => {
+      const { mod: config } = await bundleRequire({ filepath })
+      return config.default || config
+    }
+  })
+
+  const { data: config, path } = await joycon.load(configPaths)
+
+  options.verbose && console.log(`using config '${path}'`)
+
+  if (options.root != null) config.root = options.root
+
+  if (config.loaders != null) {
+    config.loaders.forEach((loader: Loader) => addLoader(loader))
   }
+
+  init(config.output.static, config.output.base)
+
+  return config
 }
 
 // export for user config type inference

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+
 import { outputFile, outputImage } from './static'
 
 // prettier-ignore
@@ -18,3 +19,5 @@ export const shared = {
     return value
   })),
 }
+
+export { z }

@@ -2,9 +2,7 @@
 
 node_modules
 
-/dist
-
-/coverage
+dist
 
 package-lock.json
 pnpm-lock.yaml

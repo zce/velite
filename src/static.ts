@@ -2,22 +2,22 @@ import { createHash } from 'node:crypto'
 import { copyFile, readFile } from 'node:fs/promises'
 import { extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
+
 import type { Image } from './types'
 
 let outputConfig: { dir: string; base: string } | undefined
 
+/**
+ * set output config
+ * @param config output config
+ */
+export const init = (dir: string, base: string): void => {
+  outputConfig = { dir, base }
+}
+
 const outputCache = {
   files: new Set<string>(),
   images: new Map<string, Image>()
-}
-
-/**
- * set public directory and url prefix
- * @param dir public directory copied to
- * @param base url prefix for public access
- */
-export const setPublic = (dir: string, base: string): void => {
-  outputConfig = { dir, base }
 }
 
 /**
@@ -55,7 +55,7 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
  */
 const outputStatic = async (ref: string, fromPath: string, isImage?: true): Promise<Image | string> => {
   if (outputConfig == null) {
-    throw new Error('`setPublic` must be called before `outputStatic`')
+    throw new Error('output config not initialized')
   }
 
   // ignore absolute url

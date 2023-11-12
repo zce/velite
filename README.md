@@ -27,9 +27,38 @@ $ yarn add velite
 <!-- TODO: Introduction of Usage -->
 
 ```javascript
-const velite = require('velite')
-const result = velite('w')
-// result => 'w@zce.me'
+import { defineConfig, shared, z } from 'velite'
+
+export default defineConfig({
+  root: 'content',
+  output: {
+    data: 'dist',
+    static: 'dist/static',
+    base: '/static'
+  },
+  schemas: {
+    posts: {
+      name: 'Post',
+      pattern: 'posts/**/*.md',
+      fields: z
+        .object({
+          title: shared.title,
+          slug: shared.slug,
+          date: shared.date,
+          cover: shared.image,
+          description: shared.paragraph,
+          draft: z.boolean().default(false),
+          meta: shared.meta,
+          raw: z.string(),
+          plain: z.string(),
+          excerpt: z.string(),
+          html: z.string()
+        })
+        .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
+    }
+  },
+  callback: ({ posts }) => {}
+})
 ```
 
 ## API

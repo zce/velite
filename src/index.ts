@@ -1,3 +1,5 @@
-export { z } from 'zod'
+export { z, shared } from './shared'
 export { defineConfig } from './config'
-export { shared } from './shared'
+export { addLoader, removeLoader } from './loader'
+export { build } from './build'
+export { image } from './image'

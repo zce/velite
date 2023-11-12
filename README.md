@@ -139,7 +139,7 @@ Examples:
 
 [MIT](LICENSE) &copy; [zce](https://zce.me)
 
-[actions-img]: https://img.shields.io/github/workflow/status/zce/velite/CI
+[actions-img]: https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml?branch=main
 [actions-url]: https://github.com/zce/velite/actions
 [codecov-img]: https://img.shields.io/codecov/c/github/zce/velite
 [codecov-url]: https://codecov.io/gh/zce/velite

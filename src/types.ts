@@ -1,7 +1,7 @@
 /**
  * single data from document
  */
-export type Entry = Record<string, unknown>
+export type Entry = Record<string, any>
 
 /**
  * list of data from document

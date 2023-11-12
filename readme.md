@@ -10,6 +10,10 @@
 [![Dependency Status][dependency-img]][dependency-url]
 [![Code Style][style-img]][style-url]
 
+## TODOs
+
+- [ ] nextjs plugin
+
 ## Installation
 
 ```shell

@@ -1,5 +1,5 @@
 export { z, shared } from './shared'
 export { defineConfig } from './config'
-export { addLoader, removeLoader } from './loader'
+export { addLoader, removeLoader, addPlugin, removePlugin } from './loader'
 export { build } from './build'
 export { image } from './image'

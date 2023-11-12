@@ -18,7 +18,23 @@ export type Loader = {
   load: (file: VFile) => Promise<unknown>
 }
 
+type MdastPlugin = {
+  name: string
+  type: 'mdast'
+  apply: (mdast: ReturnType<typeof fromMarkdown>) => void | Promise<void>
+}
+
+type HastPlugin = {
+  name: string
+  type: 'hast'
+  apply: (hast: ReturnType<typeof toHast>) => void | Promise<void>
+}
+
+export type Plugin = MdastPlugin | HastPlugin
+
 const loaders: Loader[] = []
+
+const plugins: Plugin[] = []
 
 export const addLoader = (loader: Loader) => {
   loaders.unshift(loader)
@@ -27,6 +43,14 @@ export const addLoader = (loader: Loader) => {
 export const removeLoader = (name: string) => {
   const loader = loaders.find(loader => loader.name === name)
   loader && loaders.splice(loaders.indexOf(loader), 1)
+}
+export const addPlugin = (plugin: Plugin) => {
+  plugins.unshift(plugin)
+}
+
+export const removePlugin = (name: string) => {
+  const plugin = plugins.find(plugin => plugin.name === name)
+  plugin && plugins.splice(plugins.indexOf(plugin), 1)
 }
 
 export const load = (file: VFile) => {
@@ -118,10 +142,17 @@ addLoader({
     )
     // #endregion
 
+    // apply mdast plugins
+    await Promise.all(plugins.map(async p => p.type === 'mdast' && (await p.apply(mdast))))
+
     // generate markdown
     data.raw = toMarkdown(mdast, { extensions: [gfmToMarkdown()] })
     // parse to hast
     const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
+
+    // apply hast plugins
+    await Promise.all(plugins.map(async p => p.type === 'hast' && (await p.apply(hast))))
+
     // console.log((await import('unist-util-inspect')).inspect(hast))
     const lines: string[] = []
     visit(hast, 'text', node => {

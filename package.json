@@ -25,7 +25,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsc && tsup",
     "format": "prettier --write ."
   },
   "tsup": {

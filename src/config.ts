@@ -2,15 +2,14 @@ import { bundleRequire } from 'bundle-require'
 import JoyCon from 'joycon'
 
 import { name } from '../package.json'
-import { addLoader } from './loader'
+import { addLoader, addPlugin } from './loader'
 import { init } from './static'
 
-import type { Loader } from './loader'
+import type { Loader, Plugin } from './loader'
 import type { Collections } from './types'
 import type { ZodType } from 'zod'
 
 type Schema = {
-  name: string
   pattern: string
   single?: boolean
   fields: ZodType
@@ -29,6 +28,7 @@ type Config = {
   }
   schemas: { [name: string]: Schema }
   loaders?: Loader[]
+  plugins?: Plugin[]
   callback: (collections: Collections) => void | Promise<void>
 }
 
@@ -40,16 +40,16 @@ type Options = {
 
 const joycon = new JoyCon()
 
+joycon.addLoader({
+  test: /\.(js|cjs|mjs|ts)$/,
+  load: async filepath => {
+    const { mod: config } = await bundleRequire({ filepath })
+    return config.default || config
+  }
+})
+
 export const resolveConfig = async (options: Options = {}): Promise<Config> => {
   const configPaths = [options.filename, name + '.config.js', name + '.config.ts'].filter(Boolean) as string[]
-
-  joycon.addLoader({
-    test: /\.(js|cjs|mjs|ts)$/,
-    load: async filepath => {
-      const { mod: config } = await bundleRequire({ filepath })
-      return config.default || config
-    }
-  })
 
   const { data: config, path } = await joycon.load(configPaths)
 
@@ -59,6 +59,10 @@ export const resolveConfig = async (options: Options = {}): Promise<Config> => {
 
   if (config.loaders != null) {
     config.loaders.forEach((loader: Loader) => addLoader(loader))
+  }
+
+  if (config.plugins != null) {
+    config.plugins.forEach((plugin: Plugin) => addPlugin(plugin))
   }
 
   init(config.output.static, config.output.base)

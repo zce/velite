@@ -1,22 +1,14 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
-  "editor.quickSuggestions": {
-    "strings": true
-  },
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
     "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml",
-    "readme.md": "license, changelog.md"
+    "readme.md": "license"
   },
-  // exclude files that are not frequently modified or built.
   "files.exclude": {
     "node_modules": true
   },
-  "javascript.preferences.quoteStyle": "single",
-  "javascript.updateImportsOnFileMove.enabled": "never",
-  "typescript.preferences.quoteStyle": "single",
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.updateImportsOnFileMove.enabled": "never"
+  "typescript.tsdk": "node_modules/typescript/lib"
 }

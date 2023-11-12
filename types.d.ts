@@ -1,0 +1,1 @@
+declare module 'load-tsconfig'

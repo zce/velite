@@ -4,6 +4,7 @@
     "module": "es2022",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
+    "noEmit": true,
     "strict": true
   }
 }

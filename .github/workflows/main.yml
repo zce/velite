@@ -1,7 +1,5 @@
 name: CI
-
 on: push
-
 jobs:
   publish:
     if: startsWith(github.ref, 'refs/tags')

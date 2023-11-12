@@ -69,7 +69,7 @@ export const build = async (options: Options) => {
     collections.map(async ([name, data]) => {
       const output = JSON.stringify(data, null, 2)
       await writeFile(join(config.output.data, name + '.json'), output)
-      console.log(`wrote ${data.length} ${name} to '${join(config.output.data, name + '.json')}'`)
+      console.log(`wrote ${data.length ?? 1} ${name} to '${join(config.output.data, name + '.json')}'`)
     })
   )
 }

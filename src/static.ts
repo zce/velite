@@ -87,9 +87,9 @@ const outputStatic = async (ref: string, fromPath: string, isImage?: true): Prom
  * @param path source file path
  * @returns reference public url
  */
-export const outputFile = async (ref: string | undefined, fromPath: string): Promise<string | undefined> => {
+export const outputFile = async <T extends string | undefined>(ref: T, fromPath: string): Promise<T> => {
   if (ref == null) return ref
-  return outputStatic(ref, fromPath) as Promise<string>
+  return outputStatic(ref, fromPath) as Promise<T>
 }
 
 /**
@@ -98,7 +98,7 @@ export const outputFile = async (ref: string | undefined, fromPath: string): Pro
  * @param path source file path
  * @returns reference public url or image object
  */
-export const outputImage = async (ref: string | undefined, fromPath: string): Promise<Image | string | undefined> => {
+export const outputImage = async <T extends string | undefined>(ref: T, fromPath: string): Promise<Image | T> => {
   if (ref == null) return ref
-  return outputStatic(ref, fromPath, true)
+  return outputStatic(ref, fromPath, true) as Promise<Image | T>
 }

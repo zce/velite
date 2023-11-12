@@ -4,11 +4,9 @@ import { ZodType } from 'zod'
 
 import { load } from './loader'
 
-import type { Collection } from './types'
-
 declare module 'vfile' {
   interface DataMap {
-    result: Collection
+    result: import('./types').Collection
   }
 }
 

@@ -49,6 +49,13 @@ export const build = async (options: Options) => {
       .flat()
       .filter(Boolean)
 
+    if (schema.single) {
+      if (data.length > 1) {
+        throw new Error(`found ${data.length} items for '${name}', but expected only one`)
+      }
+      return [name, data[0]] as const
+    }
+
     return [name, data] as const
   })
 

@@ -12,6 +12,7 @@ import type { ZodType } from 'zod'
 type Schema = {
   name: string
   pattern: string
+  single?: boolean
   fields: ZodType
 }
 

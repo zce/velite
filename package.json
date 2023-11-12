@@ -43,11 +43,6 @@
     }
   },
   "prettier": "@zce/prettier-config",
-  "renovate": {
-    "extends": [
-      "zce"
-    ]
-  },
   "dependencies": {
     "bundle-require": "latest",
     "cac": "latest",

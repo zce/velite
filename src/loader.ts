@@ -12,6 +12,9 @@ import yaml from 'yaml'
 
 import { outputFile } from './static'
 
+import type { Nodes as HastNodes } from 'hast'
+import type { Nodes as MdstNodes } from 'mdast'
+
 export type Loader = {
   name: string
   test: RegExp
@@ -21,13 +24,13 @@ export type Loader = {
 type MdastPlugin = {
   name: string
   type: 'mdast'
-  apply: (mdast: ReturnType<typeof fromMarkdown>) => void | Promise<void>
+  apply: (mdast: MdstNodes, frontmatter: Record<string, any>, tool: typeof visit) => void | Promise<void>
 }
 
 type HastPlugin = {
   name: string
   type: 'hast'
-  apply: (hast: ReturnType<typeof toHast>) => void | Promise<void>
+  apply: (hast: HastNodes, frontmatter: Record<string, any>, tool: typeof visit) => void | Promise<void>
 }
 
 export type Plugin = MdastPlugin | HastPlugin
@@ -108,7 +111,6 @@ addLoader({
     // flatten listitem paragraph https://gitlab.com/staltz/mdast-flatten-listitem-paragraphs/-/blob/master/index.js
     visit(mdast, 'listItem', node => {
       if (node.children.length === 1 && node.children[0].type === 'paragraph') {
-        node.type = 'paragraph' as any
         node.children = node.children[0].children as any
       }
     })
@@ -143,7 +145,7 @@ addLoader({
     // #endregion
 
     // apply mdast plugins
-    await Promise.all(plugins.map(async p => p.type === 'mdast' && (await p.apply(mdast))))
+    await Promise.all(plugins.map(async p => p.type === 'mdast' && (await p.apply(mdast, data, visit))))
 
     // generate markdown
     data.raw = toMarkdown(mdast, { extensions: [gfmToMarkdown()] })
@@ -151,7 +153,7 @@ addLoader({
     const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
 
     // apply hast plugins
-    await Promise.all(plugins.map(async p => p.type === 'hast' && (await p.apply(hast))))
+    await Promise.all(plugins.map(async p => p.type === 'hast' && (await p.apply(hast, data, visit))))
 
     // console.log((await import('unist-util-inspect')).inspect(hast))
     const lines: string[] = []

@@ -25,10 +25,14 @@ export class File extends VFile {
 
       const list = Array.isArray(original) ? original : [original]
       const processed = await Promise.all(
-        list.map(async item => {
-          const result = await schema.safeParseAsync(item, { path: [this.path] })
+        list.map(async (item, index) => {
+          const path: (string | number)[] = [this.path]
+          if (list.length > 1) path.push(index)
+          const result = await schema.safeParseAsync(item, { path })
           if (result.success) return result.data
-          this.message(result.error.message)
+          result.error.issues.forEach(issue => {
+            this.message(issue.message, { source: issue.path.slice(1).join('.') })
+          })
         })
       )
 

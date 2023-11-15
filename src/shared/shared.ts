@@ -86,3 +86,4 @@ export const image = () =>
   )
 
 export { markdown } from './markdown'
+export { mdx } from './mdx'

@@ -43,8 +43,8 @@ const getBuiltInPlugins = (plugins?: BuiltinPlugins) => {
   })
 }
 
-export const markdown = (options: MarkdownOptions = {}) => {
-  return z.string().transform(async (value, ctx): Promise<MarkdownBody> => {
+export const markdown = (options: MarkdownOptions = {}) =>
+  z.string().transform(async (value, ctx): Promise<MarkdownBody> => {
     const file = await unified()
       .use(remarkParse) // Parse markdown content to a syntax tree
       .use(remarkGfm) // Support GFM (autolink literals, footnotes, strikethrough, tables, tasklists).
@@ -74,4 +74,3 @@ export const markdown = (options: MarkdownOptions = {}) => {
       html: file.toString()
     }
   })
-}

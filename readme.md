@@ -10,8 +10,23 @@
 [![Dependency Status][dependency-img]][dependency-url]
 [![Code Style][style-img]][style-url]
 
+
+## Structure
+
+```text
+cli ---------------------- cli entry
+lib ---------------------- core library
+  ├── core ---------------- core functions
+  ├── plugins ------------- plugins
+  ├── schemas ------------- schemas
+  ├── utils --------------- utils
+  └── index.js ------------ core entry
+```
+
+
 ## TODOs
 
+- [ ] loaders & plugins
 - [ ] nextjs plugin
 
 ## Installation

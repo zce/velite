@@ -58,6 +58,7 @@
     "micromark-extension-gfm": "latest",
     "ora": "latest",
     "sharp": "latest",
+    "tsx": "latest",
     "unist-util-visit": "latest",
     "vfile": "latest",
     "vfile-reporter": "latest",

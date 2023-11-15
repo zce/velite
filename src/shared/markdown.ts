@@ -1,104 +1,77 @@
+import rehypeRaw from 'rehype-raw'
+import rehypeStringify from 'rehype-stringify'
+import remarkGfm from 'remark-gfm'
+import remarkParse from 'remark-parse'
+import remarkRehype from 'remark-rehype'
+import { unified } from 'unified'
 import z from 'zod'
 
+import extractExcerpt from '../plugins/extract-excerpt'
+import extractLinkedFiles from '../plugins/extract-linked-files'
+import flattenImage from '../plugins/flatten-image'
+import flattenListItem from '../plugins/flatten-listitem'
+import removeComments from '../plugins/remove-comments'
+
+import type { PluggableList } from 'unified'
+
 interface MarkdownBody {
-  raw: string
+  // raw: string
   plain: string
   excerpt: string
   html: string
 }
 
-export const markdown = () =>
-  z.string().transform((value, ctx): MarkdownBody => {
-    return {} as any
+type BuiltinPlugins = Array<'remove-comments' | 'flatten-image' | 'flatten-listitem'>
+
+interface MarkdownOptions {
+  builtinPlugins?: BuiltinPlugins
+  remarkPlugins?: PluggableList
+  rehypePlugins?: PluggableList
+}
+
+const getBuiltInPlugins = (plugins?: BuiltinPlugins) => {
+  if (plugins == null) return []
+  return plugins.map(p => {
+    switch (p) {
+      case 'remove-comments':
+        return removeComments
+      case 'flatten-image':
+        return flattenImage
+      case 'flatten-listitem':
+        return flattenListItem
+    }
   })
+}
 
-// addLoader({
-//   name: 'markdown',
-//   test: /\.(md|mdx)$/,
-//   load: async file => {
-//     const content = file.toString()
-//     // https://github.com/vfile/vfile-matter/blob/main/lib/index.js
-//     const match = content.match(/^---(?:\r?\n|\r)(?:([\s\S]*?)(?:\r?\n|\r))?---(?:\r?\n|\r|$)/)
-//     if (match == null) {
-//       throw new Error('frontmatter is required')
-//     }
-//     const data = yaml.parse(match[1])
-//     const document = content.slice(match[0].length).trim()
-//     const mdast = fromMarkdown(document, { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] })
+export const markdown = (options: MarkdownOptions = {}) => {
+  return z.string().transform(async (value, ctx): Promise<MarkdownBody> => {
+    const file = await unified()
+      .use(remarkParse) // Parse markdown content to a syntax tree
+      .use(remarkGfm) // Support GFM (autolink literals, footnotes, strikethrough, tables, tasklists).
+      .use(getBuiltInPlugins(options.builtinPlugins)) // apply built-in plugins
+      .use(options.remarkPlugins ?? []) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
+      .use(remarkRehype, { allowDangerousHtml: true }) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
+      .use(rehypeRaw) // Parse the html content to a syntax tree
+      .use(options.rehypePlugins ?? []) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
+      .use(extractLinkedFiles) // Extract linked files and replace their URLs with public URLs
+      .use(extractExcerpt) // Extract excerpt and plain
+      .use(rehypeStringify) // Serialize HTML syntax tree
+      .process({ value, path: ctx.path[0] as string })
 
-//     // #region format mdast
-//     // remove comments
-//     visit(mdast, 'html', node => {
-//       if (node.value.startsWith('<!--')) {
-//         node.type = 'text' as any
-//         node.value = ''
-//       }
-//     })
-//     // flatten image paragraph https://gitlab.com/staltz/mdast-flatten-image-paragraphs/-/blob/master/index.js
-//     visit(mdast, 'paragraph', node => {
-//       if (node.children.length === 1 && node.children[0].type === 'image') {
-//         Object.assign(node, node.children[0], { children: undefined })
-//       }
-//     })
-//     // flatten listitem paragraph https://gitlab.com/staltz/mdast-flatten-listitem-paragraphs/-/blob/master/index.js
-//     visit(mdast, 'listItem', node => {
-//       if (node.children.length === 1 && node.children[0].type === 'paragraph') {
-//         node.children = node.children[0].children as any
-//       }
-//     })
-//     // console.log((await import('unist-util-inspect')).inspect(mdast))
-//     // #endregion
+    const replaces = file.data.replaces as Map<string, string>
 
-//     // #region extract rel links and copy to public
-//     const links = new Map()
-//     visit(mdast, ['link', 'image'], node => {
-//       'url' in node && links.set(node.url, node)
-//     })
-//     visit(mdast, 'html', node => {
-//       visit(fromHtml(node.value), 'element', ele => {
-//         if (typeof ele.properties.href === 'string') links.set(ele.properties.href, node)
-//         if (typeof ele.properties.src === 'string') links.set(ele.properties.src, node)
-//       })
-//     })
-//     await Promise.all(
-//       [...links.entries()].map(async ([url, node]) => {
-//         const publicUrl = await outputFile(url, file.path)
-//         if (publicUrl == null || publicUrl === url) return
-//         if ('url' in node) {
-//           // link or image node
-//           node.url = publicUrl
-//         }
-//         if ('value' in node) {
-//           // html node
-//           node.value = node.value.replaceAll(url, publicUrl)
-//         }
-//       })
-//     )
-//     // #endregion
+    // // replace links
+    // if (replaces != null) {
+    //   for (const [url, publicUrl] of replaces.entries()) {
+    //     value = value.replaceAll(url, publicUrl)
+    //   }
+    // }
 
-//     // apply mdast plugins
-//     await Promise.all(plugins.map(async p => p.type === 'mdast' && (await p.apply(mdast, data, visit))))
-
-//     // generate markdown
-//     data.raw = toMarkdown(mdast, { extensions: [gfmToMarkdown()] })
-//     // parse to hast
-//     const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
-
-//     // apply hast plugins
-//     await Promise.all(plugins.map(async p => p.type === 'hast' && (await p.apply(hast, data, visit))))
-
-//     // console.log((await import('unist-util-inspect')).inspect(hast))
-//     const lines: string[] = []
-//     visit(hast, 'text', node => {
-//       lines.push(node.value)
-//     })
-//     // extract plain
-//     data.plain = lines.join('').trim()
-//     // extract excerpt
-//     data.excerpt = data.plain.slice(0, 100)
-//     // generate html
-//     data.html = toHtml(hast)
-
-//     return data
-//   }
-// })
+    return {
+      // raw: value,
+      plain: file.data.plain as string,
+      excerpt: file.data.excerpt as string,
+      html: file.toString()
+    }
+  })
+}

@@ -8,7 +8,7 @@ import type { Output } from '../types'
 /**
  * Image object with metadata & blur image
  */
-interface Image {
+export interface Image {
   src: string
   height: number
   width: number

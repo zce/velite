@@ -58,7 +58,7 @@ export const markdown = (options: MarkdownOptions = {}) => {
       .use(rehypeStringify) // Serialize HTML syntax tree
       .process({ value, path: ctx.path[0] as string })
 
-    const replaces = file.data.replaces as Map<string, string>
+    // const replaces = file.data.replaces as Map<string, string>
 
     // // replace links
     // if (replaces != null) {

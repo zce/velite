@@ -1,5 +1,9 @@
-export { z, shared } from './shared'
-export { defineConfig } from './config'
-export { addLoader, removeLoader, addPlugin, removePlugin } from './loader'
-export { build } from './build'
-export { image } from './image'
+/**
+ * @file module entry point
+ */
+
+export { z } from 'zod'
+export { s, shared } from './shared'
+export { defineConfig, defineLoader } from './types'
+export { addLoader, removeLoader } from './loaders'
+export { build } from './builder'

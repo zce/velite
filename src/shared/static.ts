@@ -3,16 +3,28 @@ import { copyFile, readFile } from 'node:fs/promises'
 import { extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
 
-import type { Image } from './types'
-
-let outputConfig: { dir: string; base: string } | undefined
+import type { Output } from '../types'
 
 /**
- * set output config
- * @param config output config
+ * Image object with metadata & blur image
  */
-export const init = (dir: string, base: string): void => {
-  outputConfig = { dir, base }
+interface Image {
+  src: string
+  height: number
+  width: number
+  blurDataURL: string
+  blurWidth: number
+  blurHeight: number
+}
+
+let outputConfig: Output | undefined
+
+/**
+ * set output config, required to call before output
+ * @param output output config
+ */
+export const initOutputConfig = (output: Output): void => {
+  outputConfig = output
 }
 
 const outputCache = {
@@ -65,10 +77,10 @@ const outputStatic = async (ref: string, fromPath: string, isImage?: true): Prom
   const from = resolve(fromPath, '..', ref)
   const source = await readFile(from)
   const name = md5(source) + extname(ref)
-  const src = `${outputConfig.base}/${name}`
+  const src = `${outputConfig.publicPath}/${name}`
   if (isImage == null) {
     if (outputCache.files.has(name)) return src
-    await copyFile(from, join(outputConfig.dir, name))
+    await copyFile(from, join(outputConfig.static, name))
     outputCache.files.add(name) // not await works, but await not works, becareful if copy failed
     return src
   }
@@ -76,7 +88,7 @@ const outputStatic = async (ref: string, fromPath: string, isImage?: true): Prom
   const img = await getImageMetadata(source)
   if (img == null) return ref
   const image = { src, ...img }
-  await copyFile(from, join(outputConfig.dir, name))
+  await copyFile(from, join(outputConfig.static, name))
   outputCache.images.set(name, image)
   return image
 }

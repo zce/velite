@@ -1,74 +1,122 @@
-import { bundleRequire } from 'bundle-require'
-import JoyCon from 'joycon'
+/**
+ * @file Load config from user's project
+ */
+
+import { access, rm } from 'node:fs/promises'
+import { dirname, join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { build } from 'esbuild'
 
 import { name } from '../package.json'
-import { addLoader, addPlugin } from './loader'
-import { init } from './static'
 
-import type { Loader, Plugin } from './loader'
-import type { Collections } from './types'
-import type { ZodType } from 'zod'
+import type { Config, UserConfig } from './types'
 
-type Schema = {
-  pattern: string
-  single?: boolean
-  fields: ZodType
+const isRootPath = (path: string): boolean => path === '/' || path.endsWith(':\\')
+
+/**
+ * recursively search files in parent directories
+ * @param files filenames
+ * @param cwd start directory
+ * @param depth search depth
+ * @returns filename searched
+ */
+const search = async (files: string[], cwd: string = process.cwd(), depth: number = 3): Promise<string | undefined> => {
+  for (const file of files) {
+    const filepath = join(cwd, file)
+    try {
+      await access(filepath)
+      return filepath
+    } catch {
+      continue
+    }
+  }
+  if (depth > 0 && !isRootPath(cwd)) {
+    return await search(files, join(cwd, '..'), depth - 1)
+  }
 }
 
-type Config = {
-  root: string
-  output: {
-    data: string
-    static: string
-    base: string
+/**
+ * load config module by esbuild
+ * @param filename config filename
+ * @returns config module
+ */
+const loadConfig = async (filename: string): Promise<UserConfig> => {
+  if (!/\.(js|mjs|cjs|ts|mts|cts)$/.test(filename)) {
+    const ext = filename.split('.').pop()
+    throw new Error(`not supported config file with '${ext}' extension`)
   }
-  image?: {
-    sizes?: number[]
-    quality?: number
+
+  // const { text, path } = result.outputFiles[0]
+  // const mod = await import(`data:text/javascript;base64,${Buffer.from(text).toString('base64')}`)
+  // return mod.default ?? mod
+
+  const outfile = join(filename, '..', '.velite.config.mjs')
+  try {
+    await build({
+      entryPoints: [filename],
+      bundle: true,
+      write: true,
+      format: 'esm',
+      target: 'node18',
+      platform: 'node',
+      sourcemap: 'inline',
+      external: ['velite'],
+      outfile
+    })
+    const mod = await import(pathToFileURL(outfile).href)
+    return mod.default ?? mod
+  } catch (err: any) {
+    throw new Error(`load config failed: ${err.message}`)
+  } finally {
+    await rm(outfile, { force: true })
   }
-  schemas: { [name: string]: Schema }
-  loaders?: Loader[]
-  plugins?: Plugin[]
-  callback: (collections: Collections) => void | Promise<void>
 }
 
-type Options = {
-  root?: string
+interface Options {
   filename?: string
+  clean?: boolean
   verbose?: boolean
 }
 
-const joycon = new JoyCon()
-
-joycon.addLoader({
-  test: /\.(js|cjs|mjs|ts)$/,
-  load: async filepath => {
-    const { mod: config } = await bundleRequire({ filepath })
-    return config.default || config
-  }
-})
-
+/**
+ * resolve config from user's project
+ * @param options options from CLI
+ * @returns config object with default values
+ */
 export const resolveConfig = async (options: Options = {}): Promise<Config> => {
-  const configPaths = [options.filename, name + '.config.js', name + '.config.ts'].filter(Boolean) as string[]
+  // prettier-ignore
+  const files = [
+    name + '.config.js',
+    name + '.config.mjs',
+    name + '.config.cjs',
+    name + '.config.ts',
+    name + '.config.mts',
+    name + '.config.cts'
+  ]
+  options.filename != null && files.unshift(options.filename)
 
-  const { data: config, path } = await joycon.load(configPaths)
+  const filename = await search(files)
+  if (filename == null) throw new Error(`config file not found`)
 
-  options.verbose && console.log(`using config '${path}'`)
+  options.verbose && console.log(`using config '${filename}'`)
 
-  if (options.root != null) config.root = options.root
+  const userConfig: UserConfig = await loadConfig(filename)
 
-  if (config.loaders != null) {
-    config.loaders.forEach((loader: Loader) => addLoader(loader))
+  if (userConfig.schemas == null) throw new Error(`'schemas' is required in config file`)
+
+  const dir = dirname(filename)
+
+  return {
+    root: resolve(dir, userConfig.root ?? 'content'),
+    output: {
+      data: resolve(dir, userConfig.output?.data ?? '.velite'),
+      static: resolve(dir, userConfig.output?.static ?? 'public/static'),
+      publicPath: userConfig.output?.publicPath ?? '/static'
+    },
+    clean: options.clean ?? userConfig.clean ?? false,
+    verbose: options.verbose ?? userConfig.verbose ?? false,
+    schemas: userConfig.schemas,
+    loaders: userConfig.loaders ?? [],
+    onSuccess: userConfig.onSuccess
   }
-
-  if (config.plugins != null) {
-    config.plugins.forEach((plugin: Plugin) => addPlugin(plugin))
-  }
-
-  init(config.output.static, config.output.base)
-
-  return config
 }
-
-// export for user config type inference
-export const defineConfig = (config: Config): Config => config

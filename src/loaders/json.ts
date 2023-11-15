@@ -8,6 +8,6 @@ export default defineLoader({
   name: 'json',
   test: /\.json$/,
   load: async vfile => {
-    vfile.data.result = JSON.parse(vfile.toString())
+    vfile.data.original = JSON.parse(vfile.toString())
   }
 })

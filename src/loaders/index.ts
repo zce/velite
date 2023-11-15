@@ -7,7 +7,12 @@ import type { Loader } from '../types'
 const loaders = [json, yaml, markdown]
 
 export const addLoader = (loader: Loader): void => {
-  loaders.unshift(loader)
+  const index = loaders.findIndex(item => item.name === loader.name)
+  if (index === -1) {
+    loaders.unshift(loader)
+  } else {
+    loaders[index] = loader
+  }
 }
 
 export const removeLoader = (name: string): void => {

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "velite build --watch",
+    "dev": "velite --watch",
     "build": "velite build"
   },
   "author": "zce <w@zce.me> (https://zce.me/)",

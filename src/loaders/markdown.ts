@@ -19,6 +19,7 @@ export default defineLoader({
       return
     }
     const data = yaml.parse(match[1])
+    // keep original body
     data.body = content.slice(match[0].length).trim()
     vfile.data.original = data
   }

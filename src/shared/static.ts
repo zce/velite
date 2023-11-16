@@ -27,6 +27,15 @@ export const initOutputConfig = (output: Output): void => {
   outputConfig = output
 }
 
+// /**
+//  * get output config
+//  * @returns output config
+//  */
+// export const getOutputConfig = (): Output => {
+//   if (outputConfig == null) throw new Error('output config not initialized')
+//   return outputConfig
+// }
+
 const outputCache = {
   files: new Set<string>(),
   images: new Map<string, Image>()

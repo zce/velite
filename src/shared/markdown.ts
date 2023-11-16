@@ -15,67 +15,51 @@ import remarkRemoveComments from '../plugins/remark-remove-comments'
 import type { PluggableList } from 'unified'
 
 interface MarkdownBody {
-  // raw: string
   plain: string
   excerpt: string
   html: string
 }
 
-type BuiltinPlugins = Array<'remove-comments' | 'flatten-image' | 'flatten-listitem'>
-
 interface MarkdownOptions {
-  builtinPlugins?: BuiltinPlugins
+  gfm?: boolean
+  removeComments?: boolean
+  flattenImage?: boolean
+  flattenListItem?: boolean
   remarkPlugins?: PluggableList
   rehypePlugins?: PluggableList
 }
 
-const getBuiltInPlugins = (plugins?: BuiltinPlugins) => {
-  if (plugins == null) return []
-  return plugins.map(p => {
-    switch (p) {
-      case 'remove-comments':
-        return remarkRemoveComments
-      case 'flatten-image':
-        return remarkFlattenImage
-      case 'flatten-listitem':
-        return remarkFlattenListItem
-    }
-  })
-}
-
-export const markdown = (options: MarkdownOptions = {}) =>
+export const markdown = ({ gfm = true, removeComments = true, flattenImage = true, flattenListItem = true, remarkPlugins, rehypePlugins }: MarkdownOptions = {}) =>
   z.string().transform(async (value, ctx): Promise<MarkdownBody> => {
+    const file = unified().use(remarkParse) // parse markdown content to a syntax tree
+    if (gfm) file.use(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
+    if (removeComments) file.use(remarkRemoveComments) // remove html comments
+    if (flattenImage) file.use(remarkFlattenImage) // flatten image paragraph
+    if (flattenListItem) file.use(remarkFlattenListItem) // flatten list item paragraph
+    if (remarkPlugins != null) file.use(remarkPlugins) // apply remark plugins
+    file.use(remarkRehype, { allowDangerousHtml: true }).use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
+    if (rehypePlugins != null) file.use(rehypePlugins) // apply rehype plugins
+    file.use(rehypeCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
+    file.use(rehypeExtractExcerpt) // extract excerpt and plain into file.data
+    // if (process.env.NODE_ENV === 'production') file.use(rehypePresetMinify) // minify html syntax tree
+    file.use(rehypeStringify) // serialize html syntax tree
     try {
-      const file = await unified()
-        .use(remarkParse) // Parse markdown content to a syntax tree
-        .use(remarkGfm) // Support GFM (autolink literals, footnotes, strikethrough, tables, tasklists).
-        .use(getBuiltInPlugins(options.builtinPlugins)) // apply built-in plugins
-        .use(options.remarkPlugins ?? []) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
-        .use(remarkRehype, { allowDangerousHtml: true }) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
-        .use(rehypeRaw) // Parse the html content to a syntax tree
-        .use(options.rehypePlugins ?? []) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
-        .use(rehypeCopyLinkedFiles) // Copy linked files to public path and replace their URLs with public URLs
-        .use(rehypeExtractExcerpt) // Extract excerpt and plain into file.data
-        .use(rehypeStringify) // Serialize HTML syntax tree
-        .process({ value, path: ctx.path[0] as string })
-
+      const html = await file.process({ value, path: ctx.path[0] as string })
       // const replaces = file.data.replaces as Map<string, string>
-
       // // replace links
       // if (replaces != null) {
       //   for (const [url, publicUrl] of replaces.entries()) {
       //     value = value.replaceAll(url, publicUrl)
       //   }
       // }
-
       return {
         // raw: value,
-        plain: file.data.plain as string,
-        excerpt: file.data.excerpt as string,
-        html: file.toString()
+        excerpt: html.data.excerpt as string,
+        plain: html.data.plain as string,
+        html: html.toString()
       }
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })
-      return { plain: '', excerpt: '', html: '' }
+      return {} as MarkdownBody
     }
   })

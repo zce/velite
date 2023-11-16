@@ -14,12 +14,6 @@ import remarkRemoveComments from '../plugins/remark-remove-comments'
 
 import type { PluggableList } from 'unified'
 
-interface MarkdownBody {
-  plain: string
-  excerpt: string
-  html: string
-}
-
 interface MarkdownOptions {
   gfm?: boolean
   removeComments?: boolean
@@ -30,7 +24,7 @@ interface MarkdownOptions {
 }
 
 export const markdown = ({ gfm = true, removeComments = true, flattenImage = true, flattenListItem = true, remarkPlugins, rehypePlugins }: MarkdownOptions = {}) =>
-  z.string().transform(async (value, ctx): Promise<MarkdownBody> => {
+  z.string().transform(async (value, ctx) => {
     const file = unified().use(remarkParse) // parse markdown content to a syntax tree
     if (gfm) file.use(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) file.use(remarkRemoveComments) // remove html comments
@@ -45,21 +39,9 @@ export const markdown = ({ gfm = true, removeComments = true, flattenImage = tru
     file.use(rehypeStringify) // serialize html syntax tree
     try {
       const html = await file.process({ value, path: ctx.path[0] as string })
-      // const replaces = file.data.replaces as Map<string, string>
-      // // replace links
-      // if (replaces != null) {
-      //   for (const [url, publicUrl] of replaces.entries()) {
-      //     value = value.replaceAll(url, publicUrl)
-      //   }
-      // }
-      return {
-        // raw: value,
-        excerpt: html.data.excerpt as string,
-        plain: html.data.plain as string,
-        html: html.toString()
-      }
+      return html.toString()
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })
-      return {} as MarkdownBody
+      return value
     }
   })

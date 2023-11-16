@@ -19,8 +19,8 @@ export default defineLoader({
       return
     }
     const data = yaml.parse(match[1])
-    // keep original body
-    data.body = content.slice(match[0].length).trim()
-    vfile.data.original = data
+    const raw = content.slice(match[0].length).trim()
+    // keep original content with multiple keys in vfile.data for later use
+    vfile.data.original = Object.assign(data, { raw, excerpt: raw, plain: raw, html: raw, body: raw, code: raw })
   }
 })

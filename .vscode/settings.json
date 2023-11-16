@@ -10,5 +10,11 @@
   "files.exclude": {
     "node_modules": true
   },
+  "json.schemas": [
+    {
+      "url": "https://cdn.jsdelivr.net/npm/tsup/schema.json",
+      "fileMatch": ["package.json"]
+    }
+  ],
   "typescript.tsdk": "node_modules/typescript/lib"
 }

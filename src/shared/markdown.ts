@@ -6,11 +6,11 @@ import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 import z from 'zod'
 
-import copyLinkedFiles from '../plugins/copy-linked-files'
-import extractExcerpt from '../plugins/extract-excerpt'
-import flattenImage from '../plugins/flatten-image'
-import flattenListItem from '../plugins/flatten-listitem'
-import removeComments from '../plugins/remove-comments'
+import rehypeCopyLinkedFiles from '../plugins/rehype-copy-linked-files'
+import rehypeExtractExcerpt from '../plugins/rehype-extract-excerpt'
+import remarkFlattenImage from '../plugins/remark-flatten-image'
+import remarkFlattenListItem from '../plugins/remark-flatten-listitem'
+import remarkRemoveComments from '../plugins/remark-remove-comments'
 
 import type { PluggableList } from 'unified'
 
@@ -34,43 +34,48 @@ const getBuiltInPlugins = (plugins?: BuiltinPlugins) => {
   return plugins.map(p => {
     switch (p) {
       case 'remove-comments':
-        return removeComments
+        return remarkRemoveComments
       case 'flatten-image':
-        return flattenImage
+        return remarkFlattenImage
       case 'flatten-listitem':
-        return flattenListItem
+        return remarkFlattenListItem
     }
   })
 }
 
 export const markdown = (options: MarkdownOptions = {}) =>
   z.string().transform(async (value, ctx): Promise<MarkdownBody> => {
-    const file = await unified()
-      .use(remarkParse) // Parse markdown content to a syntax tree
-      .use(remarkGfm) // Support GFM (autolink literals, footnotes, strikethrough, tables, tasklists).
-      .use(getBuiltInPlugins(options.builtinPlugins)) // apply built-in plugins
-      .use(options.remarkPlugins ?? []) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
-      .use(remarkRehype, { allowDangerousHtml: true }) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
-      .use(rehypeRaw) // Parse the html content to a syntax tree
-      .use(options.rehypePlugins ?? []) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
-      .use(copyLinkedFiles) // Copy linked files to public path and replace their URLs with public URLs
-      .use(extractExcerpt) // Extract excerpt and plain
-      .use(rehypeStringify) // Serialize HTML syntax tree
-      .process({ value, path: ctx.path[0] as string })
+    try {
+      const file = await unified()
+        .use(remarkParse) // Parse markdown content to a syntax tree
+        .use(remarkGfm) // Support GFM (autolink literals, footnotes, strikethrough, tables, tasklists).
+        .use(getBuiltInPlugins(options.builtinPlugins)) // apply built-in plugins
+        .use(options.remarkPlugins ?? []) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
+        .use(remarkRehype, { allowDangerousHtml: true }) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
+        .use(rehypeRaw) // Parse the html content to a syntax tree
+        .use(options.rehypePlugins ?? []) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
+        .use(rehypeCopyLinkedFiles) // Copy linked files to public path and replace their URLs with public URLs
+        .use(rehypeExtractExcerpt) // Extract excerpt and plain into file.data
+        .use(rehypeStringify) // Serialize HTML syntax tree
+        .process({ value, path: ctx.path[0] as string })
 
-    // const replaces = file.data.replaces as Map<string, string>
+      // const replaces = file.data.replaces as Map<string, string>
 
-    // // replace links
-    // if (replaces != null) {
-    //   for (const [url, publicUrl] of replaces.entries()) {
-    //     value = value.replaceAll(url, publicUrl)
-    //   }
-    // }
+      // // replace links
+      // if (replaces != null) {
+      //   for (const [url, publicUrl] of replaces.entries()) {
+      //     value = value.replaceAll(url, publicUrl)
+      //   }
+      // }
 
-    return {
-      // raw: value,
-      plain: file.data.plain as string,
-      excerpt: file.data.excerpt as string,
-      html: file.toString()
+      return {
+        // raw: value,
+        plain: file.data.plain as string,
+        excerpt: file.data.excerpt as string,
+        html: file.toString()
+      }
+    } catch (err: any) {
+      ctx.addIssue({ code: 'custom', message: err.message })
+      return { plain: '', excerpt: '', html: '' }
     }
   })

@@ -38,14 +38,19 @@ export interface Output {
   /**
    * The output directory of the static files,
    * recommended to set it to a subdirectory under public for accessible
-   * @default 'public/static'
+   * @default 'public'
    */
   static: string
   /**
    * The public base path of the static files
-   * @default '/static'
+   * @default '/static/[name]-[hash:8].[ext]'
    */
-  publicPath: string
+  filename: string
+  /**
+   * The ext blacklist of the static files, such as ['md']
+   * @default []
+   */
+  ignoreFileExtensions: string[]
 }
 
 /**
@@ -83,12 +88,6 @@ export interface Schema {
    * })
    */
   fields: ZodType
-}
-
-export interface MarkdownOptions {
-  // PluggableList
-  remarkPlugins?: any[]
-  rehypePlugins?: any[]
 }
 
 /**

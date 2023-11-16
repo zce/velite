@@ -81,6 +81,9 @@ class Builder {
    */
   async output() {
     const { output } = this.config
+
+    await mkdir(output.data, { recursive: true })
+
     await Promise.all(
       Object.entries(this.result).map(async ([name, data]) => {
         if (data == null) return
@@ -111,10 +114,10 @@ class Builder {
       config.verbose && console.log('cleaned output directories')
     }
 
-    // ensure output directories exist
-    await mkdir(config.output.data, { recursive: true })
-    await mkdir(config.output.static, { recursive: true })
-    config.verbose && console.log('ensured output directories')
+    // // ensure output directories exist
+    // await mkdir(config.output.data, { recursive: true })
+    // await mkdir(config.output.static, { recursive: true })
+    // config.verbose && console.log('ensured output directories')
 
     return new Builder(config)
   }

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
-import { copyFile, readFile } from 'node:fs/promises'
-import { extname, join, resolve } from 'node:path'
+import { copyFile, mkdir, readFile } from 'node:fs/promises'
+import { basename, dirname, extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
 
 import type { Output } from '../types'
@@ -58,6 +58,30 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
   return { height, width, blurDataURL, blurWidth, blurHeight }
 }
 
+// https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
+const absoluteUrlRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
+const absolutePathRegex = /^\/[^/\\]/
+
+const isValidatedStaticPath = (url: string): boolean => {
+  if (outputConfig == null || outputConfig.ignoreFileExtensions == null) {
+    throw new Error('output config not initialized')
+  }
+  if (url.startsWith('#')) return false // ignore hash anchor
+  if (absoluteUrlRegex.test(url)) return false // ignore absolute url
+  if (absolutePathRegex.test(url)) return false // ignore absolute path
+  const ext = url.split('.').pop() as string
+  return !outputConfig.ignoreFileExtensions.includes(ext)
+}
+
+const copy = async (from: string, to: string): Promise<void> => {
+  if (outputConfig == null || outputConfig.static == null) {
+    throw new Error('output config not initialized')
+  }
+  const filename = join(outputConfig.static, to)
+  await mkdir(dirname(filename), { recursive: true })
+  await copyFile(from, filename)
+}
+
 /**
  * output static file reference of a file
  * @param ref relative path of the referenced file
@@ -66,30 +90,42 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
  * @returns reference public url or image object
  */
 const outputStatic = async (ref: string, fromPath: string, isImage?: true): Promise<Image | string> => {
-  if (outputConfig == null) {
+  if (outputConfig == null || outputConfig.filename == null) {
     throw new Error('output config not initialized')
   }
 
-  // ignore absolute url
-  if (/^(https?:\/\/|data:|mailto:|\/)/.test(ref)) return ref
-  // ignore empty or markdown file (blacklist)
-  if (['', '.md'].includes(extname(ref))) return ref
+  if (!isValidatedStaticPath(ref)) return ref
+
   const from = resolve(fromPath, '..', ref)
   const source = await readFile(from)
-  const name = md5(source) + extname(ref)
-  const src = `${outputConfig.publicPath}/${name}`
+
+  const filename = outputConfig.filename.replace(/\[(name|hash|ext)(:(\d+))?\]/g, (substring, ...groups) => {
+    const key = groups[0]
+    const length = groups[2] == null ? undefined : parseInt(groups[2])
+    switch (key) {
+      case 'name':
+        return basename(ref, extname(ref)).slice(0, length)
+      case 'hash':
+        return md5(source).slice(0, length)
+      case 'ext':
+        return extname(ref).slice(1).slice(0, length)
+    }
+    return substring
+  })
+
   if (isImage == null) {
-    if (outputCache.files.has(name)) return src
-    await copyFile(from, join(outputConfig.static, name))
-    outputCache.files.add(name) // not await works, but await not works, becareful if copy failed
-    return src
+    if (outputCache.files.has(filename)) return filename
+    outputCache.files.add(filename) // TODO: not await works, but await not works, becareful if copy failed
+    await copy(from, filename)
+    return filename
   }
-  if (outputCache.images.has(name)) return outputCache.images.get(name) as Image
+
+  if (outputCache.images.has(filename)) return outputCache.images.get(filename) as Image
   const img = await getImageMetadata(source)
   if (img == null) return ref
-  const image = { src, ...img }
-  await copyFile(from, join(outputConfig.static, name))
-  outputCache.images.set(name, image)
+  const image = { src: filename, ...img }
+  outputCache.images.set(filename, image)
+  await copy(from, filename)
   return image
 }
 

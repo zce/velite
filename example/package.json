@@ -1,0 +1,14 @@
+{
+  "name": "@velite/example",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "velite build --watch",
+    "build": "velite build"
+  },
+  "author": "zce <w@zce.me> (https://zce.me/)",
+  "license": "MIT",
+  "devDependencies": {
+    "velite": "file:.."
+  }
+}

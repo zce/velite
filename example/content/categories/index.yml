@@ -1,0 +1,15 @@
+- name: Journal
+  slug: journal
+  cover: journal.jpg
+  description: serving as a platform for academic exchange and dissemination of knowledge
+  meta:
+    title: Journal
+    description: with a focus on timely updates and research results. It is a reference tool for scholars and professionals in various fields.
+
+- name: Travel
+  slug: travel
+  description: All travel logs
+
+- name: Photography
+  slug: photography
+  description: All photography logs

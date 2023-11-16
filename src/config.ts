@@ -111,8 +111,9 @@ export const resolveConfig = async (options: Options = {}): Promise<Config> => {
     root: resolve(dir, userConfig.root ?? 'content'),
     output: {
       data: resolve(dir, userConfig.output?.data ?? '.velite'),
-      static: resolve(dir, userConfig.output?.static ?? 'public/static'),
-      publicPath: userConfig.output?.publicPath ?? '/static'
+      static: resolve(dir, userConfig.output?.static ?? 'public'),
+      filename: userConfig.output?.filename ?? '/static/[name]-[hash:8].[ext]',
+      ignoreFileExtensions: userConfig.output?.ignoreFileExtensions ?? []
     },
     clean: options.clean ?? userConfig.clean ?? false,
     verbose,

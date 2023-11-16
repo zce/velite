@@ -98,13 +98,14 @@ export const resolveConfig = async (options: Options = {}): Promise<Config> => {
   const filename = await search(files)
   if (filename == null) throw new Error(`config file not found`)
 
-  options.verbose && console.log(`using config '${filename}'`)
-
   const userConfig: UserConfig = await loadConfig(filename)
 
   if (userConfig.schemas == null) throw new Error(`'schemas' is required in config file`)
 
   const dir = dirname(filename)
+  const verbose = options.verbose ?? userConfig.verbose ?? false
+
+  verbose && console.log(`using config '${filename}'`)
 
   return {
     root: resolve(dir, userConfig.root ?? 'content'),
@@ -114,7 +115,7 @@ export const resolveConfig = async (options: Options = {}): Promise<Config> => {
       publicPath: userConfig.output?.publicPath ?? '/static'
     },
     clean: options.clean ?? userConfig.clean ?? false,
-    verbose: options.verbose ?? userConfig.verbose ?? false,
+    verbose,
     schemas: userConfig.schemas,
     loaders: userConfig.loaders ?? [],
     onSuccess: userConfig.onSuccess

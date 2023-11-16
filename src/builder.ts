@@ -37,7 +37,7 @@ class Builder {
 
     const tasks = Object.entries(schemas).map(async ([name, schema]) => {
       const filenames = await glob(schema.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'] })
-      verbose && console.debug(`found ${filenames.length} files matching '${schema.pattern}'`)
+      verbose && console.log(`found ${filenames.length} files matching '${schema.pattern}'`)
 
       const files = await Promise.all(
         filenames.map(async file => {
@@ -83,6 +83,7 @@ class Builder {
     const { output } = this.config
     await Promise.all(
       Object.entries(this.result).map(async ([name, data]) => {
+        if (data == null) return
         const json = JSON.stringify(data, null, 2)
         await writeFile(join(output.data, name + '.json'), json)
         console.log(`wrote ${data.length ?? 1} ${name} to '${join(output.data, name + '.json')}'`)
@@ -103,17 +104,17 @@ class Builder {
     initOutputConfig(config.output)
 
     // prerequisite
-    if (options.clean) {
+    if (config.clean) {
       // clean output directories if `--clean` requested
       await rm(config.output.data, { recursive: true, force: true })
       await rm(config.output.static, { recursive: true, force: true })
-      options.verbose && console.log('cleaned output directories')
+      config.verbose && console.log('cleaned output directories')
     }
 
     // ensure output directories exist
     await mkdir(config.output.data, { recursive: true })
     await mkdir(config.output.static, { recursive: true })
-    options.verbose && console.log('ensured output directories')
+    config.verbose && console.log('ensured output directories')
 
     return new Builder(config)
   }

@@ -6,8 +6,8 @@ import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 import z from 'zod'
 
+import copyLinkedFiles from '../plugins/copy-linked-files'
 import extractExcerpt from '../plugins/extract-excerpt'
-import extractLinkedFiles from '../plugins/extract-linked-files'
 import flattenImage from '../plugins/flatten-image'
 import flattenListItem from '../plugins/flatten-listitem'
 import removeComments from '../plugins/remove-comments'
@@ -53,7 +53,7 @@ export const markdown = (options: MarkdownOptions = {}) =>
       .use(remarkRehype, { allowDangerousHtml: true }) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
       .use(rehypeRaw) // Parse the html content to a syntax tree
       .use(options.rehypePlugins ?? []) // Turn markdown syntax tree to HTML syntax tree, ignoring embedded HTML
-      .use(extractLinkedFiles) // Extract linked files and replace their URLs with public URLs
+      .use(copyLinkedFiles) // Copy linked files to public path and replace their URLs with public URLs
       .use(extractExcerpt) // Extract excerpt and plain
       .use(rehypeStringify) // Serialize HTML syntax tree
       .process({ value, path: ctx.path[0] as string })

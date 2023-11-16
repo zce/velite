@@ -36,6 +36,23 @@ export const initOutputConfig = (output: Output): void => {
 //   return outputConfig
 // }
 
+// https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
+const absoluteUrlRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
+const absolutePathRegex = /^(\/[^/\\]|[a-zA-Z]:\\)/
+
+export const isValidatedStaticPath = (url: string): boolean => {
+  if (outputConfig == null || outputConfig.ignoreFileExtensions == null) {
+    throw new Error('output config not initialized')
+  }
+  if (url.startsWith('#')) return false // ignore hash anchor
+  if (url.startsWith('?')) return false // ignore query
+  if (url.startsWith('//')) return false // ignore protocol relative urlet name
+  if (absoluteUrlRegex.test(url)) return false // ignore absolute url
+  if (absolutePathRegex.test(url)) return false // ignore absolute path
+  const ext = url.split('.').pop() as string
+  return !outputConfig.ignoreFileExtensions.includes(ext)
+}
+
 const outputCache = {
   files: new Set<string>(),
   images: new Map<string, Image>()
@@ -65,21 +82,6 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
   // prettier-ignore
   const blurDataURL = await img.resize(blurWidth, blurHeight).webp({ quality: 1 }).toBuffer().then(b => `data:image/webp;base64,${b.toString('base64')}`)
   return { height, width, blurDataURL, blurWidth, blurHeight }
-}
-
-// https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
-const absoluteUrlRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
-const absolutePathRegex = /^\/[^/\\]/
-
-const isValidatedStaticPath = (url: string): boolean => {
-  if (outputConfig == null || outputConfig.ignoreFileExtensions == null) {
-    throw new Error('output config not initialized')
-  }
-  if (url.startsWith('#')) return false // ignore hash anchor
-  if (absoluteUrlRegex.test(url)) return false // ignore absolute url
-  if (absolutePathRegex.test(url)) return false // ignore absolute path
-  const ext = url.split('.').pop() as string
-  return !outputConfig.ignoreFileExtensions.includes(ext)
 }
 
 const copy = async (from: string, to: string): Promise<void> => {

@@ -59,17 +59,17 @@ export default defineConfig({
         })
         .transform(data => ({ ...data, permalink: `/${data.slug}` }))
     },
-    pages: {
-      name: 'Page',
-      pattern: 'pages/**/*.mdx',
-      fields: z
-        .object({
-          title: s.title(),
-          slug: s.slug('post'),
-          body: s.mdx()
-        })
-        .transform(data => ({ ...data, permalink: `/${data.slug}/${data.slug}` }))
-    },
+    // pages: {
+    //   name: 'Page',
+    //   pattern: 'pages/**/*.mdx',
+    //   fields: z
+    //     .object({
+    //       title: s.title(),
+    //       slug: s.slug('post'),
+    //       body: s.mdx()
+    //     })
+    //     .transform(data => ({ ...data, permalink: `/${data.slug}/${data.slug}` }))
+    // },
     posts: {
       name: 'Post',
       pattern: 'posts/**/*.md',

@@ -44,9 +44,6 @@
   },
   "prettier": "@zce/prettier-config",
   "dependencies": {
-    "@esbuild-plugins/node-resolve": "latest",
-    "@fal-works/esbuild-plugin-global-externals": "latest",
-    "@mdx-js/esbuild": "latest",
     "cac": "latest",
     "esbuild": "latest",
     "fast-glob": "latest",
@@ -65,6 +62,7 @@
   },
   "devDependencies": {
     "@types/node": "latest",
+    "@types/react": "latest",
     "@zce/prettier-config": "latest",
     "prettier": "latest",
     "tsup": "latest",

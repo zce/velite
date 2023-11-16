@@ -45,8 +45,9 @@ export const mdx = ({ gfm = true, removeComments = true, flattenImage = true, fl
       const bundled = await build({
         entryPoints: [entryFile],
         write: false,
-        bundle: true,
-        format: 'esm',
+        bundle: false,
+        format: 'iife',
+        globalName: 'Component',
         plugins: [
           mdxPlugin({
             remarkPlugins,

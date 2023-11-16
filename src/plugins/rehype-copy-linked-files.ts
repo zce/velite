@@ -1,6 +1,6 @@
 import { visit } from 'unist-util-visit'
 
-import { isValidatedStaticPath, outputFile } from '../shared/static'
+import { isValidatedStaticPath, outputFile } from '../static'
 
 import type { Element, Root } from 'hast'
 import type { Plugin } from 'unified'

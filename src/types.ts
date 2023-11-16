@@ -109,6 +109,11 @@ export interface Config<Schemas extends Record<string, Schema> = Record<string, 
    */
   clean: boolean
   /**
+   * Watch for changes and rebuild
+   * @default false
+   */
+  watch: boolean
+  /**
    * Whether to print verbose log
    * @default false
    */

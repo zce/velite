@@ -47,6 +47,7 @@
     "cac": "latest",
     "esbuild": "latest",
     "fast-glob": "latest",
+    "micromatch": "latest",
     "rehype-raw": "latest",
     "rehype-stringify": "latest",
     "remark-gfm": "latest",
@@ -61,8 +62,8 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@types/micromatch": "latest",
     "@types/node": "latest",
-    "@types/react": "latest",
     "@zce/prettier-config": "latest",
     "prettier": "latest",
     "tsup": "latest",

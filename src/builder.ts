@@ -2,21 +2,23 @@
  * @file Builder
  */
 
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, rm, watch, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import glob from 'fast-glob'
+import micromatch from 'micromatch'
 import { reporter } from 'vfile-reporter'
 
 import { resolveConfig } from './config'
+import { cache, initOutputConfig } from './context'
 import { File } from './file'
 import { addLoader } from './loaders'
-import { initOutputConfig } from './shared'
 
 import type { Config } from './types'
 
 interface Options {
   config?: string
   clean?: boolean
+  watch?: boolean
   verbose?: boolean
 }
 
@@ -34,6 +36,8 @@ class Builder {
     const { root, verbose, schemas, onSuccess } = this.config
 
     verbose && console.log(`searching files in '${root}'`)
+
+    cache.clear() // clear cache in case of rebuild
 
     const tasks = Object.entries(schemas).map(async ([name, schema]) => {
       const filenames = await glob(schema.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'] })
@@ -94,11 +98,30 @@ class Builder {
     )
   }
 
-  async watch() {}
+  async watch() {
+    if (!this.config.watch) return
+
+    console.log('watching for changes')
+
+    const { schemas } = this.config
+    const allPatterns = Object.values(schemas).map(schema => schema.pattern)
+
+    const watcher = watch(this.config.root, { recursive: true })
+
+    for await (const event of watcher) {
+      const { filename } = event
+      if (filename == null) continue
+      if (!allPatterns.some(pattern => micromatch.isMatch(filename, pattern))) continue
+      // TODO: rebuild only changed file
+      // rebuild all
+      await this.build()
+      await this.output()
+    }
+  }
 
   static async create(options: Options) {
     // resolve config
-    const config = await resolveConfig({ filename: options.config, clean: options.clean, verbose: options.verbose })
+    const config = await resolveConfig({ filename: options.config, clean: options.clean, verbose: options.verbose, watch: options.watch })
 
     // register user loaders
     config.loaders.forEach(addLoader)
@@ -114,11 +137,6 @@ class Builder {
       config.verbose && console.log('cleaned output directories')
     }
 
-    // // ensure output directories exist
-    // await mkdir(config.output.data, { recursive: true })
-    // await mkdir(config.output.static, { recursive: true })
-    // config.verbose && console.log('ensured output directories')
-
     return new Builder(config)
   }
 }
@@ -127,4 +145,5 @@ export const build = async (options: Options) => {
   const builder = await Builder.create(options)
   await builder.build()
   await builder.output()
+  await builder.watch()
 }

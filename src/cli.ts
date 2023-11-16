@@ -11,13 +11,15 @@ import { build } from './builder'
 const cli = cac(name).version(version).help()
 
 cli
-  .command('build', 'Build contents for production')
+  .command('', 'Build contents for production')
+  .alias('build')
   .option('-c, --config <path>', 'Use specified config file')
   .option('--clean', 'Clean output directory before build')
+  .option('--watch', 'Watch for changes and rebuild')
   .option('--verbose', 'Print additional information')
   .option('--debug', 'Print debug information')
-  .action(({ config, clean, verbose }) => {
-    return build({ config, clean, verbose })
+  .action(({ config, clean, watch, verbose }) => {
+    return build({ config, clean, watch, verbose })
   })
 
 const onError = (err: Error): void => {

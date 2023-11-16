@@ -3,7 +3,7 @@ import { copyFile, mkdir, readFile } from 'node:fs/promises'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
 
-import type { Output } from '../types'
+import { cache, getOutputConfig } from './context'
 
 /**
  * Image object with metadata & blur image
@@ -17,45 +17,19 @@ export interface Image {
   blurHeight: number
 }
 
-let outputConfig: Output | undefined
-
-/**
- * set output config, required to call before output
- * @param output output config
- */
-export const initOutputConfig = (output: Output): void => {
-  outputConfig = output
-}
-
-// /**
-//  * get output config
-//  * @returns output config
-//  */
-// export const getOutputConfig = (): Output => {
-//   if (outputConfig == null) throw new Error('output config not initialized')
-//   return outputConfig
-// }
-
 // https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
 const absoluteUrlRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
 const absolutePathRegex = /^(\/[^/\\]|[a-zA-Z]:\\)/
 
 export const isValidatedStaticPath = (url: string): boolean => {
-  if (outputConfig == null || outputConfig.ignoreFileExtensions == null) {
-    throw new Error('output config not initialized')
-  }
+  const output = getOutputConfig()
   if (url.startsWith('#')) return false // ignore hash anchor
   if (url.startsWith('?')) return false // ignore query
   if (url.startsWith('//')) return false // ignore protocol relative urlet name
   if (absoluteUrlRegex.test(url)) return false // ignore absolute url
   if (absolutePathRegex.test(url)) return false // ignore absolute path
   const ext = url.split('.').pop() as string
-  return !outputConfig.ignoreFileExtensions.includes(ext)
-}
-
-const outputCache = {
-  files: new Set<string>(),
-  images: new Map<string, Image>()
+  return !output.ignoreFileExtensions.includes(ext) // ignore file extensions
 }
 
 /**
@@ -85,10 +59,8 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
 }
 
 const copy = async (from: string, to: string): Promise<void> => {
-  if (outputConfig == null || outputConfig.static == null) {
-    throw new Error('output config not initialized')
-  }
-  const filename = join(outputConfig.static, to)
+  const output = getOutputConfig()
+  const filename = join(output.static, to)
   await mkdir(dirname(filename), { recursive: true })
   await copyFile(from, filename)
 }
@@ -101,16 +73,14 @@ const copy = async (from: string, to: string): Promise<void> => {
  * @returns reference public url or image object
  */
 const outputStatic = async (ref: string, fromPath: string, isImage?: true): Promise<Image | string> => {
-  if (outputConfig == null || outputConfig.filename == null) {
-    throw new Error('output config not initialized')
-  }
-
   if (!isValidatedStaticPath(ref)) return ref
+
+  const output = getOutputConfig()
 
   const from = resolve(fromPath, '..', ref)
   const source = await readFile(from)
 
-  const filename = outputConfig.filename.replace(/\[(name|hash|ext)(:(\d+))?\]/g, (substring, ...groups) => {
+  const filename = output.filename.replace(/\[(name|hash|ext)(:(\d+))?\]/g, (substring, ...groups) => {
     const key = groups[0]
     const length = groups[2] == null ? undefined : parseInt(groups[2])
     switch (key) {
@@ -125,17 +95,21 @@ const outputStatic = async (ref: string, fromPath: string, isImage?: true): Prom
   })
 
   if (isImage == null) {
-    if (outputCache.files.has(filename)) return filename
-    outputCache.files.add(filename) // TODO: not await works, but await not works, becareful if copy failed
+    const files = cache.get('files') || new Set<string>()
+    if (files.has(filename)) return filename
+    files.add(filename) // TODO: not await works, but await not works, becareful if copy failed
     await copy(from, filename)
+    cache.set('files', files)
     return filename
   }
 
-  if (outputCache.images.has(filename)) return outputCache.images.get(filename) as Image
+  const images = cache.get('images') || new Map<string, Image>()
+  if (images.has(filename)) return images.get(filename) as Image
   const img = await getImageMetadata(source)
   if (img == null) return ref
   const image = { src: filename, ...img }
-  outputCache.images.set(filename, image)
+  images.set(filename, image)
+  cache.set('images', images)
   await copy(from, filename)
   return image
 }

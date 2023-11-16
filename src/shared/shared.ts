@@ -1,6 +1,7 @@
 import z from 'zod'
 
-import { outputFile, outputImage } from './static'
+import { cache } from '../context'
+import { outputFile, outputImage } from '../static'
 
 const reservedSlugs = [
   'api',
@@ -21,7 +22,6 @@ const reservedSlugs = [
   'tags',
   'docs'
 ]
-const existSlugs = new Map<string, Set<string>>()
 
 /**
  * generate a slug schema
@@ -35,16 +35,16 @@ export const slug = (uniqueBy: string = 'global') =>
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/i, 'Invalid slug')
     .refine(value => !reservedSlugs.includes(value), 'Reserved slug')
     .refine(value => {
-      let set = existSlugs.get(uniqueBy)
-      if (set == null) {
-        set = new Set()
-        existSlugs.set(uniqueBy, set)
+      const cacheKey = `slugs:${uniqueBy}`
+      const slugs = cache.get(cacheKey)
+      if (slugs == null) {
+        cache.set(cacheKey, new Set())
         return true
       }
-      if (set.has(value)) {
+      if (slugs.has(value)) {
         return false
       }
-      set.add(value)
+      slugs.add(value)
       return true
     }, 'Slug already existSlugs')
 
@@ -86,4 +86,3 @@ export const image = () =>
   )
 
 export { markdown } from './markdown'
-// export { mdx } from './mdx'

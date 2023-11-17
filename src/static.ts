@@ -95,21 +95,23 @@ const outputStatic = async (ref: string, fromPath: string, isImage?: true): Prom
   })
 
   if (isImage == null) {
-    const files = cache.get('files') || new Set<string>()
+    const key = 'static:files'
+    const files = cache.get(key) || new Set<string>()
     if (files.has(filename)) return filename
     files.add(filename) // TODO: not await works, but await not works, becareful if copy failed
     await copy(from, filename)
-    cache.set('files', files)
+    cache.set(key, files)
     return filename
   }
 
-  const images = cache.get('images') || new Map<string, Image>()
+  const key = 'static:images'
+  const images = cache.get(key) || new Map<string, Image>()
   if (images.has(filename)) return images.get(filename) as Image
   const img = await getImageMetadata(source)
   if (img == null) return ref
   const image = { src: filename, ...img }
   images.set(filename, image)
-  cache.set('images', images)
+  cache.set(key, images)
   await copy(from, filename)
   return image
 }

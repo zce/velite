@@ -52,7 +52,7 @@ export const name = () => z.string().max(20)
 
 export const title = () => z.string().max(99)
 
-export const date = () =>
+export const isodate = () =>
   z
     .string()
     .refine(value => !isNaN(Date.parse(value)), 'Invalid date')

@@ -35,7 +35,7 @@ export default defineConfig({
     },
     categories: {
       name: 'Category',
-      pattern: 'categories/index.yml',
+      pattern: 'categories/*.yml',
       fields: s
         .object({
           name: s.name(),
@@ -77,8 +77,8 @@ export default defineConfig({
         .object({
           title: s.title(),
           slug: s.slug('post'),
-          date: s.date(),
-          updated: s.date().optional(),
+          date: s.isodate(),
+          updated: s.isodate().optional(),
           cover: s.image().optional(),
           description: s.paragraph().optional(),
           draft: s.boolean().default(false),

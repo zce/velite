@@ -8,6 +8,20 @@
 [![NPM Version][version-img]][version-url]
 [![Code Style][style-img]][style-url]
 
+## TODOs
+
+example
+copy-linked-files
+--watch
+mdx
+reference parent
+
+- [ ] excerpt
+- [ ] nextjs plugin
+- [ ] types generate
+- [ ] image command (compress, resize, etc.)
+- [ ] docs
+
 ## Backups
 
 ```typescript
@@ -83,14 +97,6 @@ export const mdx = ({ gfm = true, removeComments = true, flattenImage = true, fl
   })
 }
 ```
-
-## TODOs
-
-- [ ] excerpt
-- [ ] nextjs plugin
-- [ ] types generate
-- [ ] image command (compress, resize, etc.)
-- [ ] docs
 
 ## Installation
 

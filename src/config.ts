@@ -1,7 +1,3 @@
-/**
- * @file Load config from user's project
- */
-
 import { access, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -75,7 +71,6 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
 interface Options {
   filename?: string
   clean?: boolean
-  watch?: boolean
   verbose?: boolean
 }
 
@@ -117,7 +112,6 @@ export const resolveConfig = async (options: Options = {}): Promise<Config> => {
       ignoreFileExtensions: userConfig.output?.ignoreFileExtensions ?? []
     },
     clean: options.clean ?? userConfig.clean ?? false,
-    watch: options.watch ?? false,
     verbose,
     schemas: userConfig.schemas,
     loaders: userConfig.loaders ?? [],

@@ -1,12 +1,8 @@
 #!/usr/bin/env node
-
-/**
- * @file CLI entry point
- */
 import cac from 'cac'
 
 import { name, version } from '../package.json'
-import { build } from './builder'
+import { build } from './build'
 
 const cli = cac(name).version(version).help()
 

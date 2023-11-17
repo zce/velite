@@ -1,9 +1,10 @@
-/**
- * @file shared types
- */
-
 import type { VFile } from 'vfile'
 import type { ZodType } from 'zod'
+
+/**
+ * Collection data from file
+ */
+export type Collection = Record<string, any> | Record<string, any>[]
 
 /**
  * File loader
@@ -23,10 +24,10 @@ export interface Loader {
    */
   test: RegExp
   /**
-   * Load file content into `vfile.data.result`
+   * Load file content
    * @param vfile vfile
    */
-  load: (vfile: VFile) => void | Promise<void>
+  load: (vfile: VFile) => Collection | Promise<Collection>
 }
 
 export interface Output {
@@ -108,11 +109,6 @@ export interface Config<Schemas extends Record<string, Schema> = Record<string, 
    * @default false
    */
   clean: boolean
-  /**
-   * Watch for changes and rebuild
-   * @default false
-   */
-  watch: boolean
   /**
    * Whether to print verbose log
    * @default false

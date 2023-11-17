@@ -1,7 +1,3 @@
-/**
- * @file Builder
- */
-
 import { mkdir, rm, watch, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import glob from 'fast-glob'
@@ -31,53 +27,28 @@ class Builder {
     this.result = {}
   }
 
-  async build() {
-    if (this.config == null) throw new Error('config not initialized')
-    const { root, verbose, schemas, onSuccess } = this.config
+  /**
+   * create builder instance
+   */
+  static async create(options: Options) {
+    // resolve config
+    const config = await resolveConfig({ filename: options.config, clean: options.clean, verbose: options.verbose })
 
-    verbose && console.log(`searching files in '${root}'`)
+    // register user loaders
+    config.loaders.forEach(addLoader)
 
-    cache.clear() // clear cache in case of rebuild
+    // init static output config
+    initOutputConfig(config.output)
 
-    const tasks = Object.entries(schemas).map(async ([name, schema]) => {
-      const filenames = await glob(schema.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'] })
-      verbose && console.log(`found ${filenames.length} files matching '${schema.pattern}'`)
+    // prerequisite
+    if (config.clean) {
+      // clean output directories if `--clean` requested
+      await rm(config.output.data, { recursive: true, force: true })
+      await rm(config.output.static, { recursive: true, force: true })
+      config.verbose && console.log('cleaned output directories')
+    }
 
-      const files = await Promise.all(
-        filenames.map(async file => {
-          const doc = await File.create(join(root, file))
-          await doc.load()
-          await doc.parse(schema.fields)
-          return doc
-        })
-      )
-
-      const report = reporter(files, { quiet: true, verbose })
-      report.length > 0 && console.log(report)
-
-      const data = files
-        .map(f => f.data.result ?? [])
-        .flat()
-        .filter(Boolean)
-
-      if (schema.single) {
-        if (data.length > 1) {
-          throw new Error(`found ${data.length} items for '${name}', but expected only one`)
-        }
-        return [name, data[0]] as const
-      }
-
-      return [name, data] as const
-    })
-
-    const collections = await Promise.all(tasks)
-
-    const result = Object.fromEntries<any>(collections)
-
-    // user callback
-    onSuccess != null && (await onSuccess(result))
-
-    Object.assign(this.result, result)
+    return new Builder(config)
   }
 
   /**
@@ -98,9 +69,63 @@ class Builder {
     )
   }
 
-  async watch() {
-    if (!this.config.watch) return
+  /**
+   * build content with config
+   */
+  async build() {
+    if (this.config == null) throw new Error('config not initialized')
+    const { root, verbose, schemas, onSuccess } = this.config
 
+    verbose && console.log(`searching files in '${root}'`)
+
+    cache.clear() // clear cache in case of rebuild
+
+    const files: File[] = []
+
+    const tasks = Object.entries(schemas).map(async ([name, schema]) => {
+      const filenames = await glob(schema.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'] })
+      verbose && console.log(`found ${filenames.length} files matching '${schema.pattern}'`)
+
+      const result = await Promise.all(
+        filenames.map(async filename => {
+          const file = await File.create(join(root, filename))
+          const result = await file.parse(schema.fields)
+          files.push(file)
+          return result
+        })
+      )
+
+      const data = result.flat().filter(Boolean)
+
+      if (schema.single) {
+        if (data.length > 1) {
+          throw new Error(`found ${data.length} items for '${name}', but expected only one`)
+        }
+        return [name, data[0]] as const
+      }
+
+      return [name, data] as const
+    })
+
+    const entities = await Promise.all(tasks)
+
+    // report if any error in parsing
+    const report = reporter(files, { quiet: true, verbose })
+    report.length > 0 && console.log(report)
+
+    const collections = Object.fromEntries<any>(entities)
+
+    // user callback
+    if (typeof onSuccess === 'function') {
+      await onSuccess(collections)
+    }
+
+    Object.assign(this.result, collections)
+
+    await this.output()
+  }
+
+  async watch() {
     console.log('watching for changes')
 
     const { schemas } = this.config
@@ -112,38 +137,15 @@ class Builder {
       const { filename } = event
       if (filename == null) continue
       if (!allPatterns.some(pattern => micromatch.isMatch(filename, pattern))) continue
-      // TODO: rebuild only changed file
       // rebuild all
-      await this.build()
-      await this.output()
+      await this.build() // TODO: rebuild only changed file
     }
-  }
-
-  static async create(options: Options) {
-    // resolve config
-    const config = await resolveConfig({ filename: options.config, clean: options.clean, verbose: options.verbose, watch: options.watch })
-
-    // register user loaders
-    config.loaders.forEach(addLoader)
-
-    // init static output config
-    initOutputConfig(config.output)
-
-    // prerequisite
-    if (config.clean) {
-      // clean output directories if `--clean` requested
-      await rm(config.output.data, { recursive: true, force: true })
-      await rm(config.output.static, { recursive: true, force: true })
-      config.verbose && console.log('cleaned output directories')
-    }
-
-    return new Builder(config)
   }
 }
 
 export const build = async (options: Options) => {
   const builder = await Builder.create(options)
   await builder.build()
-  await builder.output()
+  if (!options.watch) return
   await builder.watch()
 }

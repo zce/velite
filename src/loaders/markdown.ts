@@ -14,9 +14,7 @@ export default defineLoader({
     // https://github.com/vfile/vfile-matter/blob/main/lib/index.js
     const match = content.match(/^---(?:\r?\n|\r)(?:([\s\S]*?)(?:\r?\n|\r))?---(?:\r?\n|\r|$)/)
     if (match == null) {
-      // throw new Error('frontmatter is required')
-      vfile.data.original = { body: content }
-      return
+      return { body: content }
     }
 
     // TODO: output file meta data for later use
@@ -24,6 +22,6 @@ export default defineLoader({
     const data = yaml.parse(match[1])
     const raw = content.slice(match[0].length).trim()
     // keep original content with multiple keys in vfile.data for later use
-    vfile.data.original = Object.assign(data, { raw, excerpt: raw, plain: raw, html: raw, body: raw, code: raw })
+    return Object.assign(data, { raw, excerpt: raw, plain: raw, html: raw, body: raw, code: raw })
   }
 })

@@ -10,6 +10,6 @@ export default defineLoader({
   name: 'yaml',
   test: /\.(yaml|yml)$/,
   load: async vfile => {
-    vfile.data.original = yaml.parse(vfile.toString())
+    return yaml.parse(vfile.toString())
   }
 })

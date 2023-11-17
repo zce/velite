@@ -1,7 +1,7 @@
 {
   "name": "velite",
   "version": "0.1.0-alpha.12",
-  "description": "turns your creative content into data layer",
+  "description": "Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.",
   "keywords": [
     "content",
     "contentful",

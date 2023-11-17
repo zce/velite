@@ -18,3 +18,5 @@ export const s = {
   excerpt,
   markdown
 }
+
+export type { TypeOf } from 'zod'

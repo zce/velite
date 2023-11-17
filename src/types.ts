@@ -92,9 +92,17 @@ export interface Schema {
 }
 
 /**
+ * Schemas
+ */
+export interface Schemas {
+  [name: string]: Schema
+}
+
+/**
  * Config
  */
-export interface Config<Schemas extends Record<string, Schema> = Record<string, Schema>> {
+export interface Config<S extends Schemas = Schemas> {
+  configPath: string
   /**
    * The root directory of the contents
    * @default 'content'
@@ -117,7 +125,7 @@ export interface Config<Schemas extends Record<string, Schema> = Record<string, 
   /**
    * The content schemas
    */
-  schemas: Schemas
+  schemas: S
   /**
    * File loaders
    * @default [] (built-in loaders: 'json', 'yaml', 'markdown')
@@ -128,51 +136,20 @@ export interface Config<Schemas extends Record<string, Schema> = Record<string, 
    * Success callback, you can do anything you want with the collections, such as modify them, or write them to files
    */
   onSuccess?: (collections: {
-    [name in keyof Schemas]: Schemas[name]['single'] extends true ? Schemas[name]['fields']['_output'] : Array<Schemas[name]['fields']['_output']>
+    [name in keyof S]: S[name]['single'] extends true ? S[name]['fields']['_output'] : Array<S[name]['fields']['_output']>
   }) => void | Promise<void>
 }
 
 /**
  * User config
  */
-export interface UserConfig<Schemas extends Record<string, Schema> = Record<string, Schema>> {
-  /**
-   * The root directory of the contents
-   * @default 'content'
-   */
-  root?: string
+export interface UserConfig<S extends Schemas = Schemas> extends Omit<Partial<Config<S>>, 'configPath' | 'output'> {
   /**
    * Output configuration
    */
   output?: Partial<Output>
-  /**
-   * Whether to clean the output directories before build
-   * @default false
-   */
-  clean?: boolean
-  /**
-   * Whether to print verbose log
-   * @default false
-   */
-  verbose?: boolean
-  /**
-   * The content schemas
-   */
-  schemas: Schemas
-  /**
-   * File loaders
-   * @default [] (built-in loaders: 'json', 'yaml', 'markdown')
-   */
-  loaders?: Loader[]
-  // markdown?: MarkdownOptions
-  /**
-   * Success callback, you can do anything you want with the collections, such as modify them, or write them to files
-   */
-  onSuccess?: (collections: {
-    [name in keyof Schemas]: Schemas[name]['single'] extends true ? Schemas[name]['fields']['_output'] : Array<Schemas[name]['fields']['_output']>
-  }) => void | Promise<void>
 }
 
 // export for user config type inference
 export const defineLoader = (loader: Loader) => loader
-export const defineConfig = <Schemas extends Record<string, Schema>>(userConfig: UserConfig<Schemas>) => userConfig
+export const defineConfig = <S extends Schemas>(userConfig: UserConfig<S>) => userConfig

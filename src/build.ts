@@ -1,5 +1,5 @@
 import { mkdir, rm, watch, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, normalize, relative } from 'node:path'
 import glob from 'fast-glob'
 import micromatch from 'micromatch'
 import { reporter } from 'vfile-reporter'
@@ -53,10 +53,27 @@ class Builder {
     return new Builder(config)
   }
 
+  private async generateTsEntry() {
+    const { configPath, output, schemas } = this.config
+    const configRelPath = relative(output.data, normalize(configPath)).replace(/\\/g, '/')
+    // prettier-ignore
+    const code: string[] = [
+      `import config from '${configRelPath}'`,
+      `import type { TypeOf } from 'velite'`,
+      `const schemas = config.schemas!`
+    ]
+    Object.entries(schemas).map(([name, schema]) => {
+      const type = schema.name + (schema.single ? '' : '[]')
+      code.push(`export type ${schema.name} = TypeOf<typeof schemas.${name}.fields>`)
+      code.push(`export const ${name} = async (): Promise<${type}> => (await import('./${name}.json').then(m => m.default)) as ${type}`)
+    })
+    return code.join('\n\n')
+  }
+
   /**
    * output result to dist
    */
-  async output() {
+  private async output() {
     await Promise.all(
       Object.entries(this.result).map(async ([name, data]) => {
         if (data == null) return
@@ -65,10 +82,13 @@ class Builder {
         console.log(`wrote ${data.length ?? 1} ${name} to '${join(this.config.output.data, name + '.json')}'`)
       })
     )
+    const code = await this.generateTsEntry()
+    await writeFile(join(this.config.output.data, 'index.ts'), code)
   }
 
   /**
    * build content with config
+   * @param changed changed file path
    */
   async build(changed?: string) {
     if (this.config == null) throw new Error('config not initialized')
@@ -130,6 +150,9 @@ class Builder {
     await this.output()
   }
 
+  /**
+   * watch for changes
+   */
   async watch() {
     const { schemas } = this.config
     const allPatterns = Object.values(schemas).map(schema => schema.pattern)

@@ -106,6 +106,7 @@ export const resolveConfig = async (options: Options = {}): Promise<Config> => {
   verbose && console.log(`using config '${filename}'`)
 
   return {
+    configPath: filename,
     root: resolve(dir, userConfig.root ?? 'content'),
     output: {
       data: resolve(dir, userConfig.output?.data ?? '.velite'),

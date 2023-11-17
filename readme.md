@@ -20,7 +20,7 @@ However, I have provided a complete [example](example) for your reference.
 - [x] watch
 - [x] excerpt ~~& plain~~
 - [x] metadata field (reading-time, ~~word-count, etc.~~)
-- [ ] types generate
+- [x] types generate // https://github.com/sachinraja/zod-to-ts/issues/59
 - [ ] example with nextjs
 - [ ] mdx
 - [ ] reference parent

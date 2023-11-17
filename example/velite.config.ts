@@ -28,7 +28,7 @@ export default defineConfig({
   verbose: false,
   schemas: {
     options: {
-      name: 'Option',
+      name: 'Options',
       pattern: 'options/index.yml',
       single: true,
       fields: s.object({

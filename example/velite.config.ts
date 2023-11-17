@@ -69,7 +69,7 @@ export default defineConfig({
     },
     pages: {
       name: 'Page',
-      pattern: 'pages/**/*.mdx',
+      pattern: 'pages/**/*.md',
       fields: s
         .object({
           title: s.string().max(99),

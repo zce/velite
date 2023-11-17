@@ -7,10 +7,9 @@ interface ReadingTimeOptions {
   age: number
 }
 
-const metadata: Plugin<[ReadingTimeOptions], Root> =
-  ({ age }) =>
-  (tree, file) => {
-    Object.assign(file.data, { readingTime: Math.ceil(readingTime(tree, { age })) })
-  }
+// prettier-ignore
+const metadata: Plugin<[ReadingTimeOptions], Root> = ({ age }) => (tree, file) => {
+  file.data.readingTime = Math.ceil(readingTime(tree, { age }))
+}
 
 export default metadata

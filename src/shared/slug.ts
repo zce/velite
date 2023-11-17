@@ -1,7 +1,6 @@
 import z from 'zod'
 
 import { cache } from '../context'
-import { outputFile, outputImage } from '../static'
 
 /**
  * generate a slug schema
@@ -28,30 +27,3 @@ export const slug = (uniqueBy: string = 'global', reservedSlugs: string[] = []) 
       slugs.add(value)
       return true
     }, 'Slug already existSlugs')
-
-export const isodate = () =>
-  z
-    .string()
-    .refine(value => !isNaN(Date.parse(value)), 'Invalid date')
-    .transform(value => new Date(value).toISOString())
-
-export const file = () =>
-  z.string().transform((value, ctx) =>
-    outputFile(value, ctx.path[0] as string).catch(err => {
-      ctx.addIssue({ code: 'custom', message: err.message })
-      return value
-    })
-  )
-
-export const image = () =>
-  z.string().transform((value, ctx) =>
-    outputImage(value, ctx.path[0] as string).catch(err => {
-      ctx.addIssue({ code: 'custom', message: err.message })
-      return value
-    })
-  )
-
-// // TODO
-// export const demo = () => z.custom().transform(value => Date.now())
-
-export * from './markdown'

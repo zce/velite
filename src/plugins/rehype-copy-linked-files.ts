@@ -9,7 +9,6 @@ const linkedPropertyNames = ['href', 'src', 'poster']
 
 const copyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
   const links = new Map<string, Element[]>()
-  // const replaces = new Map<string, string>()
 
   visit(tree, 'element', node => {
     linkedPropertyNames.forEach(name => {
@@ -30,14 +29,11 @@ const copyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
         linkedPropertyNames.forEach(name => {
           if (name in node.properties) {
             node.properties[name] = publicUrl
-            // replaces.set(url, publicUrl)
           }
         })
       })
     })
   )
-
-  // file.data.replaces = replaces
 }
 
 export default copyLinkedFiles

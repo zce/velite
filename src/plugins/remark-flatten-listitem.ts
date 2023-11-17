@@ -4,7 +4,6 @@ import type { Root } from 'mdast'
 import type { Plugin } from 'unified'
 
 const flattenListItem: Plugin<[], Root> = () => tree => {
-  // flatten listitem paragraph
   // https://gitlab.com/staltz/mdast-flatten-listitem-paragraphs/-/blob/master/index.js
   visit(tree, 'listItem', node => {
     if (node.children.length === 1 && node.children[0].type === 'paragraph') {

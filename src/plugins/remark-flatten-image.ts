@@ -4,7 +4,6 @@ import type { Root } from 'mdast'
 import type { Plugin } from 'unified'
 
 const flattenImage: Plugin<[], Root> = () => tree => {
-  // flatten image paragraph
   // https://gitlab.com/staltz/mdast-flatten-image-paragraphs/-/blob/master/index.js
   visit(tree, 'paragraph', node => {
     if (node.children.length === 1 && node.children[0].type === 'image') {

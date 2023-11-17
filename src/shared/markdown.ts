@@ -7,8 +7,6 @@ import { unified } from 'unified'
 import z from 'zod'
 
 import rehypeCopyLinkedFiles from '../plugins/rehype-copy-linked-files'
-import rehypeExtractExcerpt from '../plugins/rehype-extract-excerpt'
-import rehypeMetadata from '../plugins/rehype-metadata'
 import remarkFlattenImage from '../plugins/remark-flatten-image'
 import remarkFlattenListItem from '../plugins/remark-flatten-listitem'
 import remarkRemoveComments from '../plugins/remark-remove-comments'
@@ -63,76 +61,6 @@ export const markdown = ({ gfm = true, removeComments = true, flattenImage = tru
     try {
       const html = await file.process({ value, path: ctx.path[0] as string })
       return html.toString()
-    } catch (err: any) {
-      ctx.addIssue({ code: 'custom', message: err.message })
-      return value
-    }
-  })
-
-export interface MetadataOptions {
-  /**
-   * Age of the reader.
-   * @default 22
-   */
-  age: number
-}
-
-export interface Metadata {
-  /**
-   * Reading time in minutes.
-   */
-  readingTime: number
-}
-
-export const metadata = ({ age = 22 }: MetadataOptions) =>
-  z.string().transform(async (value, ctx) => {
-    try {
-      const file = await unified()
-        .use(remarkParse)
-        .use(remarkRehype, { allowDangerousHtml: true })
-        .use(rehypeRaw)
-        .use(rehypeMetadata, { age: age })
-        .use(rehypeStringify)
-        .process(value)
-      return file.data as unknown as Metadata
-    } catch (err: any) {
-      ctx.addIssue({ code: 'custom', message: err.message })
-      return value
-    }
-  })
-
-export interface ExcerptOptions {
-  /**
-   * Excerpt separator.
-   * @example
-   * excerpt({ separator: 'more' }) // split excerpt by `<!-- more -->`
-   */
-  separator?: string
-  /**
-   * Excerpt length.
-   * @default 200
-   */
-  length?: number
-  /**
-   * Excerpt format.
-   * @default 'plain'
-   */
-  format?: 'plain' | 'html'
-}
-
-export const excerpt = ({ separator, length = 200, format = 'plain' }: ExcerptOptions = {}) =>
-  z.string().transform(async (value, ctx) => {
-    try {
-      const file = await unified()
-        .use(remarkParse)
-        .use(remarkRehype, { allowDangerousHtml: true })
-        .use(rehypeRaw)
-        .use(rehypeExtractExcerpt, { separator, length })
-        .use(rehypeStringify)
-        .process({ value })
-
-      if (format === 'plain') return file.data.plain
-      return file.toString()
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })
       return value

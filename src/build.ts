@@ -47,6 +47,8 @@ class Builder {
       await rm(config.output.static, { recursive: true, force: true })
       config.verbose && console.log('cleaned output directories')
     }
+    await mkdir(config.output.data, { recursive: true })
+    await mkdir(config.output.static, { recursive: true })
 
     return new Builder(config)
   }
@@ -55,16 +57,12 @@ class Builder {
    * output result to dist
    */
   async output() {
-    const { output } = this.config
-
-    await mkdir(output.data, { recursive: true })
-
     await Promise.all(
       Object.entries(this.result).map(async ([name, data]) => {
         if (data == null) return
         const json = JSON.stringify(data, null, 2)
-        await writeFile(join(output.data, name + '.json'), json)
-        console.log(`wrote ${data.length ?? 1} ${name} to '${join(output.data, name + '.json')}'`)
+        await writeFile(join(this.config.output.data, name + '.json'), json)
+        console.log(`wrote ${data.length ?? 1} ${name} to '${join(this.config.output.data, name + '.json')}'`)
       })
     )
   }
@@ -72,7 +70,7 @@ class Builder {
   /**
    * build content with config
    */
-  async build() {
+  async build(changed?: string) {
     if (this.config == null) throw new Error('config not initialized')
     const { root, verbose, schemas, onSuccess } = this.config
 
@@ -83,6 +81,13 @@ class Builder {
     const files: File[] = []
 
     const tasks = Object.entries(schemas).map(async ([name, schema]) => {
+      if (changed != null && !micromatch.isMatch(changed, schema.pattern)) {
+        // skip schema if changed file not match
+        // TODO: rebuild only changed file ???
+        const data = this.result[name]
+        if (data != null) return [name, data] as const
+      }
+
       const filenames = await glob(schema.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'] })
       verbose && console.log(`found ${filenames.length} files matching '${schema.pattern}'`)
 
@@ -126,19 +131,19 @@ class Builder {
   }
 
   async watch() {
-    console.log('watching for changes')
-
     const { schemas } = this.config
     const allPatterns = Object.values(schemas).map(schema => schema.pattern)
 
     const watcher = watch(this.config.root, { recursive: true })
 
+    console.log(`watching for changes in '${this.config.root}'`)
+
     for await (const event of watcher) {
       const { filename } = event
       if (filename == null) continue
       if (!allPatterns.some(pattern => micromatch.isMatch(filename, pattern))) continue
-      // rebuild all
-      await this.build() // TODO: rebuild only changed file
+      console.log(`file changed: ${filename}`)
+      await this.build(filename)
     }
   }
 }

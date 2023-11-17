@@ -28,6 +28,66 @@ However, I have provided a complete [example](example) for your reference.
 - [ ] image command (compress, resize, etc.)
 - [ ] docs
 
+## Installation
+
+```shell
+$ npm install velite
+
+# or pnpm
+$ pnpm install velite
+
+# or yarn
+$ yarn add velite
+```
+
+## Usage
+
+<!-- TODO: Introduction of Usage -->
+
+## API
+
+<!-- TODO: Introduction of API -->
+
+## CLI Usage
+
+<!-- TODO: Introduction of CLI -->
+
+Use npx:
+
+```shell
+$ npx velite <input> [options]
+```
+
+Globally install:
+
+```shell
+$ npm install velite -g
+# or yarn
+$ yarn global add velite
+```
+
+```shell
+$ velite --help
+velite/0.1.0
+
+Usage:
+  $ velite <input>
+
+Commands:
+  <input>  Sample cli program
+
+For more info, run any command with the `--help` flag:
+  $ velite --help
+
+Options:
+  --host <host>  Sample options
+  -h, --help     Display this message
+  -v, --version  Display version number
+
+Examples:
+  $ velite w --host zce.me
+```
+
 ## Backups
 
 ```typescript
@@ -102,66 +162,6 @@ export const mdx = ({ gfm = true, removeComments = true, flattenImage = true, fl
     }
   })
 }
-```
-
-## Installation
-
-```shell
-$ npm install velite
-
-# or pnpm
-$ pnpm install velite
-
-# or yarn
-$ yarn add velite
-```
-
-## Usage
-
-<!-- TODO: Introduction of Usage -->
-
-## API
-
-<!-- TODO: Introduction of API -->
-
-## CLI Usage
-
-<!-- TODO: Introduction of CLI -->
-
-Use npx:
-
-```shell
-$ npx velite <input> [options]
-```
-
-Globally install:
-
-```shell
-$ npm install velite -g
-# or yarn
-$ yarn global add velite
-```
-
-```shell
-$ velite --help
-velite/0.1.0
-
-Usage:
-  $ velite <input>
-
-Commands:
-  <input>  Sample cli program
-
-For more info, run any command with the `--help` flag:
-  $ velite --help
-
-Options:
-  --host <host>  Sample options
-  -h, --help     Display this message
-  -v, --version  Display version number
-
-Examples:
-  $ velite w --host zce.me
 ```
 
 ## Related

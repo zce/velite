@@ -3,7 +3,7 @@ import rehypeStringify from 'rehype-stringify'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
-import z from 'zod'
+import { z } from 'zod'
 
 import rehypeExtractExcerpt from '../plugins/rehype-extract-excerpt'
 

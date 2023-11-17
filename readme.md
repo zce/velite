@@ -36,7 +36,7 @@ import { dirname, join } from 'node:path'
 import mdxPlugin from '@mdx-js/esbuild'
 import { build } from 'esbuild'
 import remarkGfm from 'remark-gfm'
-import z from 'zod'
+import { z } from 'zod'
 
 import remarkFlattenImage from '../plugins/remark-flatten-image'
 import remarkFlattenListItem from '../plugins/remark-flatten-listitem'

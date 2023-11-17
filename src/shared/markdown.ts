@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
-import z from 'zod'
+import { z } from 'zod'
 
 import rehypeCopyLinkedFiles from '../plugins/rehype-copy-linked-files'
 import remarkFlattenImage from '../plugins/remark-flatten-image'

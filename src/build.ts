@@ -11,7 +11,7 @@ import { addLoader } from './loaders'
 
 import type { Config } from './types'
 
-interface Options {
+interface BuildOptions {
   config?: string
   clean?: boolean
   watch?: boolean
@@ -30,7 +30,7 @@ class Builder {
   /**
    * create builder instance
    */
-  static async create(options: Options) {
+  static async create(options: BuildOptions) {
     // resolve config
     const config = await resolveConfig({ filename: options.config, clean: options.clean, verbose: options.verbose })
 
@@ -148,7 +148,7 @@ class Builder {
   }
 }
 
-export const build = async (options: Options) => {
+export const build = async (options: BuildOptions) => {
   const builder = await Builder.create(options)
   await builder.build()
   if (!options.watch) return

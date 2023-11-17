@@ -34,9 +34,10 @@
       "src/cli.ts"
     ],
     "clean": true,
-    "splitting": true,
-    "target": "node18",
     "format": "esm",
+    "target": "node18",
+    "splitting": true,
+    "treeshake": true,
     "dts": {
       "entry": "src/index.ts",
       "resolve": true

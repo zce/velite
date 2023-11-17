@@ -25,7 +25,7 @@ export default defineConfig({
     filename: '/static/[name]-[hash:6].[ext]'
   },
   clean: true,
-  verbose: true,
+  verbose: false,
   schemas: {
     options: {
       name: 'Option',

@@ -1,6 +1,6 @@
 # velite
 
-> A tool turns markdown/yaml/json/others files into data layer for static apps with schema.
+> Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.
 
 [![Build Status][actions-img]][actions-url]
 [![License][license-img]][license-url]
@@ -8,15 +8,19 @@
 [![NPM Version][version-img]][version-url]
 [![Code Style][style-img]][style-url]
 
+:WIP: The documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+
 ## TODOs
 
-example
-copy-linked-files
---watch
-mdx
-reference parent
-
-- [ ] excerpt
+- [x] typescript or esm config
+- [x] markdown & yaml & json built-in support
+- [x] remark plugins & rehype plugins
+- [x] example
+- [x] watch
+- [ ] excerpt & plain
+- [ ] metadata field (reading-time, word-count, etc.)
+- [ ] mdx
+- [ ] reference parent
 - [ ] nextjs plugin
 - [ ] types generate
 - [ ] image command (compress, resize, etc.)

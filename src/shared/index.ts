@@ -19,4 +19,4 @@ export const s = {
   markdown
 }
 
-export type { TypeOf } from 'zod'
+export type * from 'zod'

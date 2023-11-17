@@ -82,8 +82,9 @@ class Builder {
         console.log(`wrote ${data.length ?? 1} ${name} to '${join(this.config.output.data, name + '.json')}'`)
       })
     )
-    const code = await this.generateTsEntry()
-    await writeFile(join(this.config.output.data, 'index.ts'), code)
+    // TODO: generate ts entry ???
+    // const code = await this.generateTsEntry()
+    // await writeFile(join(this.config.output.data, 'index.ts'), code)
   }
 
   /**

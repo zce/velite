@@ -18,6 +18,7 @@ export default defineLoader({
     const body = match == null ? raw : raw.slice(match[0].length).trim()
     // keep raw body with multiple keys (may be used) for later use
     data.metadata = body // for extract metadata (reading-time, word-count, etc.)
+    data.raw = body // for extract body content
     data.body = body // for extract body content
     data.content = body // for extract content
     data.summary = body // for extract summary

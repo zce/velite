@@ -1,4 +1,4 @@
-# velite
+# :construction: velite
 
 > Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.
 
@@ -8,7 +8,7 @@
 [![NPM Version][version-img]][version-url]
 [![Code Style][style-img]][style-url]
 
-:construction: The documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+The documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
 
 However, I have provided a complete [example](example) for your reference.
 

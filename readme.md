@@ -8,7 +8,9 @@
 [![NPM Version][version-img]][version-url]
 [![Code Style][style-img]][style-url]
 
-:WIP: The documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+:construction: The documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+
+However, I have provided a complete [example](example) for your reference.
 
 ## TODOs
 

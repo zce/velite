@@ -4,8 +4,8 @@
 
 [![Build Status][actions-img]][actions-url]
 [![License][license-img]][license-url]
-[![NPM Downloads][downloads-img]][downloads-url]
 [![NPM Version][version-img]][version-url]
+[![NPM Downloads][downloads-img]][downloads-url]
 [![Code Style][style-img]][style-url]
 
 The documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
@@ -17,9 +17,9 @@ However, I have provided a complete [example](example) for your reference.
 - [x] typescript or esm config
 - [x] markdown & yaml & json built-in support
 - [x] remark plugins & rehype plugins
-- [x] example
 - [x] watch
 - [ ] excerpt & plain
+- [ ] example with nextjs
 - [ ] metadata field (reading-time, word-count, etc.)
 - [ ] mdx
 - [ ] reference parent
@@ -120,59 +120,9 @@ $ yarn add velite
 
 <!-- TODO: Introduction of Usage -->
 
-```javascript
-import { defineConfig, shared, z } from 'velite'
-
-export default defineConfig({
-  root: 'content',
-  output: {
-    data: 'dist',
-    static: 'dist/static',
-    base: '/static'
-  },
-  schemas: {
-    posts: {
-      name: 'Post',
-      pattern: 'posts/**/*.md',
-      fields: z
-        .object({
-          title: shared.title,
-          slug: shared.slug,
-          date: shared.date,
-          cover: shared.image,
-          description: shared.paragraph,
-          draft: z.boolean().default(false),
-          meta: shared.meta,
-          raw: z.string(),
-          plain: z.string(),
-          excerpt: z.string(),
-          html: z.string()
-        })
-        .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
-    }
-  },
-  callback: ({ posts }) => {}
-})
-```
-
 ## API
 
 <!-- TODO: Introduction of API -->
-
-### velite(input, options?)
-
-#### input
-
-- Type: `string`
-- Details: name string
-
-#### options
-
-##### host
-
-- Type: `string`
-- Details: host string
-- Default: `'zce.me'`
 
 ## CLI Usage
 
@@ -231,19 +181,15 @@ Examples:
 
 ## License
 
-[MIT](LICENSE) &copy; [zce](https://zce.me)
+[MIT](license) &copy; [zce](https://zce.me)
 
 [actions-img]: https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml
 [actions-url]: https://github.com/zce/velite/actions
-[codecov-img]: https://img.shields.io/codecov/c/github/zce/velite
-[codecov-url]: https://codecov.io/gh/zce/velite
 [license-img]: https://img.shields.io/github/license/zce/velite
-[license-url]: https://github.com/zce/velite/blob/master/LICENSE
-[downloads-img]: https://img.shields.io/npm/dm/velite
-[downloads-url]: https://npm.im/velite
+[license-url]: https://github.com/zce/velite/blob/master/license
 [version-img]: https://img.shields.io/npm/v/velite
 [version-url]: https://npm.im/velite
-[dependency-img]: https://img.shields.io/librariesio/github/zce/velite
-[dependency-url]: https://github.com/zce/velite
+[downloads-img]: https://img.shields.io/npm/dm/velite
+[downloads-url]: https://npm.im/velite
 [style-img]: https://img.shields.io/badge/code_style-standard-brightgreen
 [style-url]: https://standardjs.com

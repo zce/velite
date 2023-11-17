@@ -18,13 +18,13 @@ However, I have provided a complete [example](example) for your reference.
 - [x] markdown & yaml & json built-in support
 - [x] remark plugins & rehype plugins
 - [x] watch
-- [ ] excerpt & plain
+- [x] excerpt ~~& plain~~
+- [x] metadata field (reading-time, ~~word-count, etc.~~)
+- [ ] types generate
 - [ ] example with nextjs
-- [ ] metadata field (reading-time, word-count, etc.)
 - [ ] mdx
 - [ ] reference parent
 - [ ] nextjs plugin
-- [ ] types generate
 - [ ] image command (compress, resize, etc.)
 - [ ] docs
 

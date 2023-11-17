@@ -13,6 +13,8 @@ Below is just about everything you’ll need to style in the theme. Check the so
 
 # Heading 1
 
+<!-- more -->
+
 Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel. Voluptas odit at vitae minima. In assumenda ut. Voluptatem totam impedit accusantium reiciendis excepturi aut qui accusamus praesentium.
 
 ## Heading 2

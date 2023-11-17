@@ -1,6 +1,6 @@
 import { defineConfig, s } from 'velite'
 
-const slugify = input =>
+const slugify = (input: string) =>
   input
     .toLowerCase()
     .replace(/\s+/g, '-')
@@ -8,6 +8,14 @@ const slugify = input =>
 
 const icon = s.enum(['github', 'instagram', 'medium', 'twitter', 'youtube'])
 const count = s.object({ total: s.number(), posts: s.number() }).default({ total: 0, posts: 0 })
+
+const meta = s
+  .object({
+    title: s.string().optional(),
+    description: s.string().optional(),
+    keywords: s.array(s.string()).optional()
+  })
+  .default({})
 
 export default defineConfig({
   root: 'content',
@@ -24,9 +32,9 @@ export default defineConfig({
       pattern: 'options/index.yml',
       single: true,
       fields: s.object({
-        name: s.name(),
-        title: s.title(),
-        description: s.paragraph().optional(),
+        name: s.string().max(20),
+        title: s.string().max(99),
+        description: s.string().max(999).optional(),
         keywords: s.array(s.string()),
         author: s.object({ name: s.string(), email: s.string().email(), url: s.string().url() }),
         links: s.array(s.object({ text: s.string(), link: s.string(), type: s.enum(['navigation', 'footer', 'copyright']) })),
@@ -38,10 +46,10 @@ export default defineConfig({
       pattern: 'categories/*.yml',
       fields: s
         .object({
-          name: s.name(),
+          name: s.string().max(20),
           slug: s.slug('global'),
           cover: s.image().optional(),
-          description: s.paragraph().optional(),
+          description: s.string().max(999).optional(),
           count
         })
         .transform(data => ({ ...data, permalink: `/${data.slug}` }))
@@ -51,44 +59,47 @@ export default defineConfig({
       pattern: 'tags/index.yml',
       fields: s
         .object({
-          name: s.name(),
+          name: s.string().max(20),
           slug: s.slug('global'),
           cover: s.image().optional(),
-          description: s.paragraph().optional(),
+          description: s.string().max(999).optional(),
           count
         })
         .transform(data => ({ ...data, permalink: `/${data.slug}` }))
     },
-    // pages: {
-    //   name: 'Page',
-    //   pattern: 'pages/**/*.mdx',
-    //   fields: s
-    //     .object({
-    //       title: s.title(),
-    //       slug: s.slug('post'),
-    //       body: s.mdx()
-    //     })
-    //     .transform(data => ({ ...data, permalink: `/${data.slug}/${data.slug}` }))
-    // },
+    pages: {
+      name: 'Page',
+      pattern: 'pages/**/*.mdx',
+      fields: s
+        .object({
+          title: s.string().max(99),
+          slug: s.slug('global'),
+          body: s.markdown()
+        })
+        .transform(data => ({ ...data, permalink: `/${data.slug}` }))
+    },
     posts: {
       name: 'Post',
       pattern: 'posts/**/*.md',
       fields: s
         .object({
-          title: s.title(),
+          title: s.string().max(99),
           slug: s.slug('post'),
           date: s.isodate(),
           updated: s.isodate().optional(),
           cover: s.image().optional(),
-          description: s.paragraph().optional(),
+          description: s.string().max(999).optional(),
           draft: s.boolean().default(false),
           featured: s.boolean().default(false),
           categories: s.array(s.string()).default(['Journal']),
           tags: s.array(s.string()).default([]),
-          meta: s.meta(),
-          body: s.markdown()
+          meta: meta,
+          metadata: s.metadata({ age: 20 }),
+          summary: s.excerpt({ length: 100 }),
+          excerpt: s.excerpt({ separator: 'more', format: 'html' }),
+          content: s.markdown()
         })
-        .transform(data => ({ ...data, permalink: `/${data.slug}/${data.slug}` }))
+        .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
     }
   },
   onSuccess: ({ categories, tags, posts }) => {

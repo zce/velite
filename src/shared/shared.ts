@@ -3,32 +3,13 @@ import z from 'zod'
 import { cache } from '../context'
 import { outputFile, outputImage } from '../static'
 
-const reservedSlugs = [
-  'api',
-  'auth',
-  'login',
-  'logout',
-  'register',
-  'subscribe',
-  'admin',
-  'dashboard',
-  'settings',
-  'archive',
-  'labs',
-  'blog',
-  'learn',
-  'authors',
-  'categories',
-  'tags',
-  'docs'
-]
-
 /**
  * generate a slug schema
  * @param uniqueBy uniqueBy is used to create a unique set of slugs
+ * @param reservedSlugs reserved slugs, will be rejected
  * @returns slug schema
  */
-export const slug = (uniqueBy: string = 'global') =>
+export const slug = (uniqueBy: string = 'global', reservedSlugs: string[] = []) =>
   z
     .string()
     .min(3)
@@ -48,28 +29,11 @@ export const slug = (uniqueBy: string = 'global') =>
       return true
     }, 'Slug already existSlugs')
 
-export const name = () => z.string().max(20)
-
-export const title = () => z.string().max(99)
-
 export const isodate = () =>
   z
     .string()
     .refine(value => !isNaN(Date.parse(value)), 'Invalid date')
     .transform(value => new Date(value).toISOString())
-
-export const paragraph = () => z.string().max(999)
-export const meta = () =>
-  z
-    .object({
-      title: z.string().optional(),
-      description: z.string().optional(),
-      keywords: z.array(z.string()).optional()
-    })
-    .default({})
-
-// TODO
-export const excerpt = () => z.string().transform(value => value.slice(0, 200))
 
 export const file = () =>
   z.string().transform((value, ctx) =>
@@ -87,7 +51,7 @@ export const image = () =>
     })
   )
 
-// TODO
-export const demo = () => z.custom().transform(value => Date.now())
+// // TODO
+// export const demo = () => z.custom().transform(value => Date.now())
 
-export { markdown } from './markdown'
+export * from './markdown'

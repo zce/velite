@@ -55,7 +55,7 @@ class Builder {
 
   private async generateTsEntry() {
     const { configPath, output, schemas } = this.config
-    const configRelPath = relative(output.data, normalize(configPath)).replace(/\\/g, '/')
+    const configRelPath = relative(output.data, normalize(configPath)).replace(/\\/g, '/').slice(0, -3)
     // prettier-ignore
     const code: string[] = [
       `import config from '${configRelPath}'`,

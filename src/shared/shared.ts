@@ -59,7 +59,6 @@ export const date = () =>
     .transform(value => new Date(value).toISOString())
 
 export const paragraph = () => z.string().max(999)
-
 export const meta = () =>
   z
     .object({
@@ -68,6 +67,9 @@ export const meta = () =>
       keywords: z.array(z.string()).optional()
     })
     .default({})
+
+// TODO
+export const excerpt = () => z.string().transform(value => value.slice(0, 200))
 
 export const file = () =>
   z.string().transform((value, ctx) =>
@@ -84,5 +86,8 @@ export const image = () =>
       return value
     })
   )
+
+// TODO
+export const demo = () => z.custom().transform(value => Date.now())
 
 export { markdown } from './markdown'

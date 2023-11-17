@@ -14,7 +14,7 @@ import remarkRemoveComments from '../plugins/remark-remove-comments'
 
 import type { PluggableList } from 'unified'
 
-interface MarkdownOptions {
+export interface MarkdownOptions {
   gfm?: boolean
   removeComments?: boolean
   flattenImage?: boolean

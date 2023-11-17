@@ -1,3 +1,7 @@
-export { z } from 'zod'
-export * as s from './shared'
-export * as shared from './shared'
+import { z } from 'zod'
+
+import * as shared from './shared'
+
+const s = { ...shared, ...z }
+
+export { s, z }

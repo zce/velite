@@ -3,11 +3,9 @@
 > A tool turns markdown/yaml/json/others files into data layer for static apps with schema.
 
 [![Build Status][actions-img]][actions-url]
-[![Coverage Status][codecov-img]][codecov-url]
 [![License][license-img]][license-url]
 [![NPM Downloads][downloads-img]][downloads-url]
 [![NPM Version][version-img]][version-url]
-[![Dependency Status][dependency-img]][dependency-url]
 [![Code Style][style-img]][style-url]
 
 ## Backups
@@ -86,22 +84,13 @@ export const mdx = ({ gfm = true, removeComments = true, flattenImage = true, fl
 }
 ```
 
-## Structure
-
-```text
-cli ---------------------- cli entry
-lib ---------------------- core library
-  ├── core ---------------- core functions
-  ├── plugins ------------- plugins
-  ├── schemas ------------- schemas
-  ├── utils --------------- utils
-  └── index.js ------------ core entry
-```
-
 ## TODOs
 
-- [ ] loaders & plugins
+- [ ] excerpt
 - [ ] nextjs plugin
+- [ ] types generate
+- [ ] image command (compress, resize, etc.)
+- [ ] docs
 
 ## Installation
 

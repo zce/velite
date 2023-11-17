@@ -1,4 +1,4 @@
-import { defineConfig, s, z } from 'velite'
+import { defineConfig, s } from 'velite'
 
 const slugify = input =>
   input
@@ -6,8 +6,8 @@ const slugify = input =>
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '')
 
-const icon = z.enum(['github', 'instagram', 'medium', 'twitter', 'youtube'])
-const count = z.object({ total: z.number(), posts: z.number() }).default({ total: 0, posts: 0 })
+const icon = s.enum(['github', 'instagram', 'medium', 'twitter', 'youtube'])
+const count = s.object({ total: s.number(), posts: s.number() }).default({ total: 0, posts: 0 })
 
 export default defineConfig({
   root: 'content',
@@ -23,20 +23,20 @@ export default defineConfig({
       name: 'Option',
       pattern: 'options/index.yml',
       single: true,
-      fields: z.object({
+      fields: s.object({
         name: s.name(),
         title: s.title(),
         description: s.paragraph().optional(),
-        keywords: z.array(z.string()),
-        author: z.object({ name: z.string(), email: z.string().email(), url: z.string().url() }),
-        links: z.array(z.object({ text: z.string(), link: z.string(), type: z.enum(['navigation', 'footer', 'copyright']) })),
-        socials: z.array(z.object({ name: z.string(), icon, link: z.string().optional(), image: s.image().optional() }))
+        keywords: s.array(s.string()),
+        author: s.object({ name: s.string(), email: s.string().email(), url: s.string().url() }),
+        links: s.array(s.object({ text: s.string(), link: s.string(), type: s.enum(['navigation', 'footer', 'copyright']) })),
+        socials: s.array(s.object({ name: s.string(), icon, link: s.string().optional(), image: s.image().optional() }))
       })
     },
     categories: {
       name: 'Category',
       pattern: 'categories/index.yml',
-      fields: z
+      fields: s
         .object({
           name: s.name(),
           slug: s.slug('global'),
@@ -49,7 +49,7 @@ export default defineConfig({
     tags: {
       name: 'Tag',
       pattern: 'tags/index.yml',
-      fields: z
+      fields: s
         .object({
           name: s.name(),
           slug: s.slug('global'),
@@ -62,7 +62,7 @@ export default defineConfig({
     // pages: {
     //   name: 'Page',
     //   pattern: 'pages/**/*.mdx',
-    //   fields: z
+    //   fields: s
     //     .object({
     //       title: s.title(),
     //       slug: s.slug('post'),
@@ -73,7 +73,7 @@ export default defineConfig({
     posts: {
       name: 'Post',
       pattern: 'posts/**/*.md',
-      fields: z
+      fields: s
         .object({
           title: s.title(),
           slug: s.slug('post'),
@@ -81,10 +81,10 @@ export default defineConfig({
           updated: s.date().optional(),
           cover: s.image().optional(),
           description: s.paragraph().optional(),
-          draft: z.boolean().default(false),
-          featured: z.boolean().default(false),
-          categories: z.array(z.string()).default(['Journal']),
-          tags: z.array(z.string()).default([]),
+          draft: s.boolean().default(false),
+          featured: s.boolean().default(false),
+          categories: s.array(s.string()).default(['Journal']),
+          tags: s.array(s.string()).default([]),
           meta: s.meta(),
           body: s.markdown()
         })

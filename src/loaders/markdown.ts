@@ -18,6 +18,9 @@ export default defineLoader({
       vfile.data.original = { body: content }
       return
     }
+
+    // TODO: output file meta data for later use
+
     const data = yaml.parse(match[1])
     const raw = content.slice(match[0].length).trim()
     // keep original content with multiple keys in vfile.data for later use

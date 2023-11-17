@@ -1,5 +1,5 @@
 import { mkdir, rm, watch, writeFile } from 'node:fs/promises'
-import { join, normalize, relative } from 'node:path'
+import { dirname, join, normalize, relative } from 'node:path'
 import glob from 'fast-glob'
 import micromatch from 'micromatch'
 import { reporter } from 'vfile-reporter'
@@ -40,15 +40,17 @@ class Builder {
     // init static output config
     initOutputConfig(config.output)
 
+    // rm static dir not safe, so rm only the output file
+    const outputStaticDir = dirname(join(config.output.static, config.output.filename))
     // prerequisite
     if (config.clean) {
       // clean output directories if `--clean` requested
       await rm(config.output.data, { recursive: true, force: true })
-      await rm(config.output.static, { recursive: true, force: true })
+      await rm(outputStaticDir, { recursive: true, force: true })
       config.verbose && console.log('cleaned output directories')
     }
     await mkdir(config.output.data, { recursive: true })
-    await mkdir(config.output.static, { recursive: true })
+    await mkdir(outputStaticDir, { recursive: true })
 
     return new Builder(config)
   }

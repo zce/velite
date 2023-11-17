@@ -37,7 +37,7 @@ export const excerpt = ({ separator, length = 200, format = 'plain' }: ExcerptOp
         .use(rehypeStringify)
         .process({ value })
 
-      if (format === 'plain') return file.data.excerpt
+      if (format === 'plain') return file.data.excerpt as string
       return file.toString()
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })

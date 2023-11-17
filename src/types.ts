@@ -46,7 +46,7 @@ export interface Output {
    * The public base path of the static files
    * @default '/static/[name]-[hash:8].[ext]'
    */
-  filename: string
+  filename: `/${string}/${string}`
   /**
    * The ext blacklist of the static files, such as ['md']
    * @default []

@@ -18,10 +18,10 @@ const isRootPath = (path: string): boolean => path === '/' || path.endsWith(':\\
  */
 const search = async (files: string[], cwd: string = process.cwd(), depth: number = 3): Promise<string | undefined> => {
   for (const file of files) {
-    const filepath = join(cwd, file)
     try {
-      await access(filepath)
-      return filepath
+      const path = join(cwd, file)
+      await access(path)
+      return path
     } catch {
       continue
     }
@@ -42,11 +42,8 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
     throw new Error(`not supported config file with '${ext}' extension`)
   }
 
-  // const { text, path } = result.outputFiles[0]
-  // const mod = await import(`data:text/javascript;base64,${Buffer.from(text).toString('base64')}`)
-  // return mod.default ?? mod
-
   const outfile = join(filename, '..', '.velite.config.mjs')
+
   try {
     await build({
       entryPoints: [filename],
@@ -59,6 +56,11 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
       external: ['velite'],
       outfile
     })
+
+    // const { text, path } = result.outputFiles[0]
+    // const mod = await import(`data:text/javascript;base64,${Buffer.from(text).toString('base64')}`)
+    // return mod.default ?? mod
+
     const mod = await import(pathToFileURL(outfile).href)
     return mod.default ?? mod
   } catch (err: any) {

@@ -7,6 +7,11 @@ import type { ZodType } from 'zod'
 export type Collection = Record<string, any> | Record<string, any>[]
 
 /**
+ * All collection data from file
+ */
+export type Collections = Record<string, Collection>
+
+/**
  * File loader
  */
 export interface Loader {
@@ -37,18 +42,20 @@ export interface Output {
    */
   data: string
   /**
-   * The output directory of the static files,
-   * recommended to set it to a subdirectory under public for accessible
+   * The output directory of the static assets,
+   * should be served statically by the app
    * @default 'public'
    */
   static: string
   /**
-   * The public base path of the static files
+   * The public base path of the static files.
+   * Must include one level of directory, otherwise `--clean` will automatically clear the static root dir,
+   * this means that other files in the static dir will also be cleared together
    * @default '/static/[name]-[hash:8].[ext]'
    */
   filename: `/${string}/${string}`
   /**
-   * The ext blacklist of the static files, such as ['md']
+   * The ext blacklist of the static files, such as ['md', 'yml']
    * @default []
    */
   ignoreFileExtensions: string[]
@@ -82,10 +89,9 @@ export interface Schema {
    * z.object({
    *   title: z.string(), // from frontmatter
    *   description: z.string().optional(), // from frontmatter
-   *   raw: z.string() // from markdown,
-   *   plain: z.string() // from markdown,
-   *   excerpt: z.string() // from markdown,
-   *   html: z.string() // from markdown
+   *   plain: z.string() // from markdown body,
+   *   excerpt: z.string() // from markdown body,
+   *   html: z.string() // from markdown body
    * })
    */
   fields: ZodType

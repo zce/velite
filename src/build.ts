@@ -9,7 +9,7 @@ import { cache, initOutputConfig } from './context'
 import { File } from './file'
 import { addLoader } from './loaders'
 
-import type { Config } from './types'
+import type { Collections, Config } from './types'
 
 interface BuildOptions {
   config?: string
@@ -20,7 +20,7 @@ interface BuildOptions {
 
 class Builder {
   private readonly config: Config
-  private readonly result: Record<string, Record<string, any> | Record<string, any>[]>
+  private readonly result: Collections
 
   constructor(config: Config) {
     this.config = config

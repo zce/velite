@@ -1,6 +1,6 @@
 <div align="center">
-  <a href="https://github.com/zce/velite#gh-light-mode-only" title="Velite"><img src="docs/logo-light.svg#gh-light-mode-only" width="300" alt="Velite"></a>
-  <a href="https://github.com/zce/velite#gh-dark-mode-only" title="Velite"><img src="docs/logo-dark.svg#gh-dark-mode-only" width="300" alt="Velite"></a>
+  <img src="docs/logo-light.svg#gh-light-mode-only" width="300" alt="Velite">
+  <img src="docs/logo-dark.svg#gh-dark-mode-only" width="300" alt="Velite">
   <p>Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.</p>
   <p>
     <a href="https://github.com/zce/velite/actions"><img src="https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml" alt="Build Status"></a>

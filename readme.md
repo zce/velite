@@ -1,10 +1,7 @@
 <div align="center">
   <h1>
     <a href="https://github.com/zce/velite" title="Velite">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
-        <img src="docs/logo.svg" width="300" alt="Velite">
-      </picture>
+      <img src="docs/logo.svg" width="300" alt="Velite">
     </a>
   </h1>
   <p>Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.</p>

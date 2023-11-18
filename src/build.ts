@@ -55,21 +55,20 @@ class Builder {
     return new Builder(config)
   }
 
-  private async generateTsEntry() {
+  private async generateEntry() {
     const { configPath, output, schemas } = this.config
-    const configRelPath = relative(output.data, normalize(configPath)).replace(/\\/g, '/').slice(0, -3)
-    // prettier-ignore
-    const code: string[] = [
-      `import config from '${configRelPath}'`,
-      `import type { TypeOf } from 'velite'`,
-      `const schemas = config.schemas!`
-    ]
+    const configRelPath = relative(output.data, normalize(configPath))
+      .replace(/\\/g, '/')
+      .replace(/\.(js|cjs|mjs|ts|cts|mts)$/, '')
+    const entry: string[] = []
+    const dts: string[] = [`import config from '${configRelPath}'\n`]
     Object.entries(schemas).map(([name, schema]) => {
       const type = schema.name + (schema.single ? '' : '[]')
-      code.push(`export type ${schema.name} = TypeOf<typeof schemas.${name}.fields>`)
-      code.push(`export const ${name} = async (): Promise<${type}> => (await import('./${name}.json').then(m => m.default)) as ${type}`)
+      entry.push(`export const ${name} = async () => await import('./${name}.json').then(m => m.default)`)
+      dts.push(`export type ${schema.name} = NonNullable<typeof config.schemas>['${name}']['fields']['_output']`)
+      dts.push(`export declare const ${name}: () => Promise<${type}>`)
     })
-    return code.join('\n\n')
+    return [entry.join('\n'), dts.join('\n')] as const
   }
 
   /**
@@ -84,9 +83,9 @@ class Builder {
         console.log(`wrote ${data.length ?? 1} ${name} to '${join(this.config.output.data, name + '.json')}'`)
       })
     )
-    // TODO: generate ts entry ???
-    // const code = await this.generateTsEntry()
-    // await writeFile(join(this.config.output.data, 'index.ts'), code)
+    const [enery, dts] = await this.generateEntry()
+    await writeFile(join(this.config.output.data, 'index.js'), enery)
+    await writeFile(join(this.config.output.data, 'index.d.ts'), dts)
   }
 
   /**

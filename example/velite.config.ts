@@ -1,6 +1,6 @@
 import { defineConfig, s } from 'velite'
 
-const slugify = (input: string) =>
+const slugify = input =>
   input
     .toLowerCase()
     .replace(/\s+/g, '-')

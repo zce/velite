@@ -29,6 +29,8 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 
 > "Velite" itself is the code name for Napoleon's elite army.
 
+![Workflow](docs/flow.svg 'Velite Workflow')
+
 ### Features
 
 - Easy to use

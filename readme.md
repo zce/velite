@@ -1,16 +1,42 @@
-# :construction: velite
+<div align="center">
+  <h1><a href="https://github.com/zce/velite"><img src="docs/logo.svg" width="300" alt="VELITE"></a></h1>
+  <p>Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.</p>
+  <p>
+    <a href="https://github.com/zce/velite/actions"><img src="https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml" alt="Build Status"></a>
+    <!-- <a href="https://codecov.io/gh/zce/velite"><img src="https://img.shields.io/codecov/c/github/zce/velite" alt="Coverage Status"></a> -->
+    <a href="https://github.com/zce/velite/blob/master/LICENSE"><img src="https://img.shields.io/github/license/zce/velite" alt="License"></a>
+    <a href="https://npm.im/velite"><img src="https://img.shields.io/npm/v/velite" alt="NPM Version"></a>
+    <a href="https://npm.im/velite"><img src="https://img.shields.io/node/v/velite" alt="Node Version"></a>
+    <br>
+    <a href="https://standardjs.com"><img src="https://img.shields.io/badge/code_style-standard-brightgreen" alt="Code Style"></a>
+    <a href="https://npm.im/velite"><img src="https://img.shields.io/npm/dm/velite" alt="NPM Downloads"></a>
+    <a href="https://packagephobia.com/result?p=velite"><img src="https://packagephobia.com/badge?p=velite" alt="Install Size"></a>
+    <a href="https://github.com/zce/velite"><img src="https://img.shields.io/github/repo-size/zce/velite" alt="Repo Size"></a>
+    <!-- <a href="https://github.com/zce/velite"><img src="https://img.shields.io/librariesio/github/zce/velite" alt="Dependencies Status"></a> -->
+  </p>
+  <!-- <p><strong>English</strong> | <a href="readme.zh-cn.md">简体中文</a></p> -->
+</div>
 
-> Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.
-
-[![Build Status][actions-img]][actions-url]
-[![License][license-img]][license-url]
-[![NPM Version][version-img]][version-url]
-[![NPM Downloads][downloads-img]][downloads-url]
-[![Code Style][style-img]][style-url]
-
-The documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+:construction: he documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
 
 However, I have provided a complete [example](example) for your reference.
+
+## Introduction
+
+"Velite" comes from the English word "elite".
+
+> "Velite" itself is the code name for Napoleon's elite army.
+
+### Features
+
+- Easy to use
+- Light-weight
+- Still powerful
+- High efficiency
+- Less runtime dependencies
+- Configurable
+- TypeScript support
+- ESM
 
 ## TODOs
 

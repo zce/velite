@@ -25,11 +25,11 @@ However, I have provided a full features [example](example) for your reference.
 
 "Velite" comes from the English word "elite".
 
+> "Velite" itself is the code name for Napoleon's elite army.
+
 This is a tool that can turn Markdown, YAML, JSON, or other files into an app's data layer based on a schema.
 
 Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod.dev) and [Unified](https://unifiedjs.com), and powered by [ESBuild](https://esbuild.github.io).
-
-> "Velite" itself is the code name for Napoleon's elite army.
 
 ![Workflow](docs/flow-light.svg#gh-light-mode-only 'Velite Workflow')
 ![Workflow](docs/flow-dark.svg#gh-dark-mode-only 'Velite Workflow')

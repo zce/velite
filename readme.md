@@ -1,16 +1,11 @@
 <div align="center">
-  <h1>
-    <a href="https://github.com/zce/velite" title="Velite">
-      <img src="docs/logo.svg" width="300" alt="Velite">
-    </a>
-  </h1>
+  <a href="https://github.com/zce/velite" title="Velite"><img src="docs/logo.svg" width="300" alt="Velite"></a>
   <p>Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.</p>
   <p>
     <a href="https://github.com/zce/velite/actions"><img src="https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml" alt="Build Status"></a>
     <a href="https://github.com/zce/velite/blob/master/LICENSE"><img src="https://img.shields.io/github/license/zce/velite" alt="License"></a>
     <a href="https://npm.im/velite"><img src="https://img.shields.io/npm/v/velite" alt="NPM Version"></a>
     <a href="https://npm.im/velite"><img src="https://img.shields.io/node/v/velite" alt="Node Version"></a>
-    <br>
     <a href="https://standardjs.com"><img src="https://img.shields.io/badge/code_style-standard-brightgreen" alt="Code Style"></a>
     <a href="https://npm.im/velite"><img src="https://img.shields.io/npm/dm/velite" alt="NPM Downloads"></a>
     <a href="https://packagephobia.com/result?p=velite"><img src="https://packagephobia.com/badge?p=velite" alt="Install Size"></a>

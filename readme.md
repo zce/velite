@@ -1,5 +1,8 @@
 <div align="center">
-  <a href="https://github.com/zce/velite" title="Velite"><img src="docs/logo.svg" width="300" alt="Velite"></a>
+  <a href="https://github.com/zce/velite" title="Velite">
+    <img src="docs/logo-light.svg#gh-light-mode-only" width="300" alt="Velite">
+    <img src="docs/logo-dark.svg#gh-dark-mode-only" width="300" alt="Velite">
+  </a>
   <p>Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.</p>
   <p>
     <a href="https://github.com/zce/velite/actions"><img src="https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml" alt="Build Status"></a>
@@ -29,7 +32,8 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 
 > "Velite" itself is the code name for Napoleon's elite army.
 
-![Workflow](docs/flow.svg 'Velite Workflow')
+![Workflow](docs/flow-light.svg#gh-light-mode-only 'Velite Workflow')
+![Workflow](docs/flow-dark.svg#gh-dark-mode-only 'Velite Workflow')
 
 ### Features
 

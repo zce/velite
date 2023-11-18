@@ -45,6 +45,7 @@
   },
   "prettier": "@zce/prettier-config",
   "dependencies": {
+    "@mdx-js/esbuild": "latest",
     "cac": "latest",
     "esbuild": "latest",
     "fast-glob": "latest",

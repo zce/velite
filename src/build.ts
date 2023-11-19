@@ -173,7 +173,7 @@ class Builder {
   }
 }
 
-export const build = async (options: BuildOptions) => {
+export const build = async (options: BuildOptions = {}) => {
   const builder = await Builder.create(options)
   await builder.build()
   if (!options.watch) return

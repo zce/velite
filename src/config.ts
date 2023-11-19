@@ -1,5 +1,5 @@
-import { access, rm } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { access } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 
@@ -42,7 +42,7 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
     throw new Error(`not supported config file with '${ext}' extension`)
   }
 
-  const outfile = join(filename, '..', '.velite.config.mjs')
+  const outfile = join(filename, '../node_modules/.velite/config.compiled.mjs')
 
   try {
     await build({
@@ -57,20 +57,14 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
       outfile
     })
 
-    // const { text, path } = result.outputFiles[0]
-    // const mod = await import(`data:text/javascript;base64,${Buffer.from(text).toString('base64')}`)
-    // return mod.default ?? mod
-
     const mod = await import(pathToFileURL(outfile).href)
     return mod.default ?? mod
   } catch (err: any) {
     throw new Error(`load config failed: ${err.message}`)
-  } finally {
-    await rm(outfile, { force: true })
   }
 }
 
-interface Options {
+interface ConfigOptions {
   filename?: string
   clean?: boolean
   verbose?: boolean
@@ -81,7 +75,7 @@ interface Options {
  * @param options options from CLI
  * @returns config object with default values
  */
-export const resolveConfig = async (options: Options = {}): Promise<Config> => {
+export const resolveConfig = async (options: ConfigOptions = {}): Promise<Config> => {
   // prettier-ignore
   const files = [
     name + '.config.js',
@@ -100,17 +94,17 @@ export const resolveConfig = async (options: Options = {}): Promise<Config> => {
 
   if (userConfig.schemas == null) throw new Error(`'schemas' is required in config file`)
 
-  const dir = dirname(filename)
+  const cwd = dirname(filename)
   const verbose = options.verbose ?? userConfig.verbose ?? false
 
   verbose && console.log(`using config '${filename}'`)
 
   return {
     configPath: filename,
-    root: resolve(dir, userConfig.root ?? 'content'),
+    root: join(cwd, userConfig.root ?? 'content'),
     output: {
-      data: resolve(dir, userConfig.output?.data ?? '.velite'),
-      static: resolve(dir, userConfig.output?.static ?? 'public'),
+      data: join(cwd, userConfig.output?.data ?? '.velite'),
+      static: join(cwd, userConfig.output?.static ?? 'public'),
       filename: userConfig.output?.filename ?? '/static/[name]-[hash:8].[ext]',
       ignoreFileExtensions: userConfig.output?.ignoreFileExtensions ?? []
     },

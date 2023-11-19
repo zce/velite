@@ -1,4 +1,4 @@
-import { SKIP, visit } from 'unist-util-visit'
+import { visit } from 'unist-util-visit'
 
 import type { Root } from 'mdast'
 import type { Plugin } from 'unified'
@@ -8,7 +8,7 @@ const removeComments: Plugin<[], Root> = () => tree => {
   visit(tree, ['html', 'jsx'], (node: any, index, parent: any) => {
     if (node.value.match(/<!--([\s\S]*?)-->/g)) {
       parent.children.splice(index, 1)
-      return [SKIP, index] // https://unifiedjs.com/learn/recipe/remove-node/
+      return ['skip', index] // https://unifiedjs.com/learn/recipe/remove-node/
     }
   })
 }

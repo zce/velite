@@ -7,6 +7,10 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 
+.next
+out
+next-env.d.ts
+
 # velite generated
 /.velite
 /public/static

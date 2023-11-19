@@ -4,7 +4,6 @@
   "description": "Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.",
   "keywords": [
     "content",
-    "contentful",
     "contentlayer",
     "headless-cms",
     "data-layer",
@@ -45,7 +44,6 @@
   },
   "prettier": "@zce/prettier-config",
   "dependencies": {
-    "@mdx-js/esbuild": "latest",
     "cac": "latest",
     "esbuild": "latest",
     "fast-glob": "latest",

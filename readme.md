@@ -171,6 +171,46 @@ Options:
 
 ## Recipes
 
+### MDX Support
+
+```typescript
+import { compile } from '@mdx-js/mdx'
+import rehypeRaw from 'rehype-raw'
+import rehypeStringify from 'rehype-stringify'
+import remarkGfm from 'remark-gfm'
+import remarkParse from 'remark-parse'
+import remarkRehype from 'remark-rehype'
+import { z } from 'zod'
+
+import remarkFlattenImage from '../plugins/remark-flatten-image'
+import remarkFlattenListItem from '../plugins/remark-flatten-listitem'
+import remarkRemoveComments from '../plugins/remark-remove-comments'
+
+import type { PluggableList } from 'unified'
+
+export interface MdxOptions {
+  gfm?: boolean
+  removeComments?: boolean
+  flattenImage?: boolean
+  flattenListItem?: boolean
+  remarkPlugins?: PluggableList
+  rehypePlugins?: PluggableList
+}
+
+export const mdx = ({ gfm = true, removeComments = true, flattenImage = true, flattenListItem = true, remarkPlugins = [], rehypePlugins = [] }: MdxOptions = {}) => {
+  if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
+  if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
+  if (flattenImage) remarkPlugins.push(remarkFlattenImage) // flatten image paragraph
+  if (flattenListItem) remarkPlugins.push(remarkFlattenListItem) // flatten list item paragraph
+
+  return z.string().transform(async (value, ctx) => {
+    const path = ctx.path[0] as string
+    const file = await compile({ value, path }, { remarkPlugins, rehypePlugins, outputFormat: 'function-body' })
+    return file.toString()
+  })
+}
+```
+
 ### Use with Next.js
 
 ## Advanced

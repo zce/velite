@@ -1,11 +1,11 @@
 # @velite/example
 
-> this is a example of velite with all features.
+> Framework Agnostic example of [Velite](https://github.com/zce/velite) with all features.
 
 ## Usage
 
 ```shell
-$ npm i
+$ npm install # install dependencies
 $ npm run dev # run build with watch mode
 $ npm run build # build content by velite
 ```

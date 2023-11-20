@@ -1,11 +1,15 @@
+import { excerpt as hastExcerpt } from 'hast-util-excerpt'
+import { truncate } from 'hast-util-truncate'
 import rehypeRaw from 'rehype-raw'
 import rehypeStringify from 'rehype-stringify'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
+import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
-import rehypeExtractExcerpt from '../plugins/rehype-extract-excerpt'
+import type { Root } from 'hast'
+import type { Plugin } from 'unified'
 
 export interface ExcerptOptions {
   /**
@@ -24,6 +28,24 @@ export interface ExcerptOptions {
    * @default 'plain'
    */
   format?: 'plain' | 'html'
+}
+
+// prettier-ignore
+const rehypeExtractExcerpt: Plugin<[Omit<ExcerptOptions, 'format'>], Root> = ({ separator, length }) => (tree, file) => {
+  if (separator != null) {
+    tree = hastExcerpt(tree, { comment: separator }) ?? tree
+  } else if (length != null) {
+    tree = truncate(tree, { size: length, ellipsis: '…' })
+  }
+
+  const lines: string[] = []
+  visit(tree, 'text', node => {
+    lines.push(node.value)
+  })
+
+  file.data.excerpt = lines.join('').trim()
+
+  return tree
 }
 
 export const excerpt = ({ separator, length = 200, format = 'plain' }: ExcerptOptions = {}) =>

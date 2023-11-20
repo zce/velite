@@ -4,12 +4,13 @@ import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
+import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
-import rehypeCopyLinkedFiles from '../plugins/rehype-copy-linked-files'
-import remarkRemoveComments from '../plugins/remark-remove-comments'
+import { isValidatedStaticPath, outputFile } from '../static'
 
-import type { PluggableList } from 'unified'
+import type { Element, Root } from 'hast'
+import type { PluggableList, Plugin } from 'unified'
 
 export interface MarkdownOptions {
   /**
@@ -37,18 +38,58 @@ export interface MarkdownOptions {
   rehypePlugins?: PluggableList
 }
 
-export const markdown = ({ gfm = true, removeComments = true, copyLinkedFiles = true, remarkPlugins, rehypePlugins }: MarkdownOptions = {}) =>
-  z.string().transform(async (value, ctx) => {
-    const file = unified().use(remarkParse) // parse markdown content to a syntax tree
-    if (gfm) file.use(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
-    if (removeComments) file.use(remarkRemoveComments) // remove html comments
-    if (remarkPlugins != null) file.use(remarkPlugins) // apply remark plugins
-    file.use(remarkRehype, { allowDangerousHtml: true }).use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
-    if (copyLinkedFiles) file.use(rehypeCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
-    if (rehypePlugins != null) file.use(rehypePlugins) // apply rehype plugins
-    // file.use(rehypeExtractExcerpt) // extract excerpt and plain into file.data
-    // if (process.env.NODE_ENV === 'production') file.use(rehypePresetMinify) // minify html syntax tree
-    file.use(rehypeStringify) // serialize html syntax tree
+const remarkRemoveComments: Plugin<[], Root> = () => tree => {
+  // https://github.com/alvinometric/remark-remove-comments/blob/main/transformer.js
+  visit(tree, ['html', 'jsx'], (node: any, index, parent: any) => {
+    if (node.value.match(/<!--([\s\S]*?)-->/g)) {
+      parent.children.splice(index, 1)
+      return ['skip', index] // https://unifiedjs.com/learn/recipe/remove-node/
+    }
+  })
+}
+
+const rehypeCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
+  const links = new Map<string, Element[]>()
+  const linkedPropertyNames = ['href', 'src', 'poster']
+
+  visit(tree, 'element', node => {
+    linkedPropertyNames.forEach(name => {
+      const value = node.properties[name]
+      if (typeof value === 'string' && isValidatedStaticPath(value)) {
+        const elements = links.get(value) ?? []
+        elements.push(node)
+        links.set(value, elements)
+      }
+    })
+  })
+
+  await Promise.all(
+    [...links.entries()].map(async ([url, elements]) => {
+      const publicUrl = await outputFile(url, file.path)
+      if (publicUrl == null || publicUrl === url) return
+      elements.forEach(node => {
+        linkedPropertyNames.forEach(name => {
+          if (name in node.properties) {
+            node.properties[name] = publicUrl
+          }
+        })
+      })
+    })
+  )
+}
+
+export const markdown = ({ gfm = true, removeComments = true, copyLinkedFiles = true, remarkPlugins = [], rehypePlugins = [] }: MarkdownOptions = {}) => {
+  if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
+  if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
+  if (copyLinkedFiles) rehypePlugins.push(rehypeCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
+  return z.string().transform(async (value, ctx) => {
+    const file = unified()
+      .use(remarkParse) // parse markdown content to a syntax tree
+      .use(remarkPlugins) // apply remark plugins
+      .use(remarkRehype, { allowDangerousHtml: true })
+      .use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
+      .use(rehypePlugins) // apply rehype plugins
+      .use(rehypeStringify) // serialize html syntax tree
     try {
       const html = await file.process({ value, path: ctx.path[0] as string })
       return html.toString()
@@ -57,3 +98,4 @@ export const markdown = ({ gfm = true, removeComments = true, copyLinkedFiles = 
       return value
     }
   })
+}

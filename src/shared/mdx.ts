@@ -95,12 +95,16 @@ export interface MdxOptions {
 }
 
 export const mdx = ({ gfm = true, removeComments = true, copyLinkedFiles = true, remarkPlugins = [], rehypePlugins = [] }: MdxOptions = {}) => {
-  if (gfm) remarkPlugins.push(remarkGfm)
-  if (removeComments) remarkPlugins.push(remarkRemoveComments)
+  if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
+  if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
   if (copyLinkedFiles) remarkPlugins.push(remarkCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
   return z.string().transform(async (value, ctx) => {
-    const path = ctx.path[0] as string
-    const file = await compile({ value, path }, { outputFormat: 'function-body', remarkPlugins, rehypePlugins })
-    return file.toString().replace(/\s+/g, ' ') // TODO: minify output
+    try {
+      const file = await compile({ value, path: ctx.path[0] as string }, { outputFormat: 'function-body', remarkPlugins, rehypePlugins })
+      return file.toString().replace(/\s+/g, ' ') // TODO: minify output
+    } catch (err: any) {
+      ctx.addIssue({ code: 'custom', message: err.message })
+      return value
+    }
   })
 }

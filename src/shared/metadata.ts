@@ -1,3 +1,4 @@
+import { readingTime } from 'hast-util-reading-time'
 import rehypeRaw from 'rehype-raw'
 import rehypeStringify from 'rehype-stringify'
 import remarkParse from 'remark-parse'
@@ -5,7 +6,8 @@ import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 import { z } from 'zod'
 
-import rehypeMetadata from '../plugins/rehype-metadata'
+import type { Root } from 'hast'
+import type { Plugin } from 'unified'
 
 export interface MetadataOptions {
   /**
@@ -13,6 +15,11 @@ export interface MetadataOptions {
    * @default 22
    */
   age: number
+}
+
+// prettier-ignore
+const rehypeMetadata: Plugin<[MetadataOptions], Root> = ({ age }) => (tree, file) => {
+  file.data.readingTime = Math.ceil(readingTime(tree, { age }))
 }
 
 /**

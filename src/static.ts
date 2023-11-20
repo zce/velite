@@ -40,12 +40,12 @@ const absoluteUrlRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
 const absolutePathRegex = /^(\/[^/\\]|[a-zA-Z]:\\)/
 
 export const isValidatedStaticPath = (url: string): boolean => {
-  const output = getOutputConfig()
   if (url.startsWith('#')) return false // ignore hash anchor
   if (url.startsWith('?')) return false // ignore query
   if (url.startsWith('//')) return false // ignore protocol relative urlet name
   if (absoluteUrlRegex.test(url)) return false // ignore absolute url
   if (absolutePathRegex.test(url)) return false // ignore absolute path
+  const output = getOutputConfig()
   const ext = url.split('.').pop() as string
   return !output.ignoreFileExtensions.includes(ext) // ignore file extensions
 }

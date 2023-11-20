@@ -5,6 +5,7 @@ import { file } from './file'
 import { image } from './image'
 import { isodate } from './isodate'
 import { markdown } from './markdown'
+import { mdx } from './mdx'
 import { metadata } from './metadata'
 import { slug } from './slug'
 import { unique } from './unique'
@@ -18,7 +19,8 @@ export const s = {
   image,
   metadata,
   excerpt,
-  markdown
+  markdown,
+  mdx
 }
 
 export type * from 'zod'

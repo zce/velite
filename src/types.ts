@@ -200,11 +200,11 @@ export interface Config<S extends Schemas = Schemas> {
   /**
    * Markdown options
    */
-  markdown: MarkdownOptions
+  markdown: Required<MarkdownOptions>
   /**
    * Mdx options
    */
-  mdx: MdxOptions
+  mdx: Required<MdxOptions>
   /**
    * Success callback, you can do anything you want with the collections, such as modify them, or write them to files
    */

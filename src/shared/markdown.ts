@@ -7,6 +7,7 @@ import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
+import { getConfig } from '../config'
 import { isValidatedStaticPath, outputFile } from '../static'
 
 import type { MarkdownOptions } from '../types'
@@ -53,7 +54,11 @@ const rehypeCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
   )
 }
 
-export const markdown = ({ gfm = true, removeComments = true, copyLinkedFiles = true, remarkPlugins = [], rehypePlugins = [] }: MarkdownOptions = {}) => {
+export const markdown = (options: MarkdownOptions = {}) => {
+  const { markdown } = getConfig()
+  const { gfm, removeComments, copyLinkedFiles } = { ...markdown, ...options }
+  const remarkPlugins = markdown.remarkPlugins.concat(options.remarkPlugins ?? [])
+  const rehypePlugins = markdown.rehypePlugins.concat(options.rehypePlugins ?? [])
   if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
   if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
   if (copyLinkedFiles) rehypePlugins.push(rehypeCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls

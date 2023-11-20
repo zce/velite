@@ -3,6 +3,7 @@ import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
+import { getConfig } from '../config'
 import { isValidatedStaticPath, outputFile } from '../static'
 
 import type { MdxOptions } from '../types'
@@ -69,7 +70,11 @@ const remarkCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
   )
 }
 
-export const mdx = ({ gfm = true, removeComments = true, copyLinkedFiles = true, remarkPlugins = [], rehypePlugins = [] }: MdxOptions = {}) => {
+export const mdx = (options: MdxOptions = {}) => {
+  const { mdx } = getConfig()
+  const { gfm, removeComments, copyLinkedFiles } = { ...mdx, ...options }
+  const remarkPlugins = mdx.remarkPlugins.concat(options.remarkPlugins ?? [])
+  const rehypePlugins = mdx.rehypePlugins.concat(options.rehypePlugins ?? [])
   if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
   if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
   if (copyLinkedFiles) remarkPlugins.push(remarkCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls

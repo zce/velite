@@ -128,6 +128,6 @@ export const resolveConfig = async (options: ConfigOptions = {}): Promise<Config
  * @returns config object
  */
 export const getConfig = (): Config => {
-  if (config == null) throw new Error(`config not resolved`)
-  return config
+  if (config != null) return config
+  throw new Error(`config not resolved, ensure 'resolveConfig' called before`)
 }

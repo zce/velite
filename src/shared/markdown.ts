@@ -54,15 +54,15 @@ const rehypeCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
   )
 }
 
-export const markdown = (options: MarkdownOptions = {}) => {
-  const { markdown } = getConfig()
-  const { gfm, removeComments, copyLinkedFiles } = { ...markdown, ...options }
-  const remarkPlugins = markdown.remarkPlugins.concat(options.remarkPlugins ?? [])
-  const rehypePlugins = markdown.rehypePlugins.concat(options.rehypePlugins ?? [])
-  if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
-  if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-  if (copyLinkedFiles) rehypePlugins.push(rehypeCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
-  return z.string().transform(async (value, ctx) => {
+export const markdown = (options: MarkdownOptions = {}) =>
+  z.string().transform(async (value, ctx) => {
+    const { markdown } = getConfig()
+    const { gfm, removeComments, copyLinkedFiles } = { ...markdown, ...options }
+    const remarkPlugins = markdown.remarkPlugins.concat(options.remarkPlugins ?? [])
+    const rehypePlugins = markdown.rehypePlugins.concat(options.rehypePlugins ?? [])
+    if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
+    if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
+    if (copyLinkedFiles) rehypePlugins.push(rehypeCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
     const file = unified()
       .use(remarkParse) // parse markdown content to a syntax tree
       .use(remarkPlugins) // apply remark plugins
@@ -78,4 +78,3 @@ export const markdown = (options: MarkdownOptions = {}) => {
       return value
     }
   })
-}

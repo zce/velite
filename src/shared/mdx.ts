@@ -70,15 +70,15 @@ const remarkCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
   )
 }
 
-export const mdx = (options: MdxOptions = {}) => {
-  const { mdx } = getConfig()
-  const { gfm, removeComments, copyLinkedFiles } = { ...mdx, ...options }
-  const remarkPlugins = mdx.remarkPlugins.concat(options.remarkPlugins ?? [])
-  const rehypePlugins = mdx.rehypePlugins.concat(options.rehypePlugins ?? [])
-  if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
-  if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-  if (copyLinkedFiles) remarkPlugins.push(remarkCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
-  return z.string().transform(async (value, ctx) => {
+export const mdx = (options: MdxOptions = {}) =>
+  z.string().transform(async (value, ctx) => {
+    const { mdx } = getConfig()
+    const { gfm, removeComments, copyLinkedFiles } = { ...mdx, ...options }
+    const remarkPlugins = mdx.remarkPlugins.concat(options.remarkPlugins ?? [])
+    const rehypePlugins = mdx.rehypePlugins.concat(options.rehypePlugins ?? [])
+    if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
+    if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
+    if (copyLinkedFiles) remarkPlugins.push(remarkCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
     try {
       const file = await compile({ value, path: ctx.path[0] as string }, { outputFormat: 'function-body', remarkPlugins, rehypePlugins })
       // TODO: minify output
@@ -92,4 +92,3 @@ export const mdx = (options: MdxOptions = {}) => {
       return value
     }
   })
-}

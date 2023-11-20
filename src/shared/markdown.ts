@@ -7,7 +7,6 @@ import { unified } from 'unified'
 import { z } from 'zod'
 
 import rehypeCopyLinkedFiles from '../plugins/rehype-copy-linked-files'
-import remarkFlattenImage from '../plugins/remark-flatten-image'
 import remarkRemoveComments from '../plugins/remark-remove-comments'
 
 import type { PluggableList } from 'unified'
@@ -24,11 +23,6 @@ export interface MarkdownOptions {
    */
   removeComments?: boolean
   /**
-   * Flatten image paragraph.
-   * @default true
-   */
-  flattenImage?: boolean
-  /**
    * Remark plugins.
    */
   remarkPlugins?: PluggableList
@@ -38,12 +32,11 @@ export interface MarkdownOptions {
   rehypePlugins?: PluggableList
 }
 
-export const markdown = ({ gfm = true, removeComments = true, flattenImage = true, remarkPlugins, rehypePlugins }: MarkdownOptions = {}) =>
+export const markdown = ({ gfm = true, removeComments = true, remarkPlugins, rehypePlugins }: MarkdownOptions = {}) =>
   z.string().transform(async (value, ctx) => {
     const file = unified().use(remarkParse) // parse markdown content to a syntax tree
     if (gfm) file.use(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) file.use(remarkRemoveComments) // remove html comments
-    if (flattenImage) file.use(remarkFlattenImage) // flatten image paragraph
     if (remarkPlugins != null) file.use(remarkPlugins) // apply remark plugins
     file.use(remarkRehype, { allowDangerousHtml: true }).use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
     if (rehypePlugins != null) file.use(rehypePlugins) // apply rehype plugins

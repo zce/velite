@@ -418,7 +418,7 @@ content: s.markdown()
 **options**: markdown options
 
 - type: `MarkdownOptions` 👇👇👇
-- default: `{ gfm: true, removeComments: true, flattenImage: true }`
+- default: `{ gfm: true, removeComments: true }`
 
 #### Types
 
@@ -434,11 +434,6 @@ interface MarkdownOptions {
    * @default true
    */
   removeComments?: boolean
-  /**
-   * Flatten image paragraph.
-   * @default true
-   */
-  flattenImage?: boolean
   /**
    * Remark plugins.
    */

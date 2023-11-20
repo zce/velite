@@ -1,8 +1,8 @@
 <div align="center">
   <h1>
     <picture>
-      <source srcset="docs/logo-dark.svg" media="(prefers-color-scheme: dark)">
-      <img src="docs/logo-light.svg" width="300 alt="Velite" title="Velite">
+      <source srcset="docs/assets/logo-dark.svg" media="(prefers-color-scheme: dark)">
+      <img src="docs/assets/logo-light.svg" width="300 alt="Velite" title="Velite">
     </picture>
   </h1>
   <p>Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.</p>
@@ -21,7 +21,7 @@
   <!-- <p><strong>English</strong> | <a href="readme.zh-cn.md">简体中文</a></p> -->
 </div>
 
-:construction: the documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+:construction: the [documentation](docs) is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
 
 However, I have provided a full features [example](example) for your reference.
 
@@ -36,8 +36,8 @@ This is a tool that can turn Markdown, YAML, JSON, or other files into an app's 
 Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod.dev) and [Unified](https://unifiedjs.com), and powered by [ESBuild](https://esbuild.github.io).
 
 <picture>
-  <source srcset="docs/flow-dark.svg" media="(prefers-color-scheme: dark)">
-  <img src="docs/flow-light.svg" alt="Velite Workflow" title="Velite Workflow">
+  <source srcset="docs/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
+  <img src="docs/assets/flow-light.svg" alt="Velite Workflow" title="Velite Workflow">
 </picture>
 
 ### Features
@@ -50,168 +50,6 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 - Less runtime dependencies
 - Configurable & Extensible
 - Use modern APIs & TypeScript friendly
-
-### Why not Contentlayer?
-
-[Contentlayer](https://contentlayer.dev) is a great tool, but it is not suitable for my needs. Such as:
-
-- built-in files & images processing
-- programmability & extensibility
-- schema validation and error reporting friendly
-- etc.
-
-## Getting Started
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org) (>= 18 required, LTS preferred)
-
-### Installation
-
-```shell
-$ npm install velite
-
-# or pnpm
-$ pnpm install velite
-
-# or yarn
-$ yarn add velite
-```
-
-### Quick Start
-
-Create a `velite.config.js` file in the root directory of your project:
-
-```typescript
-import { defineConfig, s } from 'velite'
-
-export default defineConfig({
-  root: 'content',
-  schemas: {
-    posts: {
-      name: 'Post',
-      pattern: 'posts/**/*.md',
-      fields: s.object({
-        title: s.string().max(99),
-        slug: s.slug('post'),
-        date: s.isodate(),
-        cover: s.image().optional(),
-        metadata: s.metadata({ age: 20 }),
-        excerpt: s.excerpt({ separator: 'more', format: 'html' }),
-        content: s.markdown()
-      }).transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
-    }
-    others: {
-      // ...
-    }
-  }
-})
-```
-
-> Config file supports TypeScript, so you can use the full power of TypeScript to write your config file.
-
-Add your creative content to the `content` directory, like this:
-
-```diff
- root
-+├── content
-+│   ├── posts
-+│   │   ├── hello-world.md
-+│   │   └── hello-world-2.md
-+│   └── others
- ├── public
- ├── package.json
-+└── velite.config.js
-```
-
-Run the following command:
-
-```shell
-$ npx velite
-```
-
-Then you will get the following output:
-
-```diff
- root
-+├── .velite
-+│   ├── posts.json
-+│   └── others.json
- ├── content
- │   ├── posts
- │   │   ├── hello-world.md
- │   │   └── hello-world-2.md
- │   └── others
- ├── public
-+│   └── static
-+│       └── xxx.jpg # from content reference
- ├── package.json
- └── velite.config.js
-```
-
-### Example
-
-See [example](example) for more details.
-
-### Shared Field Schemas
-
-See [fields](docs/fields.md) for more details.
-
-### CLI Help
-
-```shell
-$ npx velite --help
-velite/0.1.0
-
-Usage:
-  $ velite
-
-Commands:
-    Build contents for production
-
-Options:
-  -c, --config <path>  Use specified config file
-  --clean              Clean output directory before build
-  --watch              Watch for changes and rebuild
-  --verbose            Print additional information
-  --debug              Print debug information
-  -v, --version        Display version number
-  -h, --help           Display this message
-```
-
-## Recipes
-
-### MDX Support
-
-To maintain simplicity and efficiency, Velite currently does not have built-in MDX support, but you can easily support it.
-
-- [zce/velite-mdx](https://github.com/zce/velite-mdx)
-
-### Use with Next.js
-
-The Next.js plugin is still under development...
-
-- [zce/velite-next](https://github.com/zce/velite-next)
-
-## Advanced
-
-### Configuration
-
-<!-- TODO:  -->
-
-### Writing a Loader
-
-<!-- TODO:  -->
-
-## API References
-
-<!-- TODO: Introduction of API -->
-
-## Concepts
-
-### How It Works
-
-<!-- TODO: -->
 
 ## Roadmap
 

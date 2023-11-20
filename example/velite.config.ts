@@ -69,12 +69,12 @@ export default defineConfig({
     },
     pages: {
       name: 'Page',
-      pattern: 'pages/**/*.md',
+      pattern: 'pages/**/*.mdx',
       fields: s
         .object({
           title: s.string().max(99),
           slug: s.slug('global'),
-          body: s.markdown()
+          body: s.mdx()
         })
         .transform(data => ({ ...data, permalink: `/${data.slug}` }))
     },

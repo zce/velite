@@ -101,7 +101,12 @@ export const mdx = ({ gfm = true, removeComments = true, copyLinkedFiles = true,
   return z.string().transform(async (value, ctx) => {
     try {
       const file = await compile({ value, path: ctx.path[0] as string }, { outputFormat: 'function-body', remarkPlugins, rehypePlugins })
-      return file.toString().replace(/\s+/g, ' ') // TODO: minify output
+      // TODO: minify output
+      return file
+        .toString()
+        .replace(/^"use strict";/, '')
+        .replace(/\s+/g, ' ')
+        .trim()
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })
       return value

@@ -7,7 +7,7 @@ import { reporter } from 'vfile-reporter'
 import { clearCache } from './cache'
 import { getConfig, resolveConfig } from './config'
 import { File } from './file'
-import { logger } from './logger'
+import { logger, LogLevel, setLogLevel } from './logger'
 
 import type { Collections } from './types'
 
@@ -15,6 +15,7 @@ interface BuildOptions {
   config?: string
   clean?: boolean
   watch?: boolean
+  verbose?: boolean
 }
 
 class Builder {
@@ -22,6 +23,7 @@ class Builder {
   private readonly result: Collections
 
   constructor(options: BuildOptions) {
+    setLogLevel(options.verbose ? LogLevel.DEBUG : LogLevel.INFO)
     this.options = options
     this.result = {}
   }

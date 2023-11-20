@@ -9,7 +9,7 @@ export enum LogLevel {
   ERROR = 3
 }
 
-let logLevel = LogLevel.WARN
+let logLevel = LogLevel.INFO
 
 export const setLogLevel = (level: LogLevel) => {
   logLevel = level

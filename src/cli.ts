@@ -15,8 +15,8 @@ cli
   .option('--watch', 'Watch for changes and rebuild')
   .option('--verbose', 'Print additional information')
   .option('--debug', 'Print debug information')
-  .action(({ config, clean, watch }) => {
-    return build({ config, clean, watch })
+  .action(({ config, clean, watch, verbose }) => {
+    return build({ config, clean, watch, verbose })
   })
 
 const onError = (err: Error): void => {
@@ -28,5 +28,3 @@ process.on('uncaughtException', onError)
 process.on('unhandledRejection', onError)
 
 cli.parse()
-
-setLogLevel(cli.options.verbose ? LogLevel.DEBUG : LogLevel.INFO)

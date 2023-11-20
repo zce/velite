@@ -4,26 +4,26 @@ import { cache } from '../context'
 
 /**
  * generate a slug schema
- * @param uniqueBy uniqueBy is used to create a unique set of slugs
- * @param reservedSlugs reserved slugs, will be rejected
+ * @param unique unique by this, used to create a unique set of slugs
+ * @param reserved reserved slugs, will be rejected
  * @returns slug schema
  */
-export const slug = (uniqueBy: string = 'global', reservedSlugs: string[] = []) =>
+export const slug = (unique: string = 'global', reserved: string[] = []) =>
   z
     .string()
     .min(3)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/i, 'Invalid slug')
-    .refine(value => !reservedSlugs.includes(value), 'Reserved slug')
+    .refine(value => !reserved.includes(value), 'Reserved slug')
     .refine(value => {
-      const cacheKey = `slugs:${uniqueBy}`
-      const slugs = cache.get(cacheKey)
-      if (slugs == null) {
-        cache.set(cacheKey, new Set())
+      const key = `shared:slug:${unique}`
+      const exists = cache.get(key)
+      if (exists == null) {
+        cache.set(key, new Set())
         return true
       }
-      if (slugs.has(value)) {
+      if (exists.has(value)) {
         return false
       }
-      slugs.add(value)
+      exists.add(value)
       return true
-    }, 'Slug already existSlugs')
+    }, 'Slug already exists')

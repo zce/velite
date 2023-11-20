@@ -7,13 +7,15 @@ import { isodate } from './isodate'
 import { markdown } from './markdown'
 import { metadata } from './metadata'
 import { slug } from './slug'
+import { unique } from './unique'
 
 export const s = {
   ...z,
+  isodate,
+  unique,
   slug,
   file,
   image,
-  isodate,
   metadata,
   excerpt,
   markdown

@@ -57,7 +57,6 @@ The following are the features I want to achieve or are under development:
 
 - [ ] More built-in fields
 - [ ] Full documentation
-- [ ] MDX support (built-in or plugin)
 - [ ] Next.js plugin
 - [ ] More examples
 

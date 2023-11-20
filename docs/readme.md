@@ -418,7 +418,56 @@ content: s.markdown()
 **options**: markdown options
 
 - type: `MarkdownOptions` 👇👇👇
-- default: `{ gfm: true, removeComments: true }`
+- default: `{ gfm: true, removeComments: true, copyLinkedFiles: true }`
+
+#### Types
+
+```typescript
+interface MarkdownOptions {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Remark plugins.
+   */
+  remarkPlugins?: PluggableList
+  /**
+   * Rehype plugins.
+   */
+  rehypePlugins?: PluggableList
+}
+```
+
+### `s.mdx(options)`
+
+`string => string`
+
+parse input as mdx content and return component function-body.
+
+```typescript
+// The document body only with the built-in property name: metadata, body, content, summary, excerpt, plain, html, code and raw
+code: s.mdx()
+// => function-body
+```
+
+#### Parameters
+
+**options**: mdx options
+
+- type: `MarkdownOptions` 👇👇👇
+- default: `{ gfm: true, removeComments: true, copyLinkedFiles: true }`
 
 #### Types
 
@@ -454,7 +503,7 @@ interface MarkdownOptions {
 
 ### MDX Support
 
-To maintain simplicity and efficiency, Velite currently does not have built-in MDX support, but you can easily support it.
+~~To maintain simplicity and efficiency, Velite currently does not have built-in MDX support, but you can easily support it.~~
 
 - [zce/velite-mdx](https://github.com/zce/velite-mdx)
 
@@ -490,7 +539,6 @@ The following are the features I want to achieve or are under development:
 
 - [ ] More built-in fields
 - [ ] Full documentation
-- [ ] MDX support (built-in or plugin)
 - [ ] Next.js plugin
 - [ ] More examples
 

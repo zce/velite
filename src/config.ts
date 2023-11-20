@@ -4,8 +4,11 @@ import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 
 import { name } from '../package.json'
+import { logger } from './logger'
 
 import type { Config, UserConfig } from './types'
+
+let config: Config | null = null
 
 const isRootPath = (path: string): boolean => path === '/' || path.endsWith(':\\')
 
@@ -70,7 +73,6 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
 interface ConfigOptions {
   filename?: string
   clean?: boolean
-  verbose?: boolean
 }
 
 /**
@@ -98,11 +100,8 @@ export const resolveConfig = async (options: ConfigOptions = {}): Promise<Config
   if (userConfig.schemas == null) throw new Error(`'schemas' is required in config file`)
 
   const cwd = dirname(filename)
-  const verbose = options.verbose ?? userConfig.verbose ?? false
 
-  verbose && console.log(`using config '${filename}'`)
-
-  return {
+  config = {
     configPath: filename,
     root: join(cwd, userConfig.root ?? 'content'),
     output: {
@@ -112,9 +111,23 @@ export const resolveConfig = async (options: ConfigOptions = {}): Promise<Config
       ignoreFileExtensions: userConfig.output?.ignoreFileExtensions ?? []
     },
     clean: options.clean ?? userConfig.clean ?? false,
-    verbose,
     schemas: userConfig.schemas,
     loaders: userConfig.loaders ?? [],
+    markdown: { gfm: true, removeComments: true, copyLinkedFiles: true, remarkPlugins: [], rehypePlugins: [], ...userConfig.markdown },
+    mdx: { gfm: true, removeComments: true, copyLinkedFiles: true, remarkPlugins: [], rehypePlugins: [], ...userConfig.mdx },
     onSuccess: userConfig.onSuccess
   }
+
+  logger.log(`using config '${filename}'`)
+
+  return config
+}
+
+/**
+ * get resolved config, must be called after `resolveConfig`
+ * @returns config object
+ */
+export const getConfig = (): Config => {
+  if (config == null) throw new Error(`config not resolved`)
+  return config
 }

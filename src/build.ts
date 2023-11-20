@@ -4,28 +4,25 @@ import glob from 'fast-glob'
 import micromatch from 'micromatch'
 import { reporter } from 'vfile-reporter'
 
-import { resolveConfig } from './config'
-import { cache, initOutputConfig } from './context'
+import { clearCache } from './cache'
+import { getConfig, resolveConfig } from './config'
 import { File } from './file'
-import { addLoader } from './loaders'
+import { logger } from './logger'
 
-import type { Collections, Config } from './types'
+import type { Collections } from './types'
 
 interface BuildOptions {
   config?: string
   clean?: boolean
   watch?: boolean
-  verbose?: boolean
 }
 
 class Builder {
   private readonly options: BuildOptions
-  private readonly config: Config
   private readonly result: Collections
 
   constructor(options: BuildOptions) {
     this.options = options
-    this.config = {} as Config
     this.result = {}
   }
 
@@ -33,16 +30,10 @@ class Builder {
    * init builder config
    */
   async init() {
-    const { config: filename, clean, verbose } = this.options
+    const { config: filename, clean } = this.options
 
     // resolve config
-    const config = await resolveConfig({ filename, clean, verbose })
-
-    // register user loaders
-    config.loaders.forEach(addLoader)
-
-    // init static output config
-    initOutputConfig(config.output)
+    const config = await resolveConfig({ filename, clean })
 
     // prerequisite
     // rm static dir not safe, so rm only the output file
@@ -51,13 +42,10 @@ class Builder {
       // clean output directories if `--clean` requested
       await rm(config.output.data, { recursive: true, force: true })
       await rm(outputStaticDir, { recursive: true, force: true })
-      config.verbose && console.log('cleaned output directories')
+      logger.log('cleaned output directories')
     }
     await mkdir(config.output.data, { recursive: true })
-    await mkdir(outputStaticDir, { recursive: true })
-
-    // assign config
-    Object.assign(this.config, config)
+    logger.log('created data output directories')
   }
 
   /**
@@ -65,7 +53,7 @@ class Builder {
    * @returns entry content and dts
    */
   private async generateEntry() {
-    const { configPath, output, schemas } = this.config
+    const { configPath, output, schemas } = getConfig()
     const configRelPath = relative(output.data, normalize(configPath))
       .replace(/\\/g, '/')
       .replace(/\.(js|cjs|mjs|ts|cts|mts)$/, '')
@@ -84,19 +72,22 @@ class Builder {
    * output result to dist
    */
   private async output() {
+    const { output } = getConfig()
     const logs: string[] = []
     await Promise.all(
       Object.entries(this.result).map(async ([name, data]) => {
         if (data == null) return
         const json = JSON.stringify(data, null, 2)
-        await writeFile(join(this.config.output.data, name + '.json'), json)
+        const dest = join(output.data, name + '.json')
+        await writeFile(dest, json)
         logs.push(`${data.length ?? 1} ${name}`)
+        logger.log(`wrote ${data.length ?? 1} ${name} in '{join(output.data, name + '${dest}')}'`)
       })
     )
     const [enery, dts] = await this.generateEntry()
-    await writeFile(join(this.config.output.data, 'index.js'), enery)
-    await writeFile(join(this.config.output.data, 'index.d.ts'), dts)
-    console.log(`output ${logs.join(', ')} and entry file`)
+    await writeFile(join(output.data, 'index.js'), enery)
+    await writeFile(join(output.data, 'index.d.ts'), dts)
+    logger.info(`output ${logs.join(', ')} and entry file`)
   }
 
   /**
@@ -104,11 +95,11 @@ class Builder {
    * @param changed changed file path
    */
   async build(changed?: string) {
-    const { root, verbose, schemas, onSuccess } = this.config
+    const { root, schemas, onSuccess } = getConfig()
 
-    verbose && console.log(`searching files in '${root}'`)
+    logger.log(`searching files in '${root}'`)
 
-    cache.clear() // clear cache in case of rebuild
+    clearCache() // clear cache in case of rebuild
 
     const files: File[] = []
 
@@ -121,7 +112,7 @@ class Builder {
       }
 
       const filenames = await glob(schema.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'] })
-      verbose && console.log(`found ${filenames.length} files matching '${schema.pattern}'`)
+      logger.log(`found ${filenames.length} files matching '${schema.pattern}'`)
 
       const result = await Promise.all(
         filenames.map(async filename => {
@@ -134,9 +125,11 @@ class Builder {
 
       const data = result.flat().filter(Boolean)
 
+      logger.log(`parsed ${data.length} items for '${name}'`)
+
       if (schema.single) {
         if (data.length > 1) {
-          throw new Error(`found ${data.length} items for '${name}', but expected only one`)
+          logger.warn(`parsed ${data.length} items for '${name}', but expected only one`)
         }
         return [name, data[0]] as const
       }
@@ -147,14 +140,15 @@ class Builder {
     const entities = await Promise.all(tasks)
 
     // report if any error in parsing
-    const report = reporter(files, { quiet: true, verbose })
-    report.length > 0 && console.log(report)
+    const report = reporter(files, { quiet: true })
+    report.length > 0 && logger.warn(report)
 
     const collections = Object.fromEntries<any>(entities)
 
     // user callback
     if (typeof onSuccess === 'function') {
       await onSuccess(collections)
+      logger.log(`executed config.onSuccess callback`)
     }
 
     Object.assign(this.result, collections)
@@ -166,12 +160,13 @@ class Builder {
    * watch config file changes and reinit builder
    */
   private async watchConfig() {
-    for await (const event of watch(this.config.configPath)) {
+    const { configPath } = getConfig()
+    for await (const event of watch(configPath)) {
       const { filename } = event
       if (filename == null) continue
-      console.log(`config changed: ${filename}`)
-      await this.init().catch(console.error)
-      await this.build().catch(console.error)
+      logger.info(`config changed: ${filename}`)
+      await this.init().catch(logger.warn)
+      await this.build().catch(logger.warn)
     }
   }
 
@@ -179,18 +174,18 @@ class Builder {
    * watch content files changes and rebuild
    */
   private async watchRoot() {
-    const { schemas } = this.config
+    const { root, schemas } = getConfig()
     const allPatterns = Object.values(schemas).map(schema => schema.pattern)
 
-    const watcher = watch(this.config.root, { recursive: true })
-    console.log(`watching for changes in '${this.config.root}'`)
+    const watcher = watch(root, { recursive: true })
+    logger.info(`watching for changes in '${root}'`)
 
     for await (const event of watcher) {
       const { filename } = event
       if (filename == null) continue
       if (!allPatterns.some(pattern => micromatch.isMatch(filename, pattern))) continue
-      console.log(`file changed: ${filename}`)
-      await this.build(filename).catch(console.error)
+      logger.info(`file changed: ${filename}`)
+      await this.build(filename).catch(logger.warn)
     }
   }
 
@@ -198,7 +193,7 @@ class Builder {
    * start watching
    */
   watch() {
-    // console.clear()
+    // logger.clear()
     this.watchConfig()
     this.watchRoot()
   }

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { cache } from '../context'
+import { getCache } from '../cache'
 
 /**
  * generate a slug schema
@@ -15,15 +15,8 @@ export const slug = (unique: string = 'global', reserved: string[] = []) =>
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/i, 'Invalid slug')
     .refine(value => !reserved.includes(value), 'Reserved slug')
     .refine(value => {
-      const key = `shared:slug:${unique}`
-      const exists = cache.get(key)
-      if (exists == null) {
-        cache.set(key, new Set())
-        return true
-      }
-      if (exists.has(value)) {
-        return false
-      }
+      const exists = getCache(`shared:slug:${unique}`, new Set())
+      if (exists.has(value)) return false
       exists.add(value)
       return true
     }, 'Slug already exists')

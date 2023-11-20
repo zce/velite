@@ -3,37 +3,10 @@ import { copyFile, mkdir, readFile } from 'node:fs/promises'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
 
-import { cache, getOutputConfig } from './context'
+import { getCache } from './cache'
+import { getConfig } from './config'
 
-/**
- * Image object with metadata & blur image
- */
-export interface Image {
-  /**
-   * public url of the image
-   */
-  src: string
-  /**
-   * image width
-   */
-  width: number
-  /**
-   * image height
-   */
-  height: number
-  /**
-   * blurDataURL of the image
-   */
-  blurDataURL: string
-  /**
-   * blur image width
-   */
-  blurWidth: number
-  /**
-   * blur image height
-   */
-  blurHeight: number
-}
+import type { Image } from './types'
 
 // https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
 const absoluteUrlRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
@@ -45,7 +18,7 @@ export const isValidatedStaticPath = (url: string): boolean => {
   if (url.startsWith('//')) return false // ignore protocol relative urlet name
   if (absoluteUrlRegex.test(url)) return false // ignore absolute url
   if (absolutePathRegex.test(url)) return false // ignore absolute path
-  const output = getOutputConfig()
+  const { output } = getConfig()
   const ext = url.split('.').pop() as string
   return !output.ignoreFileExtensions.includes(ext) // ignore file extensions
 }
@@ -76,13 +49,6 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
   return { height, width, blurDataURL, blurWidth, blurHeight }
 }
 
-const copy = async (from: string, to: string): Promise<void> => {
-  const output = getOutputConfig()
-  const filename = join(output.static, to)
-  await mkdir(dirname(filename), { recursive: true })
-  await copyFile(from, filename)
-}
-
 /**
  * output static file reference of a file
  * @param ref relative path of the referenced file
@@ -93,7 +59,7 @@ const copy = async (from: string, to: string): Promise<void> => {
 const outputStatic = async (ref: string, fromPath: string, isImage?: true): Promise<Image | string> => {
   if (!isValidatedStaticPath(ref)) return ref
 
-  const output = getOutputConfig()
+  const { output } = getConfig()
 
   const from = resolve(fromPath, '..', ref)
   const source = await readFile(from)
@@ -112,25 +78,26 @@ const outputStatic = async (ref: string, fromPath: string, isImage?: true): Prom
     return substring
   })
 
+  const dest = join(output.static, filename)
+  await mkdir(dirname(dest), { recursive: true })
+
   if (isImage == null) {
     const key = 'static:files'
-    const files = cache.get(key) || new Set<string>()
+    const files = getCache(key, new Set<string>())
     if (files.has(filename)) return filename
     files.add(filename) // TODO: not await works, but await not works, becareful if copy failed
-    await copy(from, filename)
-    cache.set(key, files)
+    await copyFile(from, dest)
     return filename
   }
 
   const key = 'static:images'
-  const images = cache.get(key) || new Map<string, Image>()
+  const images = getCache(key, new Map<string, Image>())
   if (images.has(filename)) return images.get(filename) as Image
   const img = await getImageMetadata(source)
   if (img == null) return ref
   const image = { src: filename, ...img }
   images.set(filename, image)
-  cache.set(key, images)
-  await copy(from, filename)
+  await copyFile(from, dest)
   return image
 }
 

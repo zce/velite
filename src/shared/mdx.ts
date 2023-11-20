@@ -5,8 +5,9 @@ import { z } from 'zod'
 
 import { isValidatedStaticPath, outputFile } from '../static'
 
+import type { MdxOptions } from '../types'
 import type { Node, Root } from 'mdast'
-import type { PluggableList, Plugin } from 'unified'
+import type { Plugin } from 'unified'
 
 const remarkRemoveComments: Plugin<[], Root> = () => tree => {
   visit(tree, ['mdxFlowExpression'], (node, index, parent: any) => {
@@ -66,32 +67,6 @@ const remarkCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
       })
     })
   )
-}
-
-export interface MdxOptions {
-  /**
-   * Enable GitHub Flavored Markdown (GFM).
-   * @default true
-   */
-  gfm?: boolean
-  /**
-   * Remove html comments.
-   * @default true
-   */
-  removeComments?: boolean
-  /**
-   * Copy linked files to public path and replace their urls with public urls.
-   * @default true
-   */
-  copyLinkedFiles?: boolean
-  /**
-   * Remark plugins.
-   */
-  remarkPlugins?: PluggableList
-  /**
-   * Rehype plugins.
-   */
-  rehypePlugins?: PluggableList
 }
 
 export const mdx = ({ gfm = true, removeComments = true, copyLinkedFiles = true, remarkPlugins = [], rehypePlugins = [] }: MdxOptions = {}) => {

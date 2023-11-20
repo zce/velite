@@ -9,34 +9,9 @@ import { z } from 'zod'
 
 import { isValidatedStaticPath, outputFile } from '../static'
 
+import type { MarkdownOptions } from '../types'
 import type { Element, Root } from 'hast'
-import type { PluggableList, Plugin } from 'unified'
-
-export interface MarkdownOptions {
-  /**
-   * Enable GitHub Flavored Markdown (GFM).
-   * @default true
-   */
-  gfm?: boolean
-  /**
-   * Remove html comments.
-   * @default true
-   */
-  removeComments?: boolean
-  /**
-   * Copy linked files to public path and replace their urls with public urls.
-   * @default true
-   */
-  copyLinkedFiles?: boolean
-  /**
-   * Remark plugins.
-   */
-  remarkPlugins?: PluggableList
-  /**
-   * Rehype plugins.
-   */
-  rehypePlugins?: PluggableList
-}
+import type { Plugin } from 'unified'
 
 const remarkRemoveComments: Plugin<[], Root> = () => tree => {
   // https://github.com/alvinometric/remark-remove-comments/blob/main/transformer.js

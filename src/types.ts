@@ -1,3 +1,4 @@
+import type { PluggableList } from 'unified'
 import type { VFile } from 'vfile'
 import type { ZodType } from 'zod'
 
@@ -10,6 +11,36 @@ export type Collection = Record<string, any> | Record<string, any>[]
  * All collection data from file
  */
 export type Collections = Record<string, Collection>
+
+/**
+ * Image object with metadata & blur image
+ */
+export interface Image {
+  /**
+   * public url of the image
+   */
+  src: string
+  /**
+   * image width
+   */
+  width: number
+  /**
+   * image height
+   */
+  height: number
+  /**
+   * blurDataURL of the image
+   */
+  blurDataURL: string
+  /**
+   * blur image width
+   */
+  blurWidth: number
+  /**
+   * blur image height
+   */
+  blurHeight: number
+}
 
 /**
  * File loader
@@ -105,6 +136,40 @@ export interface Schemas {
 }
 
 /**
+ * Markdown options
+ */
+export interface MarkdownOptions {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Remark plugins.
+   */
+  remarkPlugins?: PluggableList
+  /**
+   * Rehype plugins.
+   */
+  rehypePlugins?: PluggableList
+}
+
+/**
+ * Mdx options
+ */
+export interface MdxOptions extends MarkdownOptions {}
+
+/**
  * Config
  */
 export interface Config<S extends Schemas = Schemas> {
@@ -124,11 +189,6 @@ export interface Config<S extends Schemas = Schemas> {
    */
   clean: boolean
   /**
-   * Whether to print verbose log
-   * @default false
-   */
-  verbose: boolean
-  /**
    * The content schemas
    */
   schemas: S
@@ -137,7 +197,14 @@ export interface Config<S extends Schemas = Schemas> {
    * @default [] (built-in loaders: 'json', 'yaml', 'markdown')
    */
   loaders: Loader[]
-  // markdown: MarkdownOptions
+  /**
+   * Markdown options
+   */
+  markdown: MarkdownOptions
+  /**
+   * Mdx options
+   */
+  mdx: MdxOptions
   /**
    * Success callback, you can do anything you want with the collections, such as modify them, or write them to files
    */

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { cache } from '../context'
+import { getCache } from '../cache'
 
 /**
  * generate a unique schema
@@ -9,15 +9,8 @@ import { cache } from '../context'
  */
 export const unique = (by: string = 'global') =>
   z.string().refine(value => {
-    const key = `shared:unique:${by}`
-    const exists = cache.get(key)
-    if (exists == null) {
-      cache.set(key, new Set())
-      return true
-    }
-    if (exists.has(value)) {
-      return false
-    }
+    const exists = getCache(`shared:unique:${by}`, new Set())
+    if (exists.has(value)) return false
     exists.add(value)
     return true
   }, 'Already exists')

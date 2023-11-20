@@ -170,8 +170,8 @@ class Builder {
       const { filename } = event
       if (filename == null) continue
       console.log(`config changed: ${filename}`)
-      await this.init()
-      await this.build()
+      await this.init().catch(console.error)
+      await this.build().catch(console.error)
     }
   }
 
@@ -190,7 +190,7 @@ class Builder {
       if (filename == null) continue
       if (!allPatterns.some(pattern => micromatch.isMatch(filename, pattern))) continue
       console.log(`file changed: ${filename}`)
-      await this.build(filename)
+      await this.build(filename).catch(console.error)
     }
   }
 

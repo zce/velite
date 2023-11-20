@@ -435,6 +435,11 @@ interface MarkdownOptions {
    */
   removeComments?: boolean
   /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
    * Remark plugins.
    */
   remarkPlugins?: PluggableList

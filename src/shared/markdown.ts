@@ -23,6 +23,11 @@ export interface MarkdownOptions {
    */
   removeComments?: boolean
   /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
    * Remark plugins.
    */
   remarkPlugins?: PluggableList
@@ -32,15 +37,15 @@ export interface MarkdownOptions {
   rehypePlugins?: PluggableList
 }
 
-export const markdown = ({ gfm = true, removeComments = true, remarkPlugins, rehypePlugins }: MarkdownOptions = {}) =>
+export const markdown = ({ gfm = true, removeComments = true, copyLinkedFiles = true, remarkPlugins, rehypePlugins }: MarkdownOptions = {}) =>
   z.string().transform(async (value, ctx) => {
     const file = unified().use(remarkParse) // parse markdown content to a syntax tree
     if (gfm) file.use(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) file.use(remarkRemoveComments) // remove html comments
     if (remarkPlugins != null) file.use(remarkPlugins) // apply remark plugins
     file.use(remarkRehype, { allowDangerousHtml: true }).use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
+    if (copyLinkedFiles) file.use(rehypeCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
     if (rehypePlugins != null) file.use(rehypePlugins) // apply rehype plugins
-    file.use(rehypeCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
     // file.use(rehypeExtractExcerpt) // extract excerpt and plain into file.data
     // if (process.env.NODE_ENV === 'production') file.use(rehypePresetMinify) // minify html syntax tree
     file.use(rehypeStringify) // serialize html syntax tree

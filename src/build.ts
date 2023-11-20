@@ -19,20 +19,24 @@ interface BuildOptions {
 }
 
 class Builder {
+  private readonly options: BuildOptions
   private readonly config: Config
   private readonly result: Collections
 
-  constructor(config: Config) {
-    this.config = config
+  constructor(options: BuildOptions) {
+    this.options = options
+    this.config = {} as Config
     this.result = {}
   }
 
   /**
-   * create builder instance
+   * init builder config
    */
-  static async create(options: BuildOptions) {
+  async init() {
+    const { config: filename, clean, verbose } = this.options
+
     // resolve config
-    const config = await resolveConfig({ filename: options.config, clean: options.clean, verbose: options.verbose })
+    const config = await resolveConfig({ filename, clean, verbose })
 
     // register user loaders
     config.loaders.forEach(addLoader)
@@ -40,9 +44,9 @@ class Builder {
     // init static output config
     initOutputConfig(config.output)
 
+    // prerequisite
     // rm static dir not safe, so rm only the output file
     const outputStaticDir = dirname(join(config.output.static, config.output.filename))
-    // prerequisite
     if (config.clean) {
       // clean output directories if `--clean` requested
       await rm(config.output.data, { recursive: true, force: true })
@@ -52,9 +56,14 @@ class Builder {
     await mkdir(config.output.data, { recursive: true })
     await mkdir(outputStaticDir, { recursive: true })
 
-    return new Builder(config)
+    // assign config
+    Object.assign(this.config, config)
   }
 
+  /**
+   * generate entry from config.schemas
+   * @returns entry content and dts
+   */
   private async generateEntry() {
     const { configPath, output, schemas } = this.config
     const configRelPath = relative(output.data, normalize(configPath))
@@ -75,17 +84,19 @@ class Builder {
    * output result to dist
    */
   private async output() {
+    const logs: string[] = []
     await Promise.all(
       Object.entries(this.result).map(async ([name, data]) => {
         if (data == null) return
         const json = JSON.stringify(data, null, 2)
         await writeFile(join(this.config.output.data, name + '.json'), json)
-        console.log(`wrote ${data.length ?? 1} ${name} to '${join(this.config.output.data, name + '.json')}'`)
+        logs.push(`${data.length ?? 1} ${name}`)
       })
     )
     const [enery, dts] = await this.generateEntry()
     await writeFile(join(this.config.output.data, 'index.js'), enery)
     await writeFile(join(this.config.output.data, 'index.d.ts'), dts)
+    console.log(`output ${logs.join(', ')} and entry file`)
   }
 
   /**
@@ -93,7 +104,6 @@ class Builder {
    * @param changed changed file path
    */
   async build(changed?: string) {
-    if (this.config == null) throw new Error('config not initialized')
     const { root, verbose, schemas, onSuccess } = this.config
 
     verbose && console.log(`searching files in '${root}'`)
@@ -153,14 +163,26 @@ class Builder {
   }
 
   /**
-   * watch for changes
+   * watch config file changes and reinit builder
    */
-  async watch() {
+  private async watchConfig() {
+    for await (const event of watch(this.config.configPath)) {
+      const { filename } = event
+      if (filename == null) continue
+      console.log(`config changed: ${filename}`)
+      await this.init()
+      await this.build()
+    }
+  }
+
+  /**
+   * watch content files changes and rebuild
+   */
+  private async watchRoot() {
     const { schemas } = this.config
     const allPatterns = Object.values(schemas).map(schema => schema.pattern)
 
     const watcher = watch(this.config.root, { recursive: true })
-
     console.log(`watching for changes in '${this.config.root}'`)
 
     for await (const event of watcher) {
@@ -171,11 +193,20 @@ class Builder {
       await this.build(filename)
     }
   }
+
+  /**
+   * start watching
+   */
+  watch() {
+    console.clear()
+    this.watchConfig()
+    this.watchRoot()
+  }
 }
 
 export const build = async (options: BuildOptions = {}) => {
-  const builder = await Builder.create(options)
+  const builder = new Builder(options)
+  await builder.init()
   await builder.build()
-  if (!options.watch) return
-  await builder.watch()
+  options.watch && builder.watch()
 }

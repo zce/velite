@@ -57,7 +57,10 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
       outfile
     })
 
-    const mod = await import(pathToFileURL(outfile).href)
+    const configUrl = pathToFileURL(outfile)
+    configUrl.searchParams.set('t', Date.now().toString())
+
+    const mod = await import(configUrl.href)
     return mod.default ?? mod
   } catch (err: any) {
     throw new Error(`load config failed: ${err.message}`)

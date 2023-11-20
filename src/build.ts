@@ -198,7 +198,7 @@ class Builder {
    * start watching
    */
   watch() {
-    console.clear()
+    // console.clear()
     this.watchConfig()
     this.watchRoot()
   }

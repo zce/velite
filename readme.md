@@ -153,6 +153,10 @@ Then you will get the following output:
 
 See [example](example) for more details.
 
+### Shared Field Schemas
+
+See [fields](docs/fields.md) for more details.
+
 ### CLI Help
 
 ```shell

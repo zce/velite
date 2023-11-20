@@ -15,6 +15,9 @@ export interface MetadataOptions {
   age: number
 }
 
+/**
+ * Document metadata.
+ */
 export interface Metadata {
   /**
    * Reading time in minutes.

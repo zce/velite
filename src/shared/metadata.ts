@@ -1,7 +1,7 @@
 import { words } from 'lodash-es'
-import { fromMarkdown } from 'mdast-util-from-markdown'
-import { toString } from 'mdast-util-to-string'
 import { z } from 'zod'
+
+import { markdownToPlain } from './utils'
 
 // Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters
 const cjRanges = [
@@ -58,7 +58,7 @@ const getMetadata = (text: string): Metadata => {
 
   // Multiply non-latin character string length by 0.56, because
   // on average one word consists of 2 characters in both Chinese and Japanese
-  const wordCount = words(latinChars.join(``)).length + cjChars.length * 0.56
+  const wordCount = words(latinChars.join('')).length + cjChars.length * 0.56
 
   const time = Math.round(wordCount / avgWPM)
 
@@ -83,8 +83,12 @@ export interface Metadata {
 }
 
 export const metadata = () =>
-  z.string().transform(async (value, ctx) => {
-    const mdast = fromMarkdown(value)
-    const content = toString(mdast)
-    return getMetadata(content)
+  z.string().transform((value, ctx) => {
+    try {
+      const content = markdownToPlain(value)
+      return getMetadata(content)
+    } catch (err: any) {
+      ctx.addIssue({ code: 'custom', message: err.message })
+      return { readingTime: 0, wordCount: 0 } as Metadata
+    }
   })

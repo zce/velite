@@ -8,6 +8,7 @@ import { markdown } from './markdown'
 import { mdx } from './mdx'
 import { metadata } from './metadata'
 import { slug } from './slug'
+import { summary } from './summary'
 import { unique } from './unique'
 
 export const s = {
@@ -18,6 +19,7 @@ export const s = {
   file,
   image,
   metadata,
+  summary,
   excerpt,
   markdown,
   mdx

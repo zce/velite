@@ -339,7 +339,7 @@ interface Image {
 
 parse input as markdown content and return metadata.
 
-currently only support `readingTime`.
+currently only support `readingTime` & `wordCount`.
 
 ```typescript
 // The document body only with the built-in property name: metadata, body, content, summary, excerpt, plain, html, code and raw
@@ -365,16 +365,47 @@ interface Metadata {
 }
 ```
 
+### `s.summary(options)`
+
+`string => string`
+
+parse input as markdown content and return summary plain text.
+
+```typescript
+// The document body only with the built-in property name: metadata, body, content, summary, excerpt, plain, html, code and raw
+summary: s.summary()
+// => summary plain text
+```
+
+#### Parameters
+
+**options**: summary options
+
+- type: `SummaryOptions` 👇👇👇
+- default: `{ length: 260 }`
+
+#### Types
+
+```typescript
+interface SummaryOptions {
+  /**
+   * Summary length.
+   * @default 260
+   */
+  length?: number
+}
+```
+
 ### `s.excerpt(options)`
 
 `string => string`
 
-parse input as markdown content and return excerpt.
+parse input as markdown content and return excerpt html.
 
 ```typescript
 // The document body only with the built-in property name: metadata, body, content, summary, excerpt, plain, html, code and raw
 excerpt: s.excerpt()
-// => excerpt content
+// => excerpt html
 ```
 
 #### Parameters
@@ -382,7 +413,7 @@ excerpt: s.excerpt()
 **options**: excerpt options
 
 - type: `ExcerptOptions` 👇👇👇
-- default: `{ length: 200, format: 'plain' }`
+- default: `{ separator: 'more', length: 300 }`
 
 #### Types
 
@@ -390,20 +421,16 @@ excerpt: s.excerpt()
 interface ExcerptOptions {
   /**
    * Excerpt separator.
+   * @default 'more'
    * @example
-   * excerpt({ separator: 'more' }) // split excerpt by `<!-- more -->`
+   * s.excerpt({ separator: 'preview' }) // split excerpt by `<!-- preview -->`
    */
   separator?: string
   /**
    * Excerpt length.
-   * @default 200
+   * @default 300
    */
   length?: number
-  /**
-   * Excerpt format.
-   * @default 'plain'
-   */
-  format?: 'plain' | 'html'
 }
 ```
 

@@ -25,7 +25,6 @@ export default defineConfig({
     filename: '/static/[name]-[hash:6].[ext]'
   },
   clean: true,
-  verbose: false,
   schemas: {
     options: {
       name: 'Options',
@@ -94,9 +93,9 @@ export default defineConfig({
           categories: s.array(s.string()).default(['Journal']),
           tags: s.array(s.string()).default([]),
           meta: meta,
-          metadata: s.metadata({ age: 20 }),
-          summary: s.excerpt({ length: 100 }),
-          excerpt: s.excerpt({ separator: 'more', format: 'html' }),
+          metadata: s.metadata(),
+          summary: s.summary(),
+          excerpt: s.excerpt(),
           content: s.markdown()
         })
         .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))

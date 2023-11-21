@@ -88,21 +88,23 @@ Create a `velite.config.js` file in the root directory of your project:
 import { defineConfig, s } from 'velite'
 
 export default defineConfig({
-  root: 'content',
   schemas: {
     posts: {
       name: 'Post',
       pattern: 'posts/**/*.md',
-      fields: s.object({
-        title: s.string().max(99),
-        slug: s.slug('post'),
-        date: s.isodate(),
-        cover: s.image().optional(),
-        metadata: s.metadata({ age: 20 }),
-        excerpt: s.excerpt({ separator: 'more', format: 'html' }),
-        content: s.markdown()
-      }).transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
-    }
+      fields: s
+        .object({
+          title: s.string().max(99),
+          slug: s.slug('post'),
+          date: s.isodate(),
+          cover: s.image().optional(),
+          metadata: s.metadata(),
+          summary: s.summary(),
+          excerpt: s.excerpt(),
+          content: s.markdown()
+        })
+        .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
+    },
     others: {
       // ...
     }

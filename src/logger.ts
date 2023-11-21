@@ -8,7 +8,7 @@ const logLevels = {
   silent: 4
 }
 
-let logLevel = logLevels.debug
+let logLevel = logLevels.info
 
 export type LogLevel = keyof typeof logLevels
 

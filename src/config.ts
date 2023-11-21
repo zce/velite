@@ -70,7 +70,7 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
   }
 }
 
-interface ConfigOptions {
+export interface ConfigOptions {
   filename?: string
   clean?: boolean
 }

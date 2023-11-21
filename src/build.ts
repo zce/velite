@@ -11,7 +11,7 @@ import { logger, LogLevel, setLogLevel } from './logger'
 
 import type { Collections } from './types'
 
-interface BuildOptions {
+export interface BuildOptions {
   config?: string
   clean?: boolean
   watch?: boolean

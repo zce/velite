@@ -344,7 +344,7 @@ currently only support `readingTime`.
 ```typescript
 // The document body only with the built-in property name: metadata, body, content, summary, excerpt, plain, html, code and raw
 metadata: s.metadata()
-// => { readingTime: 2 }
+// => { readingTime: 2, wordCount: 100 }
 ```
 
 #### Types
@@ -358,6 +358,10 @@ interface Metadata {
    * Reading time in minutes.
    */
   readingTime: number
+  /**
+   * Word count.
+   */
+  wordCount: number
 }
 ```
 

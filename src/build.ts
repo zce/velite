@@ -15,7 +15,7 @@ export interface BuildOptions {
   config?: string
   clean?: boolean
   watch?: boolean
-  verbose?: boolean
+  logLevel?: LogLevel
 }
 
 class Builder {
@@ -23,7 +23,6 @@ class Builder {
   private readonly result: Collections
 
   constructor(options: BuildOptions) {
-    setLogLevel(options.verbose ? LogLevel.DEBUG : LogLevel.INFO)
     this.options = options
     this.result = {}
   }
@@ -32,19 +31,25 @@ class Builder {
    * init builder config
    */
   async init() {
-    const { config: filename, clean } = this.options
+    const { config: filename, clean, logLevel } = this.options
+
+    // set log level
+    logLevel && setLogLevel(logLevel)
 
     // resolve config
     const config = await resolveConfig({ filename, clean })
 
     // prerequisite
-    // rm static dir not safe, so rm only the output file
-    const outputStaticDir = dirname(join(config.output.static, config.output.filename))
+
     if (config.clean) {
       // clean output directories if `--clean` requested
       await rm(config.output.data, { recursive: true, force: true })
+      logger.log(`cleaned data output dir '${config.output.data}'`)
+
+      // rm static dir not safe, so rm only the output file dir
+      const outputStaticDir = dirname(join(config.output.static, config.output.filename))
       await rm(outputStaticDir, { recursive: true, force: true })
-      logger.log('cleaned output directories')
+      logger.log(`cleaned static output dir '${outputStaticDir}'`)
     }
     await mkdir(config.output.data, { recursive: true })
     logger.log('created data output directories')
@@ -79,16 +84,23 @@ class Builder {
     await Promise.all(
       Object.entries(this.result).map(async ([name, data]) => {
         if (data == null) return
-        const json = JSON.stringify(data, null, 2)
         const dest = join(output.data, name + '.json')
-        await writeFile(dest, json)
+        await writeFile(dest, JSON.stringify(data, null, 2))
+        logger.log(`wrote ${data.length ?? 1} ${name} in '${dest}'`)
         logs.push(`${data.length ?? 1} ${name}`)
-        logger.log(`wrote ${data.length ?? 1} ${name} in '{join(output.data, name + '${dest}')}'`)
       })
     )
+
     const [enery, dts] = await this.generateEntry()
-    await writeFile(join(output.data, 'index.js'), enery)
-    await writeFile(join(output.data, 'index.d.ts'), dts)
+
+    const entryFile = join(output.data, 'index.js')
+    await writeFile(entryFile, enery)
+    logger.log(`wrote entry file in '${entryFile}'`)
+
+    const dtsFile = join(output.data, 'index.d.ts')
+    await writeFile(dtsFile, dts)
+    logger.log(`wrote entry dts file in '${dtsFile}'`)
+
     logger.info(`output ${logs.join(', ')} and entry file`)
   }
 
@@ -97,11 +109,15 @@ class Builder {
    * @param changed changed file path
    */
   async build(changed?: string) {
+    logger.log(`start ${changed == null ? 'building' : 'rebuilding'}...`)
+
     const { root, schemas, onSuccess } = getConfig()
 
     logger.log(`searching files in '${root}'`)
 
-    clearCache() // clear cache in case of rebuild
+    // clear cache if rebuilding
+    clearCache()
+    logger.log('cleared memory cache')
 
     const files: File[] = []
 
@@ -110,7 +126,10 @@ class Builder {
         // skip schema if changed file not match
         // TODO: rebuild only changed file ???
         const data = this.result[name]
-        if (data != null) return [name, data] as const
+        if (data != null) {
+          logger.log(`skipped '${name}', using cached data`)
+          return [name, data] as const
+        }
       }
 
       const filenames = await glob(schema.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'] })
@@ -156,6 +175,8 @@ class Builder {
     Object.assign(this.result, collections)
 
     await this.output()
+
+    logger.info(`finished ${changed == null ? 'building' : 'rebuilding'}`)
   }
 
   /**
@@ -163,12 +184,18 @@ class Builder {
    */
   private async watchConfig() {
     const { configPath } = getConfig()
+
+    logger.info(`watching for changes in '${configPath}'`)
+
     for await (const event of watch(configPath)) {
       const { filename } = event
       if (filename == null) continue
-      logger.info(`config changed: ${filename}`)
-      await this.init().catch(logger.warn)
-      await this.build().catch(logger.warn)
+
+      logger.info(`config changed '${filename}', rebuilding...`)
+
+      await this.init()
+        .then(() => this.build())
+        .catch(logger.warn)
     }
   }
 
@@ -179,14 +206,15 @@ class Builder {
     const { root, schemas } = getConfig()
     const allPatterns = Object.values(schemas).map(schema => schema.pattern)
 
-    const watcher = watch(root, { recursive: true })
     logger.info(`watching for changes in '${root}'`)
 
-    for await (const event of watcher) {
+    for await (const event of watch(root, { recursive: true })) {
       const { filename } = event
       if (filename == null) continue
       if (!allPatterns.some(pattern => micromatch.isMatch(filename, pattern))) continue
-      logger.info(`file changed: ${filename}`)
+
+      logger.info(`file changed '${filename}', rebuilding...`)
+
       await this.build(filename).catch(logger.warn)
     }
   }

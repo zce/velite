@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { VFile } from 'vfile'
 
 import { resolveLoader } from './loaders'
+import { logger } from './logger'
 
 import type { Collection } from './types'
 import type { ZodType } from 'zod'
@@ -29,6 +30,9 @@ export class File extends VFile {
     if (loader == null) {
       throw new Error(`no loader found for '${this.path}'`)
     }
+
+    logger.log(`load file '${this.path}' with '${loader.name}' loader`)
+
     return loader.load(this)
   }
 

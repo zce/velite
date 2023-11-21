@@ -1,32 +1,40 @@
-import { name } from '../package.json'
+const identifer = '[VELITE]'
 
-const identifer = name.toUpperCase()
-
-export enum LogLevel {
-  DEBUG = 0,
-  INFO = 1,
-  WARN = 2,
-  ERROR = 3
+const logLevels = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+  silent: 4
 }
 
-let logLevel = LogLevel.INFO
+let logLevel = logLevels.debug
+
+export type LogLevel = keyof typeof logLevels
 
 export const setLogLevel = (level: LogLevel) => {
-  logLevel = level
+  logLevel = logLevels[level]
+}
+
+const reducePath = (msg: unknown) => {
+  if (typeof msg !== 'string') return msg
+  // replace cwd with '.' to reduce noise, e.g.:
+  // [VELITE] /home/username/project/src/file.ts:1:1 -> [VELITE] ./src/file.ts:1:1
+  return msg.replace(process.cwd(), '.')
 }
 
 export const logger = {
-  log: (msg: string) => {
-    if (logLevel <= LogLevel.DEBUG) console.log(`[${identifer}] ${msg}`)
+  log: (msg: unknown) => {
+    if (logLevel <= logLevels.debug) console.log(`\x1B[36m${identifer}\x1B[0m`, reducePath(msg))
   },
-  info: (msg: string) => {
-    if (logLevel <= LogLevel.INFO) console.info(`\x1B[32m[${identifer}] ${msg}\x1B[0m`)
+  info: (msg: unknown) => {
+    if (logLevel <= logLevels.info) console.info(`\x1B[32m${identifer}\x1B[0m`, reducePath(msg))
   },
-  warn: (msg: string) => {
-    if (logLevel <= LogLevel.WARN) console.warn(`\x1B[33m[${identifer}] ${msg}\x1B[0m`)
+  warn: (msg: unknown) => {
+    if (logLevel <= logLevels.warn) console.warn(`\x1B[33m${identifer}\x1B[0m`, reducePath(msg))
   },
-  error: (msg: string) => {
-    if (logLevel <= LogLevel.ERROR) console.error(`\x1B[31m[${identifer}] ${msg}\x1B[0m`)
+  error: (msg: unknown) => {
+    if (logLevel <= logLevels.error) console.error(`\x1B[31m${identifer}\x1B[0m`, reducePath(msg))
   },
   clear: () => {
     console.clear()

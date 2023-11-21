@@ -51,13 +51,19 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 - Configurable & Extensible
 - Use modern APIs & TypeScript friendly
 
+### Try It Online
+
+You can try Velite directly in your browser on [StackBlitz](https://stackblitz.com/~/github.com/zce/velite-next).
+
 ## Roadmap
 
 The following are the features I want to achieve or are under development:
 
 - [ ] More built-in fields
 - [ ] Full documentation
+- [ ] Unit & E2E tests ?
 - [ ] Next.js plugin
+- [ ] Gatsby plugin
 - [ ] More examples
 
 See the [open issues](https://github.com/zce/caz/issues) for a list of proposed features (and known issues).

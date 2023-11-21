@@ -3,7 +3,7 @@ import cac from 'cac'
 
 import { name, version } from '../package.json'
 import { build } from './build'
-import { logger, LogLevel, setLogLevel } from './logger'
+import { logger } from './logger'
 
 const cli = cac(name).version(version).help()
 
@@ -14,9 +14,11 @@ cli
   .option('--clean', 'Clean output directory before build')
   .option('--watch', 'Watch for changes and rebuild')
   .option('--verbose', 'Print additional information')
-  .option('--debug', 'Print debug information')
-  .action(({ config, clean, watch, verbose }) => {
-    return build({ config, clean, watch, verbose })
+  .option('--silent', 'Print nothing')
+  .option('--debug', 'Print complete error stack when error occurs (CLI only)')
+  .action(({ config, clean, watch, verbose, silent }) => {
+    const logLevel = silent ? 'silent' : verbose ? 'debug' : 'info'
+    return build({ config, clean, watch, logLevel })
   })
 
 const onError = (err: Error): void => {

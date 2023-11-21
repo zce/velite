@@ -17,7 +17,7 @@
   "license": "MIT",
   "author": "zce <w@zce.me> (https://zce.me)",
   "type": "module",
-  "module": "./dist/index.js",
+  "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": "./dist/cli.js",
   "files": [

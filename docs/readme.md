@@ -51,6 +51,10 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 - Configurable & Extensible
 - Use modern APIs & TypeScript friendly
 
+### Try It Online
+
+You can try Velite directly in your browser on [StackBlitz](https://stackblitz.com/~/github.com/zce/velite-next).
+
 ### Why not Contentlayer?
 
 [Contentlayer](https://contentlayer.dev) is a great tool, but it is not suitable for my needs. Such as:
@@ -62,18 +66,16 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 
 ## Getting Started
 
-### Prerequisites
+### Installation
+
+#### Prerequisites
 
 - [Node.js](https://nodejs.org) (>= 18 required, LTS preferred)
 
-### Installation
-
 ```shell
 $ npm install velite
-
 # or pnpm
 $ pnpm install velite
-
 # or yarn
 $ yarn add velite
 ```
@@ -499,6 +501,14 @@ interface MarkdownOptions {
 }
 ```
 
+## Configuration
+
+<!-- TODO:  -->
+
+## Guide
+
+<!-- TODO:  -->
+
 ## Recipes
 
 ### MDX Support
@@ -513,11 +523,40 @@ The Next.js plugin is still under development...
 
 - [zce/velite-next](https://github.com/zce/velite-next)
 
+#### Start Velite with Next.js Plugin
+
+```javascript
+/** @type {import('next').NextConfig} */
+module.exports = {
+  // othor next config here...
+  webpack: config => {
+    config.plugins.push(new VeliteWebpackPlugin())
+    return config
+  }
+}
+
+class VeliteWebpackPlugin {
+  static started = false
+  constructor(/** @type {import('velite').BuildOptions} */ options = {}) {
+    this.options = options
+  }
+  apply(compiler) {
+    // executed three times in nextjs
+    // twice for the server (nodejs / edge runtime) and once for the client
+    compiler.hooks.beforeCompile.tap('VeliteWebpackPlugin', async () => {
+      if (VeliteWebpackPlugin.started) return
+      VeliteWebpackPlugin.started = true
+      const dev = compiler.options.mode === 'development'
+      this.options.watch = this.options.watch ?? dev
+      this.options.clean = this.options.clean ?? !dev
+      const { build } = await import('velite')
+      await build(this.options)
+    })
+  }
+}
+```
+
 ## Advanced
-
-### Configuration
-
-<!-- TODO:  -->
 
 ### Writing a Loader
 

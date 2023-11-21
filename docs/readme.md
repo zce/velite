@@ -18,12 +18,12 @@
     <a href="https://github.com/zce/velite"><img src="https://img.shields.io/github/repo-size/zce/velite" alt="Repo Size"></a>
     <a href="https://github.com/zce/velite"><img src="https://img.shields.io/librariesio/release/npm/velite" alt="Dependencies Status"></a>
   </p>
-  <!-- <p><strong>English</strong> | <a href="readme.zh-cn.md">简体中文</a></p> -->
+  <p><strong>English</strong> | <a href="readme.zh-cn.md">简体中文</a></p>
 </div>
 
-:construction: the documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+:construction: this documentation is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
 
-However, I have provided a full features [example](../example) for your reference.
+However, I have provided a full features [example](https://github.com/zce/velite/tree/main/example) for your reference.
 
 ## Introduction
 
@@ -153,7 +153,7 @@ Then you will get the following output:
 
 ### Example
 
-See [example](../example) for more details.
+See [example](https://github.com/zce/velite/tree/main/example) for more details.
 
 ### CLI Help
 

@@ -1,8 +1,8 @@
 <div align="center">
   <h1>
     <picture>
-      <source srcset="docs/assets/logo-dark.svg" media="(prefers-color-scheme: dark)">
-      <img src="docs/assets/logo-light.svg" width="300 alt="Velite" title="Velite">
+      <source srcset="https://velite.zce.me/assets/logo-dark.svg" media="(prefers-color-scheme: dark)">
+      <img src="https://velite.zce.me/assets/logo-light.svg" width="300 alt="Velite" title="Velite">
     </picture>
   </h1>
   <p>Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.</p>
@@ -21,9 +21,9 @@
   <!-- <p><strong>English</strong> | <a href="readme.zh-cn.md">简体中文</a></p> -->
 </div>
 
-:construction: the [documentation](docs) is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+:construction: the [documentation](https://velite.zce.me) is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
 
-However, I have provided a full features [example](example) for your reference.
+However, I have provided a full features [example](https://github.com/zce/velite/tree/main/example) for your reference.
 
 ## Introduction
 
@@ -36,8 +36,8 @@ This is a tool that can turn Markdown, YAML, JSON, or other files into an app's 
 Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod.dev) and [Unified](https://unifiedjs.com), and powered by [ESBuild](https://esbuild.github.io).
 
 <picture>
-  <source srcset="docs/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
-  <img src="docs/assets/flow-light.svg" alt="Velite Workflow" title="Velite Workflow">
+  <source srcset="https://velite.zce.me/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
+  <img src="https://velite.zce.me/assets/flow-light.svg" alt="Velite Workflow" title="Velite Workflow">
 </picture>
 
 ### Features

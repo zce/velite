@@ -10,13 +10,10 @@ $ npm run dev # run build with watch mode
 $ npm run build # build content by velite
 ```
 
-## Features
-
-- [x] typescript or esm config
-- [x] markdown & yaml & json built-in support
-
 ## Related
 
+- [zce/velite-next](https://github.com/zce/velite-next) - Next.js example of Velite with all features.
+- [zce/velite-mdx](https://github.com/zce/velite-mdx) - Next.js & MDX example of Velite with all features.
 - [zce/velite](https://github.com/zce/velite) - Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.
 
 ## Contributing

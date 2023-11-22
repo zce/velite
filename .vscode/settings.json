@@ -1,20 +1,8 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
-  "explorer.fileNesting.enabled": true,
-  "explorer.fileNesting.expand": false,
-  "explorer.fileNesting.patterns": {
-    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml",
-    "readme.md": "license"
-  },
   "files.exclude": {
     "node_modules": true
   },
-  "json.schemas": [
-    {
-      "url": "https://cdn.jsdelivr.net/npm/tsup/schema.json",
-      "fileMatch": ["package.json"]
-    }
-  ],
   "typescript.tsdk": "node_modules/typescript/lib"
 }

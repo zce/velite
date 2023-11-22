@@ -18,14 +18,9 @@ body:not(.ready) > nav,
 body:not(.ready) [data-cloak] {
   display: none;
 }
-div#app {
-  font-size: 30px;
-  font-weight: lighter;
-  margin: 40vh auto;
-  text-align: center;
-}
-div#app:empty:before {
-  content: 'Loading...';
+div#app > svg {
+  width: 100vw;
+  height: 100vh;
 }
 img.emoji {
   height: 1.2em;

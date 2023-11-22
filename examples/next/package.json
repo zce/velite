@@ -31,6 +31,6 @@
     "react-dom": "latest",
     "tailwindcss": "latest",
     "typescript": "latest",
-    "velite": "*"
+    "velite": "workspace:*"
   }
 }

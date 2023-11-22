@@ -9,6 +9,6 @@
   "author": "zce <w@zce.me> (https://zce.me/)",
   "license": "MIT",
   "devDependencies": {
-    "velite": "*"
+    "velite": "workspace:*"
   }
 }

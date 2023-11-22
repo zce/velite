@@ -70,6 +70,15 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
   }
 }
 
+/**
+ * get resolved config, must be called after `resolveConfig`
+ * @returns config object
+ */
+export const getConfig = (): Config => {
+  if (config != null) return config
+  throw new Error(`config not resolved, ensure 'resolveConfig' called before`)
+}
+
 export interface ConfigOptions {
   filename?: string
   clean?: boolean
@@ -93,11 +102,11 @@ export const resolveConfig = async (options: ConfigOptions = {}): Promise<Config
   options.filename != null && files.unshift(options.filename)
 
   const filename = await search(files)
-  if (filename == null) throw new Error(`config file not found`)
+  if (filename == null) throw new Error(`config file not found, create '${name}.config.ts' in your project root directory`)
 
   const userConfig: UserConfig = await loadConfig(filename)
 
-  if (userConfig.schemas == null) throw new Error(`'schemas' is required in config file`)
+  if (userConfig.collections == null) throw new Error(`'collections' is required in config file`)
 
   const cwd = dirname(filename)
 
@@ -108,26 +117,18 @@ export const resolveConfig = async (options: ConfigOptions = {}): Promise<Config
       data: join(cwd, userConfig.output?.data ?? '.velite'),
       static: join(cwd, userConfig.output?.static ?? 'public'),
       filename: userConfig.output?.filename ?? '/static/[name]-[hash:8].[ext]',
-      ignoreFileExtensions: userConfig.output?.ignoreFileExtensions ?? []
+      ignoreFileExtensions: userConfig.output?.ignoreFileExtensions ?? [],
+      clean: options.clean ?? userConfig.output?.clean ?? false
     },
-    clean: options.clean ?? userConfig.clean ?? false,
-    schemas: userConfig.schemas,
+    collections: userConfig.collections,
     loaders: userConfig.loaders ?? [],
-    markdown: { gfm: true, removeComments: true, copyLinkedFiles: true, remarkPlugins: [], rehypePlugins: [], ...userConfig.markdown },
-    mdx: { gfm: true, removeComments: true, copyLinkedFiles: true, remarkPlugins: [], rehypePlugins: [], ...userConfig.mdx },
-    onSuccess: userConfig.onSuccess
+    markdown: userConfig.markdown ?? {},
+    mdx: userConfig.mdx ?? {},
+    prepare: userConfig.prepare,
+    complete: userConfig.complete
   }
 
   logger.log(`using config '${filename}'`)
 
   return config
-}
-
-/**
- * get resolved config, must be called after `resolveConfig`
- * @returns config object
- */
-export const getConfig = (): Config => {
-  if (config != null) return config
-  throw new Error(`config not resolved, ensure 'resolveConfig' called before`)
 }

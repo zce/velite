@@ -4,7 +4,7 @@ import { VFile } from 'vfile'
 import { resolveLoader } from './loaders'
 import { logger } from './logger'
 
-import type { Collection } from './types'
+import type { Data } from './types'
 import type { ZodType } from 'zod'
 
 export class File extends VFile {
@@ -19,10 +19,10 @@ export class File extends VFile {
   }
 
   /**
-   * load file content into `this.data.original`
+   * load file data into `this.data.original`
    * @returns original data from file
    */
-  private async load(): Promise<Collection> {
+  private async load(): Promise<Data> {
     if (this.extname == null) {
       throw new Error('can not parse file without extension')
     }
@@ -37,11 +37,11 @@ export class File extends VFile {
   }
 
   /**
-   * parse file content with given fields schema
-   * @param fields fields schema
-   * @returns collection data from file, or undefined if parsing failed
+   * parse file data with given schema
+   * @param schema Zod schema
+   * @returns data from file, or undefined if parsing failed
    */
-  async parse(fields: ZodType): Promise<Collection | undefined> {
+  async parse(schema: ZodType): Promise<Data | undefined> {
     try {
       const original = await this.load()
 
@@ -58,7 +58,7 @@ export class File extends VFile {
           // only push index if list has more than one item
           if (list.length > 1) path.push(index)
           // parse data with given schema
-          const result = await fields.safeParseAsync(item, { path })
+          const result = await schema.safeParseAsync(item, { path })
           if (result.success) return result.data
           // report error if parsing failed
           result.error.issues.forEach(issue => {

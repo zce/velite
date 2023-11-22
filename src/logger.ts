@@ -1,4 +1,6 @@
-const identifer = '[VELITE]'
+import { name } from '../package.json'
+
+const identifer = `[${name.toUpperCase()}]`
 
 const logLevels = {
   debug: 0,

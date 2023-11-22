@@ -1,16 +1,10 @@
+import { CompileOptions } from '@mdx-js/mdx'
+
 import type { PluggableList } from 'unified'
 import type { VFile } from 'vfile'
 import type { ZodType } from 'zod'
 
-/**
- * Collection data from file
- */
-export type Collection = Record<string, any> | Record<string, any>[]
-
-/**
- * All collection data from file
- */
-export type Collections = Record<string, Collection>
+type Promisable<T> = T | PromiseLike<T>
 
 /**
  * Image object with metadata & blur image
@@ -43,6 +37,18 @@ export interface Image {
 }
 
 /**
+ * Entry from file
+ */
+export type Entry = Record<string, any>
+
+/**
+ * Data from file
+ * @description
+ * There may be one or more entries in a document file
+ */
+export type Data = Entry | Entry[]
+
+/**
  * File loader
  */
 export interface Loader {
@@ -63,39 +69,13 @@ export interface Loader {
    * Load file content
    * @param vfile vfile
    */
-  load: (vfile: VFile) => Collection | Promise<Collection>
-}
-
-export interface Output {
-  /**
-   * The output directory of the data
-   * @default '.velite'
-   */
-  data: string
-  /**
-   * The output directory of the static assets,
-   * should be served statically by the app
-   * @default 'public'
-   */
-  static: string
-  /**
-   * The public base path of the static files.
-   * Must include one level of directory, otherwise `--clean` will automatically clear the static root dir,
-   * this means that other files in the static dir will also be cleared together
-   * @default '/static/[name]-[hash:8].[ext]'
-   */
-  filename: `/${string}/${string}`
-  /**
-   * The ext blacklist of the static files, such as ['md', 'yml']
-   * @default []
-   */
-  ignoreFileExtensions: string[]
+  load: (vfile: VFile) => Data | Promise<Data>
 }
 
 /**
- * Schema
+ * Collection options
  */
-export interface Schema {
+export interface Collection {
   /**
    * Schema name (singular), for types generation
    * @example
@@ -114,25 +94,24 @@ export interface Schema {
    */
   single?: boolean
   /**
-   * Schema fields
+   * Schema
    * @see {@link https://zod.dev}
    * @example
    * z.object({
    *   title: z.string(), // from frontmatter
    *   description: z.string().optional(), // from frontmatter
-   *   plain: z.string() // from markdown body,
    *   excerpt: z.string() // from markdown body,
-   *   html: z.string() // from markdown body
+   *   content: z.string() // from markdown body
    * })
    */
-  fields: ZodType
+  schema: ZodType
 }
 
 /**
- * Schemas
+ * All collections
  */
-export interface Schemas {
-  [name: string]: Schema
+export interface Collections {
+  [name: string]: Collection
 }
 
 /**
@@ -165,14 +144,38 @@ export interface MarkdownOptions {
 }
 
 /**
- * Mdx options
+ * MDX compiler options
  */
-export interface MdxOptions extends MarkdownOptions {}
+export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Output format to generate.
+   * @default 'function-body'
+   */
+  outputFormat?: CompileOptions['outputFormat']
+}
 
 /**
  * Config
  */
-export interface Config<S extends Schemas = Schemas> {
+export interface Config<C extends Collections = Collections> {
+  /**
+   * resolved config file path
+   */
   configPath: string
   /**
    * The root directory of the contents
@@ -182,47 +185,93 @@ export interface Config<S extends Schemas = Schemas> {
   /**
    * Output configuration
    */
-  output: Output
+  output: {
+    /**
+     * The output directory of the data
+     * @default '.velite'
+     */
+    data: string
+    /**
+     * The output directory of the static assets,
+     * should be served statically by the app
+     * @default 'public'
+     */
+    static: string
+    /**
+     * The public base path of the static files.
+     * Must include one level of directory, otherwise `--clean` will automatically clear the static root dir,
+     * this means that other files in the static dir will also be cleared together
+     * @default '/static/[name]-[hash:8].[ext]'
+     */
+    filename: `/${string}/${string}`
+    /**
+     * The ext blacklist of the static files, such as ['md', 'yml']
+     * @default []
+     */
+    ignoreFileExtensions: string[]
+    /**
+     * Whether to clean the output directories before build
+     * @default false
+     */
+    clean: boolean
+  }
   /**
-   * Whether to clean the output directories before build
-   * @default false
+   * Collections
    */
-  clean: boolean
-  /**
-   * The content schemas
-   */
-  schemas: S
+  collections: C
   /**
    * File loaders
    * @default [] (built-in loaders: 'json', 'yaml', 'markdown')
    */
   loaders: Loader[]
   /**
-   * Markdown options
+   * Global markdown options
    */
-  markdown: Required<MarkdownOptions>
+  markdown: MarkdownOptions
   /**
-   * Mdx options
+   * Global MDX options
    */
-  mdx: Required<MdxOptions>
+  mdx: MdxOptions
   /**
-   * Success callback, you can do anything you want with the collections, such as modify them, or write them to files
+   * Data prepare hook, before write to file
+   * @description
+   * You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files.
+   * return false to prevent the default output to a file if you wanted
    */
-  onSuccess?: (collections: {
-    [name in keyof S]: S[name]['single'] extends true ? S[name]['fields']['_output'] : Array<S[name]['fields']['_output']>
-  }) => void | Promise<void>
+  prepare?: (data: {
+    [name in keyof C]: C[name]['single'] extends true ? C[name]['schema']['_output'] : Array<C[name]['schema']['_output']>
+  }) => Promisable<void | false>
+  /**
+   * Build success hook
+   * @description
+   * You can do anything after the build is complete, such as print some tips or deploy the output files.
+   */
+  complete?: () => Promisable<void>
 }
 
 /**
  * User config
  */
-export interface UserConfig<S extends Schemas = Schemas> extends Omit<Partial<Config<S>>, 'configPath' | 'output'> {
+export interface UserConfig<C extends Collections = Collections> extends Omit<Partial<Config<C>>, 'configPath' | 'output'> {
   /**
    * Output configuration
    */
-  output?: Partial<Output>
+  output?: Partial<Config['output']>
 }
 
-// export for user config type inference
+// ↓↓↓ export for user config type inference
+
+/**
+ * Define a loader
+ */
 export const defineLoader = (loader: Loader) => loader
-export const defineConfig = <S extends Schemas>(userConfig: UserConfig<S>) => userConfig
+
+/**
+ * Define a collection
+ */
+export const defineCollection = (collection: Collection) => collection
+
+/**
+ * Define config
+ */
+export const defineConfig = <C extends Collections>(userConfig: UserConfig<C>) => userConfig

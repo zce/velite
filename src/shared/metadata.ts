@@ -1,7 +1,8 @@
-import { words } from 'lodash-es'
+import { raw } from 'hast-util-raw'
+import { toString } from 'hast-util-to-string'
+import { fromMarkdown } from 'mdast-util-from-markdown'
+import { toHast } from 'mdast-util-to-hast'
 import { z } from 'zod'
-
-import { markdownToPlain } from './utils'
 
 // Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters
 const cjRanges = [
@@ -41,6 +42,13 @@ const isCjChar = (char: string) => {
   return cjRanges.some(([from, to]) => charCode >= from && charCode < to)
 }
 
+const wordLength = (str: string) => {
+  // or: https://github.com/lodash/lodash/blob/main/src/words.ts
+  const reWord = /['\u2019]?([a-zA-Z]+(?:['\u2019]?[a-zA-Z]+)*)/g
+  const words = str.match(reWord) || []
+  return words.length
+}
+
 const getMetadata = (text: string): Metadata => {
   // https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby-transformer-remark/src/utils/time-to-read.js
   const avgWPM = 265
@@ -58,7 +66,7 @@ const getMetadata = (text: string): Metadata => {
 
   // Multiply non-latin character string length by 0.56, because
   // on average one word consists of 2 characters in both Chinese and Japanese
-  const wordCount = words(latinChars.join('')).length + cjChars.length * 0.56
+  const wordCount = wordLength(latinChars.join('')) + cjChars.length * 0.56
 
   const time = Math.round(wordCount / avgWPM)
 
@@ -85,7 +93,9 @@ export interface Metadata {
 export const metadata = () =>
   z.string().transform((value, ctx) => {
     try {
-      const content = markdownToPlain(value)
+      const mdast = fromMarkdown(value)
+      const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
+      const content = toString(hast)
       return getMetadata(content)
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })

@@ -57,22 +57,25 @@ const rehypeCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
 export const markdown = (options: MarkdownOptions = {}) =>
   z.string().transform(async (value, ctx) => {
     const { markdown } = getConfig()
-    const { gfm, removeComments, copyLinkedFiles } = { ...markdown, ...options }
-    const remarkPlugins = markdown.remarkPlugins.concat(options.remarkPlugins ?? [])
-    const rehypePlugins = markdown.rehypePlugins.concat(options.rehypePlugins ?? [])
+    const { remarkPlugins = [], rehypePlugins = [] } = markdown
+    const { gfm = true, removeComments = true, copyLinkedFiles = true } = { ...markdown, ...options }
+
     if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
+    if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
     if (copyLinkedFiles) rehypePlugins.push(rehypeCopyLinkedFiles) // copy linked files to public path and replace their urls with public urls
-    const file = unified()
-      .use(remarkParse) // parse markdown content to a syntax tree
-      .use(remarkPlugins) // apply remark plugins
-      .use(remarkRehype, { allowDangerousHtml: true })
-      .use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
-      .use(rehypePlugins) // apply rehype plugins
-      .use(rehypeStringify) // serialize html syntax tree
+    if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
+
     try {
-      const html = await file.process({ value, path: ctx.path[0] as string })
-      return html.toString()
+      const file = await unified()
+        .use(remarkParse) // parse markdown content to a syntax tree
+        .use(remarkPlugins) // apply remark plugins
+        .use(remarkRehype, { allowDangerousHtml: true })
+        .use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
+        .use(rehypePlugins) // apply rehype plugins
+        .use(rehypeStringify) // serialize html syntax tree
+        .process({ value, path: ctx.path[0] as string })
+      return file.toString()
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })
       return value

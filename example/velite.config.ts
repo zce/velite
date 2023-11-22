@@ -22,15 +22,16 @@ export default defineConfig({
   output: {
     data: '.velite',
     static: 'public',
-    filename: '/static/[name]-[hash:6].[ext]'
+    filename: '/static/[name]-[hash:6].[ext]',
+    ignoreFileExtensions: ['.yml', '.md', '.mdx'],
+    clean: true
   },
-  clean: true,
-  schemas: {
+  collections: {
     options: {
       name: 'Options',
       pattern: 'options/index.yml',
       single: true,
-      fields: s.object({
+      schema: s.object({
         name: s.string().max(20),
         title: s.string().max(99),
         description: s.string().max(999).optional(),
@@ -43,7 +44,7 @@ export default defineConfig({
     categories: {
       name: 'Category',
       pattern: 'categories/*.yml',
-      fields: s
+      schema: s
         .object({
           name: s.string().max(20),
           slug: s.slug('global'),
@@ -56,7 +57,7 @@ export default defineConfig({
     tags: {
       name: 'Tag',
       pattern: 'tags/index.yml',
-      fields: s
+      schema: s
         .object({
           name: s.string().max(20),
           slug: s.slug('global'),
@@ -69,7 +70,7 @@ export default defineConfig({
     pages: {
       name: 'Page',
       pattern: 'pages/**/*.mdx',
-      fields: s
+      schema: s
         .object({
           title: s.string().max(99),
           slug: s.slug('global'),
@@ -80,7 +81,7 @@ export default defineConfig({
     posts: {
       name: 'Post',
       pattern: 'posts/**/*.md',
-      fields: s
+      schema: s
         .object({
           title: s.string().max(99),
           slug: s.slug('post'),
@@ -101,14 +102,13 @@ export default defineConfig({
         .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
     }
   },
-  onSuccess: ({ categories, tags, posts }) => {
+  prepare: ({ categories, tags, posts }) => {
     const docs = posts.filter(i => process.env.NODE_ENV !== 'production' || !i.draft)
 
     // missing categories, tags from posts or courses inlined
     const categoriesFromDoc = Array.from(new Set(docs.map(item => item.categories).flat())).filter(i => categories.find(j => j.name === i) == null)
     categories.push(...categoriesFromDoc.map(name => ({ name, slug: slugify(name), permalink: '', count: { total: 0, posts: 0 } })))
     categories.forEach(i => {
-      i.count = i.count || {}
       i.count.posts = posts.filter(j => j.categories.includes(i.name)).length
       i.count.total = i.count.posts
       i.permalink = `/${i.slug}`
@@ -117,10 +117,11 @@ export default defineConfig({
     const tagsFromDoc = Array.from(new Set(docs.map(item => item.tags).flat())).filter(i => tags.find(j => j.name === i) == null)
     tags.push(...tagsFromDoc.map(name => ({ name, slug: slugify(name), permalink: '', count: { total: 0, posts: 0 } })))
     tags.forEach(i => {
-      i.count = i.count || {}
       i.count.posts = posts.filter(j => j.tags.includes(i.name)).length
       i.count.total = i.count.posts
       i.permalink = `/${i.slug}`
     })
+
+    // return false // return false to prevent velite from writing data to disk
   }
 })

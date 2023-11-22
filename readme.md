@@ -66,7 +66,7 @@ The following are the features I want to achieve or are under development:
 - [ ] Gatsby plugin
 - [ ] More examples
 
-See the [open issues](https://github.com/zce/caz/issues) for a list of proposed features (and known issues).
+See the [open issues](https://github.com/zce/velite/issues) for a list of proposed features (and known issues).
 
 ## Contributing
 

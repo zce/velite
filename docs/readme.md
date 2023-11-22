@@ -88,7 +88,7 @@ Create a `velite.config.js` file in the root directory of your project:
 import { defineConfig, s } from 'velite'
 
 export default defineConfig({
-  schemas: {
+  collections: {
     posts: {
       name: 'Post',
       pattern: 'posts/**/*.md',
@@ -179,9 +179,9 @@ Options:
   -h, --help           Display this message
 ```
 
-## Field Schemas
+## Schemas
 
-Velite provides some commonly used field schemas.
+Velite provides some commonly used schemas.
 
 ### `s.isodate()`
 
@@ -573,7 +573,7 @@ class VeliteWebpackPlugin {
   constructor(/** @type {import('velite').BuildOptions} */ options = {}) {
     this.options = options
   }
-  apply(compiler) {
+  apply(/** @type {import('webpack').Compiler} */ compiler) {
     // executed three times in nextjs
     // twice for the server (nodejs / edge runtime) and once for the client
     compiler.hooks.beforeCompile.tap('VeliteWebpackPlugin', async () => {
@@ -611,21 +611,12 @@ The following are the features I want to achieve or are under development:
 
 - [ ] More built-in fields
 - [ ] Full documentation
+- [ ] Unit & E2E tests ?
 - [ ] Next.js plugin
+- [ ] Gatsby plugin
 - [ ] More examples
 
-See the [open issues](https://github.com/zce/caz/issues) for a list of proposed features (and known issues).
-
-## Contributing
-
-1. **Fork** it on GitHub!
-2. **Clone** the fork to your own machine.
-3. **Checkout** your feature branch: `git checkout -b my-awesome-feature`
-4. **Commit** your changes to your own branch: `git commit -am 'Add some feature'`
-5. **Push** your work back up to your fork: `git push -u origin my-awesome-feature`
-6. Submit a **Pull Request** so that we can review your changes.
-
-> **NOTE**: Be sure to merge the latest from "upstream" before making a pull request!
+See the [open issues](https://github.com/zce/velite/issues) for a list of proposed features (and known issues).
 
 ## License
 

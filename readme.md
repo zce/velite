@@ -59,7 +59,7 @@ You can try Velite directly in your browser on [StackBlitz](https://stackblitz.c
 
 The following are the features I want to achieve or are under development:
 
-- [ ] More built-in fields
+- [ ] More built-in schemas
 - [ ] Full documentation
 - [ ] Unit & E2E tests ?
 - [ ] Next.js plugin

@@ -92,7 +92,7 @@ export default defineConfig({
     posts: {
       name: 'Post',
       pattern: 'posts/**/*.md',
-      fields: s
+      schema: s
         .object({
           title: s.string().max(99),
           slug: s.slug('post'),
@@ -609,7 +609,7 @@ class VeliteWebpackPlugin {
 
 The following are the features I want to achieve or are under development:
 
-- [ ] More built-in fields
+- [ ] More built-in schemas
 - [ ] Full documentation
 - [ ] Unit & E2E tests ?
 - [ ] Next.js plugin

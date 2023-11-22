@@ -1,0 +1,12 @@
+{
+  "entry": ["src/index.ts", "src/cli.ts"],
+  "clean": true,
+  "format": "esm",
+  "target": "node18",
+  "splitting": true,
+  "treeshake": true,
+  "dts": {
+    "entry": "src/index.ts",
+    "resolve": true
+  }
+}

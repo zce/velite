@@ -30,22 +30,6 @@
   "workspaces": [
     "examples/*"
   ],
-  "tsup": {
-    "entry": [
-      "src/index.ts",
-      "src/cli.ts"
-    ],
-    "clean": true,
-    "format": "esm",
-    "target": "node18",
-    "splitting": true,
-    "treeshake": true,
-    "dts": {
-      "entry": "src/index.ts",
-      "resolve": true
-    }
-  },
-  "prettier": "@zce/prettier-config",
   "dependencies": {
     "esbuild": "^0.19.5",
     "fast-glob": "^3.3.2",

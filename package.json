@@ -27,6 +27,9 @@
     "build": "tsc && tsup",
     "format": "prettier --write ."
   },
+  "workspaces": [
+    "examples/*"
+  ],
   "tsup": {
     "entry": [
       "src/index.ts",

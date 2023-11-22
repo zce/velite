@@ -548,13 +548,13 @@ interface MarkdownOptions {
 
 ~~To maintain simplicity and efficiency, Velite currently does not have built-in MDX support, but you can easily support it.~~
 
-- [zce/velite-mdx](https://github.com/zce/velite-mdx)
+- [examples/next](https://github.com/zce/velite/tree/main/examples/mdx)
 
 ### Use with Next.js
 
 The Next.js plugin is still under development...
 
-- [zce/velite-next](https://github.com/zce/velite-next)
+- [examples/next](https://github.com/zce/velite/tree/main/examples/next)
 
 #### Start Velite with Next.js Plugin
 

@@ -1,0 +1,36 @@
+{
+  "name": "@velite/next-starter",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "content": "velite --clean",
+    "format": "prettier --write ."
+  },
+  "eslintConfig": {
+    "extends": "next/core-web-vitals"
+  },
+  "prettier": "@zce/prettier-config",
+  "dependencies": {
+    "@tailwindcss/typography": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@zce/prettier-config": "latest",
+    "autoprefixer": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "next": "latest",
+    "next-themes": "latest",
+    "npm-run-all": "latest",
+    "postcss": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest",
+    "velite": "*"
+  }
+}

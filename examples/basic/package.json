@@ -1,5 +1,5 @@
 {
-  "name": "@velite/example",
+  "name": "@velite/basic-starter",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,6 +9,6 @@
   "author": "zce <w@zce.me> (https://zce.me/)",
   "license": "MIT",
   "devDependencies": {
-    "velite": "file:.."
+    "velite": "*"
   }
 }

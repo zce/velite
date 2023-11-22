@@ -1,0 +1,38 @@
+name: Lei’s
+title: Lei’s personal website
+description: Lei’s personal website, apart from his classmates' spare time and nagging, is all about internet industry and IT technology content commentary
+keywords:
+  - Blog
+  - Lei’s
+  - zce
+  - zce.me
+author:
+  name: zce
+  email: zce@example.me
+  url: https://zce.me
+links:
+  - text: HOME
+    link: /
+    type: navigation
+  - text: Blog
+    link: /blog
+    type: navigation
+  - text: About
+    link: /about
+    type: footer
+  - text: Contact
+    link: /contact
+    type: footer
+  - text: Privacy Policy
+    link: /privacy-policy
+    type: copyright
+  - text: Terms of Service
+    link: /terms-of-service
+    type: copyright
+socials:
+  - name: GitHub
+    icon: github
+    link: https://github.com/zce
+  - name: YouTube
+    icon: youtube
+    link: https://www.youtube.com/@zceme

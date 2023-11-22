@@ -5,7 +5,7 @@
       <img src="https://velite.zce.me/assets/logo-light.svg" width="300 alt="Velite" title="Velite">
     </picture>
   </h1>
-  <p>Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.</p>
+  <p>Turns Markdown, YAML, JSON, or other files into app's data layer with typesafe schema.</p>
   <p>
     <a href="https://github.com/zce/velite/actions"><img src="https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml" alt="Build Status"></a>
     <a href="https://github.com/zce/velite/blob/master/LICENSE"><img src="https://img.shields.io/github/license/zce/velite" alt="License"></a>
@@ -27,11 +27,7 @@ However, I have provided a full features [example](https://github.com/zce/velite
 
 ## Introduction
 
-"Velite" comes from the English word "elite".
-
-> "Velite" itself is the code name for Napoleon's elite army.
-
-This is a tool that can turn Markdown, YAML, JSON, or other files into an app's data layer based on a schema.
+Velite is a tool for building typesafe content layers for applications, turn Markdown, YAML, JSON, or other files into app's data layer with Zod schema.
 
 Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod.dev) and [Unified](https://unifiedjs.com), and powered by [ESBuild](https://esbuild.github.io).
 
@@ -39,6 +35,10 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
   <source srcset="https://velite.zce.me/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
   <img src="https://velite.zce.me/assets/flow-light.svg" alt="Velite Workflow" title="Velite Workflow">
 </picture>
+
+"Velite" comes from the English word "elite".
+
+> "Velite" itself is the code name for Napoleon's elite army.
 
 ### Features
 
@@ -53,7 +53,7 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 
 ### Try It Online
 
-You can try Velite directly in your browser on [StackBlitz](https://stackblitz.com/~/github.com/zce/velite-next).
+You can try Velite directly in your browser on [StackBlitz](https://stackblitz.com/github/zce/velite-next).
 
 ## Roadmap
 

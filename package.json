@@ -1,7 +1,7 @@
 {
   "name": "velite",
   "version": "0.1.0-alpha.32",
-  "description": "Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.",
+  "description": "Turns Markdown, YAML, JSON, or other files into app's data layer with typesafe schema.",
   "keywords": [
     "content",
     "contentlayer",

@@ -66,7 +66,8 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
     const mod = await import(configUrl.href)
     return mod.default ?? mod
   } catch (err: any) {
-    throw new Error(`load config failed: ${err.message}`)
+    err.message = `load config failed: ${err.message}`
+    throw err
   }
 }
 

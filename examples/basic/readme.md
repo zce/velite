@@ -1,6 +1,6 @@
 # @velite/example
 
-> Framework Agnostic example of [Velite](https://github.com/zce/velite) with all features.
+> Framework Agnostic example of [Velite](https://github.com/zce/velite) with most features.
 
 ## Usage
 

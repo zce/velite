@@ -1,6 +1,8 @@
-# Next.js + Velite
+# Next.js + MDX + Velite
 
 A template with Next.js 13 app dir, [Velite](https://github.com/zce/velite), Tailwind CSS and dark mode.
+
+[MDX Example](content/pages/contact/index.mdx)
 
 ## Recipes
 
@@ -109,11 +111,3 @@ const compileMdx = async (source: string): Promise<string> => {
   return bundled.outputFiles[0].text.replace('var VELITE_MDX_COMPONENT=', 'return ')
 }
 ```
-
-## Related
-
-- [zce/velite](https://github.com/zce/velite) - Turns Markdown, YAML, JSON, or other files into an app's data layer based on a schema.
-
-## License
-
-[MIT](../license) &copy; [zce](https://zce.me)

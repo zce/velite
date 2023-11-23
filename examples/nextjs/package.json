@@ -2,6 +2,8 @@
   "name": "@velite/next-starter",
   "version": "0.1.0",
   "private": true,
+  "author": "zce <w@zce.me> (https://zce.me/)",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,13 +15,11 @@
   "eslintConfig": {
     "extends": "next/core-web-vitals"
   },
-  "prettier": "@zce/prettier-config",
   "dependencies": {
     "@tailwindcss/typography": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "@zce/prettier-config": "latest",
     "autoprefixer": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",

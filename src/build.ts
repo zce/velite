@@ -239,6 +239,8 @@ class Builder {
     logger.info(`watching for changes in '${root}'`)
 
     // TOOD: recursive watch not working on linux
+    // The `fs.watch()` recursive option is only supported on macOS and Windows.
+    // Maybe Chokidar is a better choice.
     // https://github.com/nodejs/node/issues/36005
     for await (const event of watch(root, { recursive: process.platform !== 'linux' })) {
       const { filename } = event

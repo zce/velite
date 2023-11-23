@@ -2,11 +2,6 @@
 .DS_Store
 node_modules
 
-# lockfiles
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
-
 # velite generated
 /.velite
 /public/static

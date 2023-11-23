@@ -30,6 +30,8 @@ export const isValidatedStaticPath = (url: string): boolean => {
  */
 const md5 = (data: string | Buffer): string => {
   // https://github.com/joshwiens/hash-perf
+  // https://stackoverflow.com/q/2722943
+  // https://stackoverflow.com/q/14139727
   return createHash('md5').update(data).digest('hex')
 }
 

@@ -22,7 +22,7 @@ const reducePath = (msg: unknown) => {
   if (typeof msg !== 'string') return msg
   // replace cwd with '.' to reduce noise, e.g.:
   // [VELITE] /home/username/project/src/file.ts:1:1 -> [VELITE] ./src/file.ts:1:1
-  return msg.replace(process.cwd(), '.')
+  return msg.replace(process.cwd(), '.').replace(/\\/g, '/')
 }
 
 export const logger = {

@@ -1,8 +1,8 @@
 <div align="center">
   <h1>
     <picture>
-      <source srcset="https://velite.zce.me/assets/logo-dark.svg" media="(prefers-color-scheme: dark)">
-      <img src="https://velite.zce.me/assets/logo-light.svg" width="300 alt="Velite" title="Velite">
+      <source srcset="docs/assets/logo-dark.svg" media="(prefers-color-scheme: dark)">
+      <img src="docs/assets/logo-light.svg" width="300 alt="Velite" title="Velite">
     </picture>
   </h1>
   <p>Turns Markdown, YAML, JSON, or other files into app's data layer with typesafe schema.</p>
@@ -32,8 +32,8 @@ Velite is a tool for building typesafe content layers for applications, turn Mar
 Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod.dev) and [Unified](https://unifiedjs.com), and powered by [ESBuild](https://esbuild.github.io).
 
 <picture>
-  <source srcset="https://velite.zce.me/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
-  <img src="https://velite.zce.me/assets/flow-light.svg" alt="Velite Workflow" title="Velite Workflow">
+  <source srcset="docs/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
+  <img src="docs/assets/flow-light.svg" alt="Velite Workflow" title="Velite Workflow">
 </picture>
 
 "Velite" comes from the English word "elite".

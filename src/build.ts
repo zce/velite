@@ -238,7 +238,9 @@ class Builder {
 
     logger.info(`watching for changes in '${root}'`)
 
-    for await (const event of watch(root, { recursive: true })) {
+    // TOOD: recursive watch not working on linux
+    // https://github.com/nodejs/node/issues/36005
+    for await (const event of watch(root, { recursive: process.platform !== 'linux' })) {
       const { filename } = event
       if (filename == null) continue
       if (!allPatterns.some(pattern => micromatch.isMatch(filename, pattern))) continue

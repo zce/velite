@@ -13,15 +13,15 @@ export default defineConfig({
     ['meta', { name: 'og:site_name', content: 'Velite' }],
     ['meta', { name: 'og:image', content: 'https://velite.js.org/velite-og.png' }]
   ],
-  locales: {
-    root: { label: 'English', lang: 'en', link: '/' },
-    'zh-CN': {
-      label: '简体中文',
-      lang: 'zh-CN',
-      link: '/zh-CN/',
-      description: '使用类型安全的模式将 Markdown、YAML、JSON 或其他文件转换为应用程序的数据层。'
-    }
-  },
+  // locales: {
+  //   root: { label: 'English', lang: 'en', link: '/' },
+  //   'zh-CN': {
+  //     label: '简体中文',
+  //     lang: 'zh-CN',
+  //     link: '/zh-CN/',
+  //     description: '使用类型安全的模式将 Markdown、YAML、JSON 或其他文件转换为应用程序的数据层。'
+  //   }
+  // },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     siteTitle: false,

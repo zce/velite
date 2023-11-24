@@ -21,21 +21,3 @@ jobs:
       - run: pnpm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: pnpm/action-setup@v2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache: pnpm
-      - uses: actions/configure-pages@v3
-      - run: pnpm install
-      - run: pnpm docs:build && touch docs/.vitepress/dist/.nojekyll
-      - uses: actions/upload-pages-artifact@v2
-        with:
-          path: docs/.vitepress/dist

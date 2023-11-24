@@ -68,7 +68,7 @@
     "yaml": "^2.3.4",
     "zod": "^3.22.4"
   },
-  "packageManager": "pnpm@8.10.5",
+  "packageManager": "pnpm@8.11.0",
   "engines": {
     "node": ">=18"
   }

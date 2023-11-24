@@ -1,0 +1,17 @@
+:root {
+  /* --vp-c-brand-1: #646cff;
+  --vp-c-brand-2: #747bff;
+  --vp-nav-logo-height: 28px; */
+}
+
+.stackblitz {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.wide-page .content {
+  max-width: 100% !important;
+}

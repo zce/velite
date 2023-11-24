@@ -1,0 +1,16 @@
+{
+  "name": "@velite/docs",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "author": "zce <w@zce.me> (https://zce.me)",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "latest"
+  }
+}

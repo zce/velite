@@ -25,6 +25,9 @@
   ],
   "scripts": {
     "build": "tsc && tsup",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -61,6 +64,7 @@
     "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.1",
     "vfile-reporter": "^8.1.0",
+    "vitepress": "^1.0.0-rc.30",
     "yaml": "^2.3.4",
     "zod": "^3.22.4"
   },

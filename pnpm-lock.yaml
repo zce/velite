@@ -102,18 +102,15 @@ importers:
       vfile-reporter:
         specifier: ^8.1.0
         version: 8.1.0
+      vitepress:
+        specifier: ^1.0.0-rc.30
+        version: 1.0.0-rc.30(@algolia/client-search@4.20.0)(@types/node@20.10.0)(@types/react@18.2.38)(search-insights@2.11.0)(typescript@5.3.2)
       yaml:
         specifier: ^2.3.4
         version: 2.3.4
       zod:
         specifier: ^3.22.4
         version: 3.22.4
-
-  docs:
-    devDependencies:
-      vitepress:
-        specifier: latest
-        version: 1.0.0-rc.30(@algolia/client-search@4.20.0)(@types/node@20.10.0)(@types/react@18.2.38)(search-insights@2.11.0)(typescript@5.3.2)
 
   examples/basic:
     devDependencies:

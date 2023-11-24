@@ -1,10 +1,10 @@
 <div align="center">
-  <h1>
+  <a href="https://velite.js.org">
     <picture>
-      <source srcset="docs/assets/logo-dark.svg" media="(prefers-color-scheme: dark)">
-      <img src="docs/assets/logo-light.svg" width="300 alt="Velite" title="Velite">
+      <source srcset="https://velite.js.org/assets/logo-dark.svg" media="(prefers-color-scheme: dark)">
+      <img src="https://velite.js.org/assets/logo.svg" width="300 alt="Velite" title="Velite">
     </picture>
-  </h1>
+  </a>
   <p>Turns Markdown, YAML, JSON, or other files into app's data layer with typesafe schema.</p>
   <p>
     <a href="https://github.com/zce/velite/actions"><img src="https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml" alt="Build Status"></a>
@@ -18,50 +18,59 @@
     <a href="https://github.com/zce/velite"><img src="https://img.shields.io/github/repo-size/zce/velite" alt="Repo Size"></a>
     <a href="https://github.com/zce/velite"><img src="https://img.shields.io/librariesio/release/npm/velite" alt="Dependencies Status"></a>
   </p>
-  <!-- <p><strong>English</strong> | <a href="readme.zh-cn.md">简体中文</a></p> -->
 </div>
 
-:construction: the [documentation](https://velite.zce.me) is not yet complete, but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+🚧 🚧 🚧 the [documentation](https://velite.js.org) is not yet complete currently. but the functionality is mostly stable, although there is still a possibility of significant changes being made.
 
-However, I have provided a full features [example](https://github.com/zce/velite/tree/main/example) for your reference.
+However, I have provided some [examples](https://github.com/zce/velite/tree/main/examples) for your consideration.
 
 ## Introduction
 
-Velite is a tool for building typesafe content layers for applications, turn Markdown, YAML, JSON, or other files into app's data layer with Zod schema.
+Velite is a tool for building type-safe content layers for applications, turn Markdown, YAML, JSON, or other files into app's data layer with Zod schema.
 
 Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod.dev) and [Unified](https://unifiedjs.com), and powered by [ESBuild](https://esbuild.github.io).
 
 <picture>
-  <source srcset="docs/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
-  <img src="docs/assets/flow-light.svg" alt="Velite Workflow" title="Velite Workflow">
+  <source srcset="https://velite.js.org/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
+  <img src="https://velite.js.org/assets/flow.svg" alt="Velite Workflow" title="Velite Workflow">
 </picture>
+
+### Naming Origin
 
 "Velite" comes from the English word "elite".
 
 > "Velite" itself is the code name for Napoleon's elite army.
 
-### Features
+## Key Features
 
-- Easy to use
-- Light-weight & High efficiency & Still powerful
-- Built-in Markdown, YAML, JSON support
-- Built-in relative files & images processing
-- Schema validation by [Zod](https://zod.dev)
-- Less runtime dependencies
-- Configurable & Extensible
-- Use modern APIs & TypeScript friendly
+- **Easy to use**: Move your contents into `content` folder, define collections config, run `velite` command, and get the data layer.
+- **Type-safe**: Contents schema validation by [Zod](https://zod.dev), and type inference for TypeScript.
+- **Framework Agnostic**: JSON & Entry & DTS output, out of the box support for React, Vue, Svelte, Solid, etc.
+- **Light-weight**: Choose more native APIs instead of bloated NPM modules, less runtime dependencies, so it is fast and efficiently.
+- **Still powerful**: Built-in Markdown, YAML, JSON support, relative files & images processing, schema validation, etc.
+- **Configurable**: Both input and output directories can be customized, and support for custom loaders, hooks, etc.
+- **Extensible**: Support any file types by custom loaders, Custom field validation and transform by custom schema, and any output formats by hooks
 
-### Try It Online
+Check out our detailed [Why Velite](https://velite.js.org/guide/introduction#why-velite) to learn more about what makes Velite special. ✨
 
-You can try Velite directly in your browser on [StackBlitz](https://stackblitz.com/github/zce/velite-next).
+## Try Velite Online
+
+You can try Velite directly in your browser on StackBlitz:
+
+- https://stackblitz.com/edit/velite-basic
+- https://stackblitz.com/edit/velite-nextjs
 
 ## Roadmap
 
 The following are the features I want to achieve or are under development:
 
-- [ ] More built-in schemas
 - [ ] Full documentation
+- [ ] File \_raw output?
+- [ ] Optimize the config structure, bundle & load
+- [ ] More built-in schemas
+- [ ] Assets OSS support
 - [ ] Unit & E2E tests ?
+- [ ] Scoffolding tool
 - [ ] Next.js plugin
 - [ ] Gatsby plugin
 - [ ] More examples
@@ -82,14 +91,3 @@ See the [open issues](https://github.com/zce/velite/issues) for a list of propos
 ## License
 
 [MIT](license) &copy; [zce](https://zce.me)
-
-[actions-img]: https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml
-[actions-url]: https://github.com/zce/velite/actions
-[license-img]: https://img.shields.io/github/license/zce/velite
-[license-url]: https://github.com/zce/velite/blob/master/license
-[version-img]: https://img.shields.io/npm/v/velite
-[version-url]: https://npm.im/velite
-[downloads-img]: https://img.shields.io/npm/dm/velite
-[downloads-url]: https://npm.im/velite
-[style-img]: https://img.shields.io/badge/code_style-standard-brightgreen
-[style-url]: https://standardjs.com

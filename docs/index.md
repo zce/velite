@@ -58,7 +58,7 @@ features:
 .image-src {
   width: 100%;
   height: 100%;
-  animation: logo 1s infinite alternate;
+  animation: logo 2s infinite alternate;
 }
 
 @keyframes logo {

@@ -37,7 +37,10 @@ Check out our detailed [Why Velite](#why-velite) to learn more about what makes 
 
 ## Try Velite Online
 
-You can try Velite directly in your browser on [StackBlitz](https://stackblitz.com/velite-next).
+You can try Velite directly in your browser on StackBlitz:
+
+- https://stackblitz.com/edit/velite-basic
+- https://stackblitz.com/edit/velite-nextjs
 
 ## Why Velite?
 

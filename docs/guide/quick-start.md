@@ -38,6 +38,10 @@ Create a `velite.config.js` file in the root directory of your project to define
 ```js
 import { defineConfig, s } from 'velite'
 
+// `s` is extended from Zod with some custom schemas,
+// you can also import original `z` from `velite`
+// if you don't need these extension schemas.
+
 export default defineConfig({
   collections: {
     posts: {
@@ -65,7 +69,7 @@ export default defineConfig({
 })
 ```
 
-> `s` is extended from Zod with some custom schemas, you can also import original `z` from `velite` if you don't need these extension schemas.
+For more information about Velite extended field schemas, see [Field Schemas](velite-shemas.md).
 
 ::: tip
 Config file supports TypeScript & ESM & CommonJS. you can use the full power of TypeScript to write your config file, and it's recommended strongly.
@@ -182,6 +186,8 @@ Then you will get the following output:
 ]
 ```
 
+:::
+
 ## Run Velite with Watch Mode
 
 Run `velite` with `--watch` option, then Velite will watch the contents files and rebuild them automatically when they are changed.
@@ -190,18 +196,52 @@ Run `velite` with `--watch` option, then Velite will watch the contents files an
 
 ```sh [npm]
 $ npx velite --watch
+
+> @velite/basic-starter@0.1.0 dev ./examples/basic
+> velite --watch
+
+[VELITE] output 1 options, 2 tags, 3 categories, 2 posts, 2 pages and entry file
+[VELITE] finished building
+[VELITE] watching for changes in './velite.config.ts'
+[VELITE] watching for changes in './content'
 ```
 
 ```sh [pnpm]
 $ pnpm velite --watch
+
+> @velite/basic-starter@0.1.0 dev ./examples/basic
+> velite --watch
+
+[VELITE] output 1 options, 2 tags, 3 categories, 2 posts, 2 pages and entry file
+[VELITE] finished building
+[VELITE] watching for changes in './velite.config.ts'
+[VELITE] watching for changes in './content'
 ```
 
 ```sh [yarn]
 $ yarn velite --watch
+
+> @velite/basic-starter@0.1.0 dev ./examples/basic
+> velite --watch
+
+[VELITE] output 1 options, 2 tags, 3 categories, 2 posts, 2 pages and entry file
+[VELITE] finished building
+[VELITE] watching for changes in './velite.config.ts'
+[VELITE] watching for changes in './content'
 ```
 
 ```sh [bun]
 $ bun velite --watch
+
+> @velite/basic-starter@0.1.0 dev ./examples/basic
+> velite --watch
+
+[VELITE] output 1 options, 2 tags, 3 categories, 2 posts, 2 pages and entry file
+[VELITE] finished building
+[VELITE] watching for changes in './velite.config.ts'
+[VELITE] watching for changes in './content'
 ```
 
 :::
+
+For more information about define collections, see [Define Collections](define-collections.md).

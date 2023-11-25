@@ -36,3 +36,9 @@ class VeliteWebpackPlugin {
   }
 }
 ```
+
+## Custom Schema Type
+
+```ts
+link: z.string() as Route<''>
+```

@@ -6,6 +6,5 @@
     "esModuleInterop": true,
     "noEmit": true,
     "strict": true
-  },
-  "include": ["src"]
+  }
 }

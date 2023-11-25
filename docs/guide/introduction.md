@@ -1,14 +1,14 @@
 # Introduction
 
 ::: warning
-🚧 🚧 🚧 this documentation is not yet complete currently. but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+🚧 this documentation is not yet complete currently. but the functionality is mostly stable, although there is still a possibility of significant changes being made.
 
 However, I have provided some [examples](https://github.com/zce/velite/tree/main/examples) for your consideration.
 :::
 
 ## What is Velite?
 
-Velite is a tool for building type-safe data layers for applications, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.
+Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.
 
 <picture>
   <source srcset="/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
@@ -42,25 +42,25 @@ You can try Velite directly in your browser on StackBlitz:
 - https://stackblitz.com/edit/velite-basic
 - https://stackblitz.com/edit/velite-nextjs
 
-> P.S. watch mode not working in linux currently.
+> P.S. Watch mode not working in linux currently.
 
 ## Why Velite?
 
 ### Type-Safe Contents
 
-GIF or video
+Velite validates your contents against a Zod schema, and generates type inference for TypeScript. so you can use the output data in your application with confidence.
 
-### Full TypeScript inference
+### Full Type inference
 
-GIF or video
+<p><video src="/assets/type-inference.mp4" loop muted autoplay /></p>
 
 ### Error Reporting Friendly
 
-Screenshot
+![Error Reporting Friendly](/assets/error-reporting-friendly.jpg)
 
 ### Less Runtime Dependencies
 
-- config bundle by ESBuild](https://esbuild.github.io)
+- config bundle by [ESBuild](https://esbuild.github.io)
 - schema validation by [Zod](https://zod.dev)
 - content transform by [Unified](https://unifiedjs.com)
 
@@ -70,5 +70,6 @@ Screenshot
 
 - built-in files & images processing
 - programmability & extensibility
-- schema validation and error reporting friendly
+- custom schema validation
+- error reporting friendly
 - etc.

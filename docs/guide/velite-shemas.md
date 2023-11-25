@@ -1,6 +1,20 @@
 # Field Schemas
 
-Velite has extended Zod schemas, added some commonly used features when building content models.
+To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of the Zod library, and it supports all of the features of Zod. See [Zod’s Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
+
+```js
+import { z } from 'velite'
+
+// `z` is re-export of Zod
+```
+
+In addition, Velite has extended Zod schemas, added some commonly used features when building content models, you can import `s` from `'velite'` to use these extended schemas.
+
+```js
+import { s } from 'velite'
+
+// `s` is extended from Zod with some custom schemas, s also includes all members of zod
+```
 
 ## `s.isodate()`
 

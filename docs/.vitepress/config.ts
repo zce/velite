@@ -58,7 +58,7 @@ export default defineConfig({
               { text: 'Quick Start', link: 'quick-start' },
               { text: 'Define Collections', link: 'define-collections' },
               { text: 'Using Collections', link: 'using-collections' },
-              { text: 'Field Schemas', link: 'field-shemas' }
+              { text: 'Velite Schemas', link: 'velite-shemas' }
             ]
           },
           {

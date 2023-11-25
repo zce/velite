@@ -7,11 +7,12 @@ export default async function Home() {
   return (
     <div className="prose dark:prose-invert">
       {posts.map(post => (
-        <article key={post.slug}>
+        <article key={post.slug} className={post.featured ? 'bg-slate-300' : ''}>
           <Link href={`/posts/${post.slug}`}>
             <h2>{post.title}</h2>
           </Link>
           <p>{post.summary}</p>
+          <p>{post.tags.join(', ')}</p>
         </article>
       ))}
     </div>

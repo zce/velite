@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "author": "zce <w@zce.me> (https://zce.me/)",
+  "author": "zce <w@zce.me> (https://zce.me)",
   "scripts": {
     "dev": "velite --watch",
     "build": "velite --clean"

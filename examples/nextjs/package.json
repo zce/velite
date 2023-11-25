@@ -2,15 +2,14 @@
   "name": "@velite/next-starter",
   "version": "0.1.0",
   "private": true,
-  "author": "zce <w@zce.me> (https://zce.me/)",
+  "author": "zce <w@zce.me> (https://zce.me)",
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "content": "velite --clean",
-    "format": "prettier --write ."
+    "content": "velite --clean"
   },
   "eslintConfig": {
     "extends": "next/core-web-vitals"

@@ -34,15 +34,15 @@ $ velite build [options]
 
 ### Options
 
-| Option                | Description                         | Default            |
-| --------------------- | ----------------------------------- | ------------------ |
-| `-c, --config <path>` | Use specified config file           | `velite.config.js` |
-| `--clean`             | Clean output directory before build | `false`            |
-| `--watch`             | Watch for changes and rebuild       | `false`            |
-| `--verbose`           | Print additional information        | `false`            |
-| `--debug`             | Print debug information             | `false`            |
-| `-v, --version`       | Print version number                |                    |
-| `-h, --help`          | Print help information              |                    |
+| Option                | Description                                             | Default            |
+| --------------------- | ------------------------------------------------------- | ------------------ |
+| `-c, --config <path>` | Use specified config file                               | `velite.config.js` |
+| `--clean`             | Clean output directory before build                     | `false`            |
+| `--watch`             | Watch for changes and rebuild                           | `false`            |
+| `--verbose`           | Print additional information                            | `false`            |
+| `--debug`             | Print complete error stack when error occurs (CLI only) | `false`            |
+| `-v, --version`       | Print version number                                    |                    |
+| `-h, --help`          | Print help information                                  |                    |
 
 ## `velite init`
 

@@ -2,19 +2,18 @@
 
 ~~To maintain simplicity and efficiency, Velite currently does not have built-in MDX support, but you can easily support it.~~
 
-- [examples/next](https://github.com/zce/velite/tree/main/examples/mdx)
+- [examples/nextjs](https://github.com/zce/velite/tree/main/examples/nextjs)
 
 ## MDX Content Component Example
 
-~~Velite provides a built-in `MDXContent` component to render MDX content.~~
+`./components/mdx-content.tsx`:
 
 ```jsx
 import * as runtime from 'react/jsx-runtime'
 import Image from 'next/image'
 
-interface MdxProps {
-  code: string
-  components?: Record<string, React.ComponentType>
+const mdxComponents = {
+  Image
 }
 
 const useMDXComponent = (code: string) => {
@@ -22,16 +21,24 @@ const useMDXComponent = (code: string) => {
   return fn({ ...runtime }).default
 }
 
-export function MDXContent({ code, components }: MdxProps) {
+interface MdxProps {
+  code: string
+  components?: Record<string, React.ComponentType>
+}
+
+export const MDXContent = ({ code, components }: MdxProps) => {
   const Component = useMDXComponent(code)
-  return <Component components={{ Image, ...components }} />
+  return <Component components={{ ...mdxComponents, ...components }} />
 }
 ```
 
-```jsx
-import { MDXContent } from './mdx-content'
+`./pages/posts/[slug].tsx`:
 
-export default function Post({ post }) {
+```jsx
+import { MDXContent } from '@/components/mdx-content'
+
+export default async function Post({ params: { slug } }) {
+  const post = await getPostBySlug(slug)
   return (
     <article>
       <h1>{post.title}</h1>

@@ -66,8 +66,8 @@ export default defineConfig({
             items: [
               { text: 'TypeScript', link: 'typescript' },
               { text: 'Markdown', link: 'using-markdown' },
-              { text: 'Asset Handling', link: 'asset-handling' },
               { text: 'MDX Support', link: 'using-mdx' },
+              { text: 'Asset Handling', link: 'asset-handling' },
               { text: 'Integration with Next.js', link: 'with-nextjs' }
             ]
           },

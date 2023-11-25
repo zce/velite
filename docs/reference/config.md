@@ -1,6 +1,8 @@
 # Configuration
 
-When running vite from the command line, Vite will automatically try to resolve a config file named vite.config.js inside project root (other JS and TS extensions are also supported).
+This documentation is still being written. Please check back later.
+
+<!-- When running vite from the command line, Vite will automatically try to resolve a config file named vite.config.js inside project root (other JS and TS extensions are also supported).
 
 The most basic config file looks like this:
 
@@ -50,4 +52,4 @@ module.exports = () => ({
     }
   }
 })
-```
+``` -->

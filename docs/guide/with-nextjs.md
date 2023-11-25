@@ -2,11 +2,13 @@
 
 The Next.js plugin is still under development...
 
-- [examples/next](https://github.com/zce/velite/tree/main/examples/next)
+- [examples/nextjs](https://github.com/zce/velite/tree/main/examples/nextjs)
 
 ## Start Velite with Next.js Plugin
 
-```javascript
+in your `next.config.js`:
+
+```js
 /** @type {import('next').NextConfig} */
 module.exports = {
   // othor next config here...
@@ -37,8 +39,8 @@ class VeliteWebpackPlugin {
 }
 ```
 
-## Custom Schema Type
+## Typed Routes
 
 ```ts
-link: z.string() as Route<''>
+link: z.string() as Route<'/posts/${string}'>
 ```

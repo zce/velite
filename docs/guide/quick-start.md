@@ -39,8 +39,7 @@ Create a `velite.config.js` file in the root directory of your project to define
 import { defineConfig, s } from 'velite'
 
 // `s` is extended from Zod with some custom schemas,
-// you can also import original `z` from `velite`
-// if you don't need these extension schemas.
+// you can also import re-exported `z` from `velite` if you don't need these extension schemas.
 
 export default defineConfig({
   collections: {
@@ -140,8 +139,8 @@ Then you will get the following output:
 ```diff
  root
 +├── .velite
-+│   ├── posts.json
-+│   └── others.json
++│   ├── posts.json                  # posts collection output
++│   └── others.json                 # others collection output
  ├── content
  │   ├── posts
  │   │   ├── hello-world.md
@@ -149,10 +148,10 @@ Then you will get the following output:
  │   └── others
  ├── public
 +│   └── static
-+│       ├── cover-2a4138dh.jpg # from frontmatter reference
-+│       ├── img-2hd8f3sd.jpg # from content reference
-+│       ├── plain-37d62h1s.txt # from content reference
-+│       └── video-72hhd9f.mp4 # from frontmatter reference
++│       ├── cover-2a4138dh.jpg      # from frontmatter reference
++│       ├── img-2hd8f3sd.jpg        # from content reference
++│       ├── plain-37d62h1s.txt      # from content reference
++│       └── video-72hhd9f.mp4       # from frontmatter reference
  ├── package.json
  └── velite.config.js
 ```

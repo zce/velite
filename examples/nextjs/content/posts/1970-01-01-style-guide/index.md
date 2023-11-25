@@ -182,7 +182,7 @@ Code can be presented inline, like `<?php bloginfo('stylesheet_url'); ?>`, or wi
 }
 ```
 
-```javascript
+```js
 import React from 'react'
 
 import { Wrapper } from '../components'

@@ -28,7 +28,7 @@ A template with Next.js 13 app dir, [Velite](https://github.com/zce/velite), Tai
 
 **next.config.js**:
 
-```javascript
+```js
 /** @type {import('next').NextConfig} */
 module.exports = {
   // othor next config here...

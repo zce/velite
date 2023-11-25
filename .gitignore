@@ -1,8 +1,5 @@
+*.pem
 .DS_Store
-
 node_modules
 
 dist
-
-docs/.vitepress/cache
-docs/.vitepress/dist

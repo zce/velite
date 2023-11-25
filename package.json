@@ -25,10 +25,10 @@
   ],
   "scripts": {
     "build": "tsc && tsup",
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs",
-    "format": "prettier --write ."
+    "docs:dev": "cd docs && pnpm dev",
+    "docs:build": "cd docs && pnpm build",
+    "docs:preview": "cd docs && pnpm preview",
+    "format": "prettier . --write"
   },
   "dependencies": {
     "esbuild": "^0.19.7",
@@ -64,7 +64,6 @@
     "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.1",
     "vfile-reporter": "^8.1.0",
-    "vitepress": "^1.0.0-rc.30",
     "yaml": "^2.3.4",
     "zod": "^3.22.4"
   },

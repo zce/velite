@@ -2,7 +2,11 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
   "files.exclude": {
-    "node_modules": true
+    "bin": false,
+    "dist": false,
+    "examples": false,
+    "node_modules": true,
+    "pnpm-lock.yaml": false
   },
   "typescript.tsdk": "node_modules/typescript/lib"
 }

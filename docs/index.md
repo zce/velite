@@ -14,7 +14,7 @@ hero:
     alt: Velite Logo
   actions:
     - theme: brand
-      text: Getting Started
+      text: Get Started
       link: ./guide/quick-start
     - theme: alt
       text: View on GitHub

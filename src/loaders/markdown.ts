@@ -2,9 +2,16 @@
  * @file markdown file loader
  */
 
+import { basename } from 'node:path'
 import yaml from 'yaml'
 
 import { defineLoader } from '../types'
+
+// import type { VFile } from 'vfile'
+
+// const getFlattenedPath = (vfile: VFile) => {
+//   return vfile.stem === 'index' ? basename(vfile.dirname!) : vfile.stem
+// }
 
 export default defineLoader({
   name: 'markdown',
@@ -14,6 +21,8 @@ export default defineLoader({
     // https://github.com/vfile/vfile-matter/blob/main/lib/index.js
     const match = raw.match(/^---(?:\r?\n|\r)(?:([\s\S]*?)(?:\r?\n|\r))?---(?:\r?\n|\r|$)/)
     const data = match == null ? {} : yaml.parse(match[1])
+    // // default data fields
+    // data.slug = data.slug ?? getFlattenedPath(vfile)
     // data._file = vfile // output vfile for later use?
     const body = match == null ? raw : raw.slice(match[0].length).trim()
     // keep raw body with multiple keys (may be used) for later use

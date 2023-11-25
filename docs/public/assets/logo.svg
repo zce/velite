@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 80" fill="#1d283a">
-  <style>@media (prefers-color-scheme: dark) { svg { fill: #f8fafc } }</style>
+  <!-- <style>@media (prefers-color-scheme: dark) { svg { fill: #f8fafc } }</style> -->
   <linearGradient y1="1" x2="1" id="l">
     <stop offset="0%" stop-color="#08A771" />
     <stop offset="100%" stop-color="#11E49D" />

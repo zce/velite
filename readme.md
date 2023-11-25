@@ -69,7 +69,8 @@ The following are the features I want to achieve or are under development:
 - [ ] Optimize the config structure, bundle & load
 - [ ] More built-in schemas
 - [ ] Assets OSS support
-- [ ] Unit & E2E tests ?
+- [ ] Unit & E2E tests?
+- [ ] Turborepo?
 - [ ] Scoffolding tool
 - [ ] Next.js plugin
 - [ ] Gatsby plugin

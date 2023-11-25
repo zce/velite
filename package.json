@@ -27,7 +27,6 @@
     "build": "tsc && tsup",
     "docs:dev": "cd docs && pnpm dev",
     "docs:build": "cd docs && pnpm build",
-    "docs:preview": "cd docs && pnpm preview",
     "format": "prettier . --write"
   },
   "dependencies": {

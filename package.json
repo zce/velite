@@ -19,7 +19,7 @@
   "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": "./dist/cli.js",
+  "bin": "bin/velite.js",
   "files": [
     "dist"
   ],

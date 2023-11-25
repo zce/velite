@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import cac from 'cac'
 
 import { name, version } from '../package.json'

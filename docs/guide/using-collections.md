@@ -79,7 +79,7 @@ export declare const getOthers: () => Promise<Other[]>
 
 ::: tip
 
-If you’re using Git for version control, we recommend ignoring the `.velite` directory by adding `.velite` to your `.gitignore`. This tells Git to ignore this directory and any files inside of it.
+If you're using Git for version control, we recommend ignoring the `.velite` directory by adding `.velite` to your `.gitignore`. This tells Git to ignore this directory and any files inside of it.
 
 ```sh
 echo '\n.velite' >> .gitignore
@@ -89,7 +89,7 @@ echo '\n.velite' >> .gitignore
 
 ## Use in Your Project
 
-Here is an Next.js example of using the output in your project.
+Here is a Next.js example of using the output in your project.
 
 ```tsx [app/posts/[slug]/page.tsx]
 import { notFound } from 'next/navigation'
@@ -131,6 +131,8 @@ export async function generateStaticParams() {
   return posts.map(({ slug }) => ({ slug }))
 }
 ```
+
+## Path Aliases
 
 You can define path aliases in `tsconfig.json`:
 

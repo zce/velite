@@ -90,7 +90,7 @@ Add your creative content into the `content` directory, like this:
  └── velite.config.js
 ```
 
-::: details `content/posts/hello-world.md`
+::: details content/posts/hello-world.md
 
 ```md
 ---
@@ -160,7 +160,7 @@ Then you will get the following output:
 
 ::: tip
 
-If you’re using Git for version control, we recommend ignoring the `.velite` directory by adding `.velite` to your `.gitignore`. This tells Git to ignore this directory and any files inside of it.
+If you're using Git for version control, we recommend ignoring the `.velite` directory by adding `.velite` to your `.gitignore`. This tells Git to ignore this directory and any files inside of it.
 
 ```sh
 echo '\n.velite' >> .gitignore

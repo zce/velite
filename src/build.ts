@@ -1,5 +1,5 @@
 import { mkdir, rm, watch, writeFile } from 'node:fs/promises'
-import { dirname, join, normalize, relative } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import glob from 'fast-glob'
 import micromatch from 'micromatch'
 import { reporter } from 'vfile-reporter'
@@ -61,15 +61,14 @@ class Builder {
    */
   private async generateEntry() {
     const { configPath, output, collections } = getConfig()
-    const configRelPath = relative(output.data, normalize(configPath))
-      .replace(/\\/g, '/')
-      .replace(/\.(js|cjs|mjs|ts|cts|mts)$/, '')
+    const configRelPath = relative(output.data, configPath).replace(/\\/g, '/')
     const entry: string[] = []
     const dts: string[] = [`import config from '${configRelPath}'\n`]
     Object.entries(collections).map(([name, collection]) => {
-      entry.push(`export const ${name} = async () => await import('./${name}.json').then(m => m.default)`)
+      const funcName = `get${name[0].toUpperCase() + name.slice(1)}` // getPosts
+      entry.push(`export const ${funcName} = async () => await import('./${name}.json').then(m => m.default)`)
       dts.push(`export type ${collection.name} = NonNullable<typeof config.collections>['${name}']['schema']['_output']`)
-      dts.push(`export declare const ${name}: () => Promise<${collection.name + (collection.single ? '' : '[]')}>`)
+      dts.push(`export declare const ${funcName}: () => Promise<${collection.name + (collection.single ? '' : '[]')}>`)
     })
     return [entry.join('\n'), dts.join('\n')] as const
   }

@@ -5,7 +5,7 @@
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) version 18.17 or higher, LTS version is recommended.
-- macOS, Windows are supported, Linux is not supported yet.
+- macOS, Windows are supported, Linux is not supported yet (watch mode).
 
 ::: code-group
 
@@ -27,9 +27,9 @@ $ bun add velite -D
 
 :::
 
-<!-- ::: details Getting missing peer deps warnings?
-If using PNPM, you will notice a missing peer warning for `@docsearch/js`. This does not prevent VitePress from working. If you wish to suppress this warning, add the following to your `package.json`:
-::: -->
+::: tip Velite is an ESM-only package
+Don't use `require()` to import it, and make sure your nearest `package.json` contains `"type": "module"`, or change the file extension of your relevant files like `velite.config.js` to `.mjs`/`.mts`. Also, inside async CJS contexts, you can use `await import('velite')` instead.
+:::
 
 ## Define Collections
 
@@ -90,7 +90,7 @@ Add your creative content into the `content` directory, like this:
  └── velite.config.js
 ```
 
-::: details content/posts/hello-world.md
+::: details `content/posts/hello-world.md`
 
 ```md
 ---
@@ -140,7 +140,9 @@ Then you will get the following output:
  root
 +├── .velite
 +│   ├── posts.json                  # posts collection output
-+│   └── others.json                 # others collection output
++│   ├── others.json                 # others collection output
++│   ├── index.d.ts                  # typescript type inference
++│   └── index.js                    # javascript entry file
  ├── content
  │   ├── posts
  │   │   ├── hello-world.md
@@ -155,37 +157,6 @@ Then you will get the following output:
  ├── package.json
  └── velite.config.js
 ```
-
-::: details .velite/posts.json
-
-```json
-[
-  {
-    "title": "Hello world",
-    "slug": "hello-world",
-    "date": "1992-02-25T13:22:00.000Z",
-    "cover": {
-      "src": "/static/cover-2a4138dh.jpg",
-      "height": 1100,
-      "width": 1650,
-      "blurDataURL": "data:image/webp;base64,UklGRjwAAABXRUJQVlA4IDAAAACwAQCdASoIAAUADMDOJbACdADWaUXAAMltC0BZxTv24bHUX8EibgVs/sPiTqq6QAA=",
-      "blurWidth": 8,
-      "blurHeight": 5
-    },
-    "video": "/static/video-72hhd9f.mp4",
-    "metadata": {
-      "readingTime": 1,
-      "wordCount": 1
-    },
-    "summary": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse",
-    "excerpt": "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse</p>\n<p><img src=\"/static/img-2hd8f3sd.jpg\" alt=\"some image\" /></p>\n<p><a href=\"/static/plain-37d62h1s.txt\">link to file</a></p>\n",
-    "content": "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse</p>\n<p><img src=\"/static/img-2hd8f3sd.jpg\" alt=\"some image\" /></p>\n<p><a href=\"/static/plain-37d62h1s.txt\">link to file</a></p>\n",
-    "permalink": "/blog/hello-world"
-  }
-]
-```
-
-:::
 
 ## Run Velite with Watch Mode
 
@@ -244,3 +215,15 @@ $ bun velite --watch
 :::
 
 For more information about define collections, see [Define Collections](define-collections.md).
+
+## Use Output in Your Project
+
+Velite will generate a `index.js` file in `.velite` directory, you can import it in your project:
+
+```js
+import { getPosts } from './.velite'
+
+const posts = await getPosts()
+
+console.log(posts) // => [{ title: 'Hello world', slug: 'hello-world', ... }, ...]
+```

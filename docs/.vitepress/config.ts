@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: 'Velite',
-  description: "Turns Markdown, YAML, JSON, or other files into app's data layer with type-safe schema.",
+  description: "Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.",
   lastUpdated: true,
   cleanUrls: true,
   head: [
@@ -44,71 +44,68 @@ export default defineConfig({
     },
     nav: [
       { text: 'Guide', link: '/guide/introduction', activeMatch: '/guide/' },
-      { text: 'Reference', link: '/reference/config', activeMatch: '/references/' },
+      { text: 'Reference', link: '/reference/config', activeMatch: '/reference/' },
       { text: 'Examples', link: '/examples/basic', activeMatch: '/examples/' }
     ],
-    sidebar: {
-      '/guide/': {
+    sidebar: [
+      {
+        text: 'Getting Started',
         base: '/guide/',
         items: [
-          {
-            text: 'Getting Started',
-            items: [
-              { text: 'Introduction', link: 'introduction' },
-              { text: 'Quick Start', link: 'quick-start' },
-              { text: 'Define Collections', link: 'define-collections' },
-              { text: 'Using Collections', link: 'using-collections' },
-              { text: 'Velite Schemas', link: 'velite-shemas' }
-            ]
-          },
-          {
-            text: 'Recipes',
-            items: [
-              { text: 'TypeScript', link: 'typescript' },
-              { text: 'Markdown', link: 'using-markdown' },
-              { text: 'MDX Support', link: 'using-mdx' },
-              { text: 'Asset Handling', link: 'asset-handling' },
-              { text: 'Integration with Next.js', link: 'with-nextjs' }
-            ]
-          },
-          {
-            text: 'Advanced',
-            items: [
-              { text: 'Custom Loader', link: 'custom-loader' }
-              // { text: 'Fast Refresh', link: 'fast-refresh' }
-            ]
-          },
-          {
-            text: 'Concepts',
-            items: [
-              { text: 'How It Works', link: 'how-it-works' }
-              // { text: 'Motivation', link: 'motivation' }
-            ]
-          },
-          {
-            text: 'Other',
-            base: '/other/',
-            items: [
-              { text: 'Snippets', link: 'snippets' },
-              { text: 'Roadmap', link: 'roadmap' },
-              { text: 'FAQ', link: 'faq' }
-            ]
-          }
+          { text: 'Introduction', link: 'introduction' },
+          { text: 'Quick Start', link: 'quick-start' },
+          { text: 'Define Collections', link: 'define-collections' },
+          { text: 'Using Collections', link: 'using-collections' },
+          { text: 'Velite Schemas', link: 'velite-shemas' }
         ]
       },
-      '/reference/': {
+      {
+        text: 'Recipes',
+        base: '/guide/',
+        items: [
+          { text: 'TypeScript', link: 'typescript' },
+          { text: 'Markdown', link: 'using-markdown' },
+          { text: 'MDX Support', link: 'using-mdx' },
+          { text: 'Asset Handling', link: 'asset-handling' },
+          { text: 'Integration with Next.js', link: 'with-nextjs' },
+          { text: 'Custom Loader', link: 'custom-loader' }
+          // { text: 'Fast Refresh', link: 'fast-refresh' }
+        ]
+      },
+      {
+        text: 'Reference',
         base: '/reference/',
         items: [
-          {
-            text: 'Reference',
-            link: '/',
-            items: [
-              { text: 'Configuration', link: 'config' },
-              { text: 'Velite CLI', link: 'cli' }
-            ]
-          }
+          { text: 'Configuration', link: 'config' },
+          { text: 'Runtime', link: 'runtime' },
+          { text: 'Velite CLI', link: 'cli' }
+        ]
+      },
+      {
+        text: 'Examples',
+        base: '/examples/',
+        items: [
+          { text: 'Basic', link: 'basic' },
+          { text: 'Next.js', link: 'nextjs' }
+        ]
+      },
+      {
+        text: 'Concepts',
+        base: '/guide/',
+        items: [
+          { text: 'How Velite Works', link: 'how-it-works' }
+          // { text: 'Motivation', link: 'motivation' }
+        ]
+      },
+      {
+        text: 'Other',
+        base: '/other/',
+        items: [
+          { text: 'Snippets', link: 'snippets' },
+          { text: 'Roadmap', link: 'roadmap' },
+          { text: 'FAQ', link: 'faq' }
         ]
       }
-    }
+    ]
   }
 })

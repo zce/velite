@@ -10,10 +10,8 @@ However, I have provided some [examples](https://github.com/zce/velite/tree/main
 
 Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.
 
-<picture>
-  <source srcset="/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
-  <img src="/assets/flow.svg" alt="Velite Workflow" title="Velite Workflow">
-</picture>
+![Velite Workflow](/assets/flow-dark.svg#dark 'Velite Workflow')
+![Velite Workflow](/assets/flow.svg#light 'Velite Workflow')
 
 Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod.dev) and [Unified](https://unifiedjs.com), and powered by [ESBuild](https://esbuild.github.io).
 
@@ -48,7 +46,7 @@ You can try Velite directly in your browser on StackBlitz:
 
 ### Type-Safe Contents
 
-Velite validates your contents against a Zod schema, and generates type inference for TypeScript. so you can use the output data in your application with confidence.
+Velite validates your contents against a [Zod](https://zod.dev) schema, and generates type inference for TypeScript. so you can use the output data in your application with confidence.
 
 ### Full Type inference
 

@@ -1,3 +1,144 @@
 # Using Collections in Your Apps
 
-This documentation is still being written. Please check back later.
+Velite builds your contents into JSON file, and generates type inference for TypeScript, and you can use the output data in your application with confidence.
+
+## Output Structure
+
+```diff
+ root
++├── .velite
++│   ├── posts.json                  # posts collection output
++│   └── others.json                 # others collection output
+ ├── content
+ │   ├── posts
+ │   │   ├── hello-world.md
+ │   │   └── hello-world-2.md
+ │   └── others
+ ├── public
++│   └── static
++│       ├── cover-2a4138dh.jpg      # from frontmatter reference
++│       ├── img-2hd8f3sd.jpg        # from content reference
++│       ├── plain-37d62h1s.txt      # from content reference
++│       └── video-72hhd9f.mp4       # from frontmatter reference
+ ├── package.json
+ └── velite.config.js
+```
+
+in `.velite` directory, Velite generates the output files for each collection, and the `index.js` and `index.d.ts` for your application to use.
+
+::: code-group
+
+```js [index.js]
+export const getPosts = async () => await import('./posts.json').then(m => m.default)
+export const getOthers = async () => await import('./others.json').then(m => m.default)
+```
+
+```js [index.d.ts]
+import config from '../velite.config'
+
+export type Post = NonNullable<typeof config.collections>['posts']['schema']['_output']
+export declare const getPosts: () => Promise<Post[]>
+export type Other = NonNullable<typeof config.collections>['others']['schema']['_output']
+export declare const getOthers: () => Promise<Other[]>
+```
+
+```json [posts.json]
+[
+  {
+    "title": "Hello world",
+    "slug": "hello-world",
+    "date": "1992-02-25T13:22:00.000Z",
+    "cover": {
+      "src": "/static/cover-2a4138dh.jpg",
+      "height": 1100,
+      "width": 1650,
+      "blurDataURL": "data:image/webp;base64,UklGRjwAAABXRUJQVlA4IDAAAACwAQCdASoIAAUADMDOJbACdADWaUXAAMltC0BZxTv24bHUX8EibgVs/sPiTqq6QAA=",
+      "blurWidth": 8,
+      "blurHeight": 5
+    },
+    "video": "/static/video-72hhd9f.mp4",
+    "metadata": {
+      "readingTime": 1,
+      "wordCount": 1
+    },
+    "summary": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse",
+    "excerpt": "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse</p>\n<p><img src=\"/static/img-2hd8f3sd.jpg\" alt=\"some image\" /></p>\n<p><a href=\"/static/plain-37d62h1s.txt\">link to file</a></p>\n",
+    "content": "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse</p>\n<p><img src=\"/static/img-2hd8f3sd.jpg\" alt=\"some image\" /></p>\n<p><a href=\"/static/plain-37d62h1s.txt\">link to file</a></p>\n",
+    "permalink": "/blog/hello-world"
+  }
+]
+```
+
+```json [others.json]
+[
+  ...
+]
+```
+
+:::
+
+## Use in Your Project
+
+Here is an Next.js example of using the output in your project.
+
+```tsx [app/posts/[slug]/page.tsx]
+import { notFound } from 'next/navigation'
+
+import { getPosts } from './.velite'
+
+interface PostProps {
+  params: {
+    slug: string
+  }
+}
+
+async function getPostBySlug(slug: string) {
+  const posts = await getPosts()
+  return posts.find(post => post.slug === slug)
+}
+
+export default async function PostPage({ params }: PostProps) {
+  const post = await getPostBySlug(params.slug)
+  if (post == null) notFound()
+  return (
+    <article className="prose dark:prose-invert py-6">
+      <h1 className="mb-2">{post.title}</h1>
+      {post.description && <p className="mt-0 text-xl text-slate-700 dark:text-slate-200">{post.description}</p>}
+      <hr className="my-4" />
+      <div className="prose" dangerouslySetInnerHTML={{ __html: post.content }}></div>
+    </article>
+  )
+}
+
+export async function generateMetadata({ params }: PostProps) {
+  const post = await getPostBySlug(params.slug)
+  if (post == null) return {}
+  return { title: post.title, description: post.description }
+}
+
+export async function generateStaticParams() {
+  const posts = await getPosts()
+  return posts.map(({ slug }) => ({ slug }))
+}
+```
+
+You can define path aliases in `tsconfig.json`:
+
+```json [tsconfig.json]
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "#site/content": ["./.velite"]
+    }
+  }
+}
+```
+
+then you can import the output file in your project:
+
+```tsx [app/posts/[slug]/page.tsx]
+import { getPosts } from '#site/content'
+
+// ...
+```

@@ -1,6 +1,5 @@
 ---
 aside: false
-pageClass: wide-page
 ---
 
 # With Next.js

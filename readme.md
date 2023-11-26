@@ -26,7 +26,7 @@ However, I have provided some [examples](https://github.com/zce/velite/tree/main
 
 ## What is Velite?
 
-Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.
+Velite is a tool for building type-safe data layer, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.
 
 <picture>
   <source srcset="https://velite.js.org/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">

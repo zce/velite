@@ -1,9 +1,8 @@
 import { defineConfig } from 'vitepress'
 
-// https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: 'Velite',
-  description: "Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.",
+  description: "Velite is a tool for building type-safe data layer, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.",
   lastUpdated: true,
   cleanUrls: true,
   head: [
@@ -11,7 +10,7 @@ export default defineConfig({
     ['meta', { name: 'og:type', content: 'website' }],
     ['meta', { name: 'og:locale', content: 'en' }],
     ['meta', { name: 'og:site_name', content: 'Velite' }],
-    ['meta', { name: 'og:image', content: 'https://velite.js.org/velite-og.png' }]
+    ['meta', { name: 'og:image', content: 'https://velite.js.org/velite-og.jpg' }]
   ],
   // locales: {
   //   root: { label: 'English', lang: 'en', link: '/' },
@@ -23,7 +22,6 @@ export default defineConfig({
   //   }
   // },
   themeConfig: {
-    // https://vitepress.dev/reference/default-theme-config
     siteTitle: false,
     logo: {
       light: '/assets/nav-logo-light.svg',
@@ -93,8 +91,8 @@ export default defineConfig({
         text: 'Concepts',
         base: '/guide/',
         items: [
-          { text: 'How Velite Works', link: 'how-it-works' }
-          // { text: 'Motivation', link: 'motivation' }
+          { text: 'How Velite Works', link: 'how-it-works' },
+          { text: 'Motivation', link: 'motivation' }
         ]
       },
       {

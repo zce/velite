@@ -6,17 +6,8 @@
   },
   "typescript.tsdk": "node_modules/typescript/lib",
   "[markdown]": {
-    "editor.fontSize": 18,
-    "editor.glyphMargin": false,
-    "editor.letterSpacing": 1.25,
-    "editor.lineHeight": 28,
-    "editor.quickSuggestions": {
-      "comments": "off",
-      "other": "off",
-      "strings": "off"
-    },
     "editor.rulers": [],
     "editor.wordWrap": "bounded",
-    "editor.wordWrapColumn": 80
+    "editor.wordWrapColumn": 100
   }
 }

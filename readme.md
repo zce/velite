@@ -67,8 +67,8 @@ The following are the features I want to achieve or are under development:
 - [ ] Full documentation
 - [ ] File \_raw output?
 - [ ] Optimize the config structure, bundle & load
+- [ ] Refactor Static Assets Processing to Support More Scenarios (e.g. OSS)
 - [ ] More built-in schemas
-- [ ] Assets OSS support
 - [ ] Unit & E2E tests?
 - [ ] Turborepo?
 - [ ] Scoffolding tool

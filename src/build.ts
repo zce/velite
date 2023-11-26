@@ -195,9 +195,8 @@ class Builder {
    * @param changed changed file path
    */
   async build(changed?: string) {
-    const task = changed == null ? 'build' : 'rebuild'
-
-    logger.log(`start ${task}ing...`)
+    const start = Date.now()
+    logger.log(`start ${changed == null ? 'build' : 'rebuild'}ing...`)
 
     // clear cache if rebuilding
     clearCache()
@@ -206,7 +205,7 @@ class Builder {
     await this.load(changed)
     await this.done()
 
-    logger.info(`finished ${task}ing`)
+    logger.info(`build complete in ${Date.now() - start}ms`)
   }
 
   /**

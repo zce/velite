@@ -12,6 +12,11 @@ import type { Image } from './types'
 const absoluteUrlRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
 const absolutePathRegex = /^(\/[^/\\]|[a-zA-Z]:\\)/
 
+/**
+ * validate if a url is a relative path to a static file
+ * @param url url to validate
+ * @returns true if the url is a relative path to a static file
+ */
 export const isValidatedStaticPath = (url: string): boolean => {
   if (url.startsWith('#')) return false // ignore hash anchor
   if (url.startsWith('?')) return false // ignore query
@@ -85,16 +90,14 @@ const outputStatic = async (ref: string, fromPath: string, isImage?: true): Prom
   await mkdir(dirname(dest), { recursive: true })
 
   if (isImage == null) {
-    const key = 'static:files'
-    const files = getCache(key, new Set<string>())
+    const files = getCache('static:files', new Set<string>())
     if (files.has(filename)) return filename
     files.add(filename) // TODO: not await works, but await not works, becareful if copy failed
     await copyFile(from, dest)
     return filename
   }
 
-  const key = 'static:images'
-  const images = getCache(key, new Map<string, Image>())
+  const images = getCache('static:images', new Map<string, Image>())
   if (images.has(filename)) return images.get(filename) as Image
   const img = await getImageMetadata(source)
   if (img == null) return ref

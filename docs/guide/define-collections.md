@@ -72,7 +72,7 @@ By default, Velite will ignore files and directories that start with `_` or `.`.
 
 ### `single`
 
-Whether the collection should be treated as a single item. This is useful for collections that only have one content item, such as a site's metadata.
+Whether the collection should be treated as a single item. This is useful for collections that only have one content item, such as a site’s metadata.
 
 ```js
 const site = defineCollection({

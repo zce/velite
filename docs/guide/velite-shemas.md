@@ -367,7 +367,7 @@ interface MarkdownOptions {
 }
 ```
 
-In addition, all Zod's built-in schemas can be used normally, such as:
+In addition, all Zod’s built-in schemas can be used normally, such as:
 
 ```ts
 title: s.string().mix(3).max(100)

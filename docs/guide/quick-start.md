@@ -71,7 +71,7 @@ export default defineConfig({
 For more information about Velite extended field schemas, see [Field Schemas](velite-shemas.md).
 
 ::: tip
-Config file supports TypeScript & ESM & CommonJS. you can use the full power of TypeScript to write your config file, and it's recommended strongly.
+Config file supports TypeScript & ESM & CommonJS. you can use the full power of TypeScript to write your config file, and it’s recommended strongly.
 :::
 
 ## Create Contents Files

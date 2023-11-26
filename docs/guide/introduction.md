@@ -8,7 +8,7 @@ However, I have provided some [examples](https://github.com/zce/velite/tree/main
 
 ## What is Velite?
 
-Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app’s data layer with Zod schema.
+Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.
 
 ![Velite Workflow](/assets/flow-dark.svg#dark 'Velite Workflow')
 ![Velite Workflow](/assets/flow.svg#light 'Velite Workflow')
@@ -19,7 +19,7 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 
 "Velite" comes from the English word "elite".
 
-> "Velite" itself is the code name for Napoleon’s elite army.
+> "Velite" itself is the code name for Napoleon's elite army.
 
 ## Key Features
 

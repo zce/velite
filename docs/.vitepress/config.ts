@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: 'Velite',
-  description: 'Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app’s data layer with Zod schema.',
+  description: "Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.",
   lastUpdated: true,
   cleanUrls: true,
   head: [

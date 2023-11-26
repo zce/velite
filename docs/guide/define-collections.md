@@ -72,7 +72,7 @@ By default, Velite will ignore files and directories that start with `_` or `.`.
 
 ### `single`
 
-Whether the collection should be treated as a single item. This is useful for collections that only have one content item, such as a site’s metadata.
+Whether the collection should be treated as a single item. This is useful for collections that only have one content item, such as a site's metadata.
 
 ```js
 const site = defineCollection({
@@ -85,7 +85,7 @@ const site = defineCollection({
 
 Velite uses [Zod](https://zod.dev) to validate the content items in a collection. The `schema` option is used to define the Zod schema used to validate the content items in the collection.
 
-To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of the Zod library, and it supports all of the features of Zod. See [Zod’s Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
+To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of the Zod library, and it supports all of the features of Zod. See [Zod's Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
 
 ```js
 const posts = defineCollection({
@@ -189,6 +189,11 @@ const posts = defineCollection({
 
 The `content` field will be transformed from markdown to html, and the result will be available in the `content` field of the content item.
 
+#### Reference
+
+- [`s.markdown(options)`](velite-shemas.md#s-markdown-options)
+- [`s.mdx(options)`](velite-shemas.md#s-mdx-options)
+
 ### Metadata
 
 Velite can extract metadata from content files. This is useful for adding computed fields to the content items in a collection.
@@ -200,6 +205,10 @@ const posts = defineCollection({
   })
 })
 ```
+
+#### Reference
+
+- [`s.metadata()`](velite-shemas.md#s-metadata)
 
 ### Excerpt
 
@@ -213,3 +222,8 @@ const posts = defineCollection({
   })
 })
 ```
+
+#### Reference
+
+- [`s.summary()`](velite-shemas.md#s-summary)
+- [`s.excerpt()`](velite-shemas.md#s-excerpt)

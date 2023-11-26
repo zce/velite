@@ -1,6 +1,6 @@
-# Field Schemas
+# Velite Schemas
 
-To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of the Zod library, and it supports all of the features of Zod. See [Zod’s Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
+To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of the Zod library, and it supports all of the features of Zod. See [Zod's Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
 
 ```js
 import { z } from 'velite'
@@ -13,7 +13,8 @@ In addition, Velite has extended Zod schemas, added some commonly used features 
 ```js
 import { s } from 'velite'
 
-// `s` is extended from Zod with some custom schemas, s also includes all members of zod
+// `s` is extended from Zod with some custom schemas,
+// `s` also includes all members of zod, so you can use `s` as `z`
 ```
 
 ## `s.isodate()`
@@ -54,9 +55,9 @@ name: s.unique('taxonomies')
 **by**: unique identifier
 
 - type: `string`
-- default: `global`
+- default: `'global'`
 
-## `s.slug(unique, reserved)`
+## `s.slug(by, reserved)`
 
 `string => string`
 
@@ -79,10 +80,10 @@ slug: s.slug('taxonomies', ['admin', 'login'])
 
 ### Parameters
 
-**unique**: unique identifier
+**by**: unique identifier
 
 - type: `string`
-- default: `global`
+- default: `'global'`
 
 **reserved**: reserved values
 
@@ -367,7 +368,7 @@ interface MarkdownOptions {
 }
 ```
 
-In addition, all Zod’s built-in schemas can be used normally, such as:
+In addition, all Zod's built-in schemas can be used normally, such as:
 
 ```ts
 title: s.string().mix(3).max(100)

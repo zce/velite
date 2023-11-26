@@ -5,7 +5,7 @@
       <img src="https://velite.js.org/assets/logo.svg" width="300 alt="Velite" title="Velite">
     </picture>
   </a>
-  <p>Turns Markdown, YAML, JSON, or other files into app’s data layer with typesafe schema.</p>
+  <p>Turns Markdown, YAML, JSON, or other files into app's data layer with typesafe schema.</p>
   <p>
     <a href="https://github.com/zce/velite/actions"><img src="https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml" alt="Build Status"></a>
     <a href="https://github.com/zce/velite/blob/master/LICENSE"><img src="https://img.shields.io/github/license/zce/velite" alt="License"></a>
@@ -26,7 +26,7 @@ However, I have provided some [examples](https://github.com/zce/velite/tree/main
 
 ## What is Velite?
 
-Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app’s data layer with Zod schema.
+Velite is a tool for building type-safe data layer for application, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.
 
 <picture>
   <source srcset="https://velite.js.org/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
@@ -39,7 +39,7 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 
 "Velite" comes from the English word "elite".
 
-> "Velite" itself is the code name for Napoleon’s elite army.
+> "Velite" itself is the code name for Napoleon's elite army.
 
 ## Key Features
 

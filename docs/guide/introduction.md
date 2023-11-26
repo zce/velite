@@ -52,9 +52,16 @@ Velite validates your contents against a [Zod](https://zod.dev) schema, and gene
 
 <p><video src="/assets/type-inference.mp4" loop muted autoplay /></p>
 
+- type inference for each collection
+- IDE auto-completion & type checking & refactoring & etc.
+
 ### Error Reporting Friendly
 
 ![Error Reporting Friendly](/assets/error-reporting-friendly.jpg)
+
+### Framework Agnostic
+
+Velite is a tool for building type-safe data layer, it is framework agnostic, and out of the box support for React, Vue, Svelte, Solid, etc.
 
 ### Less Runtime Dependencies
 

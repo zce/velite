@@ -158,6 +158,16 @@ Then you will get the following output:
  └── velite.config.js
 ```
 
+::: tip
+
+If you’re using Git for version control, we recommend ignoring the `.velite` directory by adding `.velite` to your `.gitignore`. This tells Git to ignore this directory and any files inside of it.
+
+```sh
+echo '\n.velite' >> .gitignore
+```
+
+:::
+
 ## Run Velite with Watch Mode
 
 Run `velite` with `--watch` option, then Velite will watch the contents files and rebuild them automatically when they are changed.

@@ -50,7 +50,7 @@ Velite validates your contents against a [Zod](https://zod.dev) schema, and gene
 
 ### Full Type inference
 
-<p><video src="/assets/type-inference.mp4" loop muted autoplay /></p>
+<p><video src="/assets/type-inference@2x.mp4" loop muted autoplay /></p>
 
 - type inference for each collection
 - IDE auto-completion & type checking & refactoring & etc.

@@ -8,7 +8,7 @@ However, I have provided some [examples](https://github.com/zce/velite/tree/main
 
 ## What is Velite?
 
-Velite is a tool for building type-safe data layer, turn Markdown/MDX, YAML, JSON, or other files into app's data layer with Zod schema.
+Velite is a tool for building type-safe data layer, turn Markdown / MDX, YAML, JSON, or other files into app's data layer with Zod schema.
 
 ![Velite Workflow](/assets/flow-dark.svg#dark 'Velite Workflow')
 ![Velite Workflow](/assets/flow.svg#light 'Velite Workflow')
@@ -27,7 +27,7 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 - **Type-safe**: Contents schema validation by [Zod](https://zod.dev), and generate type inference for TypeScript.
 - **Framework Agnostic**: JSON & Entry & DTS output, out of the box support for React, Vue, Svelte, Solid, etc.
 - **Light-weight**: Choose more native APIs instead of bloated NPM modules, less runtime dependencies, so it is fast and efficiently.
-- **Still powerful**: Built-in Markdown, YAML, JSON support, relative files & images processing, schema validation, etc.
+- **Still powerful**: Built-in Markdown / MDX, YAML, JSON support, relative files & images processing, schema validation, etc.
 - **Configurable**: Both input and output directories can be customized, and support for custom loaders, hooks, etc.
 - **Extensible**: Support any file types by custom loaders, Custom field validation and transform by custom schema, and any output formats by hooks
 

@@ -41,6 +41,12 @@ const config: UserConfig = {
 export default config
 ```
 
+::: tip
+
+Recommended to use `defineConfig` identity function to define the config file type, because it can provide better type inference.
+
+:::
+
 And other identity functions to help you define the config file type:
 
 - `defineCollection`: define collection options

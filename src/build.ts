@@ -7,8 +7,9 @@ import { reporter } from 'vfile-reporter'
 import { clearCache } from './cache'
 import { getConfig, resolveConfig } from './config'
 import { File } from './file'
-import { logger, LogLevel, setLogLevel } from './logger'
+import { logger, setLogLevel } from './logger'
 
+import type { LogLevel } from './logger'
 import type { Data } from './types'
 
 export interface BuildOptions {

@@ -1,3 +1,5 @@
 # Asset Handling
 
 This documentation is still being written. Please check back later.
+
+## Uploading Assets

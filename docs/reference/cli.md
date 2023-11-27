@@ -40,6 +40,7 @@ $ velite build [options]
 | `--clean`             | Clean output directory before build                     | `false`            |
 | `--watch`             | Watch for changes and rebuild                           | `false`            |
 | `--verbose`           | Print additional information                            | `false`            |
+| `--silent`            | Silent mode (no output)                                 | `false`            |
 | `--debug`             | Print complete error stack when error occurs (CLI only) | `false`            |
 | `-v, --version`       | Print version number                                    |                    |
 | `-h, --help`          | Print help information                                  |                    |

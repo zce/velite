@@ -2,8 +2,6 @@
   "name": "@velite/basic-starter",
   "version": "0.1.0",
   "private": true,
-  "license": "MIT",
-  "author": "zce <w@zce.me> (https://zce.me)",
   "scripts": {
     "dev": "velite dev",
     "build": "velite build"

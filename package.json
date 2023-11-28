@@ -30,6 +30,7 @@
     "format": "prettier . --write"
   },
   "dependencies": {
+    "chokidar": "^3.5.3",
     "esbuild": "^0.19.7",
     "fast-glob": "^3.3.2",
     "micromatch": "^4.0.5",

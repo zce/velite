@@ -3,12 +3,47 @@ import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
+import { isValidatedStaticPath, outputFile } from '../assets'
 import { getConfig } from '../config'
-import { isValidatedStaticPath, outputFile } from '../static'
 
-import type { MdxOptions } from '../types'
+import type { CompileOptions } from '@mdx-js/mdx'
 import type { Node, Root } from 'mdast'
 import type { Plugin } from 'unified'
+
+declare module '../config' {
+  interface PluginConfig {
+    /**
+     * Global MDX options
+     */
+    mdx: MdxOptions
+  }
+}
+
+/**
+ * MDX compiler options
+ */
+export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Output format to generate.
+   * @default 'function-body'
+   */
+  outputFormat?: CompileOptions['outputFormat']
+}
 
 const remarkRemoveComments: Plugin<[], Root> = () => tree => {
   visit(tree, ['mdxFlowExpression'], (node, index, parent: any) => {
@@ -72,7 +107,7 @@ const remarkCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
 
 export const mdx = (options: MdxOptions = {}) =>
   z.string().transform(async (value, ctx) => {
-    const { mdx } = getConfig()
+    const { mdx = {} } = getConfig()
     const gfm = options.gfm ?? mdx.gfm ?? true
     const removeComments = options.removeComments ?? mdx.removeComments ?? true
     const copyLinkedFiles = options.copyLinkedFiles ?? mdx.copyLinkedFiles ?? true

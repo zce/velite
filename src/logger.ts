@@ -10,13 +10,7 @@ const logLevels = {
   silent: 4
 }
 
-let logLevel = logLevels.info
-
 export type LogLevel = keyof typeof logLevels
-
-export const setLogLevel = (level: LogLevel) => {
-  logLevel = logLevels[level]
-}
 
 const reducePath = (msg: unknown) => {
   if (typeof msg !== 'string') return msg
@@ -24,6 +18,8 @@ const reducePath = (msg: unknown) => {
   // [VELITE] /home/username/project/src/file.ts:1:1 -> [VELITE] ./src/file.ts:1:1
   return msg.replace(process.cwd(), '.').replace(/\\/g, '/')
 }
+
+let logLevel = logLevels.info
 
 export const logger = {
   log: (msg: unknown) => {
@@ -40,5 +36,8 @@ export const logger = {
   },
   clear: () => {
     console.clear()
+  },
+  set: (level: LogLevel) => {
+    logLevel = logLevels[level]
   }
 }

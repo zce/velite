@@ -10,7 +10,7 @@ import { resolveConfig } from './config'
 import { resolveLoader } from './loaders'
 import { logger } from './logger'
 
-import type { Config } from './config'
+import type { Config, Output } from './config'
 import type { LogLevel } from './logger'
 import type { ZodType } from 'zod'
 
@@ -73,6 +73,30 @@ const emit = async (path: string, content: string, log?: string): Promise<void> 
   await writeFile(path, content)
   logger.log(log ?? `wrote '${path}' with ${content.length} bytes`)
   emitted.set(path, content)
+}
+
+/**
+ * output data to files
+ * @param result result data
+ * @param dir output directory
+ */
+const outputData = async (result: Result, dir: string): Promise<void> => {
+  const begin = performance.now()
+
+  // emit result if not prevented
+  const logs: string[] = []
+
+  await Promise.all(
+    Object.entries(result).map(async ([name, data]) => {
+      if (data == null) return
+      const target = join(dir, name + '.json')
+      // TODO: output each record separately to a single file to improve fast refresh performance in app
+      await emit(target, JSON.stringify(data, null, 2), `wrote '${target}' with ${data.length ?? 1} ${name}`)
+      logs.push(`${data.length ?? 1} ${name}`)
+    })
+  )
+
+  logger.info(`output ${logs.join(', ')}`, begin)
 }
 
 /**
@@ -239,31 +263,17 @@ const load = async ({ root, output, collections, prepare, complete }: Config, ch
   const entities = await Promise.all(tasks)
   Object.assign(result, Object.fromEntries(entities))
 
-  let shouldEmit = true
+  let shouldOutput = true
 
   // apply prepare hook
   if (typeof prepare === 'function') {
     const begin = performance.now()
-    shouldEmit = (await prepare(result as Record<string, any>)) ?? true
-    logger.log(`executed 'prepare' callback got ${shouldEmit}`, begin)
+    shouldOutput = (await prepare(result as Record<string, any>)) ?? true
+    logger.log(`executed 'prepare' callback got ${shouldOutput}`, begin)
   }
 
-  if (shouldEmit) {
-    const begin = performance.now()
-
-    // emit result if not prevented
-    const logs: string[] = []
-
-    await Promise.all(
-      Object.entries(result).map(async ([name, data]) => {
-        if (data == null) return
-        const target = join(output.data, name + '.json')
-        await emit(target, JSON.stringify(data, null, 2), `wrote '${target}' with ${data.length ?? 1} ${name}`)
-        logs.push(`${data.length ?? 1} ${name}`)
-      })
-    )
-
-    logger.info(`output ${logs.join(', ')}`, begin)
+  if (shouldOutput) {
+    await outputData(result, output.data)
   } else {
     logger.warn(`prevent output by 'prepare' callback`)
   }

@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       esbuild:
-        specifier: ^0.19.7
+        specifier: ^0.19.8
         version: 0.19.8
       sharp:
         specifier: ^0.32.6
@@ -40,7 +40,7 @@ importers:
         specifier: ^20.10.0
         version: 20.10.0
       '@types/react':
-        specifier: ^18.2.38
+        specifier: ^18.2.39
         version: 18.2.39
       '@zce/prettier-config':
         specifier: ^0.1.0

@@ -5,8 +5,8 @@
   "license": "MIT",
   "author": "zce <w@zce.me> (https://zce.me)",
   "scripts": {
-    "dev": "velite --watch",
-    "build": "velite --clean"
+    "dev": "velite dev",
+    "build": "velite build"
   },
   "devDependencies": {
     "@types/node": "latest",

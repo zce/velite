@@ -1,44 +1,53 @@
-import cac from 'cac'
+import mri from 'mri'
 
 import { name, version } from '../package.json'
 import { build } from './build'
 import { logger } from './logger'
 
-const cli = cac(name).version(version).help()
+const argv = process.argv.slice(2)
 
-cli
-  .command('build', 'Build contents for production')
-  .alias('')
-  .option('-c, --config <path>', 'Use specified config file')
-  .option('--clean', 'Clean output directory before build')
-  .option('--watch', 'Watch for changes and rebuild')
-  .option('--verbose', 'Print additional information')
-  .option('--silent', 'Silent mode (no output)')
-  .option('--debug', 'Print complete error stack when error occurs (CLI only)')
-  .action(({ config, clean, watch, verbose, silent }) => {
-    const logLevel = silent ? 'silent' : verbose ? 'debug' : 'info'
-    return build({ config, clean, watch, logLevel })
-  })
+const { _, ...options } = mri(argv, {
+  alias: { c: 'config', h: 'help', v: 'version' },
+  boolean: ['clean', 'watch', 'verbose', 'silent', 'debug']
+})
 
-cli
-  .command('dev', 'Build contents and watch for changes')
-  .option('-c, --config <path>', 'Use specified config file')
-  .option('--clean', 'Clean output directory before build')
-  .option('--verbose', 'Print additional information')
-  .option('--silent', 'Silent mode (no output)')
-  .option('--debug', 'Print complete error stack when error occurs (CLI only)')
-  .action(({ config, clean, verbose, silent }) => {
-    const logLevel = silent ? 'silent' : verbose ? 'debug' : 'info'
-    return build({ config, clean, watch: true, logLevel })
-  })
+const command = _[0] ?? 'build'
 
-const onError = (err: Error): void => {
-  logger.error(err.message)
-  if (cli.options.debug) throw err
-  process.exit(1)
+if (options.version) {
+  console.log(`${name}/${version}`)
+  process.exit(0)
 }
 
-process.on('uncaughtException', onError)
-process.on('unhandledRejection', onError)
+if (options.help) {
+  console.log(`
+${name}/${version}
 
-cli.parse()
+Usage:
+  $ velite <command> [options]
+
+Commands:
+  build  Build contents for production
+  dev    Build contents with watch mode
+
+Options:
+  -c, --config <path>  Use specified config file
+  --clean              Clean output directory before build
+  --watch              Watch for changes and rebuild
+  --verbose            Print additional information
+  --silent             Silent mode (no output)
+  --debug              Output full error stack trace
+  -h, --help           Display this message
+  -v, --version        Display version number
+`)
+  process.exit(0)
+}
+
+try {
+  const logLevel = options.silent ? 'silent' : options.verbose ? 'debug' : 'info'
+  options.watch = command === 'dev' || options.watch
+  await build({ ...options, logLevel })
+} catch (err: any) {
+  logger.error(err.message)
+  if (options.debug) throw err
+  process.exit(1)
+}

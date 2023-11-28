@@ -10,7 +10,7 @@ import { resolveConfig } from './config'
 import { resolveLoader } from './loaders'
 import { logger } from './logger'
 
-import type { Config, Output } from './config'
+import type { Config } from './config'
 import type { LogLevel } from './logger'
 import type { ZodType } from 'zod'
 
@@ -28,7 +28,7 @@ interface Result {
 /**
  * build options
  */
-interface Options {
+export interface Options {
   /**
    * Specify config file path
    * @default 'velite.config.{js,ts,mjs,mts,cjs,cts}'

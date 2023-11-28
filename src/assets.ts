@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
-import { copyFile, mkdir, readFile } from 'node:fs/promises'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { copyFile, readFile } from 'node:fs/promises'
+import { basename, extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
 
 import { getCache } from './cache'

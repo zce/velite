@@ -5,7 +5,8 @@ import yaml from './yaml'
 
 import type { VFile } from 'vfile'
 
-type Promisable<T> = T | PromiseLike<T>
+type Entry = Record<string, any>
+type Promisable<T> = T | Promise<T>
 
 /**
  * File loader
@@ -26,18 +27,10 @@ export interface Loader {
   test: RegExp
   /**
    * Load file content
-   * @param vfile vfile
+   * @param file vfile
+   * @returns entry or entries
    */
-  load: (vfile: VFile) => Promisable<void>
-}
-
-declare module '../config' {
-  interface PluginConfig {
-    /**
-     * File loaders
-     */
-    loaders: Loader[]
-  }
+  load: (file: VFile) => Promisable<Entry | Entry[]>
 }
 
 const builtInloaders: Loader[] = [json, yaml, markdown]

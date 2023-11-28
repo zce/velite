@@ -10,15 +10,6 @@ import type { CompileOptions } from '@mdx-js/mdx'
 import type { Node, Root } from 'mdast'
 import type { Plugin } from 'unified'
 
-declare module '../config' {
-  interface PluginConfig {
-    /**
-     * Global MDX options
-     */
-    mdx: MdxOptions
-  }
-}
-
 /**
  * MDX compiler options
  */

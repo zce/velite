@@ -6,15 +6,17 @@ import { build } from 'esbuild'
 import { name } from '../package.json'
 import { logger } from './logger'
 
+import type { Loader } from './loaders'
 import type { LogLevel } from './logger'
+import type { MarkdownOptions, MdxOptions } from './schemas'
 import type { ZodType } from 'zod'
 
-type Promisable<T> = T | PromiseLike<T>
+type Promisable<T> = T | Promise<T>
 
 /**
  * Output options
  */
-interface Output {
+export interface Output {
   /**
    * The output directory of the data files (relative to config file).
    * @default '.velite'
@@ -54,7 +56,7 @@ interface Output {
 /**
  * Collection options
  */
-interface Collection {
+export interface Collection {
   /**
    * Schema name (singular), for types generation
    * @example
@@ -89,7 +91,7 @@ interface Collection {
 /**
  * All collections
  */
-interface Collections {
+export interface Collections {
   [name: string]: Collection
 }
 
@@ -102,7 +104,20 @@ interface Collections {
  *   }
  * }
  */
-export interface PluginConfig {}
+export interface PluginConfig {
+  /**
+   * File loaders
+   */
+  loaders: Loader[]
+  /**
+   * Markdown options
+   */
+  markdown: MarkdownOptions
+  /**
+   * Global MDX options
+   */
+  mdx: MdxOptions
+}
 
 /**
  * Config
@@ -145,7 +160,7 @@ export interface Config<C extends Collections = Collections> extends Partial<Plu
 /**
  * User config
  */
-interface UserConfig<C extends Collections = Collections> extends Omit<Partial<Config<C>>, 'configPath' | 'output'> {
+export interface UserConfig<C extends Collections = Collections> extends Omit<Partial<Config<C>>, 'configPath' | 'output'> {
   /**
    * Output configuration
    */
@@ -170,7 +185,7 @@ export const getConfig = (): Config => {
  * @param depth search depth
  * @returns filename first searched
  */
-const search = async (files: string[], cwd: string = process.cwd(), depth: number = 3): Promise<string | undefined> => {
+const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: number = 3): Promise<string | undefined> => {
   for (const file of files) {
     try {
       const path = resolve(cwd, file)
@@ -181,7 +196,7 @@ const search = async (files: string[], cwd: string = process.cwd(), depth: numbe
     }
   }
   if (depth > 0 && !(cwd === '/' || cwd.endsWith(':\\'))) {
-    return await search(files, resolve(cwd, '..'), depth - 1)
+    return searchFiles(files, resolve(cwd, '..'), depth - 1)
   }
 }
 
@@ -190,7 +205,7 @@ const search = async (files: string[], cwd: string = process.cwd(), depth: numbe
  * @param filename config filename
  * @returns config module
  */
-const load = async (filename: string): Promise<UserConfig> => {
+const loadConfig = async (filename: string): Promise<UserConfig> => {
   if (!/\.(js|mjs|cjs|ts|mts|cts)$/.test(filename)) {
     const ext = filename.split('.').pop()
     throw new Error(`not supported config file with '${ext}' extension`)
@@ -247,10 +262,10 @@ export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {
     name + '.config.cts'
   ]
 
-  const configPath = await search(files)
+  const configPath = await searchFiles(files)
   if (configPath == null) throw new Error(`config file not found, create '${name}.config.ts' in your project root directory`)
 
-  const { root, output, collections, ...rest } = await load(configPath)
+  const { root, output, collections, ...rest } = await loadConfig(configPath)
 
   if (collections == null) throw new Error(`'collections' is required in config file`)
 

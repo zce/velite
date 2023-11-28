@@ -237,3 +237,5 @@ const posts = await getPosts()
 
 console.log(posts) // => [{ title: 'Hello world', slug: 'hello-world', ... }, ...]
 ```
+
+For more information about using collections, see [Using Collections](using-collections.md).

@@ -7,8 +7,8 @@ import { logger } from './logger'
 const cli = cac(name).version(version).help()
 
 cli
-  .command('', 'Build contents for production')
-  .alias('build')
+  .command('build', 'Build contents for production')
+  .alias('')
   .option('-c, --config <path>', 'Use specified config file')
   .option('--clean', 'Clean output directory before build')
   .option('--watch', 'Watch for changes and rebuild')
@@ -18,6 +18,18 @@ cli
   .action(({ config, clean, watch, verbose, silent }) => {
     const logLevel = silent ? 'silent' : verbose ? 'debug' : 'info'
     return build({ config, clean, watch, logLevel })
+  })
+
+cli
+  .command('dev', 'Build contents and watch for changes')
+  .option('-c, --config <path>', 'Use specified config file')
+  .option('--clean', 'Clean output directory before build')
+  .option('--verbose', 'Print additional information')
+  .option('--silent', 'Silent mode (no output)')
+  .option('--debug', 'Print complete error stack when error occurs (CLI only)')
+  .action(({ config, clean, verbose, silent }) => {
+    const logLevel = silent ? 'silent' : verbose ? 'debug' : 'info'
+    return build({ config, clean, watch: true, logLevel })
   })
 
 const onError = (err: Error): void => {

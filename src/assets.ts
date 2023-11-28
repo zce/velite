@@ -52,7 +52,7 @@ export const isValidatedStaticPath = (url: string): boolean => {
   if (absoluteUrlRegex.test(url)) return false // ignore absolute url
   if (absolutePathRegex.test(url)) return false // ignore absolute path
   const { output } = getConfig()
-  const ext = url.split('.').pop() as string
+  const ext = extname(url).slice(1)
   return !output.ignore.includes(ext) // ignore file extensions
 }
 

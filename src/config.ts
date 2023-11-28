@@ -16,7 +16,7 @@ type Promisable<T> = T | Promise<T>
 /**
  * Output options
  */
-export interface Output {
+interface Output {
   /**
    * The output directory of the data files (relative to config file).
    * @default '.velite'
@@ -56,7 +56,7 @@ export interface Output {
 /**
  * Collection options
  */
-export interface Collection {
+interface Collection {
   /**
    * Schema name (singular), for types generation
    * @example
@@ -91,7 +91,7 @@ export interface Collection {
 /**
  * All collections
  */
-export interface Collections {
+interface Collections {
   [name: string]: Collection
 }
 
@@ -128,7 +128,7 @@ export interface Config<C extends Collections = Collections> extends Partial<Plu
    */
   configPath: string
   /**
-   * The root directory of the contents
+   * The root directory of the contents (relative to config file).
    * @default 'content'
    */
   root: string

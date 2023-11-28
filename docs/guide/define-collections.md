@@ -76,7 +76,7 @@ Whether the collection should be treated as a single item. This is useful for co
 
 ```js
 const site = defineCollection({
-  pattern: 'site/index.yml'
+  pattern: 'site/index.yml',
   single: true
 })
 ```

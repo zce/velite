@@ -5,7 +5,7 @@
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) version 18.17 or higher, LTS version is recommended.
-- macOS, Windows are supported, Linux is not supported yet (watch mode).
+- macOS, Windows, and Linux are supported.
 
 ::: code-group
 

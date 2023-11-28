@@ -135,9 +135,6 @@ importers:
 
   examples/basic:
     devDependencies:
-      '@types/node':
-        specifier: latest
-        version: 20.10.0
       velite:
         specifier: workspace:*
         version: link:../..

@@ -22,6 +22,13 @@ $ bun velite <command> [options]
 
 :::
 
+## Options
+
+| Option          | Description            |
+| --------------- | ---------------------- |
+| `-v, --version` | Print version number   |
+| `-h, --help`    | Print help information |
+
 ## `velite build`
 
 Build the contents with default config file in current directory.
@@ -34,16 +41,34 @@ $ velite build [options]
 
 ### Options
 
-| Option                | Description                                             | Default            |
-| --------------------- | ------------------------------------------------------- | ------------------ |
-| `-c, --config <path>` | Use specified config file                               | `velite.config.js` |
-| `--clean`             | Clean output directory before build                     | `false`            |
-| `--watch`             | Watch for changes and rebuild                           | `false`            |
-| `--verbose`           | Print additional information                            | `false`            |
-| `--silent`            | Silent mode (no output)                                 | `false`            |
-| `--debug`             | Print complete error stack when error occurs (CLI only) | `false`            |
-| `-v, --version`       | Print version number                                    |                    |
-| `-h, --help`          | Print help information                                  |                    |
+| Option                | Description                         | Default            |
+| --------------------- | ----------------------------------- | ------------------ |
+| `-c, --config <path>` | Use specified config file           | `velite.config.js` |
+| `--clean`             | Clean output directory before build | `false`            |
+| `--watch`             | Watch for changes and rebuild       | `false`            |
+| `--verbose`           | Print additional information        | `false`            |
+| `--silent`            | Silent mode (no output)             | `false`            |
+| `--debug`             | Output full error stack trace       | `false`            |
+
+## `velite dev`
+
+Build the contents with watch mode.
+
+### Usage
+
+```sh
+$ velite dev [options]
+```
+
+### Options
+
+| Option                | Description                         | Default            |
+| --------------------- | ----------------------------------- | ------------------ |
+| `-c, --config <path>` | Use specified config file           | `velite.config.js` |
+| `--clean`             | Clean output directory before build | `false`            |
+| `--verbose`           | Print additional information        | `false`            |
+| `--silent`            | Silent mode (no output)             | `false`            |
+| `--debug`             | Output full error stack trace       | `false`            |
 
 ## `velite init`
 

@@ -44,11 +44,11 @@ export interface Options {
    * @default false
    */
   watch?: boolean
-  /**
-   * Production mode
-   * @default false
-   */
-  production?: boolean
+  // /**
+  //  * Production mode
+  //  * @default false
+  //  */
+  // production?: boolean
   /**
    * Log level
    * @default 'info'

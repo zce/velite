@@ -1,3 +1,7 @@
+---
+outline: deep
+---
+
 # Configuration
 
 When running `velite` from the command line, Velite will automatically try to resolve a config file named `velite.config.js` inside project root (other JS and TS extensions are also supported).
@@ -17,7 +21,7 @@ export default {
 Config file supports TypeScript & ESM & CommonJS. you can use the full power of TypeScript to write your config file, and it's recommended strongly.
 :::
 
-## Typed Configuration
+## Typed Config
 
 For the better experience, Velite provides a `defineConfig` identity function to define the config file type.
 
@@ -30,6 +34,13 @@ export default defineConfig({
 ```
 
 In addition, Velite also provides a `UserConfig` type to describe the config file type.
+
+```js
+/** @type {import('velite').UserConfig} */
+export default {
+  // ...
+}
+```
 
 ```ts
 import type { UserConfig } from 'velite'
@@ -52,70 +63,68 @@ And other identity functions to help you define the config file type:
 - `defineCollection`: define collection options
 - `defineLoader`: define a file loader
 
-## Config Options
-
-### `root`
+## `root`
 
 - Type: `string`
 - Default: `'content'`
 
 The root directory of the contents, relative to resolved config file.
 
-### `output`
+## `output`
 
 - Type: `object`
 
 The output configuration.
 
-#### `output.data`
+### `output.data`
 
 - Type: `string`
 - Default: `'.velite'`
 
 The output directory of the data files, relative to resolved config file.
 
-#### `output.assets`
+### `output.assets`
 
 - Type: `string`
 - Default: `'public/static'`
 
 The directory of the assets, relative to resolved config file. This directory should be served statically by the app.
 
-#### `output.base`
+### `output.base`
 
-- Type: `'/' | `/${string}/` | `.${string}/`|`${string}:${string}/``
+- Type: `` '/' | `/${string}/` | `.${string}/` | `${string}:${string}/` ``
 - Default: `'/static/'`
 
 The public base path of the assets. This option is used to generate the asset URLs. It should be the same as the `base` option of the app and end with a slash.
 
-#### `output.filename`
+### `output.filename`
 
 - Type: `string`
 - Default: `'[name]-[hash:8].[ext]'`
 
 This option determines the name of each output asset. The asset will be written to the directory specified in the `output.assets` option. You can use `[name]`, `[hash]` and `[ext]` template strings with specify length.
 
-#### `output.ignore`
+### `output.ignore`
 
 - Type: `string[]`
 - Default: `[]`
 
 The extensions blacklist of the assets, such as `['.md', '.yml']`, will be ignored when copy assets to output directory.
 
-#### `output.clean`
+### `output.clean`
 
 - Type: `boolean`
 - Default: `false`
 
 Whether to clean the output directories before build.
 
-### `collections`
+## `collections`
 
 - Type: `Record<string, Collection>`
 
 The collections definition.
 
-#### `collections[name].name`
+### `collections[name].name`
 
 - Type: `string`
 
@@ -129,7 +138,7 @@ const posts = defineCollection({
 
 The type name is usually a singular noun, but it can be any valid TypeScript identifier.
 
-#### `collections[name].pattern`
+### `collections[name].pattern`
 
 - Type: `string`
 
@@ -141,7 +150,7 @@ const posts = defineCollection({
 })
 ```
 
-#### `collections[name].single`
+### `collections[name].single`
 
 - Type: `boolean`
 - Default: `false`
@@ -155,7 +164,7 @@ const site = defineCollection({
 })
 ```
 
-#### `collections[name].schema`
+### `collections[name].schema`
 
 - Type: `ZodType`
 
@@ -172,75 +181,75 @@ const posts = defineCollection({
 })
 ```
 
-### `loaders`
+## `loaders`
 
 - Type: `Loader[]`, See [Loader](types.md#loader)
 - Default: `[]`, built-in loaders: `'json'`, `'yaml'`, `'matter'`
 
 The file loaders. You can use it to load files that are not supported by Velite. For more information, see [Custom Loaders](../guide/custom-loader.md).
 
-### `markdown`
+## `markdown`
 
 - Type: `MarkdownOptions`, See [MarkdownOptions](types.md#markdownoptions)
 
 Global Markdown options.
 
-#### `markdown.gfm`
+### `markdown.gfm`
 
 - Type: `boolean`
 - Default: `true`
 
 Enable GitHub Flavored Markdown (GFM).
 
-#### `markdown.removeComments`
+### `markdown.removeComments`
 
 - Type: `boolean`
 - Default: `true`
 
 Remove html comments.
 
-#### `markdown.copyLinkedFiles`
+### `markdown.copyLinkedFiles`
 
 - Type: `boolean`
 - Default: `true`
 
 Copy linked files to public path and replace their urls with public urls.
 
-#### `markdown.remarkPlugins`
+### `markdown.remarkPlugins`
 
 - Type: `PluggableList`, See [PluggableList](https://unifiedjs.com/explore/package/unified/#pluggablelist)
 - Default: `[]`
 
 Remark plugins.
 
-#### `markdown.rehypePlugins`
+### `markdown.rehypePlugins`
 
 - Type: `PluggableList`, See [PluggableList](https://unifiedjs.com/explore/package/unified/#pluggablelist)
 - Default: `[]`
 
 Rehype plugins.
 
-### `mdx`
+## `mdx`
 
 - Type: `MdxOptions`, See [MdxOptions](types.md#mdxoptions)
 
 Global MDX options.
 
-#### `mdx.gfm`
+### `mdx.gfm`
 
 - Type: `boolean`
 - Default: `true`
 
 Enable GitHub Flavored Markdown (GFM).
 
-#### `mdx.removeComments`
+### `mdx.removeComments`
 
 - Type: `boolean`
 - Default: `true`
 
 Remove html comments.
 
-#### `mdx.copyLinkedFiles`
+### `mdx.copyLinkedFiles`
 
 - Type: `boolean`
 - Default: `true`
@@ -249,13 +258,13 @@ Copy linked files to public path and replace their urls with public urls.
 
 More options, see [MDX Compile Options](https://mdxjs.com/packages/mdx/#compileoptions).
 
-### `prepare`
+## `prepare`
 
 - Type: `(data: Record<string, any>) => Promisable<void | false>`
 
 Data prepare hook, executed before write to file. You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files. return false to prevent the default output to a file if you wanted.
 
-### `complete`
+## `complete`
 
 - Type: `() => Promisable<void>`
 

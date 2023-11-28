@@ -75,8 +75,9 @@ export default defineConfig({
         base: '/reference/',
         items: [
           { text: 'Configuration', link: 'config' },
-          { text: 'Runtime', link: 'runtime' },
-          { text: 'Velite CLI', link: 'cli' }
+          { text: 'JavaScript API', link: 'api' },
+          { text: 'Velite CLI', link: 'cli' },
+          { text: 'Types', link: 'types' }
         ]
       },
       {

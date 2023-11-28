@@ -9,7 +9,6 @@
     "build": "velite build"
   },
   "devDependencies": {
-    "@types/node": "latest",
     "velite": "workspace:*"
   }
 }

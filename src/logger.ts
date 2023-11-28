@@ -16,17 +16,17 @@ const reducePath = (msg: unknown) => {
 let logLevel = logLevels.info
 
 export const logger = {
-  log: (msg: unknown) => {
-    if (logLevel <= logLevels.debug) console.log(`\x1B[36m${identifer}\x1B[0m`, reducePath(msg))
+  log: (msg: unknown, begin?: number) => {
+    if (logLevel <= logLevels.debug) console.log(`\x1B[36m${identifer}\x1B[0m`, reducePath(msg), begin ? `in ${(performance.now() - begin).toFixed(2)}ms` : '')
   },
-  info: (msg: unknown) => {
-    if (logLevel <= logLevels.info) console.info(`\x1B[32m${identifer}\x1B[0m`, reducePath(msg))
+  info: (msg: unknown, begin?: number) => {
+    if (logLevel <= logLevels.info) console.info(`\x1B[32m${identifer}\x1B[0m`, reducePath(msg), begin ? `in ${(performance.now() - begin).toFixed(2)}ms` : '')
   },
-  warn: (msg: unknown) => {
-    if (logLevel <= logLevels.warn) console.warn(`\x1B[33m${identifer}\x1B[0m`, reducePath(msg))
+  warn: (msg: unknown, begin?: number) => {
+    if (logLevel <= logLevels.warn) console.warn(`\x1B[33m${identifer}\x1B[0m`, reducePath(msg), begin ? `in ${(performance.now() - begin).toFixed(2)}ms` : '')
   },
-  error: (msg: unknown) => {
-    if (logLevel <= logLevels.error) console.error(`\x1B[31m${identifer}\x1B[0m`, reducePath(msg))
+  error: (msg: unknown, begin?: number) => {
+    if (logLevel <= logLevels.error) console.error(`\x1B[31m${identifer}\x1B[0m`, reducePath(msg), begin ? `in ${(performance.now() - begin).toFixed(2)}ms` : '')
   },
   clear: () => {
     console.clear()

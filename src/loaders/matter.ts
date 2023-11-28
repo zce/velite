@@ -7,7 +7,7 @@ import type { Loader } from '.'
 const fmRegex = /^---(?:\r?\n|\r)(?:([\s\S]*?)(?:\r?\n|\r))?---(?:\r?\n|\r|$)/
 
 export default {
-  name: 'markdown',
+  name: 'matter',
   test: /\.(md|mdx)$/,
   load: async file => {
     const raw = file.toString().trim()

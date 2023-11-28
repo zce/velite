@@ -17,7 +17,7 @@ export default {
 Config file supports TypeScript & ESM & CommonJS. you can use the full power of TypeScript to write your config file, and it's recommended strongly.
 :::
 
-## Typed Config
+## Typed Configuration
 
 For the better experience, Velite provides a `defineConfig` identity function to define the config file type.
 
@@ -54,69 +54,311 @@ And other identity functions to help you define the config file type:
 
 ## Config Options
 
+### `root`
+
+- Type: `string`
+- Default: `'content'`
+
+The root directory of the contents, relative to resolved config file.
+
+### `output`
+
+- Type: `object`
+
+The output configuration.
+
+#### `output.data`
+
+- Type: `string`
+- Default: `'.velite'`
+
+The output directory of the data files, relative to resolved config file.
+
+#### `output.assets`
+
+- Type: `string`
+- Default: `'public/static'`
+
+The directory of the assets, relative to resolved config file. This directory should be served statically by the app.
+
+#### `output.base`
+
+- Type: `'/' | `/${string}/` | `.${string}/`|`${string}:${string}/``
+- Default: `'/static/'`
+
+The public base path of the assets. This option is used to generate the asset URLs. It should be the same as the `base` option of the app and end with a slash.
+
+#### `output.filename`
+
+- Type: `string`
+- Default: `'[name]-[hash:8].[ext]'`
+
+This option determines the name of each output asset. The asset will be written to the directory specified in the `output.assets` option. You can use `[name]`, `[hash]` and `[ext]` template strings with specify length.
+
+#### `output.ignore`
+
+- Type: `string[]`
+- Default: `[]`
+
+The extensions blacklist of the assets, such as `['.md', '.yml']`, will be ignored when copy assets to output directory.
+
+#### `output.clean`
+
+- Type: `boolean`
+- Default: `false`
+
+Whether to clean the output directories before build.
+
+### `collections`
+
+- Type: `Record<string, Collection>`
+
+The collections definition.
+
+#### `collections[name].name`
+
+- Type: `string`
+
+The name of the collection. This is used to generate the type name for the collection.
+
+```js
+const posts = defineCollection({
+  name: 'Post'
+})
+```
+
+The type name is usually a singular noun, but it can be any valid TypeScript identifier.
+
+#### `collections[name].pattern`
+
+- Type: `string`
+
+The glob pattern of the collection files, based on `root`.
+
+```js
+const posts = defineCollection({
+  pattern: 'posts/*.md'
+})
+```
+
+#### `collections[name].single`
+
+- Type: `boolean`
+- Default: `false`
+
+Whether the collection is single. If `true`, the collection will be treated as a single file, and the output data will be an object instead of an array.
+
+```js
+const site = defineCollection({
+  pattern: 'site/index.yml',
+  single: true
+})
+```
+
+#### `collections[name].schema`
+
+- Type: `ZodType`
+
+The schema of the collection.
+
+```js
+const posts = defineCollection({
+  schema: z.object({
+    title: z.string(), // from frontmatter
+    description: z.string().optional(), // from frontmatter
+    excerpt: z.string(), // from markdown body,
+    content: z.string() // from markdown body
+  })
+})
+```
+
+### `loaders`
+
+- Type: `Loader[]`, See [Loader](types.md#loader)
+- Default: `[]`, built-in loaders: `'json'`, `'yaml'`, `'matter'`
+
+The file loaders. You can use it to load files that are not supported by Velite. For more information, see [Custom Loaders](../guide/custom-loader.md).
+
+### `markdown`
+
+- Type: `MarkdownOptions`, See [MarkdownOptions](types.md#markdownoptions)
+
+Global Markdown options.
+
+#### `markdown.gfm`
+
+- Type: `boolean`
+- Default: `true`
+
+Enable GitHub Flavored Markdown (GFM).
+
+#### `markdown.removeComments`
+
+- Type: `boolean`
+- Default: `true`
+
+Remove html comments.
+
+#### `markdown.copyLinkedFiles`
+
+- Type: `boolean`
+- Default: `true`
+
+Copy linked files to public path and replace their urls with public urls.
+
+#### `markdown.remarkPlugins`
+
+- Type: `PluggableList`, See [PluggableList](https://unifiedjs.com/explore/package/unified/#pluggablelist)
+- Default: `[]`
+
+Remark plugins.
+
+#### `markdown.rehypePlugins`
+
+- Type: `PluggableList`, See [PluggableList](https://unifiedjs.com/explore/package/unified/#pluggablelist)
+- Default: `[]`
+
+Rehype plugins.
+
+### `mdx`
+
+- Type: `MdxOptions`, See [MdxOptions](types.md#mdxoptions)
+
+Global MDX options.
+
+#### `mdx.gfm`
+
+- Type: `boolean`
+- Default: `true`
+
+Enable GitHub Flavored Markdown (GFM).
+
+#### `mdx.removeComments`
+
+- Type: `boolean`
+- Default: `true`
+
+Remove html comments.
+
+#### `mdx.copyLinkedFiles`
+
+- Type: `boolean`
+- Default: `true`
+
+Copy linked files to public path and replace their urls with public urls.
+
+More options, see [MDX Compile Options](https://mdxjs.com/packages/mdx/#compileoptions).
+
+### `prepare`
+
+- Type: `(data: Record<string, any>) => Promisable<void | false>`
+
+Data prepare hook, executed before write to file. You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files. return false to prevent the default output to a file if you wanted.
+
+### `complete`
+
+- Type: `() => Promisable<void>`
+
+Build success hook, executed after the build is complete. You can do anything after the build is complete, such as print some tips or deploy the output files.
+
+## Types
+
 The config object is a plain object that contains the following properties:
 
 ```ts
-interface UserConfig<C extends Collections = Collections> {
+interface UserConfig {
   /**
-   * resolved config file path
-   */
-  configPath: string
-  /**
-   * The root directory of the contents
+   * The root directory of the contents (relative to config file).
    * @default 'content'
    */
-  root: string
+  root?: string
   /**
    * Output configuration
    */
-  output: {
+  output?: {
     /**
-     * The output directory of the data
+     * The output directory of the data files (relative to config file).
      * @default '.velite'
      */
-    data: string
+    data?: string
     /**
-     * The output directory of the static assets,
+     * The directory of the assets (relative to config file),
      * should be served statically by the app
-     * @default 'public'
+     * `--clean` will automatically clear this directory
+     * @default 'public/static'
      */
-    static: string
+    assets?: string
     /**
-     * The public base path of the static files.
-     * Must include one level of directory, otherwise `--clean` will automatically clear the static root dir,
-     * this means that other files in the static dir will also be cleared together
-     * @default '/static/[name]-[hash:8].[ext]'
+     * The public base path of the assets
+     * @default '/static/'
      */
-    filename: `/${string}/${string}`
+    base?: '/' | `/${string}/` | `.${string}/` | `${string}:${string}/`
     /**
-     * The ext blacklist of the static files, such as ['md', 'yml']
+     * This option determines the name of each output asset.
+     * The asset will be written to the directory specified in the `output.assets` option.
+     * You can use `[name]`, `[hash]` and `[ext]` template strings with specify length.
+     * @default '[name]-[hash:8].[ext]'
+     */
+    filename?: string
+    /**
+     * The extensions blacklist of the assets, such as `['.md', '.yml']`
      * @default []
      */
-    ignoreFileExtensions: string[]
+    ignore?: string[]
     /**
      * Whether to clean the output directories before build
      * @default false
      */
-    clean: boolean
+    clean?: boolean
   }
   /**
    * Collections
    */
-  collections: C
+  collections: {
+    [name: string]: {
+      /**
+       * Schema name (singular), for types generation
+       * @example
+       * 'Post'
+       */
+      name: string
+      /**
+       * Schema glob pattern, based on `root`
+       * @example
+       * 'posts/*.md'
+       */
+      pattern: string
+      /**
+       * Whether the schema is single
+       * @default false
+       */
+      single?: boolean
+      /**
+       * Schema
+       * @see {@link https://zod.dev}
+       * @example
+       * z.object({
+       *   title: z.string(), // from frontmatter
+       *   description: z.string().optional(), // from frontmatter
+       *   excerpt: z.string() // from markdown body,
+       *   content: z.string() // from markdown body
+       * })
+       */
+      schema: ZodType
+    }
+  }
   /**
    * File loaders
-   * @default [] (built-in loaders: 'json', 'yaml', 'markdown')
    */
-  loaders: Loader[]
+  loaders?: Loader[]
   /**
-   * Global markdown options
+   * Markdown options
    */
-  markdown: MarkdownOptions
+  markdown?: MarkdownOptions
   /**
    * Global MDX options
    */
-  mdx: MdxOptions
+  mdx?: MdxOptions
   /**
    * Data prepare hook, before write to file
    * @description

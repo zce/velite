@@ -1,6 +1,6 @@
 import { getConfig } from '../config'
 import json from './json'
-import markdown from './markdown'
+import matter from './matter'
 import yaml from './yaml'
 
 import type { VFile } from 'vfile'
@@ -16,7 +16,7 @@ export interface Loader {
    * Loader name
    * @description
    * The same name will overwrite the built-in loader,
-   * built-in loaders: 'json', 'yaml', 'markdown'
+   * built-in loaders: 'json', 'yaml', 'matter'
    */
   name: string
   /**
@@ -33,7 +33,7 @@ export interface Loader {
   load: (file: VFile) => Promisable<Entry | Entry[]>
 }
 
-const builtInloaders: Loader[] = [json, yaml, markdown]
+const builtInloaders: Loader[] = [json, yaml, matter]
 
 export const addLoader = (loader: Loader): void => {
   const index = builtInloaders.findIndex(item => item.name === loader.name)

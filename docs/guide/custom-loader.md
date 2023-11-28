@@ -2,9 +2,9 @@
 
 built-in loaders are:
 
-- `markdown-loader`
-- `json-loader`
-- `yaml-loader`
+- `matter-loader`: parse frontmatter and provide content and data
+- `json-loader`: parse document as json
+- `yaml-loader`: parse document as yaml
 
 Velite supports custom loaders. A loader is a function that takes a [vfile](https://github.com/vfile/vfile) as input and returns a JavaScript object.
 

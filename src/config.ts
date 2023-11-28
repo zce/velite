@@ -221,7 +221,7 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
       format: 'esm',
       target: 'node18',
       platform: 'node',
-      sourcemap: 'inline',
+      // sourcemap: 'inline',
       external: ['velite'],
       outfile
     })
@@ -249,6 +249,7 @@ interface ConfigOptions {
  * @returns resolved config object with default values
  */
 export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {}): Promise<Config> => {
+  const begin = performance.now()
   // set log level
   logLevel && logger.set(logLevel)
 
@@ -286,7 +287,7 @@ export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {
     configPath
   }
 
-  logger.log(`using config '${configPath}'`)
+  logger.log(`using config '${configPath}'`, begin)
 
   return config
 }

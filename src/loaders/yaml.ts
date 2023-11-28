@@ -6,6 +6,6 @@ export default {
   name: 'yaml',
   test: /\.(yaml|yml)$/,
   load: async file => {
-    file.data.original = yaml.parse(file.toString())
+    return yaml.parse(file.toString())
   }
 } satisfies Loader

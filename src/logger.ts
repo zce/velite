@@ -2,13 +2,7 @@ import { name } from '../package.json'
 
 const identifer = `[${name.toUpperCase()}]`
 
-const logLevels = {
-  debug: 0,
-  info: 1,
-  warn: 2,
-  error: 3,
-  silent: 4
-}
+const logLevels = { debug: 0, info: 1, warn: 2, error: 3, silent: 4 }
 
 export type LogLevel = keyof typeof logLevels
 

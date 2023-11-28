@@ -115,21 +115,20 @@ const output = async (ref: string, fromPath: string, isImage?: true): Promise<Im
   })
 
   const dest = join(output.assets, filename)
-  await mkdir(dirname(dest), { recursive: true })
 
   if (isImage == null) {
     const files = getCache('assets:files', new Set<string>())
     if (files.has(filename)) return filename
     files.add(filename) // TODO: not await works, but await not works, becareful if copy failed
     await copyFile(from, dest)
-    return filename
+    return output.base + filename
   }
 
   const images = getCache('assets:images', new Map<string, Image>())
   if (images.has(filename)) return images.get(filename) as Image
   const img = await getImageMetadata(source)
   if (img == null) return ref
-  const image = { src: filename, ...img }
+  const image = { src: output.base + filename, ...img }
   images.set(filename, image)
   await copyFile(from, dest)
   return image

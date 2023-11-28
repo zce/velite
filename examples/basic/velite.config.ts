@@ -21,9 +21,10 @@ export default defineConfig({
   root: 'content',
   output: {
     data: '.velite',
-    static: 'public',
-    filename: '/static/[name]-[hash:6].[ext]',
-    ignoreFileExtensions: ['.yml', '.md', '.mdx'],
+    assets: 'public/static',
+    base: '/static/',
+    filename: '[name]-[hash:6].[ext]',
+    ignore: ['.yml', '.md', '.mdx'],
     clean: true
   },
   collections: {

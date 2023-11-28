@@ -13,15 +13,6 @@ import { getConfig } from '../config'
 import type { Element, Root } from 'hast'
 import type { PluggableList, Plugin } from 'unified'
 
-declare module '../config' {
-  interface PluginConfig {
-    /**
-     * Markdown options
-     */
-    markdown: MarkdownOptions
-  }
-}
-
 /**
  * Markdown options
  */

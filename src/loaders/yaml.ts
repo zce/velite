@@ -1,15 +1,11 @@
-/**
- * @file yaml file loader
- */
-
 import yaml from 'yaml'
 
-import { defineLoader } from '../types'
+import type { Loader } from '.'
 
-export default defineLoader({
+export default {
   name: 'yaml',
   test: /\.(yaml|yml)$/,
-  load: async vfile => {
-    return yaml.parse(vfile.toString())
+  load: async file => {
+    file.data.original = yaml.parse(file.toString())
   }
-})
+} satisfies Loader

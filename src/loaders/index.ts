@@ -3,9 +3,44 @@ import json from './json'
 import markdown from './markdown'
 import yaml from './yaml'
 
-import type { Loader } from '../types'
+import type { VFile } from 'vfile'
 
-const builtInloaders = [json, yaml, markdown]
+type Promisable<T> = T | PromiseLike<T>
+
+/**
+ * File loader
+ */
+export interface Loader {
+  /**
+   * Loader name
+   * @description
+   * The same name will overwrite the built-in loader,
+   * built-in loaders: 'json', 'yaml', 'markdown'
+   */
+  name: string
+  /**
+   * File test regexp
+   * @example
+   * /\.md$/
+   */
+  test: RegExp
+  /**
+   * Load file content
+   * @param vfile vfile
+   */
+  load: (vfile: VFile) => Promisable<void>
+}
+
+declare module '../config' {
+  interface PluginConfig {
+    /**
+     * File loaders
+     */
+    loaders: Loader[]
+  }
+}
+
+const builtInloaders: Loader[] = [json, yaml, markdown]
 
 export const addLoader = (loader: Loader): void => {
   const index = builtInloaders.findIndex(item => item.name === loader.name)
@@ -23,5 +58,10 @@ export const removeLoader = (name: string): void => {
 
 export const resolveLoader = (filename: string): Loader | undefined => {
   const { loaders } = getConfig()
-  return [...loaders, ...builtInloaders].find(loader => loader.test.test(filename))
+  return [...(loaders || []), ...builtInloaders].find(loader => loader.test.test(filename))
 }
+
+/**
+ * Define a loader (identity function for type inference)
+ */
+export const defineLoader = (loader: Loader) => loader

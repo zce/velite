@@ -1,4 +1,4 @@
 export * from './schemas'
-export { defineConfig, defineCollection, defineLoader, type UserConfig, type Collection, type Loader, type Image } from './types'
-export { addLoader, removeLoader } from './loaders'
-export { build, type BuildOptions } from './build'
+export { defineConfig, defineCollection } from './config'
+export { defineLoader, addLoader, removeLoader } from './loaders'
+export { build } from './build'

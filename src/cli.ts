@@ -13,7 +13,7 @@ cli
   .option('--clean', 'Clean output directory before build')
   .option('--watch', 'Watch for changes and rebuild')
   .option('--verbose', 'Print additional information')
-  .option('--silent', 'Print nothing')
+  .option('--silent', 'Silent mode (no output)')
   .option('--debug', 'Print complete error stack when error occurs (CLI only)')
   .action(({ config, clean, watch, verbose, silent }) => {
     const logLevel = silent ? 'silent' : verbose ? 'debug' : 'info'
@@ -21,7 +21,8 @@ cli
   })
 
 const onError = (err: Error): void => {
-  logger.error(cli.options.debug ? err : (err.message as any))
+  logger.error(err.message)
+  if (cli.options.debug) throw err
   process.exit(1)
 }
 

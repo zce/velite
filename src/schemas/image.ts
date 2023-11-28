@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { outputImage } from '../static'
+import { outputImage } from '../assets'
 
 /**
  * A image path relative to this file.

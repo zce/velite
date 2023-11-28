@@ -26,3 +26,5 @@ export const s = {
 }
 
 export type * from 'zod'
+export type * from './markdown'
+export type * from './mdx'

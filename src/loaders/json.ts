@@ -1,13 +1,9 @@
-/**
- * @file json file loader
- */
+import type { Loader } from '.'
 
-import { defineLoader } from '../types'
-
-export default defineLoader({
+export default {
   name: 'json',
   test: /\.json$/,
-  load: async vfile => {
-    return JSON.parse(vfile.toString())
+  load: async file => {
+    file.data.original = JSON.parse(file.toString())
   }
-})
+} satisfies Loader

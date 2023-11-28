@@ -6,16 +6,44 @@ import sharp from 'sharp'
 import { getCache } from './cache'
 import { getConfig } from './config'
 
-import type { Image } from './types'
+/**
+ * Image object with metadata & blur image
+ */
+export interface Image {
+  /**
+   * public url of the image
+   */
+  src: string
+  /**
+   * image width
+   */
+  width: number
+  /**
+   * image height
+   */
+  height: number
+  /**
+   * blurDataURL of the image
+   */
+  blurDataURL: string
+  /**
+   * blur image width
+   */
+  blurWidth: number
+  /**
+   * blur image height
+   */
+  blurHeight: number
+}
 
 // https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
 const absoluteUrlRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
 const absolutePathRegex = /^(\/[^/\\]|[a-zA-Z]:\\)/
 
 /**
- * validate if a url is a relative path to a static file
+ * validate if a url is a relative path
  * @param url url to validate
- * @returns true if the url is a relative path to a static file
+ * @returns true if the url is a relative path
  */
 export const isValidatedStaticPath = (url: string): boolean => {
   if (url.startsWith('#')) return false // ignore hash anchor
@@ -25,7 +53,7 @@ export const isValidatedStaticPath = (url: string): boolean => {
   if (absolutePathRegex.test(url)) return false // ignore absolute path
   const { output } = getConfig()
   const ext = url.split('.').pop() as string
-  return !output.ignoreFileExtensions.includes(ext) // ignore file extensions
+  return !output.ignore.includes(ext) // ignore file extensions
 }
 
 /**
@@ -58,13 +86,13 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
 }
 
 /**
- * output static file reference of a file
+ * output assets file reference of a file
  * @param ref relative path of the referenced file
  * @param path source file path
  * @param isImage process as image and return image object with blurDataURL
  * @returns reference public url or image object
  */
-const outputStatic = async (ref: string, fromPath: string, isImage?: true): Promise<Image | string> => {
+const output = async (ref: string, fromPath: string, isImage?: true): Promise<Image | string> => {
   if (!isValidatedStaticPath(ref)) return ref
 
   const { output } = getConfig()
@@ -86,18 +114,18 @@ const outputStatic = async (ref: string, fromPath: string, isImage?: true): Prom
     return substring
   })
 
-  const dest = join(output.static, filename)
+  const dest = join(output.assets, filename)
   await mkdir(dirname(dest), { recursive: true })
 
   if (isImage == null) {
-    const files = getCache('static:files', new Set<string>())
+    const files = getCache('assets:files', new Set<string>())
     if (files.has(filename)) return filename
     files.add(filename) // TODO: not await works, but await not works, becareful if copy failed
     await copyFile(from, dest)
     return filename
   }
 
-  const images = getCache('static:images', new Map<string, Image>())
+  const images = getCache('assets:images', new Map<string, Image>())
   if (images.has(filename)) return images.get(filename) as Image
   const img = await getImageMetadata(source)
   if (img == null) return ref
@@ -108,23 +136,23 @@ const outputStatic = async (ref: string, fromPath: string, isImage?: true): Prom
 }
 
 /**
- * output static file reference of a file
+ * output assets file reference of a file
  * @param ref relative path of the referenced file
  * @param path source file path
  * @returns reference public url
  */
 export const outputFile = async <T extends string | undefined>(ref: T, fromPath: string): Promise<T> => {
   if (ref == null) return ref
-  return outputStatic(ref, fromPath) as Promise<T>
+  return output(ref, fromPath) as Promise<T>
 }
 
 /**
- * output static file reference of a file
+ * output assets file reference of a file
  * @param ref relative path of the referenced file
  * @param path source file path
  * @returns reference public url or image object
  */
 export const outputImage = async <T extends string | undefined>(ref: T, fromPath: string): Promise<Image | T> => {
   if (ref == null) return ref
-  return outputStatic(ref, fromPath, true) as Promise<Image | T>
+  return output(ref, fromPath, true) as Promise<Image | T>
 }

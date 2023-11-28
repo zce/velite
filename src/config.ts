@@ -1,36 +1,187 @@
 import { access } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 
 import { name } from '../package.json'
 import { logger } from './logger'
 
-import type { Config, UserConfig } from './types'
+import type { LogLevel } from './logger'
+import type { ZodType } from 'zod'
+
+type Promisable<T> = T | PromiseLike<T>
+
+/**
+ * Output options
+ */
+interface Output {
+  /**
+   * The output directory of the data files (relative to config file).
+   * @default '.velite'
+   */
+  data: string
+  /**
+   * The directory of the assets (relative to config file),
+   * should be served statically by the app
+   * `--clean` will automatically clear this directory
+   * @default 'public/static'
+   */
+  assets: string
+  /**
+   * The public base path of the assets
+   * @default '/static/'
+   */
+  base: '/' | `/${string}/` | `.${string}/` | `${string}:${string}/`
+  /**
+   * This option determines the name of each output asset.
+   * The asset will be written to the directory specified in the `output.assets` option.
+   * You can use `[name]`, `[hash]` and `[ext]` template strings with specify length.
+   * @default '[name]-[hash:8].[ext]'
+   */
+  filename: string
+  /**
+   * The extensions blacklist of the assets, such as `['.md', '.yml']`
+   * @default []
+   */
+  ignore: string[]
+  /**
+   * Whether to clean the output directories before build
+   * @default false
+   */
+  clean: boolean
+}
+
+/**
+ * Collection options
+ */
+interface Collection {
+  /**
+   * Schema name (singular), for types generation
+   * @example
+   * 'Post'
+   */
+  name: string
+  /**
+   * Schema glob pattern, based on `root`
+   * @example
+   * 'posts/*.md'
+   */
+  pattern: string
+  /**
+   * Whether the schema is single
+   * @default false
+   */
+  single?: boolean
+  /**
+   * Schema
+   * @see {@link https://zod.dev}
+   * @example
+   * z.object({
+   *   title: z.string(), // from frontmatter
+   *   description: z.string().optional(), // from frontmatter
+   *   excerpt: z.string() // from markdown body,
+   *   content: z.string() // from markdown body
+   * })
+   */
+  schema: ZodType
+}
+
+/**
+ * All collections
+ */
+interface Collections {
+  [name: string]: Collection
+}
+
+/**
+ * This interface for plugins extension user config
+ * @example
+ * declare module 'velite' {
+ *   interface PluginConfig {
+ *     myPlugin: MyPluginConfig
+ *   }
+ * }
+ */
+export interface PluginConfig {}
+
+/**
+ * Config
+ */
+export interface Config<C extends Collections = Collections> extends Partial<PluginConfig> {
+  /**
+   * resolved config file path
+   */
+  configPath: string
+  /**
+   * The root directory of the contents
+   * @default 'content'
+   */
+  root: string
+  /**
+   * Output configuration
+   */
+  output: Output
+  /**
+   * Collections
+   */
+  collections: C
+  /**
+   * Data prepare hook, before write to file
+   * @description
+   * You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files.
+   * return false to prevent the default output to a file if you wanted
+   */
+  prepare?: (data: {
+    [name in keyof C]: C[name]['single'] extends true ? C[name]['schema']['_output'] : Array<C[name]['schema']['_output']>
+  }) => Promisable<void | false>
+  /**
+   * Build success hook
+   * @description
+   * You can do anything after the build is complete, such as print some tips or deploy the output files.
+   */
+  complete?: () => Promisable<void>
+}
+
+/**
+ * User config
+ */
+interface UserConfig<C extends Collections = Collections> extends Omit<Partial<Config<C>>, 'configPath' | 'output'> {
+  /**
+   * Output configuration
+   */
+  output?: Partial<Output>
+}
 
 let config: Config | null = null
 
-const isRootPath = (path: string): boolean => path === '/' || path.endsWith(':\\')
+/**
+ * get resolved config, must be called after `resolveConfig`
+ * @returns config object
+ */
+export const getConfig = (): Config => {
+  if (config != null) return config
+  throw new Error(`config not resolved, ensure 'resolveConfig' called before`)
+}
 
 /**
- * recursively search files in parent directories
+ * recursive 3-level search files in cwd and its parent directories
  * @param files filenames
  * @param cwd start directory
  * @param depth search depth
- * @returns filename searched
+ * @returns filename first searched
  */
 const search = async (files: string[], cwd: string = process.cwd(), depth: number = 3): Promise<string | undefined> => {
   for (const file of files) {
     try {
-      const path = join(cwd, file)
+      const path = resolve(cwd, file)
       await access(path)
       return path
     } catch {
       continue
     }
   }
-  if (depth > 0 && !isRootPath(cwd)) {
-    return await search(files, join(cwd, '..'), depth - 1)
+  if (depth > 0 && !(cwd === '/' || cwd.endsWith(':\\'))) {
+    return await search(files, resolve(cwd, '..'), depth - 1)
   }
 }
 
@@ -39,13 +190,13 @@ const search = async (files: string[], cwd: string = process.cwd(), depth: numbe
  * @param filename config filename
  * @returns config module
  */
-const loadConfig = async (filename: string): Promise<UserConfig> => {
+const load = async (filename: string): Promise<UserConfig> => {
   if (!/\.(js|mjs|cjs|ts|mts|cts)$/.test(filename)) {
     const ext = filename.split('.').pop()
     throw new Error(`not supported config file with '${ext}' extension`)
   }
 
-  const outfile = join(filename, '../node_modules/.velite/config.compiled.mjs')
+  const outfile = resolve(filename, '../node_modules/.velite/config.compiled.mjs')
 
   try {
     await build({
@@ -71,65 +222,66 @@ const loadConfig = async (filename: string): Promise<UserConfig> => {
   }
 }
 
-/**
- * get resolved config, must be called after `resolveConfig`
- * @returns config object
- */
-export const getConfig = (): Config => {
-  if (config != null) return config
-  throw new Error(`config not resolved, ensure 'resolveConfig' called before`)
-}
-
-export interface ConfigOptions {
-  filename?: string
+interface ConfigOptions {
+  path?: string
   clean?: boolean
+  logLevel?: LogLevel
 }
 
 /**
  * resolve config from user's project
- * @param options options from CLI
- * @returns config object with default values
+ * @param options config options
+ * @returns resolved config object with default values
  */
-export const resolveConfig = async (options: ConfigOptions = {}): Promise<Config> => {
+export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {}): Promise<Config> => {
+  // set log level
+  logLevel && logger.set(logLevel)
+
   // prettier-ignore
-  const files = [
+  const files = path != null ? [path]: [
     name + '.config.js',
-    name + '.config.mjs',
-    name + '.config.cjs',
     name + '.config.ts',
+    name + '.config.mjs',
     name + '.config.mts',
+    name + '.config.cjs',
     name + '.config.cts'
   ]
-  options.filename != null && files.unshift(options.filename)
 
-  const filename = await search(files)
-  if (filename == null) throw new Error(`config file not found, create '${name}.config.ts' in your project root directory`)
+  const configPath = await search(files)
+  if (configPath == null) throw new Error(`config file not found, create '${name}.config.ts' in your project root directory`)
 
-  const userConfig: UserConfig = await loadConfig(filename)
+  const { root, output, collections, ...rest } = await load(configPath)
 
-  if (userConfig.collections == null) throw new Error(`'collections' is required in config file`)
+  if (collections == null) throw new Error(`'collections' is required in config file`)
 
-  const cwd = dirname(filename)
+  const cwd = dirname(configPath)
 
   config = {
-    configPath: filename,
-    root: join(cwd, userConfig.root ?? 'content'),
+    ...rest,
+    root: resolve(cwd, root ?? 'content'),
     output: {
-      data: join(cwd, userConfig.output?.data ?? '.velite'),
-      static: join(cwd, userConfig.output?.static ?? 'public'),
-      filename: userConfig.output?.filename ?? '/static/[name]-[hash:8].[ext]',
-      ignoreFileExtensions: userConfig.output?.ignoreFileExtensions ?? [],
-      clean: options.clean ?? userConfig.output?.clean ?? false
+      data: resolve(cwd, output?.data ?? '.velite'),
+      assets: resolve(cwd, output?.assets ?? 'public/static'),
+      base: output?.base ?? '/static/',
+      filename: output?.filename ?? '[name]-[hash:8].[ext]',
+      ignore: output?.ignore ?? [],
+      clean: clean ?? output?.clean ?? false
     },
-    collections: userConfig.collections,
-    loaders: userConfig.loaders ?? [],
-    markdown: userConfig.markdown ?? {},
-    mdx: userConfig.mdx ?? {},
-    prepare: userConfig.prepare,
-    complete: userConfig.complete
+    collections,
+    configPath
   }
 
-  logger.log(`using config '${filename}'`)
+  logger.log(`using config '${configPath}'`)
 
   return config
 }
+
+/**
+ * Define a collection (identity function for type inference)
+ */
+export const defineCollection = (collection: Collection) => collection
+
+/**
+ * Define config (identity function for type inference)
+ */
+export const defineConfig = <C extends Collections>(config: UserConfig<C>) => config

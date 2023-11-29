@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "esbuild": "^0.19.8",
-    "sharp": "^0.32.6"
+    "sharp": "^0.33.0"
   },
   "devDependencies": {
     "@mdx-js/mdx": "^3.0.0",

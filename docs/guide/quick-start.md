@@ -28,7 +28,9 @@ $ bun add velite -D
 :::
 
 ::: tip Velite is an ESM-only package
+
 Don't use `require()` to import it, and make sure your nearest `package.json` contains `"type": "module"`, or change the file extension of your relevant files like `velite.config.js` to `.mjs`/`.mts`. Also, inside async CJS contexts, you can use `await import('velite')` instead.
+
 :::
 
 ## Define Collections
@@ -68,10 +70,12 @@ export default defineConfig({
 })
 ```
 
-For more information about Velite extended field schemas, see [Field Schemas](velite-shemas.md).
+For more information about Velite extended field schemas, see [Velite Schemas](velite-shemas.md).
 
 ::: tip
+
 Config file supports TypeScript & ESM & CommonJS. you can use the full power of TypeScript to write your config file, and it's recommended strongly.
+
 :::
 
 ## Create Contents Files
@@ -141,13 +145,14 @@ Then you will get the following output:
 +├── .velite
 +│   ├── posts.json                  # posts collection output
 +│   ├── others.json                 # others collection output
-+│   ├── index.d.ts                  # typescript type inference
-+│   └── index.js                    # javascript entry file
++│   ├── index.d.ts                  # typescript dts file
++│   └── index.js                    # javascript entry file (esm)
  ├── content
  │   ├── posts
  │   │   ├── hello-world.md
- │   │   └── hello-world-2.md
+ │   │   └── other.md
  │   └── others
+ │       └── other.yml
  ├── public
 +│   └── static
 +│       ├── cover-2a4138dh.jpg      # from frontmatter reference
@@ -170,55 +175,35 @@ echo '\n.velite' >> .gitignore
 
 ## Run Velite with Watch Mode
 
-Run `velite` with `--watch` option, then Velite will watch the contents files and rebuild them automatically when they are changed.
+Run `velite dev` or `velite` with `--watch` option, then Velite will watch the contents files and rebuild them automatically when they are changed.
 
 ::: code-group
 
 ```sh [npm]
-$ npx velite --watch
-
-> @velite/basic-starter@0.1.0 dev ./examples/basic
-> velite --watch
-
-[VELITE] output 1 options, 2 tags, 3 categories, 2 posts, 2 pages and entry file
-[VELITE] finished building
-[VELITE] watching for changes in './velite.config.ts'
+$ npx velite dev
+[VELITE] output 2 pages, 3 others
+[VELITE] build finished in 284.67ms
 [VELITE] watching for changes in './content'
 ```
 
 ```sh [pnpm]
-$ pnpm velite --watch
-
-> @velite/basic-starter@0.1.0 dev ./examples/basic
-> velite --watch
-
-[VELITE] output 1 options, 2 tags, 3 categories, 2 posts, 2 pages and entry file
-[VELITE] finished building
-[VELITE] watching for changes in './velite.config.ts'
+$ pnpm velite dev
+[VELITE] output 2 pages, 3 others
+[VELITE] build finished in 284.67ms
 [VELITE] watching for changes in './content'
 ```
 
 ```sh [yarn]
-$ yarn velite --watch
-
-> @velite/basic-starter@0.1.0 dev ./examples/basic
-> velite --watch
-
-[VELITE] output 1 options, 2 tags, 3 categories, 2 posts, 2 pages and entry file
-[VELITE] finished building
-[VELITE] watching for changes in './velite.config.ts'
+$ yarn velite dev
+[VELITE] output 2 pages, 3 others
+[VELITE] build finished in 284.67ms
 [VELITE] watching for changes in './content'
 ```
 
 ```sh [bun]
-$ bun velite --watch
-
-> @velite/basic-starter@0.1.0 dev ./examples/basic
-> velite --watch
-
-[VELITE] output 1 options, 2 tags, 3 categories, 2 posts, 2 pages and entry file
-[VELITE] finished building
-[VELITE] watching for changes in './velite.config.ts'
+$ bun velite dev
+[VELITE] output 2 pages, 3 others
+[VELITE] build finished in 284.67ms
 [VELITE] watching for changes in './content'
 ```
 
@@ -237,5 +222,11 @@ const posts = await getPosts()
 
 console.log(posts) // => [{ title: 'Hello world', slug: 'hello-world', ... }, ...]
 ```
+
+::: tip
+
+Velite is Framework Agnostic, you can use it output with any framework or library you like.
+
+:::
 
 For more information about using collections, see [Using Collections](using-collections.md).

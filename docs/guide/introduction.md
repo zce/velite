@@ -40,8 +40,6 @@ You can try Velite directly in your browser on StackBlitz:
 - https://stackblitz.com/edit/velite-basic
 - https://stackblitz.com/edit/velite-nextjs
 
-> P.S. Watch mode not working in linux currently.
-
 ## Why Velite?
 
 ### Type-Safe Contents
@@ -52,12 +50,14 @@ Velite validates your contents against a [Zod](https://zod.dev) schema, and gene
 
 <p><video src="/assets/type-inference@2x.mp4" loop muted autoplay /></p>
 
-- type inference for each collection
-- IDE auto-completion & type checking & refactoring & etc.
+- auto-generate TypeScript type inference for each collection
+- support IDE IntelliSense, auto-completion & type checking & refactoring & etc.
 
 ### Error Reporting Friendly
 
 ![Error Reporting Friendly](/assets/error-reporting-friendly.jpg)
+
+- error reporting friendly, show error message with file path & property path
 
 ### Framework Agnostic
 
@@ -65,9 +65,11 @@ Velite is a tool for building type-safe data layer, it is framework agnostic, an
 
 ### Less Runtime Dependencies
 
-- config bundle by [ESBuild](https://esbuild.github.io)
-- schema validation by [Zod](https://zod.dev)
+- user config bundle by [ESBuild](https://esbuild.github.io)
+- collection schema validation by [Zod](https://zod.dev)
 - content transform by [Unified](https://unifiedjs.com)
+- image processing by [Sharp](https://sharp.pixelplumbing.com)
+- file watching by [Chokidar](https://github.com/paulmillr/chokidar)
 
 ## Why not Contentlayer?
 
@@ -75,6 +77,6 @@ Velite is a tool for building type-safe data layer, it is framework agnostic, an
 
 - built-in files & images processing
 - programmability & extensibility
-- custom schema validation
+- custom collection schema validation
 - error reporting friendly
 - etc.

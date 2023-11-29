@@ -30,8 +30,8 @@ interface Result {
  */
 export interface Options {
   /**
-   * Specify config file path
-   * @default 'velite.config.{js,ts,mjs,mts,cjs,cts}'
+   * Specify config file path, relative to cwd
+   * if not specified, will try to find `velite.config.{js,ts,mjs,mts,cjs,cts}` in cwd or parent directories
    */
   config?: string
   /**
@@ -56,7 +56,11 @@ export interface Options {
   logLevel?: LogLevel
 }
 
-const result: Result = {}
+// cache previous result for rebuild
+let prev = new Map<string, Result[string]>()
+// cache loaded files
+const loaded = new Map<string, VFile>()
+// cache emitted files
 const emitted = new Map<string, string>()
 
 /**
@@ -212,6 +216,7 @@ const parse = async (path: string, schema: ZodType): Promise<VFile> => {
 /**
  * load collections from content root
  * @param config resolved config
+ * @param changed changed file path (rebuild)
  * @returns loaded entries
  */
 const load = async ({ root, output, collections, prepare, complete }: Config, changed?: string): Promise<Result> => {
@@ -222,44 +227,56 @@ const load = async ({ root, output, collections, prepare, complete }: Config, ch
   // clear cache
   clearCache()
 
-  const tasks = Object.entries(collections).map(async ([name, collection]) => {
-    if (changed != null && !micromatch.isMatch(changed, collection.pattern, { cwd: root })) {
-      // skip collection if changed file not match
-      // TODO: rebuild only changed file ???
-      const prev = result[name]
-      if (prev != null) {
-        logger.log(`skipped load '${name}', using cached data`)
-        return [name, prev] as const
+  const tasks = Object.entries(collections).map(async ([name, collection]): Promise<[string, Entry | Entry[]]> => {
+    if (changed != null) {
+      if (!micromatch.isMatch(changed, collection.pattern) && prev.has(name)) {
+        // skip collection if changed file not match
+        logger.log(`skipped load '${name}', using previous loaded`)
+        return [name, prev.get(name)!]
       }
+      // convert changed file path to absolute path for later
+      changed = join(root, changed)
     }
+
     const begin = performance.now()
 
     const filenames = await glob(collection.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'], absolute: true })
     logger.log(`loading ${filenames.length} ${name} matching '${collection.pattern}'`)
 
-    const files = await Promise.all(filenames.map(filename => parse(normalize(filename), collection.schema)))
+    const files = await Promise.all(
+      filenames.map(async filename => {
+        const path = normalize(filename)
+        if (changed != null && path !== changed && loaded.has(path)) {
+          // skip file if changed file not match
+          logger.log(`skipped parse '${path}', using previous parsed`)
+          return loaded.get(path)!
+        }
+        const file = await parse(path, collection.schema)
+        loaded.set(path, file)
+        return file
+      })
+    )
 
     // report if any error in parsing
     const report = reporter(files, { quiet: true })
     report.length > 0 && logger.warn(report)
 
     // prettier-ignore
-    const data = files.map(file => file.data.parsed).flat().filter(Boolean) as Entry[]
+    const entries = files.map(file => file.data.parsed).flat().filter(Boolean) as Entry[]
 
     if (collection.single) {
-      if (data.length > 1) {
-        logger.warn(`loaded ${data.length} ${name}, but expected only one, using first one`)
+      if (entries.length > 1) {
+        logger.warn(`loaded ${entries.length} ${name}, but expected only one, using first one`)
       }
       logger.log(`loaded single item for ${name}`, begin)
-      return [name, data[0] ?? {}] as const
+      return [name, entries[0] ?? {}]
     }
 
-    logger.log(`loaded ${data.length} ${name}`, begin)
-    return [name, data] as const
+    logger.log(`loaded ${entries.length} ${name}`, begin)
+    return [name, entries]
   })
 
-  const entities = await Promise.all(tasks)
-  Object.assign(result, Object.fromEntries(entities))
+  const result = Object.fromEntries(await Promise.all(tasks))
 
   let shouldOutput = true
 
@@ -283,7 +300,10 @@ const load = async ({ root, output, collections, prepare, complete }: Config, ch
     logger.log(`executed 'complete' callback`, begin)
   }
 
-  logger.log(`loaded ${entities.length} collections`, begin)
+  // cache result for rebuild
+  prev = new Map(Object.entries(result))
+
+  logger.log(`loaded ${prev.size} collections`, begin)
 
   return result
 }
@@ -308,21 +328,16 @@ const watch = async (config: Config) => {
     if (filename == null) return
     const begin = performance.now()
 
-    if (filename === relative(config.root, config.configPath)) {
-      // reload config if config file changed
-      logger.info(`config changed '${filename}', reloading...`)
-      try {
-        Object.assign(config, await init(config.configPath, config.output.clean))
-      } catch (err) {
-        logger.warn(err)
-        return
-      }
-    } else {
-      logger.info(`file changed '${filename}', rebuilding...`)
-    }
-
     try {
-      await load(config, filename)
+      if (filename === relative(config.root, config.configPath)) {
+        // reload config if config file changed
+        logger.info(`config changed '${filename}', reloading...`)
+        Object.assign(config, await init(config.configPath, config.output.clean))
+        await load(config)
+      } else {
+        logger.info(`file changed '${filename}', rebuilding...`)
+        await load(config, filename)
+      }
     } catch (err) {
       logger.warn(err)
     }

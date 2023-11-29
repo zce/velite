@@ -1,6 +1,8 @@
 # Velite Schemas
 
-To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of the Zod library, and it supports all of the features of Zod. See [Zod's Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
+To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of the Zod library, and it supports all of the features of Zod.
+
+See [Zod's Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
 
 ```js
 import { z } from 'velite'
@@ -113,7 +115,7 @@ avatar: s.file()
 
 `string => string | Image`
 
-image path relative to this file, like `s.file()`, copy file to `config.output.static` directory and return the image object with meta data.
+image path relative to this file, like `s.file()`, copy file to `config.output.static` directory and return the [Image](#types) (image object with meta data).
 
 ```ts
 avatar: s.image()
@@ -173,7 +175,7 @@ interface Image {
 
 `string => Metadata`
 
-parse input as markdown content and return metadata.
+parse input as markdown content and return [Metadata](#types-1).
 
 currently only support `readingTime` & `wordCount`.
 
@@ -217,7 +219,7 @@ summary: s.summary()
 
 **options**: summary options
 
-- type: `SummaryOptions` 👇👇👇
+- type: `SummaryOptions`, See [SummaryOptions](#types-2)
 - default: `{ length: 260 }`
 
 ### Types
@@ -248,7 +250,7 @@ excerpt: s.excerpt()
 
 **options**: excerpt options
 
-- type: `ExcerptOptions` 👇👇👇
+- type: `ExcerptOptions`, See [ExcerptOptions](#types-3)
 - default: `{ separator: 'more', length: 300 }`
 
 ### Types
@@ -286,38 +288,8 @@ content: s.markdown()
 
 **options**: markdown options
 
-- type: `MarkdownOptions` 👇👇👇
+- type: `MarkdownOptions`, See [MarkdownOptions](../reference/types.md#markdownoptions)
 - default: `{ gfm: true, removeComments: true, copyLinkedFiles: true }`
-
-### Types
-
-```ts
-interface MarkdownOptions {
-  /**
-   * Enable GitHub Flavored Markdown (GFM).
-   * @default true
-   */
-  gfm?: boolean
-  /**
-   * Remove html comments.
-   * @default true
-   */
-  removeComments?: boolean
-  /**
-   * Copy linked files to public path and replace their urls with public urls.
-   * @default true
-   */
-  copyLinkedFiles?: boolean
-  /**
-   * Remark plugins.
-   */
-  remarkPlugins?: PluggableList
-  /**
-   * Rehype plugins.
-   */
-  rehypePlugins?: PluggableList
-}
-```
 
 ## `s.mdx(options)`
 
@@ -335,43 +307,17 @@ code: s.mdx()
 
 **options**: mdx options
 
-- type: `MarkdownOptions` 👇👇👇
+- type: `MdxOptions`, See [MdxOptions](../reference/types.md#mdxoptions)
 - default: `{ gfm: true, removeComments: true, copyLinkedFiles: true }`
 
-### Types
-
-```ts
-interface MarkdownOptions {
-  /**
-   * Enable GitHub Flavored Markdown (GFM).
-   * @default true
-   */
-  gfm?: boolean
-  /**
-   * Remove html comments.
-   * @default true
-   */
-  removeComments?: boolean
-  /**
-   * Copy linked files to public path and replace their urls with public urls.
-   * @default true
-   */
-  copyLinkedFiles?: boolean
-  /**
-   * Remark plugins.
-   */
-  remarkPlugins?: PluggableList
-  /**
-   * Rehype plugins.
-   */
-  rehypePlugins?: PluggableList
-}
-```
+## Zod Primitive Types
 
 In addition, all Zod's built-in schemas can be used normally, such as:
 
 ```ts
 title: s.string().mix(3).max(100)
+description: s.string().optional()
+featured: s.boolean().default(false)
 ```
 
 You can refer to https://zod.dev get complete support documentation.

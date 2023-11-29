@@ -14,17 +14,17 @@ hero:
   actions:
     - theme: brand
       text: 快速上手
-      link: ./guide/getting-started
+      link: ./guide/quick-start.md
     - theme: alt
       text: 在 GitHub 上查看
       link: https://github.com/zce/velite
 
 features:
-  - icon: 📦
+  - icon: 🤩
     title: 开箱即用
-    details: 将 Markdown、YAML、JSON 或其他文件转换为应用数据层。
-  - icon: 😍
-    title: 类型安全的内容
+    details: 将 Markdown / MDX、YAML、JSON 或其他文件转换为应用数据层。
+  - icon: 💪
+    title: 类型安全
     details: 基于 Zod 模式的内容字段验证，同时自动生成的 TypeScript 类型。
   - icon: 🚀
     title: 轻量高效
@@ -57,7 +57,7 @@ features:
 .image-src {
   width: 100%;
   height: 100%;
-  animation: logo 1s infinite alternate;
+  animation: logo 2s infinite alternate;
 }
 
 @keyframes logo {

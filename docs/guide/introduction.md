@@ -71,6 +71,12 @@ Velite is framework agnostic, and out of the box support for React, Vue, Svelte,
 - image processing by [Sharp](https://sharp.pixelplumbing.com)
 - file watching by [Chokidar](https://github.com/paulmillr/chokidar)
 
+### Fast Rebundling
+
+More then 1000 documents, less then 15s for cold start, less then 100ms for hot reload.
+
+Refers to [Velite Benchmark](https://esbuild.github.io) for more information.
+
 ## Why not Contentlayer?
 
 [Contentlayer](https://contentlayer.dev) is a great tool, but it is not suitable for my needs. Such as:

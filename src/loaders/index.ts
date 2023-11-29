@@ -30,7 +30,7 @@ export interface Loader {
    * @param file vfile
    * @returns entry or entries
    */
-  load: (file: VFile) => Promisable<Entry | Entry[]>
+  load: (file: VFile) => Promisable<Entry | Entry[] | undefined>
 }
 
 const builtInloaders: Loader[] = [json, yaml, matter]

@@ -162,7 +162,6 @@ const init = async (configFile?: string, clean?: boolean, logLevel?: LogLevel): 
  * @returns file instance with parsed data
  */
 const parse = async (path: string, schema: ZodType): Promise<VFile> => {
-  const begin = performance.now()
   const file = new VFile({ path })
   try {
     if (file.extname == null) throw new Error('can not parse file without extension')
@@ -172,14 +171,10 @@ const parse = async (path: string, schema: ZodType): Promise<VFile> => {
 
     file.value = await readFile(file.path, 'utf8')
 
-    // load original data
     const original = await loader.load(file)
+    if (original == null) throw new Error('no data parsed from this file')
 
-    if (original == null || Object.keys(original).length === 0) {
-      throw new Error('no data parsed from this file')
-    }
-
-    // there may be one or more records in one file, such as yaml array or json array
+    // may be one or more records in one file, such as yaml array or json array
     const isArr = Array.isArray(original)
     const list = isArr ? original : [original]
 
@@ -199,8 +194,6 @@ const parse = async (path: string, schema: ZodType): Promise<VFile> => {
       })
     )
 
-    logger.log(`parsed '${file.path}' with ${loader.name} loader, got ${processed.length} records (${isArr ? 'array' : 'object'})`, begin)
-
     // set parsed data to file
     file.data.parsed = isArr ? processed[0] : processed
   } catch (err: any) {
@@ -218,10 +211,9 @@ const parse = async (path: string, schema: ZodType): Promise<VFile> => {
 const load = async ({ root, output, collections, prepare, complete }: Config, changed?: string): Promise<Result> => {
   const begin = performance.now()
 
-  logger.log(`loading collections in '${root}'`)
+  clearCache() // clear previous cache
 
-  // clear cache
-  clearCache()
+  logger.log(`loading collections in '${root}'`)
 
   const tasks = Object.entries(collections).map(async ([name, collection]): Promise<[string, Entry | Entry[]]> => {
     if (changed != null && !micromatch.isMatch(changed, collection.pattern) && prev.has(name)) {

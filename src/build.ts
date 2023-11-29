@@ -165,16 +165,12 @@ const parse = async (path: string, schema: ZodType): Promise<VFile> => {
   const begin = performance.now()
   const file = new VFile({ path })
   try {
-    file.value = await readFile(file.path, 'utf8')
-
-    if (file.extname == null) {
-      throw new Error('can not parse file without extension')
-    }
+    if (file.extname == null) throw new Error('can not parse file without extension')
 
     const loader = resolveLoader(file.path)
-    if (loader == null) {
-      throw new Error(`no loader found for '${file.path}'`)
-    }
+    if (loader == null) throw new Error(`no loader found for '${file.path}'`)
+
+    file.value = await readFile(file.path, 'utf8')
 
     // load original data
     const original = await loader.load(file)

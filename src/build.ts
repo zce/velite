@@ -81,8 +81,6 @@ const emit = async (path: string, content: string, log?: string): Promise<void> 
  * @param dir output directory
  */
 const outputData = async (result: Result, dir: string): Promise<void> => {
-  const begin = performance.now()
-
   // emit result if not prevented
   const logs: string[] = []
 
@@ -96,7 +94,7 @@ const outputData = async (result: Result, dir: string): Promise<void> => {
     })
   )
 
-  logger.info(`output ${logs.join(', ')}`, begin)
+  logger.info(`output ${logs.join(', ')}`)
 }
 
 /**

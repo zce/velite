@@ -216,7 +216,7 @@ const parse = async (path: string, schema: ZodType): Promise<VFile> => {
 /**
  * load collections from content root
  * @param config resolved config
- * @param changed changed file path (rebuild)
+ * @param changed changed file path (relative to content root)
  * @returns loaded entries
  */
 const load = async ({ root, output, collections, prepare, complete }: Config, changed?: string): Promise<Result> => {
@@ -228,31 +228,26 @@ const load = async ({ root, output, collections, prepare, complete }: Config, ch
   clearCache()
 
   const tasks = Object.entries(collections).map(async ([name, collection]): Promise<[string, Entry | Entry[]]> => {
-    if (changed != null) {
-      if (!micromatch.isMatch(changed, collection.pattern) && prev.has(name)) {
-        // skip collection if changed file not match
-        logger.log(`skipped load '${name}', using previous loaded`)
-        return [name, prev.get(name)!]
-      }
-      // convert changed file path to absolute path for later
-      changed = join(root, changed)
+    if (changed != null && !micromatch.isMatch(changed, collection.pattern) && prev.has(name)) {
+      // skip collection if changed file not match
+      logger.log(`skipped load '${name}', using previous loaded`)
+      return [name, prev.get(name)!]
     }
 
     const begin = performance.now()
 
-    const filenames = await glob(collection.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'], absolute: true })
+    const filenames = await glob(collection.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'] })
     logger.log(`loading ${filenames.length} ${name} matching '${collection.pattern}'`)
 
     const files = await Promise.all(
       filenames.map(async filename => {
-        const path = normalize(filename)
-        if (changed != null && path !== changed && loaded.has(path)) {
+        if (changed != null && filename !== changed && loaded.has(filename)) {
           // skip file if changed file not match
-          logger.log(`skipped parse '${path}', using previous parsed`)
-          return loaded.get(path)!
+          logger.log(`skipped parse '${filename}', using previous parsed`)
+          return loaded.get(filename)!
         }
-        const file = await parse(path, collection.schema)
-        loaded.set(path, file)
+        const file = await parse(join(root, filename), collection.schema)
+        loaded.set(filename, file)
         return file
       })
     )
@@ -329,7 +324,7 @@ const watch = async (config: Config) => {
     const begin = performance.now()
 
     try {
-      if (filename === relative(config.root, config.configPath)) {
+      if (join(config.root, filename) === config.configPath) {
         // reload config if config file changed
         logger.info(`config changed '${filename}', reloading...`)
         Object.assign(config, await init(config.configPath, config.output.clean))

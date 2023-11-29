@@ -54,7 +54,7 @@ export default defineConfig({
           { text: 'Quick Start', link: 'quick-start' },
           { text: 'Define Collections', link: 'define-collections' },
           { text: 'Using Collections', link: 'using-collections' },
-          { text: 'Velite Schemas', link: 'velite-shemas' }
+          { text: 'Velite Schemas', link: 'velite-schemas' }
         ]
       },
       {

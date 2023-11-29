@@ -70,7 +70,7 @@ export default defineConfig({
 })
 ```
 
-For more information about Velite extended field schemas, see [Velite Schemas](velite-shemas.md).
+For more information about Velite extended field schemas, see [Velite Schemas](velite-schemas.md).
 
 ::: tip
 

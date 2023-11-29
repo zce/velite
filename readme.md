@@ -15,14 +15,9 @@
     <br>
     <a href="https://npm.im/velite"><img src="https://img.shields.io/npm/dm/velite" alt="NPM Downloads"></a>
     <a href="https://packagephobia.com/result?p=velite"><img src="https://packagephobia.com/badge?p=velite" alt="Install Size"></a>
-    <a href="https://github.com/zce/velite"><img src="https://img.shields.io/github/repo-size/zce/velite" alt="Repo Size"></a>
     <a href="https://github.com/zce/velite"><img src="https://img.shields.io/librariesio/release/npm/velite" alt="Dependencies Status"></a>
   </p>
 </div>
-
-🚧 the [documentation](https://velite.js.org) is not yet complete currently. but the functionality is mostly stable, although there is still a possibility of significant changes being made.
-
-However, I have provided some [examples](https://github.com/zce/velite/tree/main/examples) for your consideration.
 
 ## What is Velite?
 
@@ -32,8 +27,6 @@ Velite is a tool for building type-safe data layer, turn Markdown / MDX, YAML, J
   <source srcset="https://velite.js.org/assets/flow-dark.svg" media="(prefers-color-scheme: dark)">
   <img src="https://velite.js.org/assets/flow.svg" alt="Velite Workflow" title="Velite Workflow">
 </picture>
-
-Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod.dev) and [Unified](https://unifiedjs.com), and powered by [ESBuild](https://esbuild.github.io).
 
 ### Naming Origin
 
@@ -45,11 +38,11 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 
 - **Easy to use**: Move your contents into `content` folder, define collections schema, run `velite`, then use the output data in your application.
 - **Type-safe**: Contents schema validation by [Zod](https://zod.dev), and generate type inference for TypeScript.
-- **Framework Agnostic**: JSON & Entry & DTS output, out of the box support for React, Vue, Svelte, Solid, etc.
+- **Framework Agnostic**: JSON & Entry & DTS output, out of the box support for any JavaScript framework or library.
 - **Light-weight**: Choose more native APIs instead of bloated NPM modules, less runtime dependencies, so it is fast and efficiently.
-- **Still powerful**: Built-in Markdown, YAML, JSON support, relative files & images processing, schema validation, etc.
+- **Still powerful**: Built-in Markdown / MDX, YAML, JSON support, relative files & images processing, schema validation, etc.
 - **Configurable**: Both input and output directories can be customized, and support for custom loaders, hooks, etc.
-- **Extensible**: Support any file types by custom loaders, Custom field validation and transform by custom schema, and any output formats by hooks
+- **Extensible**: Support any file types by custom loaders, Custom field validation and transform by custom schema, and any output formats by hooks.
 
 Check out our detailed [Why Velite](https://velite.js.org/guide/introduction#why-velite) to learn more about what makes Velite special. ✨
 
@@ -65,8 +58,6 @@ You can try Velite directly in your browser on StackBlitz:
 The following are the features I want to achieve or are under development:
 
 - [ ] Full documentation
-- [ ] File \_raw output?
-- [ ] Optimize the config structure, bundle & load
 - [ ] Refactor Static Assets Processing to Support More Scenarios (e.g. OSS)
 - [ ] More built-in schemas
 - [ ] Unit & E2E tests?
@@ -87,7 +78,8 @@ See the [open issues](https://github.com/zce/velite/issues) for a list of propos
 5. **Push** your work back up to your fork: `git push -u origin my-awesome-feature`
 6. Submit a **Pull Request** so that we can review your changes.
 
-> **NOTE**: Be sure to merge the latest from "upstream" before making a pull request!
+> [!NOTE]
+> Be sure to merge the latest from "upstream" before making a pull request!
 
 ## License
 

@@ -99,7 +99,7 @@ const posts = defineCollection({
 The schema is usually a `ZodObject`, validating the shape of the content item. But it can be any valid Zod schema.
 :::
 
-For more useful schemas, I recommend that you use [Velite extended schemas `s`](velite-shemas.md):
+For more useful schemas, I recommend that you use [Velite extended schemas `s`](velite-schemas.md):
 
 - `s.slug()`: validate slug format, unique in posts collection.
 - `s.isodate()`: format date string to ISO date string.
@@ -131,7 +131,7 @@ const posts = defineCollection({
 })
 ```
 
-For more information about Velite extended field schema, see [Velite Schemas](velite-shemas.md).
+For more information about Velite extended field schema, see [Velite Schemas](velite-schemas.md).
 
 ## Schema Transform (Computed Fields)
 
@@ -191,8 +191,8 @@ The `content` field will be transformed from markdown to html, and the result wi
 
 #### Reference
 
-- [`s.markdown(options)`](velite-shemas.md#s-markdown-options)
-- [`s.mdx(options)`](velite-shemas.md#s-mdx-options)
+- [`s.markdown(options)`](velite-schemas.md#s-markdown-options)
+- [`s.mdx(options)`](velite-schemas.md#s-mdx-options)
 
 ### Metadata
 
@@ -208,7 +208,7 @@ const posts = defineCollection({
 
 #### Reference
 
-- [`s.metadata()`](velite-shemas.md#s-metadata)
+- [`s.metadata()`](velite-schemas.md#s-metadata)
 
 ### Excerpt
 
@@ -225,5 +225,5 @@ const posts = defineCollection({
 
 #### Reference
 
-- [`s.summary()`](velite-shemas.md#s-summary)
-- [`s.excerpt()`](velite-shemas.md#s-excerpt)
+- [`s.summary()`](velite-schemas.md#s-summary)
+- [`s.excerpt()`](velite-schemas.md#s-excerpt)

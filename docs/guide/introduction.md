@@ -1,9 +1,11 @@
 # Introduction
 
 ::: warning
+
 🚧 this documentation is not yet complete currently. but the functionality is mostly stable, although there is still a possibility of significant changes being made.
 
 However, I have provided some [examples](https://github.com/zce/velite/tree/main/examples) for your consideration.
+
 :::
 
 ## What is Velite?
@@ -12,8 +14,6 @@ Velite is a tool for building type-safe data layer, turn Markdown / MDX, YAML, J
 
 ![Velite Workflow](/assets/flow-dark.svg#dark 'Velite Workflow')
 ![Velite Workflow](/assets/flow.svg#light 'Velite Workflow')
-
-Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod.dev) and [Unified](https://unifiedjs.com), and powered by [ESBuild](https://esbuild.github.io).
 
 ### Naming Origin
 
@@ -25,11 +25,11 @@ Inspired by [Contentlayer](https://contentlayer.dev), based on [Zod](https://zod
 
 - **Easy to use**: Move your contents into `content` folder, define collections schema, run `velite`, then use the output data in your application.
 - **Type-safe**: Contents schema validation by [Zod](https://zod.dev), and generate type inference for TypeScript.
-- **Framework Agnostic**: JSON & Entry & DTS output, out of the box support for React, Vue, Svelte, Solid, etc.
+- **Framework Agnostic**: JSON & Entry & DTS output, out of the box support for any JavaScript framework or library.
 - **Light-weight**: Choose more native APIs instead of bloated NPM modules, less runtime dependencies, so it is fast and efficiently.
 - **Still powerful**: Built-in Markdown / MDX, YAML, JSON support, relative files & images processing, schema validation, etc.
 - **Configurable**: Both input and output directories can be customized, and support for custom loaders, hooks, etc.
-- **Extensible**: Support any file types by custom loaders, Custom field validation and transform by custom schema, and any output formats by hooks
+- **Extensible**: Support any file types by custom loaders, Custom field validation and transform by custom schema, and any output formats by hooks.
 
 Check out our detailed [Why Velite](#why-velite) to learn more about what makes Velite special. ✨
 
@@ -61,7 +61,7 @@ Velite validates your contents against a [Zod](https://zod.dev) schema, and gene
 
 ### Framework Agnostic
 
-Velite is a tool for building type-safe data layer, it is framework agnostic, and out of the box support for React, Vue, Svelte, Solid, etc.
+Velite is framework agnostic, and out of the box support for React, Vue, Svelte, Solid, etc.
 
 ### Less Runtime Dependencies
 
@@ -80,3 +80,5 @@ Velite is a tool for building type-safe data layer, it is framework agnostic, an
 - custom collection schema validation
 - error reporting friendly
 - etc.
+
+Velite is inspired by [Contentlayer](https://contentlayer.dev).

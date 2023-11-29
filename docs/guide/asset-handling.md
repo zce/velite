@@ -4,10 +4,10 @@ This documentation is still being written. Please check back later.
 
 ## Refer
 
-- [File Field](./velite-schemas.md#s-file)
-- [Image Field](./velite-schemas.md#s-image)
-- [Markdown Field](./velite-schemas.md#s-markdown)
-- [MDX Field](./velite-schemas.md#s-mdx)
+- [File Field](velite-schemas.md#s-file)
+- [Image Field](velite-schemas.md#s-image)
+- [Markdown Field](velite-schemas.md#s-markdown)
+- [MDX Field](velite-schemas.md#s-mdx)
 
 ## Uploading Assets
 

@@ -136,7 +136,7 @@ const init = async (configFile?: string, clean?: boolean, logLevel?: LogLevel): 
   const dts: string[] = [`import config from '${configModPath}'\n`]
 
   Object.entries(collections).map(([name, collection]) => {
-    const funcName = `get${name[0].toUpperCase() + name.slice(1)}` // getPosts
+    const funcName = `get${name[0].toUpperCase() + name.slice(1)}` // e.g. getPosts
     entry.push(`export const ${funcName} = async () => await import('./${name}.json').then(m => m.default)\n`)
     dts.push(`export type ${collection.name} = NonNullable<typeof config.collections>['${name}']['schema']['_output']`)
     dts.push(`export declare const ${funcName}: () => Promise<${collection.name + (collection.single ? '' : '[]')}>\n`)

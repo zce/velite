@@ -3,7 +3,6 @@ import { copyFile, readFile } from 'node:fs/promises'
 import { basename, extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
 
-import { getCache } from './cache'
 import { getConfig } from './config'
 
 /**
@@ -117,21 +116,14 @@ const output = async (ref: string, fromPath: string, isImage?: true): Promise<Im
   const dest = join(output.assets, filename)
 
   if (isImage == null) {
-    const files = getCache('assets:files', new Set<string>())
-    if (files.has(filename)) return filename
-    files.add(filename) // TODO: not await works, but await not works, becareful if copy failed
     await copyFile(from, dest)
     return output.base + filename
   }
 
-  const images = getCache('assets:images', new Map<string, Image>())
-  if (images.has(filename)) return images.get(filename) as Image
   const img = await getImageMetadata(source)
   if (img == null) return ref
-  const image = { src: output.base + filename, ...img }
-  images.set(filename, image)
   await copyFile(from, dest)
-  return image
+  return { src: output.base + filename, ...img }
 }
 
 /**

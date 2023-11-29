@@ -241,6 +241,7 @@ const load = async ({ root, output, collections, prepare, complete }: Config, ch
 
     const files = await Promise.all(
       filenames.map(async filename => {
+        filename = normalize(filename) // glob return slashes with unix style in windows
         if (changed != null && filename !== changed && loaded.has(filename)) {
           // skip file if changed file not match
           logger.log(`skipped parse '${filename}', using previous parsed`)

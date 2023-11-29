@@ -20,10 +20,10 @@ hero:
       link: https://github.com/zce/velite
 
 features:
-  - icon: 📦
+  - icon: 🤪
     title: Out of the Box
     details: Turns your Markdown / MDX, YAML, JSON, or other files into application data layer.
-  - icon: 😍
+  - icon: 💪
     title: Type-safe Contents
     details: Content Fields validation based on Zod schema, and auto-generated TypeScript types.
   - icon: 🚀

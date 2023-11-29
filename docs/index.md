@@ -14,17 +14,17 @@ hero:
   actions:
     - theme: brand
       text: Get Started
-      link: ./guide/quick-start
+      link: ./guide/quick-start.md
     - theme: alt
       text: View on GitHub
       link: https://github.com/zce/velite
 
 features:
-  - icon: 🤪
+  - icon: 🤩
     title: Out of the Box
     details: Turns your Markdown / MDX, YAML, JSON, or other files into application data layer.
   - icon: 💪
-    title: Type-safe Contents
+    title: Type-Safe Contents
     details: Content Fields validation based on Zod schema, and auto-generated TypeScript types.
   - icon: 🚀
     title: Light & Efficient

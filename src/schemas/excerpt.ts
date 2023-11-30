@@ -26,6 +26,9 @@ export interface ExcerptOptions {
 export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
   z.string().transform(async (value, ctx) => {
     try {
+      // const file = cache.get<VFile>(`loaded:${ctx.path[0]}`)
+      // if (file == null) return value
+      // const mdast = fromMarkdown(file.data.original.body as string)
       const mdast = fromMarkdown(value)
       const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
       const exHast = hastExcerpt(hast, { comment: separator, maxSearchSize: 1024 })

@@ -16,10 +16,9 @@ export default {
 
     // default data fields
     data.slug = data.slug ?? (file.stem === 'index' ? basename(file.dirname!) : file.stem)
-    // data._file = file // output file for later use?
 
-    const body = match == null ? raw : raw.slice(match[0].length).trim()
     // keep raw body with multiple keys (may be used) for later use
+    const body = match == null ? raw : raw.slice(match[0].length).trim()
     data.metadata = body // for extract metadata (reading-time, word-count, etc.)
     data.raw = body // for extract body content
     data.body = body // for extract body content

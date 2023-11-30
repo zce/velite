@@ -67,7 +67,7 @@ const remarkCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
   })
 
   await Promise.all(
-    [...links.entries()].map(async ([url, nodes]) => {
+    Array.from(links.entries()).map(async ([url, nodes]) => {
       const publicUrl = await outputFile(url, file.path)
       if (publicUrl == null || publicUrl === url) return
       nodes.forEach((node: any) => {

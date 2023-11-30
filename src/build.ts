@@ -56,11 +56,17 @@ export interface Options {
   logLevel?: LogLevel
 }
 
-// cache previous result for rebuild
+/**
+ * previous result cache
+ */
 let prev = new Map<string, Result[string]>()
-// cache loaded files
+/**
+ * loaded files cache
+ */
 const loaded = new Map<string, VFile>()
-// cache emitted files
+/**
+ * emitted files cache
+ */
 const emitted = new Map<string, string>()
 
 /**
@@ -77,28 +83,6 @@ const emit = async (path: string, content: string, log?: string): Promise<void> 
   await writeFile(path, content)
   logger.log(log ?? `wrote '${path}' with ${content.length} bytes`)
   emitted.set(path, content)
-}
-
-/**
- * output data to files
- * @param result result data
- * @param dir output directory
- */
-const outputData = async (result: Result, dir: string): Promise<void> => {
-  // emit result if not prevented
-  const logs: string[] = []
-
-  await Promise.all(
-    Object.entries(result).map(async ([name, data]) => {
-      if (data == null) return
-      const target = join(dir, name + '.json')
-      // TODO: output each record separately to a single file to improve fast refresh performance in app
-      await emit(target, JSON.stringify(data, null, 2), `wrote '${target}' with ${data.length ?? 1} ${name}`)
-      logs.push(`${data.length ?? 1} ${name}`)
-    })
-  )
-
-  logger.info(`output ${logs.join(', ')}`)
 }
 
 /**
@@ -161,7 +145,7 @@ const init = async (configFile?: string, clean?: boolean, logLevel?: LogLevel): 
  * @param schema Zod schema
  * @returns file instance with parsed data
  */
-const parse = async (path: string, schema: ZodType): Promise<VFile> => {
+const load = async (path: string, schema: ZodType): Promise<VFile> => {
   const file = new VFile({ path })
   try {
     if (file.extname == null) throw new Error('can not parse file without extension')
@@ -201,39 +185,39 @@ const parse = async (path: string, schema: ZodType): Promise<VFile> => {
 }
 
 /**
- * load collections from content root
+ * resolve collections from content root
  * @param config resolved config
  * @param changed changed file path (relative to content root)
- * @returns loaded entries
+ * @returns resolved entries
  */
-const load = async ({ root, output, collections, prepare, complete }: Config, changed?: string): Promise<Result> => {
+const resolve = async ({ root, output, collections, prepare, complete }: Config, changed?: string): Promise<Result> => {
   const begin = performance.now()
 
   clearCache() // clear previous cache
 
-  logger.log(`loading collections in '${root}'`)
+  logger.log(`resolving collections from '${root}'`)
 
   const tasks = Object.entries(collections).map(async ([name, collection]): Promise<[string, Entry | Entry[]]> => {
     if (changed != null && !micromatch.isMatch(changed, collection.pattern) && prev.has(name)) {
       // skip collection if changed file not match
-      logger.log(`skipped load '${name}', using previous loaded`)
+      logger.log(`skipped resolve '${name}', using previous resolved`)
       return [name, prev.get(name)!]
     }
 
     const begin = performance.now()
 
     const filenames = await glob(collection.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'] })
-    logger.log(`loading ${filenames.length} ${name} matching '${collection.pattern}'`)
+    logger.log(`resolve ${filenames.length} files matching '${collection.pattern}'`)
 
     const files = await Promise.all(
       filenames.map(async filename => {
         filename = normalize(filename) // glob return slashes with unix style in windows
         if (changed != null && filename !== changed && loaded.has(filename)) {
           // skip file if changed file not match
-          logger.log(`skipped parse '${filename}', using previous parsed`)
+          logger.log(`skipped load '${filename}', using previous loaded`)
           return loaded.get(filename)!
         }
-        const file = await parse(join(root, filename), collection.schema)
+        const file = await load(join(root, filename), collection.schema)
         loaded.set(filename, file)
         return file
       })
@@ -247,14 +231,13 @@ const load = async ({ root, output, collections, prepare, complete }: Config, ch
     const entries = files.map(file => file.data.parsed).flat().filter(Boolean) as Entry[]
 
     if (collection.single) {
-      if (entries.length > 1) {
-        logger.warn(`loaded ${entries.length} ${name}, but expected only one, using first one`)
-      }
-      logger.log(`loaded single item for ${name}`, begin)
-      return [name, entries[0] ?? {}]
+      if (entries.length === 0) throw new Error(`no data parsed for '${name}'`)
+      if (entries.length > 1) logger.warn(`resolved ${entries.length} ${name}, but expected single, using first one`)
+      else logger.log(`resolved 1 ${name}`, begin)
+      return [name, entries[0]]
     }
 
-    logger.log(`loaded ${entries.length} ${name}`, begin)
+    logger.log(`resolved ${entries.length} ${name}`, begin)
     return [name, entries]
   })
 
@@ -270,7 +253,18 @@ const load = async ({ root, output, collections, prepare, complete }: Config, ch
   }
 
   if (shouldOutput) {
-    await outputData(result, output.data)
+    // emit result if not prevented
+    const logs: string[] = []
+    await Promise.all(
+      Object.entries(result).map(async ([name, data]) => {
+        if (data == null) return
+        const target = join(output.data, name + '.json')
+        // TODO: output each record separately to a single file to improve fast refresh performance in app
+        await emit(target, JSON.stringify(data, null, 2), `wrote '${target}' with ${data.length ?? 1} ${name}`)
+        logs.push(`${data.length ?? 1} ${name}`)
+      })
+    )
+    logger.info(`output ${logs.join(', ')}`)
   } else {
     logger.warn(`prevent output by 'prepare' callback`)
   }
@@ -285,7 +279,7 @@ const load = async ({ root, output, collections, prepare, complete }: Config, ch
   // cache result for rebuild
   prev = new Map(Object.entries(result))
 
-  logger.log(`loaded ${prev.size} collections`, begin)
+  logger.log(`resolved ${prev.size} collections`, begin)
 
   return result
 }
@@ -315,10 +309,10 @@ const watch = async (config: Config) => {
         // reload config if config file changed
         logger.info(`config changed '${filename}', reloading...`)
         Object.assign(config, await init(config.configPath, config.output.clean))
-        await load(config)
+        await resolve(config)
       } else {
         logger.info(`file changed '${filename}', rebuilding...`)
-        await load(config, filename)
+        await resolve(config, filename)
       }
     } catch (err) {
       logger.warn(err)
@@ -337,7 +331,7 @@ export const build = async (options: Options = {}): Promise<Result> => {
   const { config: configFile, clean, logLevel } = options
 
   const config = await init(configFile, clean, logLevel)
-  const result = await load(config)
+  const result = await resolve(config)
 
   logger.info(`build finished`, begin)
 

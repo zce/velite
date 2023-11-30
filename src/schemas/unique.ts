@@ -9,7 +9,7 @@ import { getCache } from '../cache'
  */
 export const unique = (by: string = 'global') =>
   z.string().refine(value => {
-    const exists = getCache(`shared:unique:${by}`, new Set())
+    const exists = getCache(`schemas:unique:${by}`, new Set())
     if (exists.has(value)) return false
     exists.add(value)
     return true

@@ -68,7 +68,7 @@ const rehypeCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
   })
 
   await Promise.all(
-    [...links.entries()].map(async ([url, elements]) => {
+    Array.from(links.entries()).map(async ([url, elements]) => {
       const publicUrl = await outputFile(url, file.path)
       if (publicUrl == null || publicUrl === url) return
       elements.forEach(node => {

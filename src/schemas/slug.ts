@@ -15,7 +15,7 @@ export const slug = (unique: string = 'global', reserved: string[] = []) =>
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/i, 'Invalid slug')
     .refine(value => !reserved.includes(value), 'Reserved slug')
     .refine(value => {
-      const exists = getCache(`shared:slug:${unique}`, new Set())
+      const exists = getCache(`schemas:slug:${unique}`, new Set())
       if (exists.has(value)) return false
       exists.add(value)
       return true

@@ -299,7 +299,7 @@ const watch = async (config: Config) => {
       if (filename === config.configPath) {
         // reload config if config file changed
         logger.info(`config changed '${filename}', reloading...`)
-        await resolve(await init(config.configPath, config.output.clean))
+        await resolve(await init(config.configPath, false))
         // TODO: need rewatch files if config file changed
         // const newConfig = await init(config.configPath, config.output.clean)
         // await resolve(newConfig)

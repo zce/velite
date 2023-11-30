@@ -7,10 +7,10 @@ import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
-import { isValidatedStaticPath, outputFile } from '../assets'
+import { rehypeCopyLinkedFiles } from '../assets'
 import { getConfig } from '../config'
 
-import type { Element, Root } from 'hast'
+import type { Root } from 'hast'
 import type { PluggableList, Plugin } from 'unified'
 
 /**
@@ -50,36 +50,6 @@ const remarkRemoveComments: Plugin<[], Root> = () => tree => {
       return ['skip', index] // https://unifiedjs.com/learn/recipe/remove-node/
     }
   })
-}
-
-const rehypeCopyLinkedFiles: Plugin<[], Root> = () => async (tree, file) => {
-  const links = new Map<string, Element[]>()
-  const linkedPropertyNames = ['href', 'src', 'poster']
-
-  visit(tree, 'element', node => {
-    linkedPropertyNames.forEach(name => {
-      const value = node.properties[name]
-      if (typeof value === 'string' && isValidatedStaticPath(value)) {
-        const elements = links.get(value) ?? []
-        elements.push(node)
-        links.set(value, elements)
-      }
-    })
-  })
-
-  await Promise.all(
-    Array.from(links.entries()).map(async ([url, elements]) => {
-      const publicUrl = await outputFile(url, file.path)
-      if (publicUrl == null || publicUrl === url) return
-      elements.forEach(node => {
-        linkedPropertyNames.forEach(name => {
-          if (name in node.properties) {
-            node.properties[name] = publicUrl
-          }
-        })
-      })
-    })
-  )
 }
 
 export const markdown = (options: MarkdownOptions = {}) =>

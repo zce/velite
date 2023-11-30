@@ -2,8 +2,13 @@ import { createHash } from 'node:crypto'
 import { copyFile, readFile } from 'node:fs/promises'
 import { basename, extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
+import { visit } from 'unist-util-visit'
 
 import { getConfig } from './config'
+
+import type { Element, Root as Hast } from 'hast'
+import type { Root as Mdast, Node } from 'mdast'
+import type { Plugin } from 'unified'
 
 /**
  * Image object with metadata & blur image
@@ -146,4 +151,91 @@ export const outputFile = async <T extends string | undefined>(ref: T, fromPath:
 export const outputImage = async <T extends string | undefined>(ref: T, fromPath: string): Promise<Image | T> => {
   if (ref == null) return ref
   return output(ref, fromPath, true) as Promise<Image | T>
+}
+
+/**
+ * rehype plugin to copy linked files to public path and replace their urls with public urls
+ */
+export const rehypeCopyLinkedFiles: Plugin<[], Hast> = () => async (tree, file) => {
+  const links = new Map<string, Element[]>()
+  const linkedPropertyNames = ['href', 'src', 'poster']
+
+  visit(tree, 'element', node => {
+    linkedPropertyNames.forEach(name => {
+      const value = node.properties[name]
+      if (typeof value === 'string' && isValidatedStaticPath(value)) {
+        const elements = links.get(value) ?? []
+        elements.push(node)
+        links.set(value, elements)
+      }
+    })
+  })
+
+  await Promise.all(
+    Array.from(links.entries()).map(async ([url, elements]) => {
+      const publicUrl = await outputFile(url, file.path)
+      if (publicUrl == null || publicUrl === url) return
+      elements.forEach(node => {
+        linkedPropertyNames.forEach(name => {
+          if (name in node.properties) {
+            node.properties[name] = publicUrl
+          }
+        })
+      })
+    })
+  )
+}
+
+/**
+ * remark plugin to copy linked files to public path and replace their urls with public urls
+ */
+export const remarkCopyLinkedFiles: Plugin<[], Mdast> = () => async (tree, file) => {
+  const links = new Map<string, Node[]>()
+
+  visit(tree, ['link', 'image', 'definition'], (node: any) => {
+    if (isValidatedStaticPath(node.url)) {
+      const nodes = links.get(node.url) || []
+      nodes.push(node)
+      links.set(node.url, nodes)
+    }
+  })
+
+  visit(tree, 'mdxJsxFlowElement', node => {
+    node.attributes.forEach((attr: any) => {
+      if (['href', 'src', 'poster'].includes(attr.name) && typeof attr.value === 'string' && isValidatedStaticPath(attr.value)) {
+        const nodes = links.get(attr.value) || []
+        nodes.push(node)
+        links.set(attr.value, nodes)
+      }
+    })
+  })
+
+  await Promise.all(
+    Array.from(links.entries()).map(async ([url, nodes]) => {
+      const publicUrl = await outputFile(url, file.path)
+      if (publicUrl == null || publicUrl === url) return
+      nodes.forEach((node: any) => {
+        if ('url' in node && node.url === url) {
+          node.url = publicUrl
+          return
+        }
+        if ('href' in node && node.href === url) {
+          node.href = publicUrl
+          return
+        }
+
+        node.attributes.forEach((attr: any) => {
+          if (attr.name === 'src' && attr.value === url) {
+            attr.value = publicUrl
+          }
+          if (attr.name === 'href' && attr.value === url) {
+            attr.value = publicUrl
+          }
+          if (attr.name === 'poster' && attr.value === url) {
+            attr.value = publicUrl
+          }
+        })
+      })
+    })
+  )
 }

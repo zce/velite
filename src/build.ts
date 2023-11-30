@@ -169,7 +169,7 @@ const parse = async (path: string, schema: ZodType): Promise<VFile> => {
     const loader = resolveLoader(file.path)
     if (loader == null) throw new Error(`no loader found for '${file.path}'`)
 
-    file.value = await readFile(file.path, 'utf8')
+    file.value = await readFile(file.path)
 
     const original = await loader.load(file)
     if (original == null) throw new Error('no data parsed from this file')
@@ -188,9 +188,7 @@ const parse = async (path: string, schema: ZodType): Promise<VFile> => {
         const result = await schema.safeParseAsync(item, { path })
         if (result.success) return result.data
         // report error if parsing failed
-        result.error.issues.forEach(issue => {
-          file.message(issue.message, { source: issue.path.slice(1).join('.') })
-        })
+        result.error.issues.forEach(issue => file.message(issue.message, { source: issue.path.slice(1).join('.') }))
       })
     )
 

@@ -120,9 +120,16 @@ export interface PluginConfig {
 }
 
 /**
+ * Result
+ */
+type Result<T extends Collections> = {
+  [name in keyof T]: T[name]['single'] extends true ? T[name]['schema']['_output'] : Array<T[name]['schema']['_output']>
+}
+
+/**
  * Config
  */
-export interface Config<C extends Collections = Collections> extends Partial<PluginConfig> {
+export interface Config<T extends Collections = Collections> extends Partial<PluginConfig> {
   /**
    * resolved config file path
    */
@@ -139,16 +146,14 @@ export interface Config<C extends Collections = Collections> extends Partial<Plu
   /**
    * Collections
    */
-  collections: C
+  collections: T
   /**
    * Data prepare hook, before write to file
    * @description
    * You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files.
    * return false to prevent the default output to a file if you wanted
    */
-  prepare?: (data: {
-    [name in keyof C]: C[name]['single'] extends true ? C[name]['schema']['_output'] : Array<C[name]['schema']['_output']>
-  }) => Promisable<void | false>
+  prepare?: (data: Result<T>) => Promisable<void | false>
   /**
    * Build success hook
    * @description
@@ -160,7 +165,7 @@ export interface Config<C extends Collections = Collections> extends Partial<Plu
 /**
  * User config
  */
-export interface UserConfig<C extends Collections = Collections> extends Omit<Partial<Config<C>>, 'configPath' | 'output'> {
+export interface UserConfig<T extends Collections = Collections> extends Omit<Partial<Config<T>>, 'configPath' | 'output'> {
   /**
    * Output configuration
    */
@@ -175,7 +180,7 @@ let config: Config | null = null
  */
 export const getConfig = (): Config => {
   if (config != null) return config
-  throw new Error(`config not resolved, ensure 'resolveConfig' called before`)
+  throw new Error("config not resolved, ensure 'resolveConfig' called before")
 }
 
 /**
@@ -196,7 +201,7 @@ const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: 
     }
   }
   if (depth > 0 && !(cwd === '/' || cwd.endsWith(':\\'))) {
-    return searchFiles(files, resolve(cwd, '..'), depth - 1)
+    return await searchFiles(files, resolve(cwd, '..'), depth - 1)
   }
 }
 
@@ -251,10 +256,10 @@ interface ConfigOptions {
 export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {}): Promise<Config> => {
   const begin = performance.now()
   // set log level
-  logLevel && logger.set(logLevel)
+  logLevel != null && logger.set(logLevel)
 
   // prettier-ignore
-  const files = path != null ? [path]: [
+  const files = path != null ? [path] : [
     name + '.config.js',
     name + '.config.ts',
     name + '.config.mjs',
@@ -268,7 +273,7 @@ export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {
 
   const { root, output, collections, ...rest } = await loadConfig(configPath)
 
-  if (collections == null) throw new Error(`'collections' is required in config file`)
+  if (collections == null) throw new Error("'collections' is required in config file")
 
   const cwd = dirname(configPath)
 

@@ -4,7 +4,7 @@ import { basename, extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
 import { visit } from 'unist-util-visit'
 
-import { getCache } from './cache'
+import { cache } from './cache'
 import { getConfig } from './config'
 
 import type { Element, Root as Hast, Nodes as HNodes } from 'hast'
@@ -98,6 +98,7 @@ const output = async (ref: string, fromPath: string, isImage?: true): Promise<Im
       case 'name':
         return basename(ref, extname(ref)).slice(0, length)
       case 'hash':
+        // TODO: md5 is slow and not-FIPS compliant, consider using sha256
         // https://github.com/joshwiens/hash-perf
         // https://stackoverflow.com/q/2722943
         // https://stackoverflow.com/q/14139727
@@ -111,19 +112,17 @@ const output = async (ref: string, fromPath: string, isImage?: true): Promise<Im
   const dest = join(output.assets, filename)
 
   if (isImage !== true) {
-    const copied = getCache('assets:files', new Set<string>())
-    if (copied.has(filename)) return output.base + filename
-    copied.add(filename) // add to cache before copy to prevent async call loop
+    if (cache.has(`assets:file:${filename}`)) return output.base + filename
+    cache.set(`assets:file:${filename}`, true) // add to cache before copy to prevent async call loop
     await copyFile(from, dest)
     return output.base + filename
   }
 
-  const copied = getCache('assets:images', new Map<string, Image>())
-  if (copied.has(filename)) return copied.get(filename)!
+  if (cache.has(`assets:image:${filename}`)) return cache.get(`assets:image:${filename}`)!
   const metadata = await getImageMetadata(source)
   if (metadata == null) throw new Error(`invalid image: ${from}`)
   const img = { src: output.base + filename, ...metadata }
-  copied.set(filename, img) // add to cache before copy to prevent async call loop
+  cache.set(`assets:image:${filename}`, img) // add to cache before copy to prevent async call loop
   await copyFile(from, dest)
   return img
 }

@@ -1,15 +1,49 @@
-const cache = new Map<string, any>()
+// memory level cache is enough for Velite. and it's easy & efficient.
+// maybe we can use other cache way in the future if needed.
+// but for now, we just need a simple cache.
 
-export const setCache = (key: string, value: any) => cache.set(key, value)
+const store = new Map<string, any>()
 
-export const hasCache = (key: string) => cache.has(key)
+type Key = `REFRESH:${string}` | `${string}:${string}`
 
-export const deleteCache = (key: string) => cache.delete(key)
-
-export const clearCache = () => cache.clear()
-
-export const getCache = <T = any>(key: string, defaults: T): T => {
-  if (cache.has(key)) return cache.get(key)
-  cache.set(key, defaults)
+/**
+ * get cache value
+ * @param key cache key
+ * @param defaults default value
+ * @returns get cache value, if not exists, set defaults and return defaults
+ */
+const get = <T>(key: Key, defaults?: T): typeof defaults => {
+  if (store.has(key)) return store.get(key)
+  store.set(key, defaults)
   return defaults
 }
+
+/**
+ * set cache value
+ * @param key cache key, namespace is required, start with `REFRESH:` will be auto cleard when rebuild
+ * @param value
+ * @returns
+ */
+const set = (key: Key, value: any) => store.set(key, value)
+
+/**
+ *
+ * @param key cache key, namespace is recommended, add `refreshed:`
+ * @returns
+ */
+const has = (key: Key) => store.has(key)
+
+/**
+ * clear cache
+ * @param prefix cache key prefix
+ */
+const clear = (prefix?: string) => {
+  if (prefix) {
+    const keys = Array.from(store.keys()).filter(key => key.startsWith(prefix))
+    for (const key of keys) store.delete(key)
+  } else {
+    store.clear()
+  }
+}
+
+export const cache = { get, set, has, clear }

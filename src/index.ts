@@ -3,3 +3,4 @@ export { defineConfig, defineCollection, type PluginConfig, type UserConfig } fr
 export { defineLoader, addLoader, removeLoader, type Loader } from './loaders'
 export { outputFile, outputImage, type Image } from './assets'
 export { build, type Options } from './build'
+export { cache } from './cache'

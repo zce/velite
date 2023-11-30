@@ -111,3 +111,25 @@ interface Result {
   [name: string]: Entry | Entry[]
 }
 ```
+
+## `outputFile`
+
+### Signature
+
+```ts
+const outputFile: async <T extends string | undefined>(ref: T, fromPath: string) => Promise<T>
+```
+
+## `outputImage`
+
+### Signature
+
+```ts
+const outputImage: async <T extends string | undefined>(ref: T, fromPath: string) => Promise<Image | T>
+```
+
+## `cache`
+
+- `loaded:${path}`: VFile of loaded file.
+
+...

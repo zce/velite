@@ -8,7 +8,6 @@ import { getConfig } from '../config'
 
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root } from 'mdast'
-import type { Plugin } from 'unified'
 
 /**
  * MDX compiler options
@@ -36,7 +35,7 @@ export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
   outputFormat?: CompileOptions['outputFormat']
 }
 
-const remarkRemoveComments: Plugin<[], Root> = () => tree => {
+const remarkRemoveComments = () => (tree: Root) => {
   visit(tree, ['mdxFlowExpression'], (node, index, parent: any) => {
     if (node.value.match(/\/\*([\s\S]*?)\*\//g)) {
       parent.children.splice(index, 1)

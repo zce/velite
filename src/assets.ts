@@ -4,11 +4,12 @@ import { basename, extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
 import { visit } from 'unist-util-visit'
 
+import { getCache } from './cache'
 import { getConfig } from './config'
 
-import type { Element, Root as Hast } from 'hast'
+import type { Element, Root as Hast, Nodes as HNodes } from 'hast'
 import type { Root as Mdast, Node } from 'mdast'
-import type { Plugin } from 'unified'
+import type { VFile } from 'vfile'
 
 /**
  * Image object with metadata & blur image
@@ -55,21 +56,7 @@ export const isValidatedStaticPath = (url: string): boolean => {
   if (url.startsWith('//')) return false // ignore protocol relative urlet name
   if (absoluteUrlRegex.test(url)) return false // ignore absolute url
   if (absolutePathRegex.test(url)) return false // ignore absolute path
-  const { output } = getConfig()
-  const ext = extname(url).slice(1)
-  return !output.ignore.includes(ext) // ignore file extensions
-}
-
-/**
- * get md5 hash of data
- * @param data source data
- * @returns md5 hash of data
- */
-const md5 = (data: string | Buffer): string => {
-  // https://github.com/joshwiens/hash-perf
-  // https://stackoverflow.com/q/2722943
-  // https://stackoverflow.com/q/14139727
-  return createHash('md5').update(data).digest('hex')
+  return !getConfig().output.ignore.includes(extname(url).slice(1)) // ignore file extensions
 }
 
 /**
@@ -84,8 +71,8 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
   const aspectRatio = width / height
   const blurWidth = 8
   const blurHeight = Math.round(blurWidth / aspectRatio)
-  // prettier-ignore
-  const blurDataURL = await img.resize(blurWidth, blurHeight).webp({ quality: 1 }).toBuffer().then(b => `data:image/webp;base64,${b.toString('base64')}`)
+  const blurImage = await img.resize(blurWidth, blurHeight).webp({ quality: 1 }).toBuffer()
+  const blurDataURL = `data:image/webp;base64,${blurImage.toString('base64')}`
   return { height, width, blurDataURL, blurWidth, blurHeight }
 }
 
@@ -111,7 +98,10 @@ const output = async (ref: string, fromPath: string, isImage?: true): Promise<Im
       case 'name':
         return basename(ref, extname(ref)).slice(0, length)
       case 'hash':
-        return md5(source).slice(0, length)
+        // https://github.com/joshwiens/hash-perf
+        // https://stackoverflow.com/q/2722943
+        // https://stackoverflow.com/q/14139727
+        return createHash('md5').update(source).digest('hex').slice(0, length)
       case 'ext':
         return extname(ref).slice(1).slice(0, length)
     }
@@ -120,15 +110,22 @@ const output = async (ref: string, fromPath: string, isImage?: true): Promise<Im
 
   const dest = join(output.assets, filename)
 
-  if (isImage == null) {
+  if (isImage !== true) {
+    const copied = getCache('assets:files', new Set<string>())
+    if (copied.has(filename)) return output.base + filename
+    copied.add(filename) // add to cache before copy to prevent async call loop
     await copyFile(from, dest)
     return output.base + filename
   }
 
-  const img = await getImageMetadata(source)
-  if (img == null) return ref
+  const copied = getCache('assets:images', new Map<string, Image>())
+  if (copied.has(filename)) return copied.get(filename)!
+  const metadata = await getImageMetadata(source)
+  if (metadata == null) throw new Error(`invalid image: ${from}`)
+  const img = { src: output.base + filename, ...metadata }
+  copied.set(filename, img) // add to cache before copy to prevent async call loop
   await copyFile(from, dest)
-  return { src: output.base + filename, ...img }
+  return img
 }
 
 /**
@@ -153,10 +150,7 @@ export const outputImage = async <T extends string | undefined>(ref: T, fromPath
   return output(ref, fromPath, true) as Promise<Image | T>
 }
 
-/**
- * rehype plugin to copy linked files to public path and replace their urls with public urls
- */
-export const rehypeCopyLinkedFiles: Plugin<[], Hast> = () => async (tree, file) => {
+export const extractHastLinkedFiles = async (tree: HNodes, from: string) => {
   const links = new Map<string, Element[]>()
   const linkedPropertyNames = ['href', 'src', 'poster']
 
@@ -173,7 +167,7 @@ export const rehypeCopyLinkedFiles: Plugin<[], Hast> = () => async (tree, file) 
 
   await Promise.all(
     Array.from(links.entries()).map(async ([url, elements]) => {
-      const publicUrl = await outputFile(url, file.path)
+      const publicUrl = await outputFile(url, from)
       if (publicUrl == null || publicUrl === url) return
       elements.forEach(node => {
         linkedPropertyNames.forEach(name => {
@@ -187,10 +181,16 @@ export const rehypeCopyLinkedFiles: Plugin<[], Hast> = () => async (tree, file) 
 }
 
 /**
+ * rehype plugin to copy linked files to public path and replace their urls with public urls
+ */
+export const rehypeCopyLinkedFiles = () => async (tree: Hast, file: VFile) => extractHastLinkedFiles(tree, file.path)
+
+/**
  * remark plugin to copy linked files to public path and replace their urls with public urls
  */
-export const remarkCopyLinkedFiles: Plugin<[], Mdast> = () => async (tree, file) => {
+export const remarkCopyLinkedFiles = () => async (tree: Mdast, file: VFile) => {
   const links = new Map<string, Node[]>()
+  const linkedPropertyNames = ['href', 'src', 'poster']
 
   visit(tree, ['link', 'image', 'definition'], (node: any) => {
     if (isValidatedStaticPath(node.url)) {
@@ -202,7 +202,7 @@ export const remarkCopyLinkedFiles: Plugin<[], Mdast> = () => async (tree, file)
 
   visit(tree, 'mdxJsxFlowElement', node => {
     node.attributes.forEach((attr: any) => {
-      if (['href', 'src', 'poster'].includes(attr.name) && typeof attr.value === 'string' && isValidatedStaticPath(attr.value)) {
+      if (linkedPropertyNames.includes(attr.name) && typeof attr.value === 'string' && isValidatedStaticPath(attr.value)) {
         const nodes = links.get(attr.value) || []
         nodes.push(node)
         links.set(attr.value, nodes)
@@ -219,21 +219,13 @@ export const remarkCopyLinkedFiles: Plugin<[], Mdast> = () => async (tree, file)
           node.url = publicUrl
           return
         }
-        if ('href' in node && node.href === url) {
-          node.href = publicUrl
-          return
-        }
 
         node.attributes.forEach((attr: any) => {
-          if (attr.name === 'src' && attr.value === url) {
-            attr.value = publicUrl
-          }
-          if (attr.name === 'href' && attr.value === url) {
-            attr.value = publicUrl
-          }
-          if (attr.name === 'poster' && attr.value === url) {
-            attr.value = publicUrl
-          }
+          linkedPropertyNames.forEach(name => {
+            if (attr.name === name && attr.value === url) {
+              attr.value = publicUrl
+            }
+          })
         })
       })
     })

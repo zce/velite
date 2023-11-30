@@ -11,7 +11,7 @@ import { rehypeCopyLinkedFiles } from '../assets'
 import { getConfig } from '../config'
 
 import type { Root } from 'hast'
-import type { PluggableList, Plugin } from 'unified'
+import type { PluggableList } from 'unified'
 
 /**
  * Markdown options
@@ -42,7 +42,7 @@ export interface MarkdownOptions {
   rehypePlugins?: PluggableList
 }
 
-const remarkRemoveComments: Plugin<[], Root> = () => tree => {
+const remarkRemoveComments = () => (tree: Root) => {
   // https://github.com/alvinometric/remark-remove-comments/blob/main/transformer.js
   visit(tree, ['html', 'jsx'], (node: any, index, parent: any) => {
     if (node.value.match(/<!--([\s\S]*?)-->/g)) {

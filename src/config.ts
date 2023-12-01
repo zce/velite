@@ -123,7 +123,7 @@ export interface PluginConfig {
  * Result
  */
 type Result<T extends Collections> = {
-  [name in keyof T]: T[name]['single'] extends true ? T[name]['schema']['_output'] : Array<T[name]['schema']['_output']>
+  [N in keyof T]: T[N]['single'] extends true ? T[N]['schema']['_output'] : Array<T[N]['schema']['_output']>
 }
 
 /**

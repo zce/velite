@@ -25,13 +25,6 @@ interface Result {
   [name: string]: Entry | Entry[]
 }
 
-declare module 'vfile' {
-  interface DataMap {
-    original: Entry | Entry[]
-    parsed: Entry | Entry[]
-  }
-}
-
 /**
  * build options
  */

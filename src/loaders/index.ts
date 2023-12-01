@@ -1,4 +1,3 @@
-import { getConfig } from '../config'
 import json from './json'
 import matter from './matter'
 import yaml from './yaml'
@@ -7,6 +6,7 @@ import type { VFile } from 'vfile'
 
 type Entry = Record<string, any>
 type Promisable<T> = T | Promise<T>
+type Load = (file: VFile) => Promisable<Entry | Entry[] | undefined>
 
 /**
  * File loader
@@ -30,28 +30,50 @@ export interface Loader {
    * @param file vfile
    * @returns entry or entries
    */
-  load: (file: VFile) => Promisable<Entry | Entry[] | undefined>
+  load: Load
 }
 
-const builtInloaders: Loader[] = [json, yaml, matter]
+const loaders: Loader[] = [json, yaml, matter]
 
-export const addLoader = (loader: Loader): void => {
-  const index = builtInloaders.findIndex(item => item.name === loader.name)
-  if (index === -1) {
-    builtInloaders.unshift(loader)
-  } else {
-    builtInloaders[index] = loader
-  }
+/**
+ * add custom loaders
+ * @param list custom loaders
+ */
+export const addLoader = (...list: Loader[]): void => {
+  list.forEach(loader => {
+    const index = loaders.findIndex(item => item.name === loader.name)
+    if (index === -1) loaders.unshift(loader)
+    else loaders[index] = loader
+  })
 }
 
+/**
+ * remove loader by name
+ * @param name loader name
+ */
 export const removeLoader = (name: string): void => {
-  const index = builtInloaders.findIndex(loader => loader.name === name)
-  index !== -1 && builtInloaders.splice(index, 1)
+  const index = loaders.findIndex(loader => loader.name === name)
+  index !== -1 && loaders.splice(index, 1)
 }
 
+/**
+ * resolve loader by filename
+ * @param filename load file path
+ * @returns loader
+ */
 export const resolveLoader = (filename: string): Loader | undefined => {
-  const { loaders } = getConfig()
-  return [...(loaders || []), ...builtInloaders].find(loader => loader.test.test(filename))
+  return loaders.find(loader => loader.test.test(filename))
+}
+
+/**
+ * load file
+ * @param file file need to load
+ * @returns result
+ */
+export const loadFile: Load = async file => {
+  const loader = resolveLoader(file.path)
+  if (loader == null) throw new Error(`no loader found for '${file.path}'`)
+  return await loader.load(file)
 }
 
 /**

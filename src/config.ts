@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 
 import { name } from '../package.json'
+import { addLoader } from './loaders'
 import { logger } from './logger'
 
 import type { Loader } from './loaders'
@@ -106,10 +107,6 @@ interface Collections {
  */
 export interface PluginConfig {
   /**
-   * File loaders
-   */
-  loaders: Loader[]
-  /**
    * Markdown options
    */
   markdown: MarkdownOptions
@@ -170,6 +167,10 @@ export interface UserConfig<T extends Collections = Collections> extends Omit<Pa
    * Output configuration
    */
   output?: Partial<Output>
+  /**
+   * File loaders
+   */
+  loaders?: Loader[]
 }
 
 let config: Config | null = null
@@ -271,14 +272,19 @@ export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {
   const configPath = await searchFiles(files)
   if (configPath == null) throw new Error(`config file not found, create '${name}.config.ts' in your project root directory`)
 
-  const { root, output, collections, ...rest } = await loadConfig(configPath)
+  const { root, output, collections, loaders, ...rest } = await loadConfig(configPath)
 
   if (collections == null) throw new Error("'collections' is required in config file")
 
   const cwd = dirname(configPath)
 
+  // register loaders
+  loaders != null && addLoader(...loaders)
+
   config = {
     ...rest,
+    configPath,
+    collections,
     root: resolve(cwd, root ?? 'content'),
     output: {
       data: resolve(cwd, output?.data ?? '.velite'),
@@ -287,9 +293,7 @@ export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {
       filename: output?.filename ?? '[name]-[hash:8].[ext]',
       ignore: output?.ignore ?? [],
       clean: clean ?? output?.clean ?? false
-    },
-    collections,
-    configPath
+    }
   }
 
   logger.log(`using config '${configPath}'`, begin)

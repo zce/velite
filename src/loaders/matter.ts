@@ -1,17 +1,16 @@
 import { basename } from 'node:path'
 import yaml from 'yaml'
 
-import type { Loader } from '.'
+import { defineLoader } from '../types'
 
 // https://github.com/vfile/vfile-matter/blob/main/lib/index.js
-const fmRegex = /^---(?:\r?\n|\r)(?:([\s\S]*?)(?:\r?\n|\r))?---(?:\r?\n|\r|$)/
+const matterRegex = /^---(?:\r?\n|\r)(?:([\s\S]*?)(?:\r?\n|\r))?---(?:\r?\n|\r|$)/
 
-export default {
-  name: 'matter',
+export default defineLoader({
   test: /\.(md|mdx)$/,
   load: async file => {
     const raw = file.toString().trim()
-    const match = raw.match(fmRegex)
+    const match = raw.match(matterRegex)
     const data = match == null ? {} : yaml.parse(match[1])
 
     // default data fields
@@ -31,4 +30,4 @@ export default {
 
     return data
   }
-} satisfies Loader
+})

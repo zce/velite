@@ -11,36 +11,6 @@ import type { Element, Root as Hast, Nodes as HNodes } from 'hast'
 import type { Root as Mdast, Node } from 'mdast'
 import type { VFile } from 'vfile'
 
-/**
- * Image object with metadata & blur image
- */
-export interface Image {
-  /**
-   * public url of the image
-   */
-  src: string
-  /**
-   * image width
-   */
-  width: number
-  /**
-   * image height
-   */
-  height: number
-  /**
-   * blurDataURL of the image
-   */
-  blurDataURL: string
-  /**
-   * blur image width
-   */
-  blurWidth: number
-  /**
-   * blur image height
-   */
-  blurHeight: number
-}
-
 // https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
 const absoluteUrlRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
 const absolutePathRegex = /^(\/[^/\\]|[a-zA-Z]:\\)/

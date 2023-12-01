@@ -1,29 +1,15 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, normalize, relative } from 'node:path'
 import glob from 'fast-glob'
 import micromatch from 'micromatch'
-import { VFile } from 'vfile'
-import { reporter } from 'vfile-reporter'
 
 import { cache } from './cache'
 import { resolveConfig } from './config'
-import { resolveLoader } from './loaders'
+import { load } from './file'
 import { logger } from './logger'
 
-import type { Config } from './config'
 import type { LogLevel } from './logger'
-import type { ZodType } from 'zod'
-
-interface Entry {
-  [key: string]: any
-}
-
-/**
- * build result, may be one or more entries in a document file
- */
-interface Result {
-  [name: string]: Entry | Entry[]
-}
+import type { Config } from './types'
 
 /**
  * build options
@@ -68,64 +54,6 @@ const emit = async (path: string, content: string, log?: string): Promise<void> 
 }
 
 /**
- * parse file with given schema
- * @param path file path
- * @param schema Zod schema
- * @returns file instance with parsed data
- */
-const load = async (path: string, schema: ZodType, changed?: string): Promise<VFile> => {
-  if (changed != null && path !== changed && cache.has(`loaded:${path}`)) {
-    // skip file if changed file not match
-    logger.log(`skipped load '${path}', using previous loaded`)
-    return cache.get(`loaded:${path}`)!
-  }
-
-  const file = new VFile({ path })
-  cache.set(`loaded:${path}`, file) // add to cache before parse to provide custom schema access
-
-  try {
-    if (file.extname == null) throw new Error('can not parse file without extension')
-
-    const loader = resolveLoader(file.path)
-    if (loader == null) throw new Error(`no loader found for '${file.path}'`)
-
-    file.value = await readFile(file.path)
-
-    const original = await loader.load(file)
-    if (original == null) throw new Error('no data parsed from this file')
-
-    file.data.original = original // provide original data for schema access
-
-    // may be one or more records in one file, such as yaml array or json array
-    const isArr = Array.isArray(original)
-    const list = isArr ? original : [original]
-
-    const processed = await Promise.all(
-      list.map(async (item, index) => {
-        // provide path for error reporting & relative path for reference
-        const path: (string | number)[] = [file.path]
-        // only push index if list has more than one item
-        isArr && path.push(index)
-        // parse data with given schema
-        const result = await schema.safeParseAsync(item, { path })
-        if (result.success) return result.data
-        // report error if parsing failed
-        result.error.issues.forEach(issue => file.message(issue.message, { source: issue.path.slice(1).join('.') }))
-      })
-    )
-
-    logger.log(`loaded '${file.path}' with ${loader.name} loader, got ${processed.length} items (${isArr ? 'array' : 'object'})`)
-
-    // set parsed data to file
-    file.data.parsed = isArr ? processed[0] : processed
-  } catch (err: any) {
-    file.message(err.message)
-  }
-
-  return file
-}
-
-/**
  * resolve collections from content root
  * @param config resolved config
  * @param changed changed file path (relative to content root)
@@ -138,7 +66,7 @@ const resolve = async ({ root, output, collections, prepare, complete }: Config,
 
   logger.log(`resolving collections from '${root}'`)
 
-  const tasks = Object.entries(collections).map(async ([name, collection]): Promise<[string, Entry | Entry[]]> => {
+  const tasks = Object.entries(collections).map(async ([name, collection]): Promise<[string, Data]> => {
     if (changed != null && !micromatch.contains(changed, collection.pattern) && cache.has(`resolved:${name}`)) {
       // skip collection if changed file not match
       logger.log(`skipped resolve '${name}', using previous resolved`)
@@ -150,28 +78,22 @@ const resolve = async ({ root, output, collections, prepare, complete }: Config,
     const filenames = await glob(collection.pattern, { cwd: root, onlyFiles: true, ignore: ['**/_*'], absolute: true })
     logger.log(`resolve ${filenames.length} files matching '${collection.pattern}'`)
 
-    const files = await Promise.all(filenames.map(filename => load(normalize(filename), collection.schema, changed)))
-
-    // report if any error in parsing
-    const report = reporter(files, { quiet: true })
-    report.length > 0 && logger.warn(report)
-
     // prettier-ignore
-    const entries = files.map(file => file.data.parsed).flat().filter(Boolean) as Entry[]
+    const data = await Promise.all(filenames.map(filename => load(normalize(filename), collection.schema)))
 
     if (collection.single) {
-      if (entries.length === 0) throw new Error(`no data parsed for '${name}'`)
-      if (entries.length > 1) logger.warn(`resolved ${entries.length} ${name}, but expected single, using first one`)
+      if (data.length === 0) throw new Error(`no data parsed for '${name}'`)
+      if (data.length > 1) logger.warn(`resolved ${data.length} ${name}, but expected single, using first one`)
       else logger.log(`resolved 1 ${name}`, begin)
       // cache result for rebuild
-      cache.set(`resolved:${name}`, entries[0])
-      return [name, entries[0]]
+      cache.set(`resolved:${name}`, data[0])
+      return [name, data[0]]
     }
 
-    logger.log(`resolved ${entries.length} ${name}`, begin)
+    logger.log(`resolved ${data.length} ${name}`, begin)
     // cache result for rebuild
-    cache.set(`resolved:${name}`, entries)
-    return [name, entries]
+    cache.set(`resolved:${name}`, data)
+    return [name, data] as [string, Data]
   })
 
   const result = Object.fromEntries(await Promise.all(tasks))
@@ -181,7 +103,7 @@ const resolve = async ({ root, output, collections, prepare, complete }: Config,
   // apply prepare hook
   if (typeof prepare === 'function') {
     const begin = performance.now()
-    shouldOutput = (await prepare(result as Record<string, any>)) ?? true
+    shouldOutput = (await prepare(result)) ?? true
     logger.log(`executed 'prepare' callback got ${shouldOutput}`, begin)
   }
 
@@ -218,13 +140,12 @@ const resolve = async ({ root, output, collections, prepare, complete }: Config,
  * initialize
  * @param configFile specify config file path
  * @param clean clean output directories
- * @param logLevel log level
  * @returns resolved config
  */
-const init = async (configFile?: string, clean?: boolean, logLevel?: LogLevel): Promise<Config> => {
+const init = async (configFile?: string, clean?: boolean): Promise<Config> => {
   const begin = performance.now()
-  // resolve config
-  const config = await resolveConfig({ path: configFile, clean, logLevel })
+
+  const config = await resolveConfig(configFile, clean)
   const { configPath, output, collections } = config
 
   if (output.clean) {
@@ -319,7 +240,10 @@ export const build = async (options: Options = {}): Promise<Result> => {
   const begin = performance.now()
   const { config: configFile, clean, logLevel } = options
 
-  const config = await init(configFile, clean, logLevel)
+  // set log level
+  logLevel != null && logger.set(logLevel)
+
+  const config = await init(configFile, clean)
   const result = await resolve(config)
 
   logger.info(`build finished`, begin)

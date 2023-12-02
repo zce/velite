@@ -103,7 +103,7 @@ export interface Loader {
    * Load file data to `file.data`
    * @param file vfile
    */
-  load: (file: VFile) => Promisable<void>
+  load: (file: VFile) => Promisable<{ data: any; body?: string }>
 }
 
 /**

@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+import { basename } from 'node:path'
 import { VFile } from 'vfile'
 import { reporter } from 'vfile-reporter'
 
@@ -14,7 +15,7 @@ export type Entry = Record<string, unknown>
 
 declare module 'vfile' {
   interface DataMap {
-    meta: Entry | Entry[]
+    data: Entry | Entry[]
     body: string
   }
 }
@@ -43,6 +44,10 @@ class File extends VFile {
     cache.set(path, this)
   }
 
+  get fluttenPath(): string {
+    return this.stem === 'index' ? basename(this.dirname!) : this.stem!
+  }
+
   get body(): string | undefined {
     return this.data.body
   }
@@ -61,7 +66,7 @@ class File extends VFile {
       const loader = resolveLoader(this.path)
       if (loader == null) throw new Error(`no loader found for file '${this.path}'`)
       this.value = await readFile(this.path)
-      this.data.original = await loader.load(this)
+      this.data.data = await loader.load(this)
       this.status = 'loaded'
     } catch (err: any) {
       this.fail(err.message)

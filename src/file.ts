@@ -27,6 +27,7 @@ declare module 'vfile' {
 const cache = new Map<string, File>()
 
 class File extends VFile {
+  // private id: string
   /**
    * file status
    * - initial: just created, only path is available
@@ -40,11 +41,16 @@ class File extends VFile {
 
   constructor(path: string) {
     super({ path })
+    // this.id = this.basename
     this.status = 'initial'
     cache.set(path, this)
   }
 
-  get fluttenPath(): string {
+  // get flattenedPath(): string {
+  //   return this.stem === 'index' ? basename(this.dirname!) : this.stem!
+  // }
+
+  get slug(): string {
     return this.stem === 'index' ? basename(this.dirname!) : this.stem!
   }
 

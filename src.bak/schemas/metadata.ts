@@ -91,15 +91,14 @@ export interface Metadata {
 }
 
 export const metadata = () =>
-  z.custom().transform((value, ctx) => {
-    return ''
-    // try {
-    //   const mdast = fromMarkdown(value)
-    //   const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
-    //   const content = toString(hast)
-    //   return getMetadata(content)
-    // } catch (err: any) {
-    //   ctx.addIssue({ code: 'custom', message: err.message })
-    //   return { readingTime: 0, wordCount: 0 } as Metadata
-    // }
+  z.string().transform((value, ctx) => {
+    try {
+      const mdast = fromMarkdown(value)
+      const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
+      const content = toString(hast)
+      return getMetadata(content)
+    } catch (err: any) {
+      ctx.addIssue({ code: 'custom', message: err.message })
+      return { readingTime: 0, wordCount: 0 } as Metadata
+    }
   })

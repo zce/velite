@@ -1,6 +1,6 @@
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { PluggableList } from 'unified'
-import type { Data, VFile } from 'vfile'
+import type { VFile } from 'vfile'
 import type { ZodType } from 'zod'
 
 type Promisable<T> = T | Promise<T>
@@ -87,55 +87,27 @@ export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
    * Output format to generate.
    * @default 'function-body'
    */
-  outputFormat?: CompileOptions['outputFormat']
-}
-
-declare module 'vfile' {
-  interface DataMap {
-    /**
-     * original data loaded from file
-     */
-    data: unknown
-    /**
-     * content excerpt
-     */
-    excerpt: string
-    /**
-     * content without frontmatter
-     */
-    content: string
-    /**
-     * reference assets
-     */
-    assets: Record<string, string>
-  }
+  outputFormat: CompileOptions['outputFormat']
 }
 
 /**
  * File loader
  */
 export interface Loader {
-  // /**
-  //  * Loader name
-  //  * @description
-  //  * The same name will overwrite the built-in loader,
-  //  * built-in loaders: 'json', 'yaml', 'matter'
-  //  */
-  // name?: string
   /**
    * File test regexp
    * @example /\.md$/
    */
   test: RegExp
   /**
-   * Load file data from file.value
+   * Load file data to `file.data`
    * @param file vfile
    */
-  load: (file: VFile) => Promisable<Data>
+  load: (file: VFile) => Promisable<{ data: any; body?: string }>
 }
 
 /**
- * This interface for plugins extra user config
+ * This interface for plugins extension user config
  * @example
  * declare module 'velite' {
  *   interface PluginConfig {
@@ -177,11 +149,6 @@ export interface Output {
   /**
    * The public base path of the assets
    * @default '/static/'
-   * @example
-   * '/' -> '/image.png'
-   * '/static/' -> '/static/image.png'
-   * './static/' -> './static/image.png'
-   * 'https://cdn.example.com/' -> 'https://cdn.example.com/image.png'
    */
   base: '/' | `/${string}/` | `.${string}/` | `${string}:${string}/`
   /**
@@ -246,60 +213,16 @@ export interface Collections {
 }
 
 /**
- * Collection name
+ * Result
  */
-export type CollectionName<T extends Collection> = keyof T
-
-/**
- * Collection result
- */
-export type CollectionResult<T extends Collection> = T['single'] extends true ? T['schema']['_output'] : Array<T['schema']['_output']>
-
-/**
- * All collections result
- */
-export type Result<T extends Collections> = {
-  [K in keyof T]: CollectionResult<T[K]>
+type Result<T extends Collections> = {
+  [N in keyof T]: T[N]['single'] extends true ? T[N]['schema']['_output'] : Array<T[N]['schema']['_output']>
 }
 
 /**
- * Velite user configuration
+ * Config
  */
 export interface Config<T extends Collections = Collections> extends Partial<PluginConfig> {
-  /**
-   * The root directory of the contents (relative to config file).
-   * @default 'content'
-   */
-  root?: string
-  /**
-   * Output configuration
-   */
-  output?: Partial<Output>
-  /**
-   * All collections
-   */
-  collections: T
-  /**
-   * Data prepare hook, before write to file
-   * @description
-   * You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files.
-   * return false to prevent the default output to a file if you wanted
-   * @param data loaded data
-   */
-  prepare?: (data: Result<T>) => Promisable<void | false>
-  /**
-   * Build success hook
-   * @description
-   * You can do anything after the build is complete, such as print some tips or deploy the output files.
-   * @param data loaded data
-   */
-  complete?: (data: Result<T>) => Promisable<void>
-}
-
-/**
- * Resolved configuration
- */
-export interface ResolvedConfig<T extends Collections = Collections> extends Partial<PluginConfig> {
   /**
    * resolved config file path
    */
@@ -314,7 +237,7 @@ export interface ResolvedConfig<T extends Collections = Collections> extends Par
    */
   output: Output
   /**
-   * All collections
+   * Collections
    */
   collections: T
   /**
@@ -322,16 +245,26 @@ export interface ResolvedConfig<T extends Collections = Collections> extends Par
    * @description
    * You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files.
    * return false to prevent the default output to a file if you wanted
-   * @param data loaded data
+   * @param result loaded data
    */
-  prepare?: (data: Result<T>) => Promisable<void | false>
+  prepare?: (result: Result<T>) => Promisable<void | false>
   /**
    * Build success hook
    * @description
    * You can do anything after the build is complete, such as print some tips or deploy the output files.
-   * @param data loaded data
+   * @param result loaded data
    */
-  complete?: (data: Result<T>) => Promisable<void>
+  complete?: (result: Result<T>) => Promisable<void>
+}
+
+/**
+ * User config
+ */
+export interface UserConfig<T extends Collections = Collections> extends Omit<Partial<Config<T>>, 'configPath' | 'output'> {
+  /**
+   * Output configuration
+   */
+  output?: Partial<Output>
 }
 
 // ↓↓↓ identity functions for type inference
@@ -349,4 +282,4 @@ export const defineLoader = (loader: Loader) => loader
 /**
  * Define config (identity function for type inference)
  */
-export const defineConfig = <C extends Collections>(config: Config<C>) => config
+export const defineConfig = <C extends Collections>(config: UserConfig<C>) => config

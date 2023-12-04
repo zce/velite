@@ -1,6 +1,3 @@
+export { defineConfig, defineCollection, defineLoader, type PluginConfig, type Config, type Loader } from './types'
+export { build } from './build'
 export * from './schemas'
-export { defineConfig, defineCollection, type PluginConfig, type UserConfig } from './config'
-export { defineLoader, addLoader, removeLoader, type Loader } from './loaders'
-export { outputFile, outputImage, type Image } from './assets'
-export { build, type Options } from './build'
-export { cache } from './cache'

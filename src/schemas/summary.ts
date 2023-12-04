@@ -13,14 +13,15 @@ export interface SummaryOptions {
 }
 
 export const summary = ({ length = 260 }: SummaryOptions = {}) =>
-  z.string().transform((value, ctx) => {
-    try {
-      const mdast = fromMarkdown(value)
-      const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
-      const content = toString(hast)
-      return content.replace(/\s+/g, ' ').slice(0, length)
-    } catch (err: any) {
-      ctx.addIssue({ code: 'custom', message: err.message })
-      return ''
-    }
+  z.custom().transform((value, ctx) => {
+    return ''
+    // try {
+    //   const mdast = fromMarkdown(value)
+    //   const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
+    //   const content = toString(hast)
+    //   return content.replace(/\s+/g, ' ').slice(0, length)
+    // } catch (err: any) {
+    //   ctx.addIssue({ code: 'custom', message: err.message })
+    //   return ''
+    // }
   })

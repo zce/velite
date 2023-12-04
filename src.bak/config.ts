@@ -1,21 +1,21 @@
 import { access } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 
 import { name } from '../package.json'
 import { logger } from './logger'
 
-import type { Config, ResolvedConfig } from './types'
+import type { Config, UserConfig } from './types'
 
-let resolvedConfig: ResolvedConfig | null = null
+let config: Config | null = null
 
 /**
  * get resolved config, must be called after `resolveConfig`
- * @returns resolved config
+ * @returns config object
  */
-export const getConfig = (): ResolvedConfig => {
-  if (resolvedConfig != null) return resolvedConfig
+export const getConfig = (): Config => {
+  if (config != null) return config
   throw new Error("config not resolved, ensure 'resolveConfig' called before")
 }
 
@@ -29,7 +29,7 @@ export const getConfig = (): ResolvedConfig => {
 const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: number = 3): Promise<string | undefined> => {
   for (const file of files) {
     try {
-      const path = join(cwd, file)
+      const path = resolve(cwd, file)
       await access(path) // check file exists
       return path
     } catch {
@@ -37,24 +37,22 @@ const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: 
     }
   }
   if (depth > 0 && !(cwd === '/' || cwd.endsWith(':\\'))) {
-    return await searchFiles(files, join(cwd, '..'), depth - 1)
+    return await searchFiles(files, resolve(cwd, '..'), depth - 1)
   }
 }
 
 /**
- * bundle and load user config file
+ * load config module by esbuild
  * @param filename config filename
- * @returns user config module
+ * @returns config module
  */
-const loadConfig = async (filename: string): Promise<Config> => {
-  // TODO: import js (mjs, cjs) config file directly without esbuild
-
+const loadConfig = async (filename: string): Promise<UserConfig> => {
   if (!/\.(js|mjs|cjs|ts|mts|cts)$/.test(filename)) {
     const ext = filename.split('.').pop()
     throw new Error(`not supported config file with '${ext}' extension`)
   }
 
-  const outfile = join(filename, '../node_modules/.velite/config.compiled.mjs')
+  const outfile = resolve(filename, '../node_modules/.velite/config.compiled.mjs')
 
   await build({
     entryPoints: [filename],
@@ -80,7 +78,7 @@ const loadConfig = async (filename: string): Promise<Config> => {
  * @param clean whether to clean output directories, for cli option
  * @returns resolved config object with default values
  */
-export const resolveConfig = async (path?: string, clean?: boolean): Promise<ResolvedConfig> => {
+export const resolveConfig = async (path?: string, clean?: boolean): Promise<Config> => {
   const begin = performance.now()
 
   // prettier-ignore
@@ -103,7 +101,7 @@ export const resolveConfig = async (path?: string, clean?: boolean): Promise<Res
 
   const cwd = dirname(configPath)
 
-  resolvedConfig = {
+  config = {
     ...rest,
     configPath,
     collections,
@@ -118,5 +116,5 @@ export const resolveConfig = async (path?: string, clean?: boolean): Promise<Res
     }
   }
 
-  return resolvedConfig
+  return config
 }

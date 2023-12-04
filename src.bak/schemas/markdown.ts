@@ -7,13 +7,13 @@ import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
-// import { rehypeCopyLinkedFiles } from '../assets'
+import { rehypeCopyLinkedFiles } from '../assets'
 import { getConfig } from '../config'
 import { getFile } from '../file'
 
-import type { MarkdownOptions } from '../types'
 import type { Root } from 'hast'
 import type { PluggableList } from 'unified'
+import type { MarkdownOptions } from '../types'
 
 const remarkRemoveComments = () => (tree: Root) => {
   // https://github.com/alvinometric/remark-remove-comments/blob/main/transformer.js
@@ -27,7 +27,6 @@ const remarkRemoveComments = () => (tree: Root) => {
 
 export const markdown = (options: MarkdownOptions = {}) =>
   z.custom().transform<string>(async (_, ctx) => {
-    return ''
     // // get cached file
     // const file = getFile(ctx.path[0] as string)
     // return file.markdown

@@ -6,7 +6,8 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 import { z } from 'zod'
 
-// import { extractHastLinkedFiles } from '../assets'
+import { extractHastLinkedFiles } from '../assets'
+import { getFile } from '../file'
 
 export interface ExcerptOptions {
   /**
@@ -24,20 +25,22 @@ export interface ExcerptOptions {
 }
 
 export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
-  z.custom().transform(async (value, ctx) => {
-    return value
-    // try {
-    //   // const file = cache.get<VFile>(`loaded:${ctx.path[0]}`)
-    //   // if (file == null) return value
-    //   // const mdast = fromMarkdown(file.data.original.body as string)
-    //   const mdast = fromMarkdown(value)
-    //   const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
-    //   const exHast = hastExcerpt(hast, { comment: separator, maxSearchSize: 1024 })
-    //   const output = exHast ?? truncate(hast, { size: length, ellipsis: '…' })
-    //   await extractHastLinkedFiles(output, ctx.path[0] as string)
-    //   return toHtml(output)
-    // } catch (err: any) {
-    //   ctx.addIssue({ code: 'custom', message: err.message })
-    //   return value
-    // }
+  z.custom<string>().transform(async (value, ctx) => {
+    if (value == null) {
+      value = getFile(ctx.path[0] as string).data.content!
+    }
+    try {
+      // const file = cache.get<VFile>(`loaded:${ctx.path[0]}`)
+      // if (file == null) return value
+      // const mdast = fromMarkdown(file.data.original.body as string)
+      const mdast = fromMarkdown(value)
+      const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
+      const exHast = hastExcerpt(hast, { comment: separator, maxSearchSize: 1024 })
+      const output = exHast ?? truncate(hast, { size: length, ellipsis: '…' })
+      await extractHastLinkedFiles(output, ctx.path[0] as string)
+      return toHtml(output)
+    } catch (err: any) {
+      ctx.addIssue({ code: 'custom', message: err.message })
+      return value
+    }
   })

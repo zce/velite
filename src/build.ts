@@ -4,16 +4,17 @@ import glob from 'fast-glob'
 import micromatch from 'micromatch'
 import reporter from 'vfile-reporter'
 
+import { outputAssets } from './assets'
 import { cache } from './cache'
 import { resolveConfig } from './config'
-import { File, load, report } from './file'
+import { load } from './file'
 import { logger } from './logger'
 
 import type { LogLevel } from './logger'
-import type { CollectionName, CollectionResult, ResolvedConfig, Result } from './types'
+import type { ResolvedConfig } from './types'
 
 // const tree = new Map<string, { [path: string]: File }>()
-
+const resolved = new Map<string, unknown>()
 /**
  * emit file if content changed, reduce disk IO and improve fast refresh in app
  * @param path file path
@@ -90,34 +91,46 @@ const init = async (configFile?: string, clean?: boolean): Promise<ResolvedConfi
  * @returns resolved entries
  */
 const resolve = async ({ root, output, collections, prepare, complete }: ResolvedConfig, changed?: string): Promise<Record<string, unknown>> => {
-  // 1. resolve each collection
-  // 1.1. get all files matching pattern
-  // 1.2. load & parse & validate file
-  // 2. apply prepare hook
-  // 3. copy assets
-  // 3. emit result
-  // 4. apply complete hook
   const begin = performance.now()
-  // cache.clear('REFRESH') // clear need refresh cache
+
+  cache.clear() // clear need refresh cache
+
   logger.log(`resolving collections from '${root}'`)
+
   const tasks = Object.entries(collections).map(async ([name, { pattern, schema, single }]): Promise<[string, any]> => {
+    if (changed != null && !micromatch.contains(changed, pattern) && resolved.has(name)) {
+      // skip collection if changed file not match
+      logger.log(`skipped resolve '${name}', using previous resolved`)
+      return [name, resolved.get(name)!]
+    }
+
     const begin = performance.now()
+
     const paths = await glob(pattern, { cwd: root, absolute: true, onlyFiles: true, ignore: ['**/_*'] })
     logger.log(`resolve ${paths.length} files matching '${pattern}'`)
-    const files = await Promise.all(paths.map(path => load(path, schema)))
+
+    const files = await Promise.all(paths.map(path => load(path, schema, changed)))
+
     const report = reporter(files, { quiet: true })
     report.length > 0 && logger.warn(`${name}:\n${report}`)
+
     const data = files.flatMap(file => file.result).filter(Boolean)
+
     if (single) {
       if (data.length === 0) throw new Error(`no data resolved for '${name}'`)
       if (data.length > 1) logger.warn(`resolved ${data.length} ${name}, but expected single, using first one`)
       else logger.log(`resolved 1 ${name}`, begin)
+      resolved.set(name, data[0])
       return [name, data[0]]
     }
+
     logger.log(`resolved ${data.length} ${name}`, begin)
+    resolved.set(name, data)
     return [name, data]
   })
+
   const result = Object.fromEntries(await Promise.all(tasks))
+
   let shouldOutput = true
   // apply prepare hook
   if (typeof prepare === 'function') {
@@ -125,6 +138,7 @@ const resolve = async ({ root, output, collections, prepare, complete }: Resolve
     shouldOutput = (await prepare(result)) ?? true
     logger.log(`executed 'prepare' callback got ${shouldOutput}`, begin)
   }
+
   if (shouldOutput) {
     const begin = performance.now()
     // emit result if not prevented
@@ -142,13 +156,20 @@ const resolve = async ({ root, output, collections, prepare, complete }: Resolve
   } else {
     logger.warn(`prevent output by 'prepare' callback`)
   }
+
   // call complete hook
   if (typeof complete === 'function') {
     const begin = performance.now()
     await complete(result)
     logger.log(`executed 'complete' callback`, begin)
   }
+
+  const begin1 = performance.now()
+  await outputAssets()
+  logger.log(`output assets`, begin1)
+
   logger.log(`resolved ${Object.keys(result).length} collections`, begin)
+
   return result
 }
 

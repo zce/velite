@@ -104,10 +104,6 @@ declare module 'vfile' {
      * content without frontmatter
      */
     content: string
-    /**
-     * reference assets
-     */
-    assets: Record<string, string>
   }
 }
 

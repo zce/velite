@@ -9,7 +9,7 @@ import { cache } from '../cache'
  */
 export const unique = (by: string = 'global') =>
   z.string().refine(value => {
-    if (cache.has(`REFRESH:schemas:unique:${by}:${value}`)) return false
-    cache.set(`REFRESH:schemas:unique:${by}:${value}`, true)
+    if (cache.has(`schemas:unique:${by}:${value}`)) return false
+    cache.set(`schemas:unique:${by}:${value}`, true)
     return true
   }, 'Already exists')

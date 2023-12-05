@@ -4,6 +4,8 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 import { z } from 'zod'
 
+import { getFile } from '../file'
+
 export interface SummaryOptions {
   /**
    * Summary length.
@@ -13,15 +15,17 @@ export interface SummaryOptions {
 }
 
 export const summary = ({ length = 260 }: SummaryOptions = {}) =>
-  z.custom().transform((value, ctx) => {
-    return ''
-    // try {
-    //   const mdast = fromMarkdown(value)
-    //   const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
-    //   const content = toString(hast)
-    //   return content.replace(/\s+/g, ' ').slice(0, length)
-    // } catch (err: any) {
-    //   ctx.addIssue({ code: 'custom', message: err.message })
-    //   return ''
-    // }
+  z.custom<string>().transform(async (value, ctx) => {
+    if (value == null) {
+      value = getFile(ctx.path[0] as string).data.content!
+    }
+    try {
+      const mdast = fromMarkdown(value)
+      const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
+      const content = toString(hast)
+      return content.replace(/\s+/g, ' ').slice(0, length)
+    } catch (err: any) {
+      ctx.addIssue({ code: 'custom', message: err.message })
+      return ''
+    }
   })

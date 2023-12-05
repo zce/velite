@@ -16,7 +16,7 @@ export const slug = (by: string = 'global', reserved: string[] = []) =>
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/i, 'Invalid slug')
     .refine(value => !reserved.includes(value), 'Reserved slug')
     .refine(value => {
-      if (cache.has(`REFRESH:schemas:slug:${by}:${value}`)) return false
-      cache.set(`REFRESH:schemas:slug:${by}:${value}`, true)
+      if (cache.has(`schemas:slug:${by}:${value}`)) return false
+      cache.set(`schemas:slug:${by}:${value}`, true)
       return true
     }, 'Slug already exists')

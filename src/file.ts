@@ -1,10 +1,8 @@
-import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
-import { basename, extname, join } from 'node:path'
+import { normalize } from 'node:path'
 import { VFile } from 'vfile'
 import { reporter } from 'vfile-reporter'
 
-import { getConfig } from './config'
 import { resolveLoader } from './loaders'
 import { logger } from './logger'
 
@@ -16,17 +14,16 @@ import type { ZodSchema } from 'zod'
 // 3. provide custom schema access
 const cache = new Map<string, File>()
 
-export class File extends VFile {
+class File extends VFile {
   constructor(path: string) {
     super({ path })
   }
 
   async load(): Promise<void> {
     const loader = resolveLoader(this.path)
-    if (loader == null) this.fail(`no loader found for file '${this.path}'`)
+    if (loader == null) this.fail(`no loader found for '${this.path}'`)
     this.value = await readFile(this.path)
     this.data = await loader.load(this)
-    this.data.assets = this.data.assets ?? {}
   }
 
   async parse(schema: ZodSchema): Promise<void> {
@@ -50,35 +47,6 @@ export class File extends VFile {
     )
     this.result = isArr ? processed[0] : processed
   }
-
-  /**
-   * output reference file
-   * @param ref reference path
-   */
-  async outputAsset(ref: string): Promise<string> {
-    const { output } = getConfig()
-    const from = join(this.path, '..', ref)
-    const source = await readFile(from)
-    const filename = output.filename.replace(/\[(name|hash|ext)(:(\d+))?\]/g, (substring, ...groups) => {
-      const key = groups[0]
-      const length = groups[2] == null ? undefined : parseInt(groups[2])
-      switch (key) {
-        case 'name':
-          return basename(ref, extname(ref)).slice(0, length)
-        case 'hash':
-          // TODO: md5 is slow and not-FIPS compliant, consider using sha256
-          // https://github.com/joshwiens/hash-perf
-          // https://stackoverflow.com/q/2722943
-          // https://stackoverflow.com/q/14139727
-          return createHash('md5').update(source).digest('hex').slice(0, length)
-        case 'ext':
-          return extname(ref).slice(1).slice(0, length)
-      }
-      return substring
-    })
-    this.data.assets![filename] = from
-    return output.base + filename
-  }
 }
 
 /**
@@ -87,7 +55,13 @@ export class File extends VFile {
  * @param schema data schema
  * @param config resolved config
  */
-export const load = async (path: string, schema: ZodSchema): Promise<File> => {
+export const load = async (path: string, schema: ZodSchema, changed?: string): Promise<File> => {
+  path = normalize(path)
+  if (changed != null && path !== changed && cache.has(path)) {
+    // skip file if changed file not match
+    // logger.log(`skipped load '${path}', using previous loaded`)
+    return cache.get(path)!
+  }
   const file = new File(path)
   cache.set(path, file)
   await file.load()

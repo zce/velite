@@ -1,22 +1,237 @@
 import { access } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 
 import { name } from '../package.json'
-import { logger } from './logger'
 
-import type { Config, ResolvedConfig } from './types'
+import type { CompileOptions } from '@mdx-js/mdx'
+import type { PluggableList } from 'unified'
+import type { Data, VFile } from 'vfile'
+import type { ZodType } from 'zod'
 
-let resolvedConfig: ResolvedConfig | null = null
+type Promisable<T> = T | Promise<T>
+/**
+ * Markdown options
+ */
+export interface MarkdownOptions {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Remark plugins.
+   */
+  remarkPlugins?: PluggableList
+  /**
+   * Rehype plugins.
+   */
+  rehypePlugins?: PluggableList
+}
 
 /**
- * get resolved config, must be called after `resolveConfig`
- * @returns resolved config
+ * MDX compiler options
  */
-export const getConfig = (): ResolvedConfig => {
-  if (resolvedConfig != null) return resolvedConfig
-  throw new Error("config not resolved, ensure 'resolveConfig' called before")
+export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Output format to generate.
+   * @default 'function-body'
+   */
+  outputFormat?: CompileOptions['outputFormat']
+}
+
+/**
+ * File loader
+ */
+export interface Loader {
+  /**
+   * File test regexp
+   * @example /\.md$/
+   */
+  test: RegExp
+  /**
+   * Load file data from file.value
+   * @param file vfile
+   */
+  load: (file: VFile) => Promisable<Data>
+}
+
+/**
+ * This interface for plugins extra user config
+ * @example
+ * declare module 'velite' {
+ *   interface PluginConfig {
+ *     myPlugin: MyPluginConfig
+ *   }
+ * }
+ */
+export interface PluginConfig {
+  /**
+   * File loaders
+   */
+  loaders: Loader[]
+  /**
+   * Markdown options
+   */
+  markdown: MarkdownOptions
+  /**
+   * Global MDX options
+   */
+  mdx: MdxOptions
+}
+
+/**
+ * Output options
+ */
+export interface Output {
+  /**
+   * The output directory of the data files (relative to config file).
+   * @default '.velite'
+   */
+  data: string
+  /**
+   * The directory of the assets (relative to config file),
+   * should be served statically by the app
+   * `--clean` will automatically clear this directory
+   * @default 'public/static'
+   */
+  assets: string
+  /**
+   * The public base path of the assets
+   * @default '/static/'
+   * @example
+   * '/' -> '/image.png'
+   * '/static/' -> '/static/image.png'
+   * './static/' -> './static/image.png'
+   * 'https://cdn.example.com/' -> 'https://cdn.example.com/image.png'
+   */
+  base: '/' | `/${string}/` | `.${string}/` | `${string}:${string}/`
+  /**
+   * This option determines the name of each output asset.
+   * The asset will be written to the directory specified in the `output.assets` option.
+   * You can use `[name]`, `[hash]` and `[ext]` template strings with specify length.
+   * @default '[name]-[hash:8].[ext]'
+   */
+  filename: string
+  /**
+   * The extensions blacklist of the assets, such as `['.md', '.yml']`
+   * @default []
+   */
+  ignore: string[]
+  /**
+   * Whether to clean the output directories before build
+   * @default false
+   */
+  clean: boolean
+}
+
+/**
+ * Collection options
+ */
+export interface Collection {
+  /**
+   * Schema name (singular), for types generation
+   * @example
+   * 'Post'
+   */
+  name: string
+  /**
+   * Schema glob pattern, based on `root`
+   * @example
+   * 'posts/*.md'
+   */
+  pattern: string
+  /**
+   * Whether the schema is single
+   * @default false
+   */
+  single?: boolean
+  /**
+   * Schema
+   * @see {@link https://zod.dev}
+   * @example
+   * z.object({
+   *   title: z.string(), // from frontmatter
+   *   description: z.string().optional(), // from frontmatter
+   *   excerpt: z.string() // from markdown body,
+   *   content: z.string() // from markdown body
+   * })
+   */
+  schema: ZodType
+}
+
+/**
+ * All collections
+ */
+export interface Collections {
+  [name: string]: Collection
+}
+
+/**
+ * All collections result
+ */
+export type Result<T extends Collections> = {
+  [K in keyof T]: T[K]['single'] extends true ? T[K]['schema']['_output'] : Array<T[K]['schema']['_output']>
+}
+
+/**
+ * Velite user configuration
+ */
+export interface Config<T extends Collections = Collections> extends Partial<PluginConfig> {
+  /**
+   * The root directory of the contents (relative to config file).
+   * @default 'content'
+   */
+  root?: string
+  /**
+   * Output configuration
+   */
+  output?: Partial<Output>
+  /**
+   * All collections
+   */
+  collections: T
+  /**
+   * Data prepare hook, before write to file
+   * @description
+   * You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files.
+   * return false to prevent the default output to a file if you wanted
+   * @param data loaded data
+   */
+  prepare?: (data: Result<T>) => Promisable<void | false>
+  /**
+   * Build success hook
+   * @description
+   * You can do anything after the build is complete, such as print some tips or deploy the output files.
+   * @param data loaded data
+   */
+  complete?: (data: Result<T>) => Promisable<void>
 }
 
 /**
@@ -80,7 +295,7 @@ const loadConfig = async (filename: string): Promise<Config> => {
  * @param clean whether to clean output directories, for cli option
  * @returns resolved config object with default values
  */
-export const resolveConfig = async (path?: string, clean?: boolean): Promise<ResolvedConfig> => {
+export const resolveConfig = async (path?: string, clean?: boolean): Promise<{ path: string; config: Config }> => {
   const begin = performance.now()
 
   // prettier-ignore
@@ -96,27 +311,48 @@ export const resolveConfig = async (path?: string, clean?: boolean): Promise<Res
   const configPath = await searchFiles(files)
   if (configPath == null) throw new Error(`config file not found, create '${name}.config.ts' in your project root directory`)
 
-  const { root, output, collections, ...rest } = await loadConfig(configPath)
-  if (collections == null) throw new Error("'collections' is required in config file")
+  const config = await loadConfig(configPath)
+  if (config.collections == null) throw new Error("'collections' is required in config file")
 
-  logger.log(`using config '${configPath}'`, begin)
+  return { path: configPath, config }
 
-  const cwd = dirname(configPath)
+  // logger.log(`using config '${configPath}'`, begin)
 
-  resolvedConfig = {
-    ...rest,
-    configPath,
-    collections,
-    root: resolve(cwd, root ?? 'content'),
-    output: {
-      data: resolve(cwd, output?.data ?? '.velite'),
-      assets: resolve(cwd, output?.assets ?? 'public/static'),
-      base: output?.base ?? '/static/',
-      filename: output?.filename ?? '[name]-[hash:8].[ext]',
-      ignore: output?.ignore ?? [],
-      clean: clean ?? output?.clean ?? false
-    }
-  }
+  // const cwd = dirname(configPath)
+  // const cache = new Map<string, any>()
 
-  return resolvedConfig
+  // resolvedConfig = {
+  //   ...rest,
+  //   cache,
+  //   configPath,
+  //   collections,
+  //   root: resolve(cwd, root ?? 'content'),
+  //   output: {
+  //     data: resolve(cwd, output?.data ?? '.velite'),
+  //     assets: resolve(cwd, output?.assets ?? 'public/static'),
+  //     base: output?.base ?? '/static/',
+  //     filename: output?.filename ?? '[name]-[hash:8].[ext]',
+  //     ignore: output?.ignore ?? [],
+  //     clean: clean ?? output?.clean ?? false
+  //   }
+  // }
+
+  // return resolvedConfig
 }
+
+// ↓↓↓ identity functions for type inference
+
+/**
+ * Define a collection (identity function for type inference)
+ */
+export const defineCollection = (collection: Collection) => collection
+
+/**
+ * Define a loader (identity function for type inference)
+ */
+export const defineLoader = (loader: Loader) => loader
+
+/**
+ * Define config (identity function for type inference)
+ */
+export const defineConfig = <C extends Collections>(config: Config<C>) => config

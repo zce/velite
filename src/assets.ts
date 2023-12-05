@@ -1,21 +1,50 @@
 import { createHash } from 'node:crypto'
-import { copyFile, readFile } from 'node:fs/promises'
-import { basename, extname, join, resolve } from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { basename, extname, resolve } from 'node:path'
 import sharp from 'sharp'
 import { visit } from 'unist-util-visit'
 
-import { getConfig } from './config'
+import { context } from './context'
 
 import type { Element, Root as Hast, Nodes as HNodes } from 'hast'
 import type { Root as Mdast, Node } from 'mdast'
 import type { VFile } from 'vfile'
-import type { Image } from './types'
 
-const assets = new Map<string, string>()
+/**
+ * Image object with metadata & blur image
+ */
+export interface Image {
+  /**
+   * public url of the image
+   */
+  src: string
+  /**
+   * image width
+   */
+  width: number
+  /**
+   * image height
+   */
+  height: number
+  /**
+   * blurDataURL of the image
+   */
+  blurDataURL: string
+  /**
+   * blur image width
+   */
+  blurWidth: number
+  /**
+   * blur image height
+   */
+  blurHeight: number
+}
+
+export const assets = new Map<string, string>()
 
 // https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
-const absoluteUrlRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
-const absolutePathRegex = /^(\/[^/\\]|[a-zA-Z]:\\)/
+const ABS_URL_RE = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
+const ABS_PATH_RE = /^(\/[^/\\]|[a-zA-Z]:\\)/
 
 /**
  * validate if a url is a relative path
@@ -26,9 +55,9 @@ const isStaticPath = (url: string): boolean => {
   if (url.startsWith('#')) return false // ignore hash anchor
   if (url.startsWith('?')) return false // ignore query
   if (url.startsWith('//')) return false // ignore protocol relative urlet name
-  if (absoluteUrlRegex.test(url)) return false // ignore absolute url
-  if (absolutePathRegex.test(url)) return false // ignore absolute path
-  return !getConfig().output.ignore.includes(extname(url).slice(1)) // ignore file extensions
+  if (ABS_URL_RE.test(url)) return false // ignore absolute url
+  if (ABS_PATH_RE.test(url)) return false // ignore absolute path
+  return !context.output.ignore.includes(extname(url).slice(1)) // ignore file extensions
 }
 
 /**
@@ -51,7 +80,7 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
 /**
  * process assets reference of a file
  * @param ref relative path of the referenced file
- * @param path source file path
+ * @param fromPath source file path
  * @param isImage process as image and return image object with blurDataURL
  * @returns reference public url or image object
  */
@@ -60,21 +89,22 @@ export const process = async <T extends string | undefined, U extends true | und
   fromPath: string,
   isImage?: U
 ): Promise<T extends undefined ? undefined : U extends true ? Image | T : T> => {
-  if (ref == null) return ref as any
+  if (ref == null) return ref as any // return undefined or null for zod optional type
+  if (!isStaticPath(ref)) return ref as any // return original url for non-static path
 
-  if (!isStaticPath(ref)) return ref as any
-
-  const { output } = getConfig()
+  const {
+    output: { filename, base }
+  } = context
 
   const from = resolve(fromPath, '..', ref)
   const source = await readFile(from)
-
-  const filename = output.filename.replace(/\[(name|hash|ext)(:(\d+))?\]/g, (substring, ...groups) => {
+  const ext = extname(from)
+  const name = filename.replace(/\[(name|hash|ext)(:(\d+))?\]/g, (substring, ...groups) => {
     const key = groups[0]
     const length = groups[2] == null ? undefined : parseInt(groups[2])
     switch (key) {
       case 'name':
-        return basename(ref, extname(ref)).slice(0, length)
+        return basename(ref, ext).slice(0, length)
       case 'hash':
         // TODO: md5 is slow and not-FIPS compliant, consider using sha256
         // https://github.com/joshwiens/hash-perf
@@ -82,20 +112,19 @@ export const process = async <T extends string | undefined, U extends true | und
         // https://stackoverflow.com/q/14139727
         return createHash('md5').update(source).digest('hex').slice(0, length)
       case 'ext':
-        return extname(ref).slice(1).slice(0, length)
+        return ext.slice(1, length)
     }
     return substring
   })
+  const src = base + name
 
-  assets.set(filename, from)
+  assets.set(name, from)
 
-  if (isImage !== true) {
-    return (output.base + filename) as any
-  }
+  if (isImage !== true) return src as any
 
   const metadata = await getImageMetadata(source)
   if (metadata == null) throw new Error(`invalid image: ${from}`)
-  return { src: output.base + filename, ...metadata } as any
+  return { src, ...metadata } as any
 }
 
 export const extractHastLinkedFiles = async (tree: HNodes, from: string) => {
@@ -113,7 +142,7 @@ export const extractHastLinkedFiles = async (tree: HNodes, from: string) => {
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, elements]) => {
-      const publicUrl = await process(undefined, from)
+      const publicUrl = await process(url, from)
       if (publicUrl == null || publicUrl === url) return
       elements.forEach(node => {
         linkedPropertyNames.forEach(name => {
@@ -127,12 +156,12 @@ export const extractHastLinkedFiles = async (tree: HNodes, from: string) => {
 }
 
 /**
- * rehype plugin to copy linked files to public path and replace their urls with public urls
+ * rehype (markdown) plugin to copy linked files to public path and replace their urls with public urls
  */
 export const rehypeCopyLinkedFiles = () => async (tree: Hast, file: VFile) => extractHastLinkedFiles(tree, file.path)
 
 /**
- * remark plugin to copy linked files to public path and replace their urls with public urls
+ * remark (mdx) plugin to copy linked files to public path and replace their urls with public urls
  */
 export const remarkCopyLinkedFiles = () => async (tree: Mdast, file: VFile) => {
   const links = new Map<string, Node[]>()
@@ -158,7 +187,7 @@ export const remarkCopyLinkedFiles = () => async (tree: Mdast, file: VFile) => {
       const publicUrl = await process(url, file.path)
       if (publicUrl == null || publicUrl === url) return
       nodes.forEach((node: any) => {
-        if ('url' in node && node.url === url) {
+        if (node.url === url) {
           node.url = publicUrl
           return
         }
@@ -173,9 +202,3 @@ export const remarkCopyLinkedFiles = () => async (tree: Mdast, file: VFile) => {
     })
   )
 }
-
-/**
- * output all assets to output directory
- * @param dir assets output directory
- */
-export const outputAssets = async (): Promise<void[]> => Promise.all(Array.from(assets.entries()).map(([name, from]) => copyFile(from, join(getConfig().output.assets, name))))

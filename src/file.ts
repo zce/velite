@@ -8,6 +8,23 @@ import { logger } from './logger'
 
 import type { ZodSchema } from 'zod'
 
+declare module 'vfile' {
+  interface DataMap {
+    /**
+     * original data loaded from file
+     */
+    data: unknown
+    /**
+     * content excerpt
+     */
+    excerpt: string
+    /**
+     * content without frontmatter
+     */
+    content: string
+  }
+}
+
 // cache all loaded files for:
 // 1. avoid duplicate loading
 // 2. reuse in rebuilding

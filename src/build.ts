@@ -177,7 +177,7 @@ const load = async (path: string, schema: ZodType): Promise<VFile> => {
     )
 
     // set parsed data to file
-    file.data.parsed = isArr ? processed[0] : processed
+    file.data.parsed = isArr ? processed : processed[0]
   } catch (err: any) {
     file.message(err.message)
   }

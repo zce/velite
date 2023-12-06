@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { context } from '../context'
+import { cache } from '../cache'
 
 /**
  * generate a unique schema
@@ -9,7 +9,6 @@ import { context } from '../context'
  */
 export const unique = (by: string = 'global') =>
   z.string().refine(value => {
-    const { cache } = context
     if (cache.has(`schemas:unique:${by}:${value}`)) return false
     cache.set(`schemas:unique:${by}:${value}`, true)
     return true

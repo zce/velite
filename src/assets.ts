@@ -4,7 +4,7 @@ import { basename, extname, resolve } from 'node:path'
 import sharp from 'sharp'
 import { visit } from 'unist-util-visit'
 
-import { context } from './context'
+import { getConfig } from './config'
 
 import type { Element, Root as Hast, Nodes as HNodes } from 'hast'
 import type { Root as Mdast, Node } from 'mdast'
@@ -57,7 +57,7 @@ const isStaticPath = (url: string): boolean => {
   if (url.startsWith('//')) return false // ignore protocol relative urlet name
   if (ABS_URL_RE.test(url)) return false // ignore absolute url
   if (ABS_PATH_RE.test(url)) return false // ignore absolute path
-  return !context.output.ignore.includes(extname(url).slice(1)) // ignore file extensions
+  return !getConfig().output.ignore.includes(extname(url).slice(1)) // ignore file extensions
 }
 
 /**
@@ -84,7 +84,7 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
  * @param isImage process as image and return image object with blurDataURL
  * @returns reference public url or image object
  */
-export const process = async <T extends string | undefined, U extends true | undefined = undefined>(
+export const processAsset = async <T extends string | undefined, U extends true | undefined = undefined>(
   ref: T,
   fromPath: string,
   isImage?: U
@@ -94,7 +94,7 @@ export const process = async <T extends string | undefined, U extends true | und
 
   const {
     output: { filename, base }
-  } = context
+  } = getConfig()
 
   const from = resolve(fromPath, '..', ref)
   const source = await readFile(from)
@@ -117,7 +117,6 @@ export const process = async <T extends string | undefined, U extends true | und
     return substring
   })
   const src = base + name
-
   assets.set(name, from)
 
   if (isImage !== true) return src as any
@@ -142,7 +141,7 @@ export const extractHastLinkedFiles = async (tree: HNodes, from: string) => {
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, elements]) => {
-      const publicUrl = await process(url, from)
+      const publicUrl = await processAsset(url, from)
       if (publicUrl == null || publicUrl === url) return
       elements.forEach(node => {
         linkedPropertyNames.forEach(name => {
@@ -184,7 +183,7 @@ export const remarkCopyLinkedFiles = () => async (tree: Mdast, file: VFile) => {
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, nodes]) => {
-      const publicUrl = await process(url, file.path)
+      const publicUrl = await processAsset(url, file.path)
       if (publicUrl == null || publicUrl === url) return
       nodes.forEach((node: any) => {
         if (node.url === url) {

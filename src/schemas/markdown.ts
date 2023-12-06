@@ -8,7 +8,7 @@ import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
 import { rehypeCopyLinkedFiles } from '../assets'
-import { context } from '../context'
+import { getConfig } from '../config'
 import { getFile } from '../file'
 
 import type { Root } from 'hast'
@@ -30,7 +30,7 @@ export const markdown = (options: MarkdownOptions = {}) =>
       value = getFile(ctx.path[0] as string).data.content!
     }
 
-    const { markdown = {} } = context
+    const { markdown = {} } = getConfig()
     const { remarkPlugins = [], rehypePlugins = [] } = markdown
     const { gfm = true, removeComments = true, copyLinkedFiles = true } = { ...markdown, ...options }
 

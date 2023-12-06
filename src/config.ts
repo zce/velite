@@ -1,9 +1,10 @@
 import { access } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 
 import { name } from '../package.json'
+import { logger } from './logger'
 
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { PluggableList } from 'unified'
@@ -68,7 +69,7 @@ export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
 }
 
 /**
- * File loader
+ * File data loader
  */
 export interface Loader {
   /**
@@ -178,17 +179,20 @@ export type Result<T extends Collections> = {
 }
 
 /**
- * Velite user configuration
+ * This interface for plugins extra user config
  * @example
- * to extend the plugin config
  * declare module 'velite' {
- *   interface Config {
- *     myConfig: MyPluginConfig
+ *   interface PluginConfig {
+ *     myPlugin: MyPluginConfig
  *   }
  * }
- * context.myConfig // => custom config
  */
-export interface Config<T extends Collections = Collections> {
+export interface PluginConfig {}
+
+/**
+ * Velite user configuration
+ */
+export interface UserConfig<T extends Collections = Collections> extends Partial<PluginConfig> {
   /**
    * The root directory of the contents (relative to config file).
    * @default 'content'
@@ -205,15 +209,15 @@ export interface Config<T extends Collections = Collections> {
   /**
    * File loaders
    */
-  loaders: Loader[]
+  loaders?: Loader[]
   /**
    * Global Markdown options
    */
-  markdown: MarkdownOptions
+  markdown?: MarkdownOptions
   /**
    * Global MDX options
    */
-  mdx: MdxOptions
+  mdx?: MdxOptions
   /**
    * Data prepare hook, before write to file
    * @description
@@ -232,6 +236,35 @@ export interface Config<T extends Collections = Collections> {
 }
 
 /**
+ * Build Config
+ */
+export interface Config extends Readonly<UserConfig> {
+  /**
+   * context file path
+   */
+  readonly configPath: string
+  /**
+   * The root directory of the contents (relative to config file).
+   */
+  readonly root: string
+  /**
+   * Output configuration
+   */
+  readonly output: Output
+}
+
+let resolvedConfig: Config | null = null
+
+/**
+ * get resolved config, must be called after `resolveConfig`
+ * @returns resolved config
+ */
+export const getConfig = (): Config => {
+  if (resolvedConfig != null) return resolvedConfig
+  throw new Error("config not resolved, ensure 'resolveConfig' called before")
+}
+
+/**
  * recursive 3-level search files in cwd and its parent directories
  * @param files filenames
  * @param cwd start directory
@@ -241,7 +274,7 @@ export interface Config<T extends Collections = Collections> {
 const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: number = 3): Promise<string | undefined> => {
   for (const file of files) {
     try {
-      const path = join(cwd, file)
+      const path = resolve(cwd, file)
       await access(path) // check file exists
       return path
     } catch {
@@ -249,7 +282,7 @@ const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: 
     }
   }
   if (depth > 0 && !(cwd === '/' || cwd.endsWith(':\\'))) {
-    return await searchFiles(files, join(cwd, '..'), depth - 1)
+    return await searchFiles(files, resolve(cwd, '..'), depth - 1)
   }
 }
 
@@ -258,9 +291,8 @@ const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: 
  * @param filename config filename
  * @returns user config module
  */
-const loadConfig = async (filename: string): Promise<Config> => {
-  // TODO: import js (mjs, cjs) config file directly without esbuild
-
+const loadConfig = async (filename: string): Promise<UserConfig> => {
+  // TODO: import js (mjs, cjs) config file directly without esbuild?
   if (!/\.(js|mjs|cjs|ts|mts|cts)$/.test(filename)) {
     const ext = filename.split('.').pop()
     throw new Error(`not supported config file with '${ext}' extension`)
@@ -292,7 +324,7 @@ const loadConfig = async (filename: string): Promise<Config> => {
  * @param clean whether to clean output directories, for cli option
  * @returns resolved config object with default values
  */
-export const resolveConfig = async (path?: string, clean?: boolean): Promise<{ path: string; config: Config }> => {
+export const resolveConfig = async (path?: string, clean?: boolean): Promise<Config> => {
   const begin = performance.now()
 
   // prettier-ignore
@@ -308,10 +340,28 @@ export const resolveConfig = async (path?: string, clean?: boolean): Promise<{ p
   const configPath = await searchFiles(files)
   if (configPath == null) throw new Error(`config file not found, create '${name}.config.ts' in your project root directory`)
 
-  const config = await loadConfig(configPath)
-  if (config.collections == null) throw new Error("'collections' is required in config file")
+  const { root, output, collections, ...rest } = await loadConfig(configPath)
+  if (collections == null) throw new Error("'collections' is required in config file")
+  logger.log(`using config '${configPath}'`, begin)
 
-  return { path: configPath, config }
+  const cwd = dirname(configPath)
+
+  resolvedConfig = {
+    ...rest,
+    configPath,
+    collections,
+    root: resolve(cwd, root ?? 'content'),
+    output: {
+      data: resolve(cwd, output?.data ?? '.velite'),
+      assets: resolve(cwd, output?.assets ?? 'public/static'),
+      base: output?.base ?? '/static/',
+      filename: output?.filename ?? '[name]-[hash:8].[ext]',
+      ignore: output?.ignore ?? [],
+      clean: clean ?? output?.clean ?? false
+    }
+  }
+
+  return resolvedConfig
 }
 
 // ↓↓↓ helper identity functions for type inference
@@ -329,4 +379,4 @@ export const defineLoader = (loader: Loader) => loader
 /**
  * Define config (identity function for type inference)
  */
-export const defineConfig = <C extends Collections>(config: Config<C>) => config
+export const defineConfig = <C extends Collections>(config: UserConfig<C>) => config

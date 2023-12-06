@@ -14,10 +14,6 @@ declare module 'vfile' {
      */
     data: unknown
     /**
-     * content excerpt
-     */
-    excerpt: string
-    /**
      * content without frontmatter
      */
     content: string
@@ -28,7 +24,7 @@ declare module 'vfile' {
 // 1. avoid duplicate loading
 // 2. reuse in rebuilding
 // 3. provide custom schema access
-const cache = new Map<string, File>()
+const loaded = new Map<string, File>()
 
 class File extends VFile {
   constructor(path: string) {
@@ -73,14 +69,14 @@ class File extends VFile {
  */
 export const load = async (path: string, schema: ZodSchema, changed?: string): Promise<File> => {
   path = normalize(path)
-  if (changed != null && path !== changed && cache.has(path)) {
+  if (changed != null && path !== changed && loaded.has(path)) {
     // skip file if changed file not match
     logger.log(`skipped load '${path}', using previous loaded`)
-    return cache.get(path)!
+    return loaded.get(path)!
   }
   const begin = performance.now()
   const file = new File(path)
-  cache.set(path, file)
+  loaded.set(path, file)
   await file.load()
   await file.parse(schema)
   logger.log(`loaded '${path}' with ${(file.result as any).length ?? 1} records`, begin)
@@ -93,6 +89,6 @@ export const load = async (path: string, schema: ZodSchema, changed?: string): P
  * @returns loaded file
  */
 export const getFile = (path: string): File => {
-  if (cache.has(path)) return cache.get(path)!
+  if (loaded.has(path)) return loaded.get(path)!
   throw new Error(`file ${path} is not loaded`)
 }

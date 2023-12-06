@@ -4,7 +4,7 @@ import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
 import { remarkCopyLinkedFiles } from '../assets'
-import { context } from '../context'
+import { getConfig } from '../config'
 import { getFile } from '../file'
 
 import type { Root } from 'mdast'
@@ -25,7 +25,7 @@ export const mdx = (options: MdxOptions = {}) =>
       value = getFile(ctx.path[0] as string).data.content!
     }
 
-    const { mdx = {} } = context
+    const { mdx = {} } = getConfig()
     const gfm = options.gfm ?? mdx.gfm ?? true
     const removeComments = options.removeComments ?? mdx.removeComments ?? true
     const copyLinkedFiles = options.copyLinkedFiles ?? mdx.copyLinkedFiles ?? true

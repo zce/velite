@@ -1,7 +1,6 @@
 import { copyFile, writeFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 
-import { assets } from './assets'
 import { logger } from './logger'
 
 import type { Collections } from './config'
@@ -80,7 +79,7 @@ export const outputData = async (dest: string, result: Record<string, any>): Pro
  * @param dest output destination directory
  * @param assets all collected assets
  */
-export const outputAssets = async (dest: string): Promise<void> => {
+export const outputAssets = async (dest: string, assets: Map<string, string>): Promise<void> => {
   const begin = performance.now()
   const { length } = await Promise.all(Array.from(assets.entries()).map(([name, from]) => copyFile(from, join(dest, name))))
   logger.info(`output ${length} assets`, begin)

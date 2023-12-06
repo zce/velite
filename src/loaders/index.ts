@@ -1,4 +1,4 @@
-import { context } from '../context'
+import { getConfig } from '../config'
 import json from './json'
 import matter from './matter'
 import yaml from './yaml'
@@ -13,6 +13,6 @@ const builtinLoaders = [json, yaml, matter]
  * @returns loader
  */
 export const resolveLoader = (filename: string): Loader | undefined => {
-  const { loaders = [] } = context
+  const { loaders = [] } = getConfig()
   return [...loaders, ...builtinLoaders].find(loader => loader.test.test(filename))
 }

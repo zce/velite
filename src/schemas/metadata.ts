@@ -4,6 +4,8 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 import { z } from 'zod'
 
+import { loaded } from '../cache'
+
 // Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters
 const cjRanges = [
   [11904, 11930], // Han
@@ -91,7 +93,12 @@ export interface Metadata {
 }
 
 export const metadata = () =>
-  z.string().transform((value, ctx) => {
+  z.custom<string>().transform<Metadata>(async (value, ctx) => {
+    const path = ctx.path[0] as string
+    if (value == null && loaded.has(path)) {
+      value = loaded.get(path)!.data.content!
+    }
+
     try {
       const mdast = fromMarkdown(value)
       const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
@@ -99,6 +106,6 @@ export const metadata = () =>
       return getMetadata(content)
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })
-      return { readingTime: 0, wordCount: 0 } as Metadata
+      return { readingTime: 0, wordCount: 0 }
     }
   })

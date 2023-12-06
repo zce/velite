@@ -1,9 +1,9 @@
-import type { Loader } from '.'
+import { defineLoader } from '../config'
 
-export default {
-  name: 'json',
+export default defineLoader({
+  // name: 'json',
   test: /\.json$/,
-  load: async file => {
-    return JSON.parse(file.toString())
-  }
-} satisfies Loader
+  load: file => ({
+    data: JSON.parse(file.toString())
+  })
+})

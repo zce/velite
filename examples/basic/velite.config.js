@@ -1,3 +1,5 @@
+// @ts-check
+
 import { defineConfig, s } from 'velite'
 
 const slugify = input =>

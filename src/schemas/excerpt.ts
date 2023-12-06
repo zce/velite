@@ -6,6 +6,9 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 import { z } from 'zod'
 
+import { extractHastLinkedFiles } from '../assets'
+import { loaded } from '../cache'
+
 export interface ExcerptOptions {
   /**
    * Excerpt separator.
@@ -22,12 +25,18 @@ export interface ExcerptOptions {
 }
 
 export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
-  z.string().transform((value, ctx) => {
+  z.custom<string>().transform(async (value, ctx) => {
+    const path = ctx.path[0] as string
+    if (value == null && loaded.has(path)) {
+      value = loaded.get(path)!.data.content!
+    }
     try {
       const mdast = fromMarkdown(value)
       const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
       const exHast = hastExcerpt(hast, { comment: separator, maxSearchSize: 1024 })
-      return toHtml(exHast ?? truncate(hast, { size: length, ellipsis: '…' }))
+      const output = exHast ?? truncate(hast, { size: length, ellipsis: '…' })
+      await extractHastLinkedFiles(output, ctx.path[0] as string)
+      return toHtml(output)
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })
       return value

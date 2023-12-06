@@ -27,7 +27,7 @@ $ bun add velite -D
 
 :::
 
-::: tip Velite is an ESM-only package
+::: tip Velite is an [ESM-only](https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c) package
 
 Don't use `require()` to import it, and make sure your nearest `package.json` contains `"type": "module"`, or change the file extension of your relevant files like `velite.config.js` to `.mjs`/`.mts`. Also, inside async CJS contexts, you can use `await import('velite')` instead.
 

@@ -8,41 +8,13 @@ import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
 import { rehypeCopyLinkedFiles } from '../assets'
+import { loaded } from '../cache'
 import { getConfig } from '../config'
 
 import type { Root } from 'hast'
-import type { PluggableList, Plugin } from 'unified'
+import type { MarkdownOptions } from '../config'
 
-/**
- * Markdown options
- */
-export interface MarkdownOptions {
-  /**
-   * Enable GitHub Flavored Markdown (GFM).
-   * @default true
-   */
-  gfm?: boolean
-  /**
-   * Remove html comments.
-   * @default true
-   */
-  removeComments?: boolean
-  /**
-   * Copy linked files to public path and replace their urls with public urls.
-   * @default true
-   */
-  copyLinkedFiles?: boolean
-  /**
-   * Remark plugins.
-   */
-  remarkPlugins?: PluggableList
-  /**
-   * Rehype plugins.
-   */
-  rehypePlugins?: PluggableList
-}
-
-const remarkRemoveComments: Plugin<[], Root> = () => tree => {
+const remarkRemoveComments = () => (tree: Root) => {
   // https://github.com/alvinometric/remark-remove-comments/blob/main/transformer.js
   visit(tree, ['html', 'jsx'], (node: any, index, parent: any) => {
     if (node.value.match(/<!--([\s\S]*?)-->/g)) {
@@ -53,7 +25,12 @@ const remarkRemoveComments: Plugin<[], Root> = () => tree => {
 }
 
 export const markdown = (options: MarkdownOptions = {}) =>
-  z.string().transform(async (value, ctx) => {
+  z.custom<string>().transform(async (value, ctx) => {
+    const path = ctx.path[0] as string
+    if (value == null && loaded.has(path)) {
+      value = loaded.get(path)!.data.content!
+    }
+
     const { markdown = {} } = getConfig()
     const { remarkPlugins = [], rehypePlugins = [] } = markdown
     const { gfm = true, removeComments = true, copyLinkedFiles = true } = { ...markdown, ...options }

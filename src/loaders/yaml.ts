@@ -1,11 +1,11 @@
 import yaml from 'yaml'
 
-import type { Loader } from '.'
+import { defineLoader } from '../config'
 
-export default {
-  name: 'yaml',
+export default defineLoader({
+  // name: 'yaml',
   test: /\.(yaml|yml)$/,
-  load: async file => {
-    return yaml.parse(file.toString())
-  }
-} satisfies Loader
+  load: file => ({
+    data: yaml.parse(file.toString())
+  })
+})

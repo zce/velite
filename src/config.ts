@@ -1,22 +1,106 @@
 import { access } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 
 import { name } from '../package.json'
 import { logger } from './logger'
 
-import type { Loader } from './loaders'
-import type { LogLevel } from './logger'
-import type { MarkdownOptions, MdxOptions } from './schemas'
-import type { ZodType } from 'zod'
+import type { CompileOptions } from '@mdx-js/mdx'
+import type { PluggableList } from 'unified'
+import type { Data, VFile } from 'vfile'
+import type { ZodSchema } from 'zod'
 
 type Promisable<T> = T | Promise<T>
 
 /**
+ * Markdown options
+ */
+export interface MarkdownOptions {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Remark plugins.
+   */
+  remarkPlugins?: PluggableList
+  /**
+   * Rehype plugins.
+   */
+  rehypePlugins?: PluggableList
+}
+
+/**
+ * MDX compiler options
+ */
+export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Output format to generate.
+   * @default 'function-body'
+   */
+  outputFormat?: CompileOptions['outputFormat']
+}
+
+declare module 'vfile' {
+  interface DataMap {
+    /**
+     * original data loaded from file
+     */
+    data: unknown
+    /**
+     * content without frontmatter
+     */
+    content: string
+  }
+}
+
+/**
+ * File data loader
+ */
+export interface Loader {
+  /**
+   * File test regexp
+   * @example /\.md$/
+   */
+  test: RegExp
+  /**
+   * Load file data from file.value
+   * @param file vfile
+   */
+  load: (file: VFile) => Promisable<Data>
+}
+
+/**
  * Output options
  */
-interface Output {
+export interface Output {
   /**
    * The output directory of the data files (relative to config file).
    * @default '.velite'
@@ -32,6 +116,11 @@ interface Output {
   /**
    * The public base path of the assets
    * @default '/static/'
+   * @example
+   * '/' -> '/image.png'
+   * '/static/' -> '/static/image.png'
+   * './static/' -> './static/image.png'
+   * 'https://cdn.example.com/' -> 'https://cdn.example.com/image.png'
    */
   base: '/' | `/${string}/` | `.${string}/` | `${string}:${string}/`
   /**
@@ -56,7 +145,7 @@ interface Output {
 /**
  * Collection options
  */
-interface Collection {
+export interface Collection {
   /**
    * Schema name (singular), for types generation
    * @example
@@ -85,18 +174,25 @@ interface Collection {
    *   content: z.string() // from markdown body
    * })
    */
-  schema: ZodType
+  schema: ZodSchema
 }
 
 /**
  * All collections
  */
-interface Collections {
+export interface Collections {
   [name: string]: Collection
 }
 
 /**
- * This interface for plugins extension user config
+ * All collections result
+ */
+export type Result<T extends Collections> = {
+  [K in keyof T]: T[K]['single'] extends true ? T[K]['schema']['_output'] : Array<T[K]['schema']['_output']>
+}
+
+/**
+ * This interface for plugins extra user config
  * @example
  * declare module 'velite' {
  *   interface PluginConfig {
@@ -104,78 +200,81 @@ interface Collections {
  *   }
  * }
  */
-export interface PluginConfig {
-  /**
-   * File loaders
-   */
-  loaders: Loader[]
-  /**
-   * Markdown options
-   */
-  markdown: MarkdownOptions
-  /**
-   * Global MDX options
-   */
-  mdx: MdxOptions
-}
+export interface PluginConfig {}
 
 /**
- * Config
+ * Velite user configuration
  */
-export interface Config<C extends Collections = Collections> extends Partial<PluginConfig> {
-  /**
-   * resolved config file path
-   */
-  configPath: string
+export interface UserConfig<T extends Collections = Collections> extends Partial<PluginConfig> {
   /**
    * The root directory of the contents (relative to config file).
    * @default 'content'
    */
-  root: string
+  root?: string
   /**
    * Output configuration
    */
-  output: Output
+  output?: Partial<Output>
   /**
-   * Collections
+   * All collections
    */
-  collections: C
+  collections: T
+  /**
+   * File loaders
+   */
+  loaders?: Loader[]
+  /**
+   * Global Markdown options
+   */
+  markdown?: MarkdownOptions
+  /**
+   * Global MDX options
+   */
+  mdx?: MdxOptions
   /**
    * Data prepare hook, before write to file
    * @description
    * You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files.
    * return false to prevent the default output to a file if you wanted
+   * @param data loaded data
    */
-  prepare?: (data: {
-    [name in keyof C]: C[name]['single'] extends true ? C[name]['schema']['_output'] : Array<C[name]['schema']['_output']>
-  }) => Promisable<void | false>
+  prepare?: (data: Result<T>) => Promisable<void | false>
   /**
    * Build success hook
    * @description
    * You can do anything after the build is complete, such as print some tips or deploy the output files.
+   * @param data loaded data
    */
-  complete?: () => Promisable<void>
+  complete?: (data: Result<T>) => Promisable<void>
 }
 
 /**
- * User config
+ * Build Config
  */
-export interface UserConfig<C extends Collections = Collections> extends Omit<Partial<Config<C>>, 'configPath' | 'output'> {
+export interface Config extends Readonly<UserConfig> {
+  /**
+   * context file path
+   */
+  readonly configPath: string
+  /**
+   * The root directory of the contents (relative to config file).
+   */
+  readonly root: string
   /**
    * Output configuration
    */
-  output?: Partial<Output>
+  readonly output: Output
 }
 
-let config: Config | null = null
+let resolvedConfig: Config | null = null
 
 /**
  * get resolved config, must be called after `resolveConfig`
- * @returns config object
+ * @returns resolved config
  */
 export const getConfig = (): Config => {
-  if (config != null) return config
-  throw new Error(`config not resolved, ensure 'resolveConfig' called before`)
+  if (resolvedConfig != null) return resolvedConfig
+  throw new Error("config not resolved, ensure 'resolveConfig' called before")
 }
 
 /**
@@ -189,72 +288,60 @@ const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: 
   for (const file of files) {
     try {
       const path = resolve(cwd, file)
-      await access(path)
+      await access(path) // check file exists
       return path
     } catch {
       continue
     }
   }
   if (depth > 0 && !(cwd === '/' || cwd.endsWith(':\\'))) {
-    return searchFiles(files, resolve(cwd, '..'), depth - 1)
+    return await searchFiles(files, resolve(cwd, '..'), depth - 1)
   }
 }
 
 /**
- * load config module by esbuild
+ * bundle and load user config file
  * @param filename config filename
- * @returns config module
+ * @returns user config module
  */
 const loadConfig = async (filename: string): Promise<UserConfig> => {
+  // TODO: import js (mjs, cjs) config file directly without esbuild?
   if (!/\.(js|mjs|cjs|ts|mts|cts)$/.test(filename)) {
     const ext = filename.split('.').pop()
     throw new Error(`not supported config file with '${ext}' extension`)
   }
 
-  const outfile = resolve(filename, '../node_modules/.velite/config.compiled.mjs')
+  const outfile = join(filename, '../node_modules/.velite/config.compiled.mjs')
 
-  try {
-    await build({
-      entryPoints: [filename],
-      bundle: true,
-      write: true,
-      format: 'esm',
-      target: 'node18',
-      platform: 'node',
-      // sourcemap: 'inline',
-      external: ['velite'],
-      outfile
-    })
+  await build({
+    entryPoints: [filename],
+    bundle: true,
+    write: true,
+    format: 'esm',
+    target: 'node18',
+    platform: 'node',
+    external: ['velite'],
+    outfile
+  })
 
-    const configUrl = pathToFileURL(outfile)
-    configUrl.searchParams.set('t', Date.now().toString())
+  const configUrl = pathToFileURL(outfile)
+  configUrl.searchParams.set('t', Date.now().toString()) // prevent import cache
 
-    const mod = await import(configUrl.href)
-    return mod.default ?? mod
-  } catch (err: any) {
-    err.message = `load config failed: ${err.message}`
-    throw err
-  }
-}
-
-interface ConfigOptions {
-  path?: string
-  clean?: boolean
-  logLevel?: LogLevel
+  const mod = await import(configUrl.href)
+  return mod.default ?? mod
 }
 
 /**
  * resolve config from user's project
- * @param options config options
+ * @param path specific config file path
+ * @param clean whether to clean output directories, for cli option
  * @returns resolved config object with default values
  */
-export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {}): Promise<Config> => {
+export const resolveConfig = async (path?: string, clean?: boolean): Promise<Config> => {
   const begin = performance.now()
-  // set log level
-  logLevel && logger.set(logLevel)
 
   // prettier-ignore
-  const files = path != null ? [path]: [
+  const files = path != null ? [path] : [
     name + '.config.js',
     name + '.config.ts',
     name + '.config.mjs',
@@ -267,13 +354,15 @@ export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {
   if (configPath == null) throw new Error(`config file not found, create '${name}.config.ts' in your project root directory`)
 
   const { root, output, collections, ...rest } = await loadConfig(configPath)
-
-  if (collections == null) throw new Error(`'collections' is required in config file`)
+  if (collections == null) throw new Error("'collections' is required in config file")
+  logger.log(`using config '${configPath}'`, begin)
 
   const cwd = dirname(configPath)
 
-  config = {
+  resolvedConfig = {
     ...rest,
+    configPath,
+    collections,
     root: resolve(cwd, root ?? 'content'),
     output: {
       data: resolve(cwd, output?.data ?? '.velite'),
@@ -282,20 +371,23 @@ export const resolveConfig = async ({ path, clean, logLevel }: ConfigOptions = {
       filename: output?.filename ?? '[name]-[hash:8].[ext]',
       ignore: output?.ignore ?? [],
       clean: clean ?? output?.clean ?? false
-    },
-    collections,
-    configPath
+    }
   }
 
-  logger.log(`using config '${configPath}'`, begin)
-
-  return config
+  return resolvedConfig
 }
+
+// ↓↓↓ helper identity functions for type inference
 
 /**
  * Define a collection (identity function for type inference)
  */
 export const defineCollection = (collection: Collection) => collection
+
+/**
+ * Define a loader (identity function for type inference)
+ */
+export const defineLoader = (loader: Loader) => loader
 
 /**
  * Define config (identity function for type inference)

@@ -35,7 +35,7 @@ Check out our detailed [Why Velite](#why-velite) to learn more about what makes 
 
 ## Try Velite Online
 
-You can try Velite directly in your browser on StackBlitz:
+You can try Velite directly in your browser on StackBlitz, It runs Velite directly in the browser, and it is almost identical to the local setup but doesn't require installing anything on your machine.
 
 - https://stackblitz.com/edit/velite-basic
 - https://stackblitz.com/edit/velite-nextjs

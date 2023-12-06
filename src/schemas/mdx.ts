@@ -4,39 +4,13 @@ import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
 import { remarkCopyLinkedFiles } from '../assets'
+import { loaded } from '../cache'
 import { getConfig } from '../config'
 
-import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root } from 'mdast'
-import type { Plugin } from 'unified'
+import type { MdxOptions } from '../config'
 
-/**
- * MDX compiler options
- */
-export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
-  /**
-   * Enable GitHub Flavored Markdown (GFM).
-   * @default true
-   */
-  gfm?: boolean
-  /**
-   * Remove html comments.
-   * @default true
-   */
-  removeComments?: boolean
-  /**
-   * Copy linked files to public path and replace their urls with public urls.
-   * @default true
-   */
-  copyLinkedFiles?: boolean
-  /**
-   * Output format to generate.
-   * @default 'function-body'
-   */
-  outputFormat?: CompileOptions['outputFormat']
-}
-
-const remarkRemoveComments: Plugin<[], Root> = () => tree => {
+const remarkRemoveComments = () => (tree: Root) => {
   visit(tree, ['mdxFlowExpression'], (node, index, parent: any) => {
     if (node.value.match(/\/\*([\s\S]*?)\*\//g)) {
       parent.children.splice(index, 1)
@@ -46,7 +20,12 @@ const remarkRemoveComments: Plugin<[], Root> = () => tree => {
 }
 
 export const mdx = (options: MdxOptions = {}) =>
-  z.string().transform(async (value, ctx) => {
+  z.custom<string>().transform(async (value, ctx) => {
+    const path = ctx.path[0] as string
+    if (value == null && loaded.has(path)) {
+      value = loaded.get(path)!.data.content!
+    }
+
     const { mdx = {} } = getConfig()
     const gfm = options.gfm ?? mdx.gfm ?? true
     const removeComments = options.removeComments ?? mdx.removeComments ?? true

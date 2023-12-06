@@ -1,15 +1,23 @@
-const cache = new Map<string, any>()
+// memory level cache is enough for Velite. and it's easy & efficient.
+// maybe we can use other cache way in the future if needed.
+// but for now, we just need a simple cache.
 
-export const setCache = (key: string, value: any) => cache.set(key, value)
+import { VFile } from 'vfile'
 
-export const hasCache = (key: string) => cache.has(key)
+/**
+ * loaded files, cache all loaded files for:
+ * 1. avoid duplicate loading
+ * 2. reuse in rebuilding
+ * 3. provide custom schema access
+ */
+export const loaded = new Map<string, VFile>()
 
-export const deleteCache = (key: string) => cache.delete(key)
+/**
+ * cache resolved result for rebuild
+ */
+export const resolved = new Map<string, VFile[]>()
 
-export const clearCache = () => cache.clear()
-
-export const getCache = <T = any>(key: string, defaults: T): T => {
-  if (cache.has(key)) return cache.get(key)
-  cache.set(key, defaults)
-  return defaults
-}
+/**
+ * cache need refresh in rebuild
+ */
+export const cache = new Map<string, any>()

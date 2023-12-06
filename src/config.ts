@@ -8,9 +8,10 @@ import { name } from '../package.json'
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { PluggableList } from 'unified'
 import type { Data, VFile } from 'vfile'
-import type { ZodType } from 'zod'
+import type { ZodSchema } from 'zod'
 
 type Promisable<T> = T | Promise<T>
+
 /**
  * Markdown options
  */
@@ -80,30 +81,6 @@ export interface Loader {
    * @param file vfile
    */
   load: (file: VFile) => Promisable<Data>
-}
-
-/**
- * This interface for plugins extra user config
- * @example
- * declare module 'velite' {
- *   interface PluginConfig {
- *     myPlugin: MyPluginConfig
- *   }
- * }
- */
-export interface PluginConfig {
-  /**
-   * File loaders
-   */
-  loaders: Loader[]
-  /**
-   * Markdown options
-   */
-  markdown: MarkdownOptions
-  /**
-   * Global MDX options
-   */
-  mdx: MdxOptions
 }
 
 /**
@@ -183,7 +160,7 @@ export interface Collection {
    *   content: z.string() // from markdown body
    * })
    */
-  schema: ZodType
+  schema: ZodSchema
 }
 
 /**
@@ -202,8 +179,16 @@ export type Result<T extends Collections> = {
 
 /**
  * Velite user configuration
+ * @example
+ * to extend the plugin config
+ * declare module 'velite' {
+ *   interface Config {
+ *     myConfig: MyPluginConfig
+ *   }
+ * }
+ * context.myConfig // => custom config
  */
-export interface Config<T extends Collections = Collections> extends Partial<PluginConfig> {
+export interface Config<T extends Collections = Collections> {
   /**
    * The root directory of the contents (relative to config file).
    * @default 'content'
@@ -217,6 +202,18 @@ export interface Config<T extends Collections = Collections> extends Partial<Plu
    * All collections
    */
   collections: T
+  /**
+   * File loaders
+   */
+  loaders: Loader[]
+  /**
+   * Global Markdown options
+   */
+  markdown: MarkdownOptions
+  /**
+   * Global MDX options
+   */
+  mdx: MdxOptions
   /**
    * Data prepare hook, before write to file
    * @description
@@ -315,32 +312,9 @@ export const resolveConfig = async (path?: string, clean?: boolean): Promise<{ p
   if (config.collections == null) throw new Error("'collections' is required in config file")
 
   return { path: configPath, config }
-
-  // logger.log(`using config '${configPath}'`, begin)
-
-  // const cwd = dirname(configPath)
-  // const cache = new Map<string, any>()
-
-  // resolvedConfig = {
-  //   ...rest,
-  //   cache,
-  //   configPath,
-  //   collections,
-  //   root: resolve(cwd, root ?? 'content'),
-  //   output: {
-  //     data: resolve(cwd, output?.data ?? '.velite'),
-  //     assets: resolve(cwd, output?.assets ?? 'public/static'),
-  //     base: output?.base ?? '/static/',
-  //     filename: output?.filename ?? '[name]-[hash:8].[ext]',
-  //     ignore: output?.ignore ?? [],
-  //     clean: clean ?? output?.clean ?? false
-  //   }
-  // }
-
-  // return resolvedConfig
 }
 
-// ↓↓↓ identity functions for type inference
+// ↓↓↓ helper identity functions for type inference
 
 /**
  * Define a collection (identity function for type inference)

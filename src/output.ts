@@ -4,7 +4,7 @@ import { join, relative } from 'node:path'
 import { assets } from './assets'
 import { logger } from './logger'
 
-import type { Collections, Result } from './types'
+import type { Collections } from './config'
 
 const emitted = new Map<string, string>()
 
@@ -60,7 +60,7 @@ export const outputEntry = async (dest: string, configPath: string, collections:
  * @param dest output destination directory
  * @param result all built result
  */
-export const outputData = async (dest: string, result: Result<Collections>): Promise<void> => {
+export const outputData = async (dest: string, result: Record<string, any>): Promise<void> => {
   const begin = performance.now()
   const logs: string[] = []
   await Promise.all(

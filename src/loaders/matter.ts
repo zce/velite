@@ -1,6 +1,6 @@
 import yaml from 'yaml'
 
-import { defineLoader } from '../types'
+import { defineLoader } from '../config'
 
 // https://github.com/vfile/vfile-matter/blob/main/lib/index.js
 const matterRegex = /^---(?:\r?\n|\r)(?:([\s\S]*?)(?:\r?\n|\r))?---(?:\r?\n|\r|$)/

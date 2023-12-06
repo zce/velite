@@ -4,11 +4,11 @@ import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
 import { remarkCopyLinkedFiles } from '../assets'
-import { getConfig } from '../config'
+import { context } from '../context'
 import { getFile } from '../file'
-import { MdxOptions } from '../types'
 
 import type { Root } from 'mdast'
+import type { MdxOptions } from '../config'
 
 const remarkRemoveComments = () => (tree: Root) => {
   visit(tree, ['mdxFlowExpression'], (node, index, parent: any) => {
@@ -25,7 +25,7 @@ export const mdx = (options: MdxOptions = {}) =>
       value = getFile(ctx.path[0] as string).data.content!
     }
 
-    const { mdx = {} } = getConfig()
+    const { mdx = {} } = context
     const gfm = options.gfm ?? mdx.gfm ?? true
     const removeComments = options.removeComments ?? mdx.removeComments ?? true
     const copyLinkedFiles = options.copyLinkedFiles ?? mdx.copyLinkedFiles ?? true

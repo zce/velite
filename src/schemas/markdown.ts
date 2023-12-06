@@ -8,12 +8,11 @@ import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
 import { rehypeCopyLinkedFiles } from '../assets'
-import { getConfig } from '../config'
+import { context } from '../context'
 import { getFile } from '../file'
 
 import type { Root } from 'hast'
-import type { PluggableList } from 'unified'
-import type { MarkdownOptions } from '../types'
+import type { MarkdownOptions } from '../config'
 
 const remarkRemoveComments = () => (tree: Root) => {
   // https://github.com/alvinometric/remark-remove-comments/blob/main/transformer.js
@@ -27,12 +26,11 @@ const remarkRemoveComments = () => (tree: Root) => {
 
 export const markdown = (options: MarkdownOptions = {}) =>
   z.custom<string>().transform(async (value, ctx) => {
-    const begin = performance.now()
     if (value == null) {
       value = getFile(ctx.path[0] as string).data.content!
     }
 
-    const { markdown = {} } = getConfig()
+    const { markdown = {} } = context
     const { remarkPlugins = [], rehypePlugins = [] } = markdown
     const { gfm = true, removeComments = true, copyLinkedFiles = true } = { ...markdown, ...options }
 
@@ -51,7 +49,6 @@ export const markdown = (options: MarkdownOptions = {}) =>
         .use(rehypePlugins) // apply rehype plugins
         .use(rehypeStringify) // serialize html syntax tree
         .process({ value, path: ctx.path[0] as string })
-      console.log(`markdown: ${performance.now() - begin}ms`)
       return file.toString()
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })

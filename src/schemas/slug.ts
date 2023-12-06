@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { getConfig } from '../config'
+import { context } from '../context'
 
 /**
  * generate a slug schema
@@ -16,7 +16,7 @@ export const slug = (by: string = 'global', reserved: string[] = []) =>
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/i, 'Invalid slug')
     .refine(value => !reserved.includes(value), 'Reserved slug')
     .refine(value => {
-      const { cache } = getConfig()
+      const { cache } = context
       if (cache.has(`schemas:slug:${by}:${value}`)) return false
       cache.set(`schemas:slug:${by}:${value}`, true)
       return true

@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { normalize } from 'node:path'
 import { VFile } from 'vfile'
-import { reporter } from 'vfile-reporter'
 
 import { resolveLoader } from './loaders'
 import { logger } from './logger'
@@ -76,13 +75,15 @@ export const load = async (path: string, schema: ZodSchema, changed?: string): P
   path = normalize(path)
   if (changed != null && path !== changed && cache.has(path)) {
     // skip file if changed file not match
-    // logger.log(`skipped load '${path}', using previous loaded`)
+    logger.log(`skipped load '${path}', using previous loaded`)
     return cache.get(path)!
   }
+  const begin = performance.now()
   const file = new File(path)
   cache.set(path, file)
   await file.load()
   await file.parse(schema)
+  logger.log(`loaded '${path}' with ${(file.result as any).length ?? 1} records`, begin)
   return file
 }
 
@@ -94,13 +95,4 @@ export const load = async (path: string, schema: ZodSchema, changed?: string): P
 export const getFile = (path: string): File => {
   if (cache.has(path)) return cache.get(path)!
   throw new Error(`file ${path} is not loaded`)
-}
-
-/**
- * report all files if any error in parsing
- */
-export const report = (): void => {
-  const files = Array.from(cache.values())
-  const report = reporter(files, { quiet: true })
-  report.length > 0 && logger.warn(report)
 }

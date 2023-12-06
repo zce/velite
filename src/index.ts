@@ -1,4 +1,6 @@
-// export { defineConfig, defineCollection, defineLoader, type PluginConfig, type Config, type Loader } from './types'
+export { defineConfig, defineCollection, defineLoader, type Config, type Collection, type Loader } from './config'
+export { context, type Context } from './context'
+export { logger } from './logger'
 // export { getFile } from './file'
 // export { build } from './build'
 // export * from './schemas'

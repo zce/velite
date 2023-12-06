@@ -5,12 +5,12 @@ import { resolveConfig } from './config'
 import { logger } from './logger'
 import { outputEntry } from './output'
 
-import type { Collections, Config, Loader, MarkdownOptions, MdxOptions, Output, PluginConfig } from './config'
+import type { Config } from './config'
 
 /**
  * Build Context
  */
-export interface Context extends Partial<PluginConfig> {
+export interface Context extends Readonly<Config> {
   /**
    * Velite cache
    * @description
@@ -18,53 +18,40 @@ export interface Context extends Partial<PluginConfig> {
    * maybe we can use other cache way in the future if needed.
    * but for now, we just need a simple cache.
    */
-  cache: Map<string, any>
+  readonly cache: Map<string, any>
   /**
    * context file path
    */
-  configPath: string
+  readonly configPath: string
   /**
    * The root directory of the contents (relative to config file).
    * @default 'content'
    */
-  root: string
+  readonly root: string
   /**
    * Output configuration
    */
-  output: Output
-  /**
-   * All collections
-   */
-  collections: Collections
-  /**
-   * Data prepare hook, before write to file
-   * @description
-   * You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files.
-   * return false to prevent the default output to a file if you wanted
-   * @param data loaded data
-   */
-  prepare?: Config['prepare']
-  /**
-   * Build success hook
-   * @description
-   * You can do anything after the build is complete, such as print some tips or deploy the output files.
-   * @param data loaded data
-   */
-  complete?: Config['complete']
+  readonly output: Required<NonNullable<Config['output']>>
 }
 
+let _context: Context = null as any // unreasonable, but convenient
+
 /**
- * get context, require `init` called before
+ * global context, require `init` called before
  */
-export const context: Context = {} as any // unreasonable, but convenient
+export const context = new Proxy<Context>(_context, {
+  get: (target, prop: keyof Context) => {
+    if (target?.[prop] != null) return target[prop]
+    throw new Error('context not initialized')
+  }
+})
 
 /**
  * initialize context
  * @param configFile specify config file path
  * @param clean clean output directories
- * @returns context
  */
-export const init = async (configFile?: string, clean?: boolean): Promise<Context> => {
+export const init = async (configFile?: string, clean?: boolean): Promise<void> => {
   const begin = performance.now()
   const { path, config } = await resolveConfig(configFile, clean)
 
@@ -72,7 +59,8 @@ export const init = async (configFile?: string, clean?: boolean): Promise<Contex
 
   const cwd = dirname(path)
 
-  const { output, collections } = Object.assign(context, config, {
+  const { output, collections } = (_context = {
+    ...config,
     cache: new Map(),
     configPath: path,
     root: resolve(cwd, config.root ?? 'content'),
@@ -102,6 +90,4 @@ export const init = async (configFile?: string, clean?: boolean): Promise<Contex
   await outputEntry(output.data, path, collections)
 
   logger.log(`context initialized`, begin)
-
-  return context
 }

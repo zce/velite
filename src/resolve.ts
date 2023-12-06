@@ -2,11 +2,10 @@ import glob from 'fast-glob'
 import micromatch from 'micromatch'
 import reporter from 'vfile-reporter'
 
+import { context } from './context'
 import { load } from './file'
 import { logger } from './logger'
 import { outputAssets, outputData } from './output'
-
-import type { Context } from './context'
 
 const resolved = new Map<string, unknown>()
 
@@ -16,7 +15,9 @@ const resolved = new Map<string, unknown>()
  * @param changed changed file path (relative to content root)
  * @returns resolved entries
  */
-export const resolve = async ({ root, output, collections, prepare, complete, cache }: Context, changed?: string): Promise<Record<string, unknown>> => {
+export const resolve = async (changed?: string): Promise<Record<string, unknown>> => {
+  const { root, output, collections, prepare, complete, cache } = context
+
   const begin = performance.now()
 
   cache.clear() // clear need refresh cache

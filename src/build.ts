@@ -38,12 +38,10 @@ interface Options {
 export const build = async (options: Options = {}): Promise<Record<string, unknown>> => {
   const begin = performance.now()
   const { config: configFile, clean, logLevel } = options
-  // set log level
   logLevel != null && logger.set(logLevel)
-  const config = await init(configFile, clean)
-  const result = await resolve(config)
+  await init(configFile, clean)
+  const result = await resolve()
   logger.info(`build finished`, begin)
-  // watch files
-  options.watch && watch(config)
+  options.watch && watch()
   return result
 }

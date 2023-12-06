@@ -1,6 +1,6 @@
 import yaml from 'yaml'
 
-import { defineLoader } from '../types'
+import { defineLoader } from '../config'
 
 export default defineLoader({
   // name: 'yaml',

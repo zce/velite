@@ -68,6 +68,19 @@ export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
   outputFormat?: CompileOptions['outputFormat']
 }
 
+declare module 'vfile' {
+  interface DataMap {
+    /**
+     * original data loaded from file
+     */
+    data: unknown
+    /**
+     * content without frontmatter
+     */
+    content: string
+  }
+}
+
 /**
  * File data loader
  */

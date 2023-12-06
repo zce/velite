@@ -8,8 +8,8 @@ import { visit } from 'unist-util-visit'
 import { z } from 'zod'
 
 import { rehypeCopyLinkedFiles } from '../assets'
+import { loaded } from '../cache'
 import { getConfig } from '../config'
-import { getFile } from '../file'
 
 import type { Root } from 'hast'
 import type { MarkdownOptions } from '../config'
@@ -26,8 +26,9 @@ const remarkRemoveComments = () => (tree: Root) => {
 
 export const markdown = (options: MarkdownOptions = {}) =>
   z.custom<string>().transform(async (value, ctx) => {
-    if (value == null) {
-      value = getFile(ctx.path[0] as string).data.content!
+    const path = ctx.path[0] as string
+    if (value == null && loaded.has(path)) {
+      value = loaded.get(path)!.data.content!
     }
 
     const { markdown = {} } = getConfig()

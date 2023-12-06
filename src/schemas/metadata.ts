@@ -4,7 +4,7 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 import { z } from 'zod'
 
-import { getFile } from '../file'
+import { loaded } from '../cache'
 
 // Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters
 const cjRanges = [
@@ -94,8 +94,9 @@ export interface Metadata {
 
 export const metadata = () =>
   z.custom<string>().transform<Metadata>(async (value, ctx) => {
-    if (value == null) {
-      value = getFile(ctx.path[0] as string).data.content!
+    const path = ctx.path[0] as string
+    if (value == null && loaded.has(path)) {
+      value = loaded.get(path)!.data.content!
     }
 
     try {

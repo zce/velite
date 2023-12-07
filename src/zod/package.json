@@ -1,7 +1,0 @@
-{
-  "name": "zod",
-  "version": "3.22.4",
-  "private": true,
-  "license": "MIT",
-  "main": "index.ts"
-}

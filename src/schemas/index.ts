@@ -1,5 +1,4 @@
 import * as z from '../zod'
-import { ZodMeta } from '../zod'
 import { excerpt } from './excerpt'
 import { file } from './file'
 import { image } from './image'
@@ -11,10 +10,13 @@ import { slug } from './slug'
 import { summary } from './summary'
 import { unique } from './unique'
 
+import type { VFile } from 'vfile'
+import type { Config } from '../config'
+
 declare module '../zod' {
   interface ZodMeta {
-    file: import('vfile').VFile
-    config: import('../config').Config
+    file: VFile
+    config: Config
   }
 }
 

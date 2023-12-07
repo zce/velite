@@ -1,5 +1,7 @@
 // @ts-check
+import fs from 'node:fs'
 import { builtinModules } from 'node:module'
+import path from 'node:path'
 import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
 import resolve from '@rollup/plugin-node-resolve'
@@ -21,7 +23,7 @@ export default defineConfig([
       chunkFileNames: 'velite-[hash].js'
     },
     external,
-    plugins: [commonjs(), resolve({ preferBuiltins: false }), esbuild({ target: 'node18' }), json()]
+    plugins: [json(), commonjs(), resolve({ preferBuiltins: false }), esbuild({ target: 'node18' })]
   },
   {
     input: 'src/index.ts',
@@ -30,6 +32,24 @@ export default defineConfig([
       file: 'dist/index.d.ts'
     },
     external,
-    plugins: [dts({ respectExternal: true })]
+    plugins: [
+      dts({ respectExternal: true }),
+      {
+        name: 'flatten-declare-module',
+        generateBundle(_, bundle) {
+          for (const fileName in bundle) {
+            const chunk = bundle[fileName]
+            if (chunk.type === 'chunk') {
+              chunk.code = chunk.code.replace(/\ndeclare module ['"].+['"] {([^]+?)\n}/g, (_, inner) =>
+                inner
+                  .split('\n')
+                  .map(line => line.replace(/^    /, ''))
+                  .join('\n')
+              )
+            }
+          }
+        }
+      }
+    ]
   }
 ])

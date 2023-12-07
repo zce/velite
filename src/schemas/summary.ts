@@ -2,9 +2,8 @@ import { raw } from 'hast-util-raw'
 import { toString } from 'hast-util-to-string'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
-import { z } from 'zod'
 
-import { loaded } from '../cache'
+import { custom } from '../zod'
 
 export interface SummaryOptions {
   /**
@@ -15,10 +14,10 @@ export interface SummaryOptions {
 }
 
 export const summary = ({ length = 260 }: SummaryOptions = {}) =>
-  z.custom<string>().transform(async (value, ctx) => {
-    const path = ctx.path[0] as string
-    if (value == null && loaded.has(path)) {
-      value = loaded.get(path)!.data.content!
+  custom<string>().transform(async (value, ctx) => {
+    const { file } = ctx.meta
+    if (value == null && file.data.content != null) {
+      value = file.data.content
     }
 
     try {

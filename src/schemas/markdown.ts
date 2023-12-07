@@ -5,11 +5,9 @@ import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
-import { z } from 'zod'
 
 import { rehypeCopyLinkedFiles } from '../assets'
-import { loaded } from '../cache'
-import { getConfig } from '../config'
+import { custom } from '../zod'
 
 import type { Root } from 'hast'
 import type { MarkdownOptions } from '../config'
@@ -25,13 +23,16 @@ const remarkRemoveComments = () => (tree: Root) => {
 }
 
 export const markdown = (options: MarkdownOptions = {}) =>
-  z.custom<string>().transform(async (value, ctx) => {
-    const path = ctx.path[0] as string
-    if (value == null && loaded.has(path)) {
-      value = loaded.get(path)!.data.content!
+  custom<string>().transform(async (value, ctx) => {
+    const {
+      file,
+      config: { markdown = {} }
+    } = ctx.meta
+
+    if (value == null && file.data.content != null) {
+      value = file.data.content
     }
 
-    const { markdown = {} } = getConfig()
     const { remarkPlugins = [], rehypePlugins = [] } = markdown
     const { gfm = true, removeComments = true, copyLinkedFiles = true } = { ...markdown, ...options }
 
@@ -42,15 +43,15 @@ export const markdown = (options: MarkdownOptions = {}) =>
     if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
 
     try {
-      const file = await unified()
+      const html = await unified()
         .use(remarkParse) // parse markdown content to a syntax tree
         .use(remarkPlugins) // apply remark plugins
         .use(remarkRehype, { allowDangerousHtml: true })
         .use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
         .use(rehypePlugins) // apply rehype plugins
         .use(rehypeStringify) // serialize html syntax tree
-        .process({ value, path: ctx.path[0] as string })
-      return file.toString()
+        .process({ value, path: file.path })
+      return html.toString()
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })
       return value

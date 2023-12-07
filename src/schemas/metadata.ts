@@ -2,9 +2,10 @@ import { raw } from 'hast-util-raw'
 import { toString } from 'hast-util-to-string'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
-import { z } from 'zod'
 
-import { loaded } from '../cache'
+import { custom } from '../zod'
+
+import type { VFile } from 'vfile'
 
 // Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters
 const cjRanges = [
@@ -93,10 +94,11 @@ export interface Metadata {
 }
 
 export const metadata = () =>
-  z.custom<string>().transform<Metadata>(async (value, ctx) => {
-    const path = ctx.path[0] as string
-    if (value == null && loaded.has(path)) {
-      value = loaded.get(path)!.data.content!
+  custom<string>().transform<Metadata>(async (value, ctx) => {
+    const [file] = ctx.path as unknown as [VFile]
+
+    if (value == null && file.data.content != null) {
+      value = file.data.content
     }
 
     try {

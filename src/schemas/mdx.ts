@@ -1,11 +1,9 @@
 import { compile } from '@mdx-js/mdx'
 import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
-import { z } from 'zod'
 
 import { remarkCopyLinkedFiles } from '../assets'
-import { loaded } from '../cache'
-import { getConfig } from '../config'
+import { custom } from '../zod'
 
 import type { Root } from 'mdast'
 import type { MdxOptions } from '../config'
@@ -20,13 +18,16 @@ const remarkRemoveComments = () => (tree: Root) => {
 }
 
 export const mdx = (options: MdxOptions = {}) =>
-  z.custom<string>().transform(async (value, ctx) => {
-    const path = ctx.path[0] as string
-    if (value == null && loaded.has(path)) {
-      value = loaded.get(path)!.data.content!
+  custom<string>().transform(async (value, ctx) => {
+    const {
+      file,
+      config: { mdx = {} }
+    } = ctx.meta
+
+    if (value == null && file.data.content != null) {
+      value = file.data.content
     }
 
-    const { mdx = {} } = getConfig()
     const gfm = options.gfm ?? mdx.gfm ?? true
     const removeComments = options.removeComments ?? mdx.removeComments ?? true
     const copyLinkedFiles = options.copyLinkedFiles ?? mdx.copyLinkedFiles ?? true
@@ -44,9 +45,9 @@ export const mdx = (options: MdxOptions = {}) =>
     const compilerOptions = { ...mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
 
     try {
-      const file = await compile({ value, path: ctx.path[0] as string }, compilerOptions)
+      const code = await compile({ value, path: file.path }, compilerOptions)
       // TODO: minify output
-      return file
+      return code
         .toString()
         .replace(/^"use strict";/, '')
         .replace(/\s+/g, ' ')

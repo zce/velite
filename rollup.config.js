@@ -21,7 +21,7 @@ export default defineConfig([
       chunkFileNames: 'velite-[hash].js'
     },
     external,
-    plugins: [commonjs(), resolve({ preferBuiltins: false }), esbuild({ target: 'node18' }), json(), minify()]
+    plugins: [commonjs(), resolve({ preferBuiltins: false }), esbuild({ target: 'node18' }), json()]
   },
   {
     input: 'src/index.ts',

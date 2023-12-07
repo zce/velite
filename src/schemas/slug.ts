@@ -1,6 +1,5 @@
-import { z } from 'zod'
-
 import { cache } from '../cache'
+import { string } from '../zod'
 
 /**
  * generate a slug schema
@@ -9,8 +8,7 @@ import { cache } from '../cache'
  * @returns slug schema
  */
 export const slug = (by: string = 'global', reserved: string[] = []) =>
-  z
-    .string()
+  string()
     .min(3)
     .max(200)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/i, 'Invalid slug')

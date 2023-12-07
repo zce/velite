@@ -6,15 +6,15 @@ import { VFile } from 'vfile'
 import { reporter } from 'vfile-reporter'
 
 import { assets } from './assets'
-import { cache, loaded, resolved } from './cache'
+import { cache } from './cache'
 import { resolveConfig } from './config'
 import { resolveLoader } from './loaders'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
 
-import type { ZodSchema } from 'zod'
 import type { Config } from './config'
 import type { LogLevel } from './logger'
+import type { ZodSchema } from './schemas'
 
 /**
  * initialize config
@@ -48,12 +48,21 @@ const init = async (configFile?: string, clean?: boolean): Promise<Config> => {
 }
 
 /**
+ * loaded files, cache all loaded files for:
+ * 1. avoid duplicate loading
+ * 2. reuse in rebuilding
+ * 3. provide custom schema access
+ */
+const loaded = new Map<string, VFile>()
+
+/**
  * Load file and parse data with given schema
+ * @param config resolved config
  * @param path file path
  * @param schema data schema
  * @param changed changed file path (relative to content root)
  */
-export const load = async (path: string, schema: ZodSchema, changed?: string): Promise<VFile> => {
+export const load = async (config: Config, path: string, schema: ZodSchema, changed?: string): Promise<VFile> => {
   path = normalize(path)
   if (changed != null && path !== changed && loaded.has(path)) {
     // skip file if changed file not match
@@ -80,15 +89,13 @@ export const load = async (path: string, schema: ZodSchema, changed?: string): P
   const list = isArr ? data : [data]
   const parsed = await Promise.all(
     list.map(async (item, index) => {
-      // provide path for error reporting & relative path for reference
-      const path: (string | number)[] = [file.path]
-      // only push index if list has more than one item
-      isArr && path.push(index)
+      // push index in path if file is array
+      const path = isArr ? [index] : []
       // parse data with given schema
-      const result = await schema.safeParseAsync(item, { path })
+      const result = await schema.safeParseAsync(item, { path, meta: { file, config } })
       if (result.success) return result.data
       // report error if parsing failed
-      result.error.issues.forEach(issue => file.message(issue.message, { source: issue.path.slice(1).join('.') }))
+      result.error.issues.forEach(issue => file[issue.fatal ? 'fail' : 'message'](issue.message, { source: issue.path.join('.') }))
     })
   )
 
@@ -98,12 +105,18 @@ export const load = async (path: string, schema: ZodSchema, changed?: string): P
 }
 
 /**
+ * cache resolved result for rebuild
+ */
+const resolved = new Map<string, VFile[]>()
+
+/**
  * resolve collections from content root
  * @param config resolved config
  * @param changed changed file path (relative to content root)
  * @returns resolved result
  */
-const resolve = async ({ root, output, collections, prepare, complete }: Config, changed?: string): Promise<Record<string, unknown>> => {
+const resolve = async (config: Config, changed?: string): Promise<Record<string, unknown>> => {
+  const { root, output, collections, prepare, complete } = config
   const begin = performance.now()
 
   cache.clear() // clear need refresh cache
@@ -120,7 +133,7 @@ const resolve = async ({ root, output, collections, prepare, complete }: Config,
       const begin = performance.now()
       const paths = await glob(pattern, { cwd: root, absolute: true, onlyFiles: true, ignore: ['**/_*'] })
       logger.log(`resolve ${paths.length} files matching '${pattern}'`, begin)
-      const files = await Promise.all(paths.map(path => load(path, schema, changed)))
+      const files = await Promise.all(paths.map(path => load(config, path, schema, changed)))
       resolved.set(name, files)
       return [name, files]
     })

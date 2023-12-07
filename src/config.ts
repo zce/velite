@@ -9,7 +9,7 @@ import { logger } from './logger'
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { PluggableList } from 'unified'
 import type { Data, VFile } from 'vfile'
-import type { ZodSchema } from 'zod'
+import type { ZodSchema } from './schemas'
 
 type Promisable<T> = T | Promise<T>
 

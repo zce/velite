@@ -1,5 +1,5 @@
-import { z } from 'zod'
-
+import * as z from '../zod'
+import { ZodMeta } from '../zod'
 import { excerpt } from './excerpt'
 import { file } from './file'
 import { image } from './image'
@@ -10,6 +10,13 @@ import { metadata } from './metadata'
 import { slug } from './slug'
 import { summary } from './summary'
 import { unique } from './unique'
+
+declare module '../zod' {
+  interface ZodMeta {
+    file: import('vfile').VFile
+    config: import('../config').Config
+  }
+}
 
 export const s = {
   ...z,
@@ -25,6 +32,6 @@ export const s = {
   mdx
 }
 
-export type * from 'zod'
+export type * from '../zod'
 export type * from './markdown'
 export type * from './mdx'

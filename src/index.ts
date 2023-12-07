@@ -1,5 +1,5 @@
 export { logger } from './logger'
-export { defineConfig, defineCollection, defineLoader, getConfig, type UserConfig, type PluginConfig, type Collection, type Loader } from './config'
+export { defineConfig, defineCollection, defineLoader, type UserConfig, type PluginConfig, type Collection, type Loader } from './config'
 export { processAsset } from './assets'
 export { cache } from './cache'
 export { build } from './build'

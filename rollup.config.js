@@ -1,7 +1,5 @@
 // @ts-check
-import fs from 'node:fs'
 import { builtinModules } from 'node:module'
-import path from 'node:path'
 import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
 import resolve from '@rollup/plugin-node-resolve'
@@ -23,7 +21,13 @@ export default defineConfig([
       chunkFileNames: 'velite-[hash].js'
     },
     external,
-    plugins: [json(), commonjs(), resolve({ preferBuiltins: false }), esbuild({ target: 'node18' })]
+    plugins: [
+      json(),
+      commonjs(),
+      resolve({ preferBuiltins: false }),
+      esbuild({ target: 'node18' }),
+      minify({ target: 'node18' })
+    ]
   },
   {
     input: 'src/index.ts',

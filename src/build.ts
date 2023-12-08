@@ -8,13 +8,12 @@ import { reporter } from 'vfile-reporter'
 import { assets } from './assets'
 import { cache } from './cache'
 import { resolveConfig } from './config'
-import { resolveLoader } from './loaders'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
 
-import type { Config } from './config'
 import type { LogLevel } from './logger'
-import type { ZodSchema } from './schemas'
+import type { Schema } from './schemas'
+import type { Config } from './types'
 
 /**
  * initialize config
@@ -62,7 +61,7 @@ const loaded = new Map<string, VFile>()
  * @param schema data schema
  * @param changed changed file path (relative to content root)
  */
-export const load = async (config: Config, path: string, schema: ZodSchema, changed?: string): Promise<VFile> => {
+export const load = async (config: Config, path: string, schema: Schema, changed?: string): Promise<VFile> => {
   path = normalize(path)
   if (changed != null && path !== changed && loaded.has(path)) {
     // skip file if changed file not match
@@ -72,11 +71,11 @@ export const load = async (config: Config, path: string, schema: ZodSchema, chan
 
   const begin = performance.now()
 
-  const loader = resolveLoader(path)
-
   const file = new VFile({ path })
-  if (loader == null) file.fail(`no loader found for '${path}'`)
   loaded.set(path, file)
+
+  const loader = config.loaders.find(loader => loader.test.test(path))
+  if (loader == null) file.fail(`no loader found for '${path}'`)
 
   file.value = await readFile(file.path)
   file.data = await loader!.load(file)
@@ -95,7 +94,7 @@ export const load = async (config: Config, path: string, schema: ZodSchema, chan
       const result = await schema.safeParseAsync(item, { path, meta: { file, config } })
       if (result.success) return result.data
       // report error if parsing failed
-      result.error.issues.forEach(issue => file[issue.fatal ? 'fail' : 'message'](issue.message, { source: issue.path.join('.') }))
+      result.error.issues.forEach(issue => file.message(issue.message, { source: issue.path.join('.') }))
     })
   )
 

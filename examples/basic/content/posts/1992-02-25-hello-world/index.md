@@ -3,6 +3,7 @@ title: Hello world
 slug: hello-world
 date: 1992-02-25 13:00:00
 cover: cover.jpg
+video: video.mp4
 categories:
   - Journal
 ---

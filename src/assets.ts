@@ -4,11 +4,9 @@ import { basename, extname, resolve } from 'node:path'
 import sharp from 'sharp'
 import { visit } from 'unist-util-visit'
 
-import { getConfig } from './config'
-
-import type { Element, Root as Hast, Nodes as HNodes } from 'hast'
+import type { Element, Root as Hast } from 'hast'
 import type { Root as Mdast, Node } from 'mdast'
-import type { VFile } from 'vfile'
+import type { Plugin } from 'unified'
 
 /**
  * Image object with metadata & blur image
@@ -57,7 +55,7 @@ const isStaticPath = (url: string): boolean => {
   if (url.startsWith('//')) return false // ignore protocol relative urlet name
   if (ABS_URL_RE.test(url)) return false // ignore absolute url
   if (ABS_PATH_RE.test(url)) return false // ignore absolute path
-  return !getConfig().output.ignore.includes(extname(url).slice(1)) // ignore file extensions
+  return true
 }
 
 /**
@@ -78,55 +76,57 @@ const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | un
 }
 
 /**
- * process assets reference of a file
- * @param ref relative path of the referenced file
- * @param fromPath source file path
+ * process referenced asset of a file
+ * @param input relative path of the asset
+ * @param from source file path
+ * @param filename output filename template
+ * @param baseUrl output public base url
  * @param isImage process as image and return image object with blurDataURL
  * @returns reference public url or image object
  */
-export const processAsset = async <T extends string | undefined, U extends true | undefined = undefined>(
-  ref: T,
-  fromPath: string,
-  isImage?: U
-): Promise<T extends undefined ? undefined : U extends true ? Image | T : T> => {
-  if (ref == null) return ref as any // return undefined or null for zod optional type
-  if (!isStaticPath(ref)) return ref as any // return original url for non-static path
+export const processAsset = async <T extends true | undefined = undefined>(
+  input: string,
+  from: string,
+  filename: string,
+  baseUrl: string,
+  isImage?: T
+): Promise<T extends true ? Image : string> => {
+  const path = resolve(from, '..', input)
+  const buffer = await readFile(path)
+  const ext = extname(input)
 
-  const {
-    output: { filename, base }
-  } = getConfig()
-
-  const from = resolve(fromPath, '..', ref)
-  const source = await readFile(from)
-  const ext = extname(from)
   const name = filename.replace(/\[(name|hash|ext)(:(\d+))?\]/g, (substring, ...groups) => {
     const key = groups[0]
     const length = groups[2] == null ? undefined : parseInt(groups[2])
     switch (key) {
       case 'name':
-        return basename(ref, ext).slice(0, length)
+        return basename(input, ext).slice(0, length)
       case 'hash':
         // TODO: md5 is slow and not-FIPS compliant, consider using sha256
         // https://github.com/joshwiens/hash-perf
         // https://stackoverflow.com/q/2722943
         // https://stackoverflow.com/q/14139727
-        return createHash('md5').update(source).digest('hex').slice(0, length)
+        return createHash('md5').update(buffer).digest('hex').slice(0, length)
       case 'ext':
         return ext.slice(1, length)
     }
     return substring
   })
-  const src = base + name
+
+  const src = baseUrl + name
   assets.set(name, from)
 
-  if (isImage !== true) return src as any
+  if (isImage !== true) return src as T extends true ? Image : string
 
-  const metadata = await getImageMetadata(source)
+  const metadata = await getImageMetadata(buffer)
   if (metadata == null) throw new Error(`invalid image: ${from}`)
-  return { src, ...metadata } as any
+  return { src, ...metadata } as T extends true ? Image : string
 }
 
-export const extractHastLinkedFiles = async (tree: HNodes, from: string) => {
+/**
+ * rehype (markdown) plugin to copy linked files to public path and replace their urls with public urls
+ */
+export const rehypeCopyLinkedFiles: Plugin<[string, string], Hast> = (filename, base) => async (tree, file) => {
   const links = new Map<string, Element[]>()
   const linkedPropertyNames = ['href', 'src', 'poster']
   visit(tree, 'element', node => {
@@ -141,7 +141,7 @@ export const extractHastLinkedFiles = async (tree: HNodes, from: string) => {
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, elements]) => {
-      const publicUrl = await processAsset(url, from)
+      const publicUrl = await processAsset(url, file.path, filename, base)
       if (publicUrl == null || publicUrl === url) return
       elements.forEach(node => {
         linkedPropertyNames.forEach(name => {
@@ -155,14 +155,9 @@ export const extractHastLinkedFiles = async (tree: HNodes, from: string) => {
 }
 
 /**
- * rehype (markdown) plugin to copy linked files to public path and replace their urls with public urls
- */
-export const rehypeCopyLinkedFiles = () => async (tree: Hast, file: VFile) => extractHastLinkedFiles(tree, file.path)
-
-/**
  * remark (mdx) plugin to copy linked files to public path and replace their urls with public urls
  */
-export const remarkCopyLinkedFiles = () => async (tree: Mdast, file: VFile) => {
+export const remarkCopyLinkedFiles: Plugin<[string, string], Mdast> = (filename, base) => async (tree, file) => {
   const links = new Map<string, Node[]>()
   const linkedPropertyNames = ['href', 'src', 'poster']
   visit(tree, ['link', 'image', 'definition'], (node: any) => {
@@ -183,7 +178,7 @@ export const remarkCopyLinkedFiles = () => async (tree: Mdast, file: VFile) => {
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, nodes]) => {
-      const publicUrl = await processAsset(url, file.path)
+      const publicUrl = await processAsset(url, file.path, filename, base)
       if (publicUrl == null || publicUrl === url) return
       nodes.forEach((node: any) => {
         if (node.url === url) {

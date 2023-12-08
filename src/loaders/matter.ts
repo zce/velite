@@ -1,6 +1,10 @@
+import { raw } from 'hast-util-raw'
+import { toString } from 'hast-util-to-string'
+import { fromMarkdown } from 'mdast-util-from-markdown'
+import { toHast } from 'mdast-util-to-hast'
 import yaml from 'yaml'
 
-import { defineLoader } from '../config'
+import { defineLoader } from '../types'
 
 // https://github.com/vfile/vfile-matter/blob/main/lib/index.js
 const MATTER_RE = /^---(?:\r?\n|\r)(?:([\s\S]*?)(?:\r?\n|\r))?---(?:\r?\n|\r|$)/
@@ -9,11 +13,13 @@ export default defineLoader({
   // name: 'matter',
   test: /\.(md|mdx)$/,
   load: async file => {
-    const raw = file.toString().trim()
-    const match = raw.match(MATTER_RE)
-    return {
-      data: match == null ? {} : yaml.parse(match[1]),
-      content: match == null ? raw : raw.slice(match[0].length).trim()
-    }
+    const value = file.toString().trim()
+    const match = value.match(MATTER_RE)
+    const data = match == null ? null : yaml.parse(match[1])
+    const content = match == null ? value : value.slice(match[0].length).trim()
+    const mdast = fromMarkdown(content)
+    const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
+    const plain = toString(hast).replace(/\s+/g, ' ')
+    return { data, content, plain }
   }
 })

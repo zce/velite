@@ -1,11 +1,4 @@
-import { raw } from 'hast-util-raw'
-import { toString } from 'hast-util-to-string'
-import { fromMarkdown } from 'mdast-util-from-markdown'
-import { toHast } from 'mdast-util-to-hast'
-
-import { custom } from '../zod'
-
-import type { VFile } from 'vfile'
+import { custom } from './zod'
 
 // Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters
 const cjRanges = [
@@ -94,20 +87,9 @@ export interface Metadata {
 }
 
 export const metadata = () =>
-  custom<string>().transform<Metadata>(async (value, ctx) => {
-    const [file] = ctx.path as unknown as [VFile]
-
-    if (value == null && file.data.content != null) {
-      value = file.data.content
+  custom<string>().transform<Metadata>(async (value, { meta: { file } }) => {
+    if (value == null && file.data.plain != null) {
+      value = file.data.plain
     }
-
-    try {
-      const mdast = fromMarkdown(value)
-      const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
-      const content = toString(hast)
-      return getMetadata(content)
-    } catch (err: any) {
-      ctx.addIssue({ code: 'custom', message: err.message })
-      return { readingTime: 0, wordCount: 0 }
-    }
+    return getMetadata(value)
   })

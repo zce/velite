@@ -2,10 +2,10 @@
 import { builtinModules } from 'node:module'
 import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
-import resolve from '@rollup/plugin-node-resolve'
+import nodeResolve from '@rollup/plugin-node-resolve'
 import { defineConfig } from 'rollup'
 import dts from 'rollup-plugin-dts'
-import esbuild, { minify } from 'rollup-plugin-esbuild'
+import esbuild from 'rollup-plugin-esbuild'
 
 import pkg from './package.json' assert { type: 'json' }
 
@@ -16,23 +16,19 @@ export default defineConfig([
     input: ['src/index.ts', 'src/cli.ts'],
     output: {
       dir: 'dist',
-      format: 'esm',
-      entryFileNames: `[name].js`,
       chunkFileNames: 'velite-[hash].js'
     },
     external,
     plugins: [
       json(),
       commonjs(),
-      resolve({ preferBuiltins: false }),
-      esbuild({ target: 'node18' }),
-      minify({ target: 'node18' })
+      nodeResolve({ preferBuiltins: false }),
+      esbuild({ target: 'node18' })
     ]
   },
   {
     input: 'src/index.ts',
     output: {
-      format: 'esm',
       file: 'dist/index.d.ts'
     },
     external,
@@ -40,16 +36,12 @@ export default defineConfig([
       dts({ respectExternal: true }),
       {
         name: 'flatten-declare-module',
-        generateBundle(_, bundle) {
+        generateBundle: (_, bundle) => {
           for (const fileName in bundle) {
             const chunk = bundle[fileName]
             if (chunk.type === 'chunk') {
-              chunk.code = chunk.code.replace(/\ndeclare module ['"].+['"] {([^]+?)\n}/g, (_, inner) =>
-                inner
-                  .split('\n')
-                  .map(line => line.replace(/^    /, ''))
-                  .join('\n')
-              )
+              chunk.code = chunk.code.replace(/\ndeclare module ['"].+['"] {([^]+?)\n}/g, "$1")
+              // (_, inner) => inner.split('\n').map(line => line.replace(/^    /, '')).join('\n')
             }
           }
         }

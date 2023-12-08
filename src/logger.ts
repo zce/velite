@@ -23,7 +23,7 @@ const set = (level: LogLevel): void => {
  */
 const flatten = (msg: unknown): unknown => {
   if (typeof msg !== 'string') return msg
-  return msg.replace(process.cwd() + sep, '').replace(/\\/g, '/')
+  return msg.replaceAll(process.cwd() + sep, '').replace(/\\/g, '/')
 }
 
 const print = (type: LogType, msg: unknown, begin?: number): void => {

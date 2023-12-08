@@ -1,5 +1,5 @@
 import { cache } from '../cache'
-import { string } from '../zod'
+import { string } from './zod'
 
 /**
  * generate a unique schema

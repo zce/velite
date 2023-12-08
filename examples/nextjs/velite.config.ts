@@ -23,7 +23,7 @@ export default defineConfig({
     data: '.velite',
     assets: 'public/static',
     base: '/static/',
-    filename: '[name]-[hash:6].[ext]',
+    name: '[name]-[hash:6].[ext]',
     ignore: ['.yml', '.md', '.mdx'],
     clean: true
   },
@@ -89,6 +89,7 @@ export default defineConfig({
           date: s.isodate(),
           updated: s.isodate().optional(),
           cover: s.image().optional(),
+          video: s.file().optional(),
           description: s.string().max(999).optional(),
           draft: s.boolean().default(false),
           featured: s.boolean().default(false),
@@ -96,7 +97,6 @@ export default defineConfig({
           tags: s.array(s.string()).default([]),
           meta: meta,
           metadata: s.metadata(),
-          summary: s.summary(),
           excerpt: s.excerpt(),
           content: s.markdown()
         })

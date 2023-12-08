@@ -3,7 +3,7 @@ import { join, relative } from 'node:path'
 
 import { logger } from './logger'
 
-import type { Collections } from './config'
+import type { Collections } from './types'
 
 const emitted = new Map<string, string>()
 

@@ -51,21 +51,12 @@ importers:
       fast-glob:
         specifier: ^3.3.2
         version: 3.3.2
-      hast-util-excerpt:
-        specifier: ^2.0.0
-        version: 2.0.0
       hast-util-raw:
         specifier: ^9.0.1
         version: 9.0.1
-      hast-util-to-html:
-        specifier: ^9.0.0
-        version: 9.0.0
       hast-util-to-string:
         specifier: ^3.0.0
         version: 3.0.0
-      hast-util-truncate:
-        specifier: ^2.0.0
-        version: 2.0.0
       mdast-util-from-markdown:
         specifier: ^2.0.0
         version: 2.0.0
@@ -3057,13 +3048,6 @@ packages:
     dependencies:
       function-bind: 1.1.2
 
-  /hast-util-excerpt@2.0.0:
-    resolution: {integrity: sha512-3hM4U3Tjvx8bn+KGM51BA2VL6poq3AyOHguq3dzDjI74lxYZfOV1zAEEiSbcGd8CXgx9N9JRS5MlS4izTWJRig==}
-    dependencies:
-      '@types/hast': 3.0.3
-      hast-util-truncate: 2.0.0
-    dev: true
-
   /hast-util-from-parse5@8.0.1:
     resolution: {integrity: sha512-Er/Iixbc7IEa7r/XLtuG52zoqn/b3Xng/w6aZQ0xGVxzhw5xUFxcRqdPzP6yFi/4HBYRaifaI5fQ1RH8n0ZeOQ==}
     dependencies:
@@ -3171,14 +3155,6 @@ packages:
     resolution: {integrity: sha512-OGkAxX1Ua3cbcW6EJ5pT/tslVb90uViVkcJ4ZZIMW/R33DX/AkcJcRrPebPwJkHYwlDHXz4aIwvAAaAdtrACFA==}
     dependencies:
       '@types/hast': 3.0.3
-    dev: true
-
-  /hast-util-truncate@2.0.0:
-    resolution: {integrity: sha512-QjtUhkt0hT75dHwwTYS+E9Rge12IVClGUErJgss7q7EewBuSr6LoGjq7nPp3R6BThqWJ6CbarPVPCbklwnUf/g==}
-    dependencies:
-      '@types/hast': 3.0.3
-      '@ungap/structured-clone': 1.2.0
-      micromark-util-character: 2.0.1
     dev: true
 
   /hast-util-whitespace@3.0.0:

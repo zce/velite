@@ -6,7 +6,6 @@ import { VFile } from 'vfile'
 import { reporter } from 'vfile-reporter'
 
 import { assets } from './assets'
-import { cache } from './cache'
 import { resolveConfig } from './config'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
@@ -118,7 +117,7 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
   const { root, output, collections, prepare, complete } = config
   const begin = performance.now()
 
-  cache.clear() // clear need refresh cache
+  config.cache.clear() // clear need refresh cache
 
   logger.log(`resolving collections from '${root}'`)
 

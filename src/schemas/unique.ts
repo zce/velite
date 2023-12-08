@@ -1,5 +1,6 @@
-import { cache } from '../cache'
 import { string } from './zod'
+
+const cache = new Map<string, boolean>()
 
 /**
  * generate a unique schema
@@ -8,7 +9,7 @@ import { string } from './zod'
  */
 export const unique = (by: string = 'global') =>
   string().refine(value => {
-    if (cache.has(`schemas:unique:${by}:${value}`)) return false
-    cache.set(`schemas:unique:${by}:${value}`, true)
+    if (cache.has(`${by}:${value}`)) return false
+    cache.set(`${by}:${value}`, true)
     return true
   }, 'Already exists')

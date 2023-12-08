@@ -1,6 +1,5 @@
 export { logger } from './logger'
 export { processAsset } from './assets'
-export { cache } from './cache'
 export { build } from './build'
 export * from './schemas'
 export * from './types'

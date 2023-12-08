@@ -96,6 +96,7 @@ export const resolveConfig = async (path?: string, clean?: boolean): Promise<Con
     ...rest,
     configPath,
     collections,
+    cache: new Map(),
     root: resolve(cwd, root ?? 'content'),
     output: {
       data: resolve(cwd, output?.data ?? '.velite'),

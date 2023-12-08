@@ -250,6 +250,13 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
  */
 export interface Config extends Readonly<UserConfig> {
   /**
+   * Global cache (need refresh in rebuild)
+   * memory level cache is enough for Velite. and it's easy & efficient.
+   * maybe we can use other cache way in the future if needed.
+   * but for now, we just need a simple cache.
+   */
+  readonly cache: Map<string, any>
+  /**
    * Resolved config file path
    */
   readonly configPath: string

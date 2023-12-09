@@ -117,8 +117,6 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
   const { root, output, collections, prepare, complete } = config
   const begin = performance.now()
 
-  config.cache.clear() // clear need refresh cache
-
   logger.log(`resolving collections from '${root}'`)
 
   const entries = await Promise.all(
@@ -209,6 +207,7 @@ const watch = async (config: Config) => {
     const begin = performance.now()
     filename = join(root, filename)
     try {
+      // config.cache.clear() // clear need refresh cache
       if (filename === configPath) {
         // reload config if config file changed
         logger.info(`config changed '${filename}', reloading...`)

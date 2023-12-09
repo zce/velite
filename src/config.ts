@@ -11,7 +11,7 @@ import type { Config, UserConfig } from './types'
 
 /**
  * recursive 3-level search files in cwd and its parent directories
- * @param files filenames
+ * @param files filenames (relative or absolute)
  * @param cwd start directory
  * @param depth search depth
  * @returns filename first searched
@@ -27,7 +27,7 @@ const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: 
     }
   }
   if (depth > 0 && !(cwd === '/' || cwd.endsWith(':\\'))) {
-    return await searchFiles(files, resolve(cwd, '..'), depth - 1)
+    return await searchFiles(files, dirname(cwd), depth - 1)
   }
 }
 
@@ -65,7 +65,7 @@ const loadConfig = async (path: string): Promise<UserConfig> => {
 
 /**
  * resolve config from user's project
- * @param path specific config file path
+ * @param path specific config file path (relative or absolute)
  * @param clean whether to clean output directories, for cli option
  * @returns resolved config object with default values
  */

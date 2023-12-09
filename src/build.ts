@@ -12,7 +12,141 @@ import { outputAssets, outputData, outputEntry } from './output'
 
 import type { LogLevel } from './logger'
 import type { Schema } from './schemas'
-import type { Config } from './types'
+import type { Config, Loader } from './types'
+
+/**
+ * Content file
+ */
+class File extends VFile {
+  readonly config: Config
+  readonly loader: Loader
+  readonly schema: Schema
+
+  constructor(path: string, schema: Schema, config: Config) {
+    super({ path })
+    const loader = config.loaders.find(loader => loader.test.test(path))
+    if (loader == null) this.fail(`no loader found for '${path}'`)
+    this.loader = loader
+    this.schema = schema
+    this.config = config
+  }
+
+  /**
+   * load file result into `file.result`
+   */
+  async load(): Promise<void> {
+    this.value = await readFile(this.path)
+    this.data = await this.loader.load(this)
+
+    const { data } = this.data
+    if (data == null) this.fail(`no data loaded from this file`)
+
+    // may be one or more records in one file, such as yaml array or json array
+    const isArr = Array.isArray(data)
+    const list = isArr ? data : [data]
+    const meta = { file: this, config: this.config }
+    const parsed = await Promise.all(
+      list.map(async (item, index) => {
+        // push index in path if file is array
+        const path = isArr ? [index] : []
+        // parse data with given schema
+        const result = await this.schema.safeParseAsync(item, { path, meta })
+        if (result.success) return result.data
+        // report error if parsing failed
+        result.error.issues.forEach(issue => this.message(issue.message, { source: issue.path.join('.') }))
+      })
+    )
+
+    // logger.log(`loaded '${this.path}' with ${parsed.length} records`, begin)
+    this.result = isArr ? parsed : parsed[0]
+  }
+}
+
+/**
+ * resolve collections from content root
+ * @param config resolved config
+ * @returns resolved result
+ */
+export const loadCollections = async (config: Config): Promise<[string, VFile[]][]> =>
+  Promise.all(
+    Object.entries(config.collections).map(async ([name, { pattern, schema }]): Promise<[string, VFile[]]> => {
+      const begin = performance.now()
+      const paths = await glob(pattern, { cwd: config.root, absolute: true, onlyFiles: true, ignore: ['**/_*'] })
+      const files = await Promise.all(
+        paths.map(async path => {
+          const file = new File(path, schema, config)
+          await file.load()
+          return file
+        })
+      )
+      logger.log(`loaded ${paths.length} files matching '${pattern}'`, begin)
+      return [name, files]
+    })
+  )
+
+const reportIssues = (entries: [string, VFile[]][]): void => {
+  const allFiles = entries.flatMap(([, files]) => files)
+  const report = reporter(allFiles, { quiet: true })
+  report.length > 0 && logger.warn(`issues:\n${report}`)
+}
+
+// const collectResult = (entries: [string, VFile[]][]): Record<string, unknown> =>
+//   Object.fromEntries(
+//     entries.map(([name, files]): [string, any | any[]] => {
+//       const data = files.flatMap(file => file.result).filter(Boolean)
+//       if (config.collections[name].single) {
+//         if (data.length === 0) throw new Error(`no data resolved for '${name}'`)
+//         if (data.length > 1) logger.warn(`resolved ${data.length} ${name}, but expected single, using first one`)
+//         else logger.log(`resolved 1 ${name}`)
+//         return [name, data[0]]
+//       }
+//       logger.log(`resolved ${data.length} ${name}`)
+//       return [name, data]
+//     })
+//   )
+
+const processCollections = async (config: Config, entries: [string, VFile[]][]): Promise<Record<string, unknown>> => {
+  const result = Object.fromEntries(
+    entries.map(([name, files]): [string, any | any[]] => {
+      const data = files.flatMap(file => file.result).filter(Boolean)
+      if (config.collections[name].single) {
+        if (data.length === 0) throw new Error(`no data resolved for '${name}'`)
+        if (data.length > 1) logger.warn(`resolved ${data.length} ${name}, but expected single, using first one`)
+        else logger.log(`resolved 1 ${name}`)
+        return [name, data[0]]
+      }
+      logger.log(`resolved ${data.length} ${name}`)
+      return [name, data]
+    })
+  )
+
+  let shouldOutput = true
+  // apply prepare hook
+  if (typeof config.prepare === 'function') {
+    const begin = performance.now()
+    shouldOutput = (await config.prepare(result)) ?? true
+    logger.log(`executed 'prepare' callback got ${shouldOutput}`, begin)
+  }
+
+  if (shouldOutput) {
+    // emit result if not prevented
+    await outputData(config.output.data, result)
+  } else {
+    logger.warn(`prevent output by 'prepare' callback`)
+  }
+
+  // output all assets
+  await outputAssets(config.output.assets, assets)
+
+  // call complete hook
+  if (typeof config.complete === 'function') {
+    const begin = performance.now()
+    await config.complete(result)
+    logger.log(`executed 'complete' callback`, begin)
+  }
+
+  return result
+}
 
 /**
  * initialize config

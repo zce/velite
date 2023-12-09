@@ -114,7 +114,7 @@ export const processAsset = async <T extends true | undefined = undefined>(
   })
 
   const src = baseUrl + name
-  assets.set(name, from)
+  assets.set(name, path)
 
   if (isImage !== true) return src as T extends true ? Image : string
 

@@ -93,7 +93,7 @@ export const outputAssets = async (dest: string, assets: Map<string, string>): P
         return
       }
       await copyFile(from, join(dest, name))
-      logger.log(`copied '${name}' from '${from}'`)
+      // logger.log(`copied '${name}' from '${from}'`)
       emitted.set(name, from)
       count++
     })

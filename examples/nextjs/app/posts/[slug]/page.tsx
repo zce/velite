@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 
 import { getPosts } from '#site/content'
@@ -37,6 +38,7 @@ export default async function PostPage({ params }: PostProps) {
     <article className="prose dark:prose-invert py-6">
       <h1 className="mb-2">{post.title}</h1>
       {post.description && <p className="mt-0 text-xl text-slate-700 dark:text-slate-200">{post.description}</p>}
+      {post.cover && <Image src={post.cover} alt={post.title} placeholder="blur" />}
       <hr className="my-4" />
       <div className="prose" dangerouslySetInnerHTML={{ __html: post.content }}></div>
     </article>

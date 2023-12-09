@@ -61,11 +61,9 @@ export const load = async (config: Config, path: string, schema: Schema, changed
   path = normalize(path)
   if (changed != null && path !== changed && loaded.has(path)) {
     // skip file if changed file not match
-    logger.log(`skipped load '${path}', using previous loaded`)
+    // logger.log(`skipped load '${path}', using previous loaded`)
     return loaded.get(path)!
   }
-
-  const begin = performance.now()
 
   const file = new VFile({ path })
   loaded.set(path, file)
@@ -94,7 +92,7 @@ export const load = async (config: Config, path: string, schema: Schema, changed
     })
   )
 
-  logger.log(`loaded '${path}' with ${parsed.length} records`, begin)
+  // logger.log(`loaded '${path}' with ${parsed.length} records`)
   file.result = isArr ? parsed : parsed[0]
   return file
 }
@@ -125,8 +123,8 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
       }
       const begin = performance.now()
       const paths = await glob(pattern, { cwd: root, absolute: true, onlyFiles: true, ignore: ['**/_*'] })
-      logger.log(`resolve ${paths.length} files matching '${pattern}'`, begin)
       const files = await Promise.all(paths.map(path => load(config, path, schema, changed)))
+      logger.log(`resolve ${paths.length} files matching '${pattern}'`, begin)
       resolved.set(name, files)
       return [name, files]
     })

@@ -30,6 +30,8 @@ export const emit = async (path: string, content: string, log?: string): Promise
  * @param collections collection options
  */
 export const outputEntry = async (dest: string, configPath: string, collections: Collections): Promise<void> => {
+  const begin = performance.now()
+
   // generate entry according to `config.collections`
   const configModPath = relative(dest, configPath)
     .replace(/\\/g, '/') // replace windows path separator
@@ -52,6 +54,8 @@ export const outputEntry = async (dest: string, configPath: string, collections:
 
   const dtsFile = join(dest, 'index.d.ts')
   await emit(dtsFile, banner + dts.join('\n'), `created entry dts file in '${dtsFile}'`)
+
+  logger.info(`output entry file in '${dest}'`, begin)
 }
 
 /**
@@ -81,6 +85,18 @@ export const outputData = async (dest: string, result: Record<string, any>): Pro
  */
 export const outputAssets = async (dest: string, assets: Map<string, string>): Promise<void> => {
   const begin = performance.now()
-  const { length } = await Promise.all(Array.from(assets.entries()).map(([name, from]) => copyFile(from, join(dest, name))))
-  logger.info(`output ${length} assets`, begin)
+  let count = 0
+  await Promise.all(
+    Array.from(assets.entries()).map(async ([name, from]) => {
+      if (emitted.get(name) === from) {
+        logger.log(`skipped copy '${name}' with same content`)
+        return
+      }
+      await copyFile(from, join(dest, name))
+      logger.log(`copied '${name}' from '${from}'`)
+      emitted.set(name, from)
+      count++
+    })
+  )
+  logger.info(`output ${count} assets`, begin)
 }

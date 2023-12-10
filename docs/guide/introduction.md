@@ -53,6 +53,39 @@ Velite validates your contents against a [Zod](https://zod.dev) schema, and gene
 - auto-generate TypeScript type inference for each collection
 - support IDE IntelliSense, auto-completion & type checking & refactoring & etc.
 
+### Full Controllable Content Transform
+
+- single field transform:
+  ```ts
+  title: s.string().transform(value => value.toUpperCase())
+  ```
+- single collection transform:
+  ```ts
+  schema: s.object({
+    title: s.string(),
+    slug: s.string()
+  }).transform(value => ({
+    ...value,
+    url: `/blog/${value.slug}`
+  }))
+  ```
+- all collections transform:
+  ```ts
+  defineConfig({
+    prepare: async ({ posts, tags }) => {
+      posts.push({
+        title: 'Hello World',
+        slug: 'hello-world',
+        tags: ['hello', 'world']
+      })
+      tags.push({
+        name: 'Hello',
+        slug: 'hello'
+      })
+    }
+  })
+  ```
+
 ### Error Reporting Friendly
 
 ![Error Reporting Friendly](/assets/error-reporting-friendly.jpg)

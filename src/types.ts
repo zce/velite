@@ -163,11 +163,11 @@ export interface Collection {
    * Schema
    * @see {@link https://zod.dev}
    * @example
-   * z.object({
-   *   title: z.string(), // from frontmatter
-   *   description: z.string().optional(), // from frontmatter
-   *   excerpt: z.string() // from markdown body,
-   *   content: z.string() // from markdown body
+   * s.object({
+   *   title: s.string(), // from frontmatter
+   *   description: s.string().optional(), // from frontmatter
+   *   excerpt: s.string() // from markdown body,
+   *   content: s.string() // from markdown body
    * })
    */
   schema: Schema

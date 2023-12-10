@@ -1,6 +1,13 @@
 import { custom } from './zod'
 
 export interface ExcerptOptions {
+  // /**
+  //  * Excerpt separator.
+  //  * @default 'more'
+  //  * @example
+  //  * s.excerpt({ separator: 'preview' }) // split excerpt by `<!-- preview -->`
+  //  */
+  // separator?: string
   /**
    * Excerpt length.
    * @default 260

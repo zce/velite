@@ -7,7 +7,7 @@ import { mdx } from './mdx'
 import { metadata } from './metadata'
 import { slug } from './slug'
 import { unique } from './unique'
-import * as z from './zod'
+import * as zod from './zod'
 
 import type { VFile } from 'vfile'
 import type { Config } from '../types'
@@ -20,7 +20,7 @@ declare module './zod' {
 }
 
 export const s = {
-  ...z,
+  ...zod,
   isodate,
   unique,
   slug,
@@ -31,5 +31,7 @@ export const s = {
   markdown,
   mdx
 }
+
+export { s as z } // keep z for backward compatibility
 
 export type { ZodType, Schema, infer } from './zod'

@@ -106,7 +106,7 @@ avatar: s.file()
 // case 2. non-exists file
 // 'not-exists.png' => issue 'File not exists'
 
-// case 3. absolute path or full url
+// case 3. absolute path or full url ()
 // '/icon.png' => '/icon.png'
 // 'https://zce.me/logo.png' => 'https://zce.me/logo.png'
 ```
@@ -131,10 +131,6 @@ avatar: s.image()
 
 // case 2. non-exists file
 // 'not-exists.png' => issue 'File not exists'
-
-// case 3. absolute path or full url
-// '/icon.png' => '/icon.png'
-// 'https://zce.me/logo.png' => 'https://zce.me/logo.png'
 ```
 
 ### Types
@@ -203,37 +199,6 @@ interface Metadata {
 }
 ```
 
-## `s.summary(options)`
-
-`string => string`
-
-parse input as markdown content and return summary plain text.
-
-```ts
-// The document body only with the built-in property name: metadata, body, content, summary, excerpt, plain, html, code and raw
-summary: s.summary()
-// => summary plain text
-```
-
-### Parameters
-
-**options**: summary options
-
-- type: `SummaryOptions`, See [SummaryOptions](#types-2)
-- default: `{ length: 260 }`
-
-### Types
-
-```ts
-interface SummaryOptions {
-  /**
-   * Summary length.
-   * @default 260
-   */
-  length?: number
-}
-```
-
 ## `s.excerpt(options)`
 
 `string => string`
@@ -250,20 +215,13 @@ excerpt: s.excerpt()
 
 **options**: excerpt options
 
-- type: `ExcerptOptions`, See [ExcerptOptions](#types-3)
-- default: `{ separator: 'more', length: 300 }`
+- type: `ExcerptOptions`, See [ExcerptOptions](#types-2)
+- default: `{ length: 260 }`
 
 ### Types
 
 ```ts
 interface ExcerptOptions {
-  /**
-   * Excerpt separator.
-   * @default 'more'
-   * @example
-   * s.excerpt({ separator: 'preview' }) // split excerpt by `<!-- preview -->`
-   */
-  separator?: string
   /**
    * Excerpt length.
    * @default 300

@@ -88,6 +88,8 @@ Velite uses [Zod](https://zod.dev) to validate the content items in a collection
 To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of the Zod library, and it supports all of the features of Zod. See [Zod's Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
 
 ```js
+import { z } from 'velite'
+
 const posts = defineCollection({
   schema: z.object({
     title: z.string().max(99)
@@ -107,8 +109,7 @@ For more useful schemas, I recommend that you use [Velite extended schemas `s`](
 - `s.image()`: input image relpath, output image object with blurImage.
 - `s.file()`: input file relpath, output file public path.
 - `s.metadata()`: extract markdown reading-time, word-count, etc.
-- `s.summary()`: summary of markdown content (plain text)
-- `s.excerpt()`: excerpt of markdown content (html)
+- `s.excerpt()`: excerpt of markdown content
 - `s.markdown()`: transform markdown to html
 - `s.mdx()`: transform mdx to function code.
 
@@ -118,13 +119,12 @@ For example:
 import { s } from 'velite'
 
 const posts = defineCollection({
-  schema: z.object({
+  schema: s.object({
     slug: s.slug('posts'),
     date: s.isodate(),
     cover: s.image(),
     video: s.file().optional(),
     metadata: s.metadata(),
-    summary: s.summary(),
     excerpt: s.excerpt(),
     content: s.markdown()
   })
@@ -139,7 +139,7 @@ Zod schemas can be transformed using the `.transform()` method. This is useful f
 
 ```js
 const posts = defineCollection({
-  schema: z
+  schema: s
     .object({
       slug: s.slug('posts')
     })
@@ -159,7 +159,7 @@ Except for the `content` field, the original document body can be accessed by th
 
 ```js
 const posts = defineCollection({
-  schema: z.object({
+  schema: s.object({
     content: s.string(),
     metadata: s.string(),
     raw: s.string(),
@@ -181,7 +181,7 @@ In addition to validating the content items in a collection, Velite can also pro
 
 ```js
 const posts = defineCollection({
-  schema: z.object({
+  schema: s.object({
     content: s.markdown() // or s.mdx()
   })
 })
@@ -200,7 +200,7 @@ Velite can extract metadata from content files. This is useful for adding comput
 
 ```js
 const posts = defineCollection({
-  schema: z.object({
+  schema: s.object({
     metadata: s.metadata() // extract markdown reading-time, word-count, etc.
   })
 })
@@ -216,14 +216,12 @@ Velite can extract excerpt from content files. This is useful for adding compute
 
 ```js
 const posts = defineCollection({
-  schema: z.object({
-    summary: s.summary() // excerpt of markdown summary (plain text)
-    excerpt: s.excerpt() // excerpt of markdown content (html)
+  schema: s.object({
+    excerpt: s.excerpt() // excerpt of markdown content
   })
 })
 ```
 
 #### Reference
 
-- [`s.summary()`](velite-schemas.md#s-summary)
 - [`s.excerpt()`](velite-schemas.md#s-excerpt)

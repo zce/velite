@@ -14,14 +14,10 @@ import type { LogLevel } from './logger'
 import type { Schema } from './schemas'
 import type { Config } from './types'
 
-/**
- * cache loaded files for rebuild
- */
+// cache loaded files for rebuild
 const loaded = new Map<string, VFile>()
 
-/**
- * cache resolved result for rebuild
- */
+// cache resolved result for rebuild
 const resolved = new Map<string, VFile[]>()
 
 /**
@@ -224,7 +220,7 @@ const watch = async (config: Config) => {
 /**
  * Build options
  */
-interface Options {
+export interface Options {
   /**
    * Specify config file path, relative to cwd
    * if not specified, will try to find `velite.config.{js,ts,mjs,mts,cjs,cts}` in cwd or parent directories

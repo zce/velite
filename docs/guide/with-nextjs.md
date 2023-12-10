@@ -24,7 +24,7 @@ module.exports = {
 
 class VeliteWebpackPlugin {
   static started = false
-  constructor(/** @type {import('velite').BuildOptions} */ options = {}) {
+  constructor(/** @type {import('velite').Options} */ options = {}) {
     this.options = options
   }
   apply(/** @type {import('webpack').Compiler} */ compiler) {
@@ -62,7 +62,7 @@ const options = defineCollection({
   // ...
   schema: s.object({
     // ...
-    link: z.string() as Route<'/posts/${string}'>
+    link: z.string() as ZodType<Route<'/posts/${string}'>>
   })
 })
 ```

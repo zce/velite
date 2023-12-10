@@ -1,5 +1,5 @@
 export { logger } from './logger'
-export { processAsset } from './assets'
-export { build } from './build'
+export { processAsset, type Image } from './assets'
+export { build, type Options } from './build'
 export * from './schemas'
 export * from './types'

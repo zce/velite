@@ -15,6 +15,16 @@ import type { Schema } from './schemas'
 import type { Config } from './types'
 
 /**
+ * cache loaded files for rebuild
+ */
+const loaded = new Map<string, VFile>()
+
+/**
+ * cache resolved result for rebuild
+ */
+const resolved = new Map<string, VFile[]>()
+
+/**
  * initialize config
  * @param configFile specify config file path
  * @param clean clean output directories
@@ -44,11 +54,6 @@ const init = async (configFile?: string, clean?: boolean): Promise<Config> => {
 
   return config
 }
-
-/**
- * cache loaded files for rebuild
- */
-const loaded = new Map<string, VFile>()
 
 /**
  * Load file and parse data with given schema
@@ -96,11 +101,6 @@ export const load = async (config: Config, path: string, schema: Schema, changed
   file.result = isArr ? parsed : parsed[0]
   return file
 }
-
-/**
- * cache resolved result for rebuild
- */
-const resolved = new Map<string, VFile[]>()
 
 /**
  * resolve collections from content root
@@ -183,7 +183,6 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
  */
 const watch = async (config: Config) => {
   const { watch } = await import('chokidar')
-
   const { root, collections, configPath } = config
 
   logger.info(`watching for changes in '${root}'`)

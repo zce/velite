@@ -126,11 +126,11 @@ export interface Output {
    * @default '[name]-[hash:8].[ext]'
    */
   name: string
-  /**
-   * The extensions blacklist of the assets, such as `['.md', '.yml']`
-   * @default []
-   */
-  ignore: string[]
+  // /**
+  //  * The extensions blacklist of the assets, such as `['.md', '.yml']`
+  //  * @default []
+  //  */
+  // ignore: string[]
   /**
    * Whether to clean the output directories before build
    * @default false

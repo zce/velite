@@ -24,7 +24,6 @@ export default defineConfig({
     assets: 'public/static',
     base: '/static/',
     name: '[name]-[hash:6].[ext]',
-    ignore: ['.yml', '.md', '.mdx'],
     clean: true
   },
   collections: {

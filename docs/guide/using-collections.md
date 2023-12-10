@@ -61,8 +61,7 @@ export declare const getOthers: () => Promise<Other[]>
       "readingTime": 1,
       "wordCount": 1
     },
-    "summary": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse",
-    "excerpt": "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse</p>\n<p><img src=\"/static/img-2hd8f3sd.jpg\" alt=\"some image\" /></p>\n<p><a href=\"/static/plain-37d62h1s.txt\">link to file</a></p>\n",
+    "excerpt": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse",
     "content": "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse</p>\n<p><img src=\"/static/img-2hd8f3sd.jpg\" alt=\"some image\" /></p>\n<p><a href=\"/static/plain-37d62h1s.txt\">link to file</a></p>\n",
     "permalink": "/blog/hello-world"
   }

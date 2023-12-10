@@ -103,7 +103,7 @@ export const resolveConfig = async (path?: string, clean?: boolean): Promise<Con
       assets: resolve(cwd, output?.assets ?? 'public/static'),
       base: output?.base ?? '/static/',
       name: output?.name ?? '[name]-[hash:8].[ext]',
-      ignore: output?.ignore ?? [],
+      // ignore: output?.ignore ?? [],
       clean: clean ?? output?.clean ?? false
     },
     loaders: [...customLoaders, ...loaders]

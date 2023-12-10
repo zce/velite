@@ -104,12 +104,12 @@ The public base path of the assets. This option is used to generate the asset UR
 
 This option determines the name of each output asset. The asset will be written to the directory specified in the `output.assets` option. You can use `[name]`, `[hash]` and `[ext]` template strings with specify length.
 
-### `output.ignore`
+<!-- ### `output.ignore`
 
 - Type: `string[]`
 - Default: `[]`
 
-The extensions blacklist of the assets, such as `['.md', '.yml']`, will be ignored when copy assets to output directory.
+The extensions blacklist of the assets, such as `['.md', '.yml']`, will be ignored when copy assets to output directory. -->
 
 ### `output.clean`
 
@@ -120,7 +120,7 @@ Whether to clean the output directories before build.
 
 ## `collections`
 
-- Type: `Record<string, Collection>`
+- Type: `{ [name: string]: Collection }`
 
 The collections definition.
 

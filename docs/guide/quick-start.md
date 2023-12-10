@@ -56,8 +56,7 @@ export default defineConfig({
           cover: s.image().optional(), // input image relpath, output image object with blurImage.
           video: s.file().optional(), // input file relpath, output file public path.
           metadata: s.metadata(), // extract markdown reading-time, word-count, etc.
-          summary: s.summary(), // summary of markdown content (plain text)
-          excerpt: s.excerpt(), // excerpt of markdown content (html)
+          excerpt: s.excerpt(), // excerpt of markdown content
           content: s.markdown() // transform markdown to html
         })
         // more additional fields (computed fields)

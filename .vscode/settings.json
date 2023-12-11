@@ -4,10 +4,5 @@
   "files.exclude": {
     "**/node_modules": true
   },
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "[markdown]": {
-    "editor.rulers": [],
-    "editor.wordWrap": "bounded",
-    "editor.wordWrapColumn": 100
-  }
+  "typescript.tsdk": "node_modules/typescript/lib"
 }

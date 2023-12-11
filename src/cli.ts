@@ -42,12 +42,11 @@ Options:
   process.exit(0)
 }
 
-try {
-  const logLevel = options.silent ? 'silent' : options.verbose ? 'debug' : 'info'
-  options.watch = command === 'dev' || options.watch
-  await build({ ...options, logLevel })
-} catch (err: any) {
+const logLevel = options.silent ? 'silent' : options.verbose ? 'debug' : 'info'
+options.watch = command === 'dev' || options.watch
+
+build({ ...options, logLevel }).catch(err => {
   logger.error(err.message)
   if (options.debug) throw err
   process.exit(1)
-}
+})

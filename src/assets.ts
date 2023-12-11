@@ -49,7 +49,7 @@ const ABS_PATH_RE = /^(\/[^/\\]|[a-zA-Z]:\\)/
  * @param url url to validate
  * @returns true if the url is a relative path
  */
-const isStaticPath = (url: string): boolean => {
+export const isRelativePath = (url: string): boolean => {
   if (url.startsWith('#')) return false // ignore hash anchor
   if (url.startsWith('?')) return false // ignore query
   if (url.startsWith('//')) return false // ignore protocol relative urlet name
@@ -63,7 +63,7 @@ const isStaticPath = (url: string): boolean => {
  * @param buffer image buffer
  * @returns image object with blurDataURL
  */
-const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | undefined> => {
+export const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | undefined> => {
   const img = sharp(buffer)
   const { width, height } = await img.metadata()
   if (width == null || height == null) return
@@ -132,7 +132,7 @@ export const rehypeCopyLinkedFiles: Plugin<[string, string], Hast> = (filename, 
   visit(tree, 'element', node => {
     linkedPropertyNames.forEach(name => {
       const value = node.properties[name]
-      if (typeof value === 'string' && isStaticPath(value)) {
+      if (typeof value === 'string' && isRelativePath(value)) {
         const elements = links.get(value) ?? []
         elements.push(node)
         links.set(value, elements)
@@ -161,7 +161,7 @@ export const remarkCopyLinkedFiles: Plugin<[string, string], Mdast> = (filename,
   const links = new Map<string, Node[]>()
   const linkedPropertyNames = ['href', 'src', 'poster']
   visit(tree, ['link', 'image', 'definition'], (node: any) => {
-    if (isStaticPath(node.url)) {
+    if (isRelativePath(node.url)) {
       const nodes = links.get(node.url) || []
       nodes.push(node)
       links.set(node.url, nodes)
@@ -169,7 +169,7 @@ export const remarkCopyLinkedFiles: Plugin<[string, string], Mdast> = (filename,
   })
   visit(tree, 'mdxJsxFlowElement', node => {
     node.attributes.forEach((attr: any) => {
-      if (linkedPropertyNames.includes(attr.name) && typeof attr.value === 'string' && isStaticPath(attr.value)) {
+      if (linkedPropertyNames.includes(attr.name) && typeof attr.value === 'string' && isRelativePath(attr.value)) {
         const nodes = links.get(attr.value) || []
         nodes.push(node)
         links.set(attr.value, nodes)

@@ -58,7 +58,7 @@ const init = async (configFile?: string, clean?: boolean): Promise<Config> => {
  * @param schema data schema
  * @param changed changed file path (relative to content root)
  */
-export const load = async (config: Config, path: string, schema: Schema, changed?: string): Promise<VFile> => {
+const load = async (config: Config, path: string, schema: Schema, changed?: string): Promise<VFile> => {
   path = normalize(path)
   if (changed != null && path !== changed && loaded.has(path)) {
     // skip file if changed file not match

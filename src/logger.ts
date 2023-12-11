@@ -2,7 +2,7 @@ import { sep } from 'node:path'
 
 import { name } from '../package.json'
 
-export type LogType = 'debug' | 'info' | 'warn' | 'error'
+type LogType = 'debug' | 'info' | 'warn' | 'error'
 export type LogLevel = LogType | 'silent'
 
 const identifer = `[${name.toUpperCase()}]`

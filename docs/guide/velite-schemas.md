@@ -34,27 +34,27 @@ date: s.isodate()
 // '2017-01-01 10:10:10' => '2017-01-01T10:10:10.000Z'
 
 // case 3. invalid date string
-// 'invalid string' => issue 'Invalid date string'
+// 'foo bar invalid' => issue 'Invalid date string'
 ```
 
 ## `s.unique(by)`
 
 `string => string`
 
-validate unique value in collection.
+validate unique value in collections.
 
 ```ts
 name: s.unique('taxonomies')
 // case 1. unique value
 // 'foo' => 'foo'
 
-// case 2. non-unique value (in collection)
+// case 2. non-unique value (in all unique by 'taxonomies')
 // 'foo' => issue 'Already exists'
 ```
 
 ### Parameters
 
-**by**: unique identifier
+#### **by**: unique identifier
 
 - type: `string`
 - default: `'global'`
@@ -63,14 +63,14 @@ name: s.unique('taxonomies')
 
 `string => string`
 
-base on `s.unique()`, unique in collection, not allow reserved values, and validate slug format.
+base on `s.unique()`, unique in collections, not allow reserved values, and validate slug format.
 
 ```ts
 slug: s.slug('taxonomies', ['admin', 'login'])
 // case 1. unique slug value
 // 'hello-world' => 'hello-world'
 
-// case 2. non-unique value (in collection)
+// case 2. non-unique value (in all unique by 'taxonomies')
 // 'hello-world' => issue 'Slug already exists'
 
 // case 3. reserved slug value
@@ -82,21 +82,21 @@ slug: s.slug('taxonomies', ['admin', 'login'])
 
 ### Parameters
 
-**by**: unique identifier
+#### **by**: unique identifier
 
 - type: `string`
 - default: `'global'`
 
-**reserved**: reserved values
+#### **reserved**: reserved values
 
 - type: `string[]`
 - default: `[]`
 
-## `s.file()`
+## `s.file(options)`
 
 `string => string`
 
-file path relative to this file, copy file to `config.output.static` directory and return the public url.
+file path relative to this file, copy file to `config.output.assets` directory and return the public url.
 
 ```ts
 avatar: s.file()
@@ -106,16 +106,35 @@ avatar: s.file()
 // case 2. non-exists file
 // 'not-exists.png' => issue 'File not exists'
 
-// case 3. absolute path or full url ()
+// case 3. absolute path or full url (if allowed)
 // '/icon.png' => '/icon.png'
 // 'https://zce.me/logo.png' => 'https://zce.me/logo.png'
 ```
 
+### Parameters
+
+#### **options**: file options
+
+- type: `FileOptions`, See [FileOptions](#types)
+- default: `{ allowNonRelativePath: true }`
+
+### Types
+
+```ts
+interface FileOptions {
+  /**
+   * Allow non-relative path.
+   * @default true
+   */
+  allowNonRelativePath?: boolean
+}
+```
+
 ## `s.image()`
 
-`string => string | Image`
+`string => Image`
 
-image path relative to this file, like `s.file()`, copy file to `config.output.static` directory and return the [Image](#types) (image object with meta data).
+image path relative to this file, like `s.file()`, copy file to `config.output.assets` directory and return the [Image](#types-1) (image object with meta data).
 
 ```ts
 avatar: s.image()
@@ -131,9 +150,30 @@ avatar: s.image()
 
 // case 2. non-exists file
 // 'not-exists.png' => issue 'File not exists'
+
+// case 3. absolute path or full url (if allowed)
+// '/icon.png' => { src: '/icon.png', width: 0, height: 0, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
+// 'https://zce.me/logo.png' => { src: 'https://zce.me/logo.png', width: 0, height: 0, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
 ```
 
+### Parameters
+
+#### **options**: image options
+
+- type: `ImageOptions`, See [ImageOptions](#types-1)
+- default: `{ allowNonRelativePath: false }`
+
 ### Types
+
+```ts
+interface ImageOptions {
+  /**
+   * Allow non-relative path.
+   * @default false
+   */
+  allowNonRelativePath?: boolean
+}
+```
 
 ```ts
 /**
@@ -171,14 +211,13 @@ interface Image {
 
 `string => Metadata`
 
-parse input as markdown content and return [Metadata](#types-1).
+parse input or document body as markdown content and return [Metadata](#types-2).
 
 currently only support `readingTime` & `wordCount`.
 
 ```ts
-// The document body only with the built-in property name: metadata, body, content, summary, excerpt, plain, html, code and raw
 metadata: s.metadata()
-// => { readingTime: 2, wordCount: 100 }
+// document body => { readingTime: 2, wordCount: 100 }
 ```
 
 ### Types
@@ -203,19 +242,18 @@ interface Metadata {
 
 `string => string`
 
-parse input as markdown content and return excerpt html.
+parse input or document body as markdown content and return excerpt text.
 
 ```ts
-// The document body only with the built-in property name: metadata, body, content, summary, excerpt, plain, html, code and raw
 excerpt: s.excerpt()
-// => excerpt html
+// document body => excerpt text
 ```
 
 ### Parameters
 
-**options**: excerpt options
+#### **options**: excerpt options
 
-- type: `ExcerptOptions`, See [ExcerptOptions](#types-2)
+- type: `ExcerptOptions`, See [ExcerptOptions](#types-3)
 - default: `{ length: 260 }`
 
 ### Types
@@ -224,7 +262,7 @@ excerpt: s.excerpt()
 interface ExcerptOptions {
   /**
    * Excerpt length.
-   * @default 300
+   * @default 260
    */
   length?: number
 }
@@ -234,17 +272,16 @@ interface ExcerptOptions {
 
 `string => string`
 
-parse input as markdown content and return html content.
+parse input or document body as markdown content and return html content.
 
 ```ts
-// The document body only with the built-in property name: metadata, body, content, summary, excerpt, plain, html, code and raw
 content: s.markdown()
 // => html content
 ```
 
 ### Parameters
 
-**options**: markdown options
+#### **options**: markdown options
 
 - type: `MarkdownOptions`, See [MarkdownOptions](../reference/types.md#markdownoptions)
 - default: `{ gfm: true, removeComments: true, copyLinkedFiles: true }`
@@ -253,17 +290,16 @@ content: s.markdown()
 
 `string => string`
 
-parse input as mdx content and return component function-body.
+parse input or document body as mdx content and return component function-body.
 
 ```ts
-// The document body only with the built-in property name: metadata, body, content, summary, excerpt, plain, html, code and raw
 code: s.mdx()
 // => function-body
 ```
 
 ### Parameters
 
-**options**: mdx options
+#### **options**: mdx options
 
 - type: `MdxOptions`, See [MdxOptions](../reference/types.md#mdxoptions)
 - default: `{ gfm: true, removeComments: true, copyLinkedFiles: true }`

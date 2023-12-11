@@ -1,21 +1,22 @@
-import { processAsset } from '../assets'
+import { isRelativePath, processAsset } from '../assets'
 import { string } from './zod'
 
-// export interface FileOptions {
-//   /**
-//    * If the file is required.
-//    */
-//   failedIfNotExists?: boolean
-// }
-// TODO: add failedIfNotExists option
+export interface FileOptions {
+  /**
+   * allow non-relative path
+   * @default true
+   */
+  allowNonRelativePath?: boolean
+}
+
 /**
  * A file path relative to this file.
  */
-export const file = () =>
-  string().transform((value, { meta: { file, config }, addIssue }) =>
-    processAsset(value, file.path, config.output.name, config.output.base).catch(err => {
+export const file = ({ allowNonRelativePath = true }: FileOptions = {}) =>
+  string().transform<string>((value, { meta: { file, config }, addIssue }) => {
+    if (allowNonRelativePath && !isRelativePath(value)) return value
+    return processAsset(value, file.path, config.output.name, config.output.base).catch(err => {
       addIssue({ code: 'custom', message: err.message })
-      // file.message(err.message, { source: path.join('.') })
-      return value
+      return null as never
     })
-  )
+  })

@@ -18,7 +18,7 @@ const remarkRemoveComments = () => (tree: Root) => {
 }
 
 export const mdx = (options: MdxOptions = {}) =>
-  custom<string>().transform(async (value, { meta: { file, config }, addIssue }) => {
+  custom<string>().transform<string>(async (value, { meta: { file, config }, addIssue }) => {
     if (value == null && file.data.content != null) {
       value = file.data.content
     }

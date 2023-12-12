@@ -2,6 +2,7 @@
 
 The following are the features I want to achieve or are under development:
 
+- [ ] Incremental build
 - [ ] Full documentation
 - [ ] More built-in schemas
 - [ ] Unit & E2E tests?

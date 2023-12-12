@@ -57,6 +57,7 @@ You can try Velite directly in your browser on StackBlitz:
 
 The following are the features I want to achieve or are under development:
 
+- [ ] Incremental build
 - [ ] Full documentation
 - [ ] More built-in schemas
 - [ ] Unit & E2E tests?

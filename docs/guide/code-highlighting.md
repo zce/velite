@@ -58,7 +58,7 @@ export default defineConfig({
 
 ## rehype-highlight
 
-> syntax highlighting to code with [lowlight][https://github.com/wooorm/lowlight].
+> syntax highlighting to code with [lowlight](https://github.com/wooorm/lowlight).
 
 ::: code-group
 

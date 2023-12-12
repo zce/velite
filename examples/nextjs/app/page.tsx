@@ -1,9 +1,8 @@
 import Link from 'next/link'
 
-import { getPosts } from '#site/content'
+import { posts } from '#site/content'
 
 export default async function Home() {
-  const posts = await getPosts()
   return (
     <div className="prose dark:prose-invert">
       {posts.map(post => (

@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 
 import { MDXContent } from '@/components/mdx-content'
-import { getPages } from '#site/content'
+import { pages } from '#site/content'
 
 import type { Metadata } from 'next'
 
@@ -12,7 +12,6 @@ interface PageProps {
 }
 
 async function getPageBySlug(slug: string) {
-  const pages = await getPages()
   return pages.find(page => page.slug === slug)
 }
 
@@ -23,7 +22,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export async function generateStaticParams(): Promise<PageProps['params'][]> {
-  const pages = await getPages()
   return pages.map(page => ({
     slug: page.slug
   }))

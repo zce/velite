@@ -29,17 +29,18 @@ in `.velite` directory, Velite generates the output files for each collection, a
 ::: code-group
 
 ```js [index.js]
-export const getPosts = async () => await import('./posts.json').then(m => m.default)
-export const getOthers = async () => await import('./others.json').then(m => m.default)
+export { default as posts } from './posts.json'
+export { default as others } from './others.json'
 ```
 
 ```js [index.d.ts]
 import config from '../velite.config'
 
 export type Post = NonNullable<typeof config.collections>['posts']['schema']['_output']
-export declare const getPosts: () => Promise<Post[]>
+export declare const posts: Post[]
+
 export type Other = NonNullable<typeof config.collections>['others']['schema']['_output']
-export declare const getOthers: () => Promise<Other[]>
+export declare const others: Other[]
 ```
 
 ```json [posts.json]
@@ -93,7 +94,7 @@ Here is a Next.js example of using the output in your project.
 ```tsx [app/posts/[slug]/page.tsx]
 import { notFound } from 'next/navigation'
 
-import { getPosts } from './.velite'
+import { posts } from './.velite'
 
 interface PostProps {
   params: {
@@ -101,13 +102,12 @@ interface PostProps {
   }
 }
 
-async function getPostBySlug(slug: string) {
-  const posts = await getPosts()
+function getPostBySlug(slug: string) {
   return posts.find(post => post.slug === slug)
 }
 
-export default async function PostPage({ params }: PostProps) {
-  const post = await getPostBySlug(params.slug)
+export default function PostPage({ params }: PostProps) {
+  const post = getPostBySlug(params.slug)
   if (post == null) notFound()
   return (
     <article className="prose dark:prose-invert py-6">
@@ -119,14 +119,13 @@ export default async function PostPage({ params }: PostProps) {
   )
 }
 
-export async function generateMetadata({ params }: PostProps) {
-  const post = await getPostBySlug(params.slug)
+export function generateMetadata({ params }: PostProps) {
+  const post = getPostBySlug(params.slug)
   if (post == null) return {}
   return { title: post.title, description: post.description }
 }
 
-export async function generateStaticParams() {
-  const posts = await getPosts()
+export function generateStaticParams() {
   return posts.map(({ slug }) => ({ slug }))
 }
 ```
@@ -149,7 +148,7 @@ You can define path aliases in `tsconfig.json`:
 then you can import the output file in your project:
 
 ```tsx [app/posts/[slug]/page.tsx]
-import { getPosts } from '#site/content'
+import { posts } from '#site/content'
 
 // ...
 ```

@@ -180,30 +180,38 @@ Run `velite dev` or `velite` with `--watch` option, then Velite will watch the c
 
 ```sh [npm]
 $ npx velite dev
-[VELITE] output 2 pages, 3 others
-[VELITE] build finished in 284.67ms
-[VELITE] watching for changes in './content'
+[VELITE] output entry file in '.velite' in 0.68ms
+[VELITE] output 1 posts, 1 others in 0.47ms
+[VELITE] output 2 assets in 1.38ms
+[VELITE] build finished in 84.49ms
+[VELITE] watching for changes in 'content'
 ```
 
 ```sh [pnpm]
 $ pnpm velite dev
-[VELITE] output 2 pages, 3 others
-[VELITE] build finished in 284.67ms
-[VELITE] watching for changes in './content'
+[VELITE] output entry file in '.velite' in 0.68ms
+[VELITE] output 1 posts, 1 others in 0.47ms
+[VELITE] output 2 assets in 1.38ms
+[VELITE] build finished in 84.49ms
+[VELITE] watching for changes in 'content'
 ```
 
 ```sh [yarn]
 $ yarn velite dev
-[VELITE] output 2 pages, 3 others
-[VELITE] build finished in 284.67ms
-[VELITE] watching for changes in './content'
+[VELITE] output entry file in '.velite' in 0.68ms
+[VELITE] output 1 posts, 1 others in 0.47ms
+[VELITE] output 2 assets in 1.38ms
+[VELITE] build finished in 84.49ms
+[VELITE] watching for changes in 'content'
 ```
 
 ```sh [bun]
 $ bun velite dev
-[VELITE] output 2 pages, 3 others
-[VELITE] build finished in 284.67ms
-[VELITE] watching for changes in './content'
+[VELITE] output entry file in '.velite' in 0.68ms
+[VELITE] output 1 posts, 1 others in 0.47ms
+[VELITE] output 2 assets in 1.38ms
+[VELITE] build finished in 84.49ms
+[VELITE] watching for changes in 'content'
 ```
 
 :::
@@ -215,9 +223,7 @@ For more information about define collections, see [Define Collections](define-c
 Velite will generate a `index.js` file in `.velite` directory, you can import it in your project:
 
 ```js
-import { getPosts } from './.velite'
-
-const posts = await getPosts()
+import { posts } from './.velite'
 
 console.log(posts) // => [{ title: 'Hello world', slug: 'hello-world', ... }, ...]
 ```

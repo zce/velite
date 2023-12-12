@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "build": "tsc && rollup -c",
-    "test": "cd examples/basic && pnpm build",
+    "test": "cd examples/basic && pnpm build && cd ../nextjs && pnpm build",
     "docs:dev": "cd docs && pnpm dev",
     "docs:build": "cd docs && pnpm build",
     "format": "prettier . --write"

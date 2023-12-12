@@ -6,7 +6,8 @@ import { visit } from 'unist-util-visit'
 
 import type { Element, Root as Hast } from 'hast'
 import type { Root as Mdast, Node } from 'mdast'
-import type { Plugin } from 'unified'
+import type { VFile } from 'vfile'
+import type { Output } from './types'
 
 /**
  * Image object with metadata & blur image
@@ -123,10 +124,12 @@ export const processAsset = async <T extends true | undefined = undefined>(
   return { src, ...metadata } as T extends true ? Image : string
 }
 
+export type CopyLinkedFilesOptions = Omit<Output, 'data' | 'clean'>
+
 /**
  * rehype (markdown) plugin to copy linked files to public path and replace their urls with public urls
  */
-export const rehypeCopyLinkedFiles: Plugin<[string, string], Hast> = (filename, base) => async (tree, file) => {
+export const rehypeCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async (tree: Hast, file: VFile) => {
   const links = new Map<string, Element[]>()
   const linkedPropertyNames = ['href', 'src', 'poster']
   visit(tree, 'element', node => {
@@ -141,7 +144,7 @@ export const rehypeCopyLinkedFiles: Plugin<[string, string], Hast> = (filename, 
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, elements]) => {
-      const publicUrl = await processAsset(url, file.path, filename, base)
+      const publicUrl = await processAsset(url, file.path, options.name, options.base)
       if (publicUrl == null || publicUrl === url) return
       elements.forEach(node => {
         linkedPropertyNames.forEach(name => {
@@ -157,7 +160,7 @@ export const rehypeCopyLinkedFiles: Plugin<[string, string], Hast> = (filename, 
 /**
  * remark (mdx) plugin to copy linked files to public path and replace their urls with public urls
  */
-export const remarkCopyLinkedFiles: Plugin<[string, string], Mdast> = (filename, base) => async (tree, file) => {
+export const remarkCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async (tree: Mdast, file: VFile) => {
   const links = new Map<string, Node[]>()
   const linkedPropertyNames = ['href', 'src', 'poster']
   visit(tree, ['link', 'image', 'definition'], (node: any) => {
@@ -178,7 +181,7 @@ export const remarkCopyLinkedFiles: Plugin<[string, string], Mdast> = (filename,
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, nodes]) => {
-      const publicUrl = await processAsset(url, file.path, filename, base)
+      const publicUrl = await processAsset(url, file.path, options.name, options.base)
       if (publicUrl == null || publicUrl === url) return
       nodes.forEach((node: any) => {
         if (node.url === url) {

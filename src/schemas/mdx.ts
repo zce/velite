@@ -33,7 +33,7 @@ export const mdx = (options: MdxOptions = {}) =>
 
     if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-    if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, config.output.name, config.output.base]) // copy linked files to public path and replace their urls with public urls
+    if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, config.output]) // copy linked files to public path and replace their urls with public urls
     if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
     if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
 

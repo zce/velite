@@ -34,7 +34,7 @@ export const markdown = (options: MarkdownOptions = {}) =>
     if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
     if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
-    if (copyLinkedFiles) rehypePlugins.push([rehypeCopyLinkedFiles, config.output.name, config.output.base]) // copy linked files to public path and replace their urls with public urls
+    if (copyLinkedFiles) rehypePlugins.push([rehypeCopyLinkedFiles, config.output]) // copy linked files to public path and replace their urls with public urls
     if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
 
     try {

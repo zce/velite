@@ -47,7 +47,7 @@ export default defineConfig({
       schema: s
         .object({
           name: s.string().max(20),
-          slug: s.slug('global'),
+          slug: s.slug('global', ['admin', 'login']),
           cover: s.image().optional(),
           description: s.string().max(999).optional(),
           count
@@ -60,7 +60,7 @@ export default defineConfig({
       schema: s
         .object({
           name: s.string().max(20),
-          slug: s.slug('global'),
+          slug: s.slug('global', ['admin', 'login']),
           cover: s.image().optional(),
           description: s.string().max(999).optional(),
           count
@@ -73,7 +73,7 @@ export default defineConfig({
       schema: s
         .object({
           title: s.string().max(99),
-          slug: s.slug('global'),
+          slug: s.slug('global', ['admin', 'login']),
           body: s.mdx()
         })
         .transform(data => ({ ...data, permalink: `/${data.slug}` }))

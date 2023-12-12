@@ -65,6 +65,7 @@ export default defineConfig({
           { text: 'Markdown', link: 'using-markdown' },
           { text: 'MDX Support', link: 'using-mdx' },
           { text: 'Asset Handling', link: 'asset-handling' },
+          { text: 'Code Highlighting', link: 'code-highlighting' },
           { text: 'Integration with Next.js', link: 'with-nextjs' },
           { text: 'Custom Loader', link: 'custom-loader' }
           // { text: 'Fast Refresh', link: 'fast-refresh' }

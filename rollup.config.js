@@ -22,7 +22,7 @@ export default defineConfig([
     plugins: [
       json(),
       commonjs(),
-      nodeResolve({ preferBuiltins: false }),
+      nodeResolve(),
       esbuild({ target: 'node18' })
     ]
   },

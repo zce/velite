@@ -4,10 +4,10 @@ This documentation is still being written. Please check back later.
 
 ## Refer
 
-- [File Field](velite-schemas.md#s-file)
-- [Image Field](velite-schemas.md#s-image)
-- [Markdown Field](velite-schemas.md#s-markdown)
-- [MDX Field](velite-schemas.md#s-mdx)
+- [File Schema](velite-schemas.md#s-file)
+- [Image Schema](velite-schemas.md#s-image)
+- [Markdown Schema](velite-schemas.md#s-markdown)
+- [MDX Schema](velite-schemas.md#s-mdx)
 
 ## Uploading Assets
 
@@ -20,9 +20,9 @@ import { defineConfig } from 'velite'
 
 export default defineConfig({
   output: {
-    base: 'https://oss.your.com/static/',
+    base: 'https://oss.your.com/static/'
   },
-  complete: async () {
+  complete: async () => {
     // TODO: upload images
     // static => https://oss.your.com/static/
   }

@@ -44,7 +44,7 @@ You can try Velite directly in your browser on StackBlitz, It runs Velite direct
 
 ### Type-Safe Contents
 
-Velite validates your contents against a [Zod](https://zod.dev) schema, and generates type inference for TypeScript. so you can use the output data in your application with confidence.
+Velite validates your contents by [Zod](https://zod.dev) schema, and generates type inference for TypeScript. so you can use the output data in your application with confidence.
 
 ### Full Type inference
 
@@ -104,11 +104,11 @@ Velite is framework agnostic, and out of the box support for React, Vue, Svelte,
 - image processing by [Sharp](https://sharp.pixelplumbing.com)
 - file watching by [Chokidar](https://github.com/paulmillr/chokidar)
 
-### Fast Rebundling
+### Fast Rebuid
 
-More then 1000 documents with 2000 assets, less then 8s for cold start, less then 60ms for hot rebuild.
+More then **1000** documents with **2000** assets, less then **8s** for cold start, less then **60ms** for hot rebuild.
 
-Refers to [Velite Benchmark](https://esbuild.github.io) for more information.
+Refers to [Velite Benchmark](https://github.com/zce/velite-benchmark) for more information.
 
 ## Why not Contentlayer?
 
@@ -120,4 +120,4 @@ Refers to [Velite Benchmark](https://esbuild.github.io) for more information.
 - error reporting friendly
 - etc.
 
-Velite is inspired by [Contentlayer](https://contentlayer.dev).
+> Velite is inspired by [Contentlayer](https://contentlayer.dev).

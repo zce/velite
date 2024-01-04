@@ -5,6 +5,7 @@ import { isodate } from './isodate'
 import { markdown } from './markdown'
 import { mdx } from './mdx'
 import { metadata } from './metadata'
+import { raw } from './raw'
 import { slug } from './slug'
 import { unique } from './unique'
 import * as z from './zod'
@@ -29,7 +30,8 @@ export const s = {
   metadata,
   excerpt,
   markdown,
-  mdx
+  mdx,
+  raw
 }
 
 export { z } // keep z for backward compatibility

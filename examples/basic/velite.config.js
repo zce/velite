@@ -76,7 +76,8 @@ export default defineConfig({
         .object({
           title: s.string().max(99),
           slug: s.slug('global'),
-          body: s.mdx()
+          body: s.mdx(),
+          raw: s.raw()
         })
         .transform(data => ({ ...data, permalink: `/${data.slug}` }))
     },

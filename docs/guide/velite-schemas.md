@@ -304,6 +304,17 @@ code: s.mdx()
 - type: `MdxOptions`, See [MdxOptions](../reference/types.md#mdxoptions)
 - default: `{ gfm: true, removeComments: true, copyLinkedFiles: true }`
 
+## `s.raw()`
+
+`string => string`
+
+return raw document body.
+
+```ts
+code: s.raw()
+// => raw document body
+```
+
 ## Zod Primitive Types
 
 In addition, all Zod's built-in schemas can be used normally, such as:

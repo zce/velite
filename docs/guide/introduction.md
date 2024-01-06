@@ -112,7 +112,7 @@ Refers to [Velite Benchmark](https://github.com/zce/velite-benchmark) for more i
 
 ## Why not Contentlayer?
 
-[Contentlayer](https://contentlayer.dev) is a great tool, but it is not suitable for my needs. Such as:
+[Contentlayer](https://contentlayer.dev) is a great tool, but it is [unmaintained](https://github.com/contentlayerdev/contentlayer/issues/429) and not suitable for my needs. Such as:
 
 - built-in files & images processing
 - programmability & extensibility

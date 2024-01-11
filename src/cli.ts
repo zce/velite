@@ -1,24 +1,29 @@
-import mri from 'mri'
+import { parseArgs } from 'node:util'
 
 import { name, version } from '../package.json'
 import { build } from './build'
 import { logger } from './logger'
 
-const argv = process.argv.slice(2)
-
-const { _, ...options } = mri(argv, {
-  alias: { c: 'config', h: 'help', v: 'version' },
-  boolean: ['clean', 'watch', 'verbose', 'silent', 'debug']
+const { values, positionals } = parseArgs({
+  allowPositionals: true,
+  options: {
+    config: { type: 'string', short: 'c' },
+    clean: { type: 'boolean', default: false },
+    watch: { type: 'boolean', default: false },
+    verbose: { type: 'boolean', default: false },
+    silent: { type: 'boolean', default: false },
+    debug: { type: 'boolean', default: false },
+    help: { type: 'boolean', short: 'h', default: false },
+    version: { type: 'boolean', short: 'v', default: false }
+  }
 })
 
-const command = _[0] ?? 'build'
-
-if (options.version) {
+if (values.version) {
   console.log(`${name}/${version}`)
   process.exit(0)
 }
 
-if (options.help) {
+if (values.help) {
   console.log(`
 ${name}/${version}
 
@@ -42,11 +47,12 @@ Options:
   process.exit(0)
 }
 
-const logLevel = options.silent ? 'silent' : options.verbose ? 'debug' : 'info'
-options.watch = command === 'dev' || options.watch
+values.watch = positionals[0] === 'dev' || values.watch
 
-build({ ...options, logLevel }).catch(err => {
+const logLevel = values.silent ? 'silent' : values.verbose ? 'debug' : 'info'
+
+build({ ...values, logLevel }).catch(err => {
   logger.error(err.message)
-  if (options.debug) throw err
+  if (values.debug) throw err
   process.exit(1)
 })

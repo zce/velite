@@ -8,7 +8,7 @@
   <p>Turns Markdown / MDX, YAML, JSON, or other files into app's data layer with type-safe schema.</p>
   <p>
     <a href="https://github.com/zce/velite/actions"><img src="https://img.shields.io/github/actions/workflow/status/zce/velite/main.yml" alt="Build Status"></a>
-    <a href="https://github.com/zce/velite/blob/master/LICENSE"><img src="https://img.shields.io/github/license/zce/velite" alt="License"></a>
+    <a href="https://github.com/zce/velite/blob/master/license"><img src="https://img.shields.io/github/license/zce/velite" alt="License"></a>
     <a href="https://npm.im/velite"><img src="https://img.shields.io/npm/v/velite" alt="NPM Version"></a>
     <a href="https://npm.im/velite"><img src="https://img.shields.io/node/v/velite" alt="Node Version"></a>
     <a href="https://standardjs.com"><img src="https://img.shields.io/badge/code_style-standard-brightgreen" alt="Code Style"></a>

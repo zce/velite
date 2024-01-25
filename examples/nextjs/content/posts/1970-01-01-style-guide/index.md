@@ -159,10 +159,10 @@ If you want to embed table, this is how you do it:
 | Division 1     | Division 2     | Division 3     |
 | Division 1     | Division 2     | Division 3     |
 
-| Name   | Age     | Sex | Location |
-| ------ | ------- | --- | -------- | ------ |
-| Naruto | Uzumaki | 16  | Male     | Konoha |
-| Sakura | Haruno  | 16  | Female   | Konoha |
+| Name   |         | Age | Sex    | Location |
+| ------ | ------- | --- | ------ | -------- |
+| Naruto | Uzumaki | 16  | Male   | Konoha   |
+| Sakura | Haruno  | 16  | Female | Konoha   |
 
 ---
 
@@ -182,16 +182,36 @@ Code can be presented inline, like `<?php bloginfo('stylesheet_url'); ?>`, or wi
 }
 ```
 
-```js
-import React from 'react'
+```js {6,20} showLineNumbers /velite/
+import { defineConfig, s } from 'velite'
 
-import { Wrapper } from '../components'
+// `s` is extended from Zod with some custom schemas,
+// you can also import re-exported `z` from `velite` if you don't need these extension schemas.
 
-export default () => (
-  <Wrapper title="Hello world">
-    <h1>Hello world</h1>
-  </Wrapper>
-)
+export default defineConfig({
+  collections: {
+    posts: {
+      name: 'Post', // collection type name
+      pattern: 'posts/**/*.md', // content files glob pattern
+      schema: s
+        .object({
+          title: s.string().max(99), // Zod primitive type
+          slug: s.slug('posts'), // validate format, unique in posts collection
+          date: s.isodate(), // input Date-like string, output ISO Date string.
+          cover: s.image().optional(), // input image relpath, output image object with blurImage.
+          video: s.file().optional(), // input file relpath, output file public path.
+          metadata: s.metadata(), // extract markdown reading-time, word-count, etc.
+          excerpt: s.excerpt(), // excerpt of markdown content
+          content: s.markdown() // transform markdown to html
+        })
+        // more additional fields (computed fields)
+        .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
+    },
+    others: {
+      // other collection schema options
+    }
+  }
+})
 ```
 
 ---

@@ -1,3 +1,4 @@
+import rehypePrettyCode from 'rehype-pretty-code'
 import { defineConfig, s } from 'velite'
 
 const slugify = (input: string) =>
@@ -101,6 +102,10 @@ export default defineConfig({
         })
         .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
     }
+  },
+  markdown: {
+    // https://rehype-pretty-code.netlify.app/
+    rehypePlugins: [rehypePrettyCode]
   },
   prepare: ({ categories, tags, posts }) => {
     const docs = posts.filter(i => process.env.NODE_ENV !== 'production' || !i.draft)

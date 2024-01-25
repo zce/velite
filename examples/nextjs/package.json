@@ -22,10 +22,11 @@
     "eslint-config-next": "latest",
     "next": "latest",
     "next-themes": "latest",
-    "npm-run-all": "latest",
     "postcss": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "rehype-pretty-code": "latest",
+    "shikiji": "latest",
     "tailwindcss": "latest",
     "typescript": "latest",
     "velite": "workspace:*"

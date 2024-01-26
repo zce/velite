@@ -92,16 +92,23 @@ export const processAsset = async <T extends true | undefined = undefined>(
   baseUrl: string,
   isImage?: T
 ): Promise<T extends true ? Image : string> => {
-  const path = resolve(from, '..', input)
+  // e.g. input = '../assets/image.png?foo=bar#hash'
+  const queryIdx = input.indexOf('?')
+  const hashIdx = input.indexOf('#')
+  const index = Math.min(queryIdx >= 0 ? queryIdx : Infinity, hashIdx >= 0 ? hashIdx : Infinity)
+  const suffix = input.slice(index)
+  const path = resolve(from, '..', input.slice(0, index))
+  console.log(path, suffix)
+  const ext = extname(path)
+
   const buffer = await readFile(path)
-  const ext = extname(input)
 
   const name = filename.replace(/\[(name|hash|ext)(:(\d+))?\]/g, (substring, ...groups) => {
     const key = groups[0]
     const length = groups[2] == null ? undefined : parseInt(groups[2])
     switch (key) {
       case 'name':
-        return basename(input, ext).slice(0, length)
+        return basename(path, ext).slice(0, length)
       case 'hash':
         // TODO: md5 is slow and not-FIPS compliant, consider using sha256
         // https://github.com/joshwiens/hash-perf
@@ -114,8 +121,8 @@ export const processAsset = async <T extends true | undefined = undefined>(
     return substring
   })
 
-  const src = baseUrl + name
-  assets.set(name, path)
+  const src = baseUrl + name + suffix
+  assets.set(name, path) // write to assets map waiting for copy
 
   if (isImage !== true) return src as T extends true ? Image : string
 

@@ -2,8 +2,8 @@
 title: Hello world
 slug: hello-world
 date: 1992-02-25 13:00:00
-cover: cover.jpg
-video: video.mp4
+cover: cover.jpg#w=100&h=100
+video: video.mp4?w=100&h=100
 categories:
   - Journal
 ---
@@ -16,9 +16,9 @@ categories:
 <a href="./pdf.pdf">link to file</a>
 <a href="http://example.com/">Link to example.com</a>
 
-![some svg image](img.svg)
-![some gif image](img.gif)
-![some png image](img.png)
+![some svg image](img.svg?foo)
+![some gif image](img.gif#bar)
+![some png image](img.png#baz?qux)
 ![some jpg image](img.jpg)
 ![some jpeg image](img.jpeg)
 ![some absolute image](https://google.com/img.gif)

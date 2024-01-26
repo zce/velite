@@ -13,29 +13,27 @@ Below is just about everything you’ll need to style in the theme. Check the so
 
 # Heading 1
 
-<!-- more -->
-
-Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel. Voluptas odit at vitae minima. In assumenda ut. Voluptatem totam impedit accusantium reiciendis excepturi aut qui accusamus praesentium.
+Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel.
 
 ## Heading 2
 
-Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel. Voluptas odit at vitae minima. In assumenda ut. Voluptatem totam impedit accusantium reiciendis excepturi aut qui accusamus praesentium.
+Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel.
 
 ### Heading 3
 
-Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel. Voluptas odit at vitae minima. In assumenda ut. Voluptatem totam impedit accusantium reiciendis excepturi aut qui accusamus praesentium.
+Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel.
 
 #### Heading 4
 
-Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel. Voluptas odit at vitae minima. In assumenda ut. Voluptatem totam impedit accusantium reiciendis excepturi aut qui accusamus praesentium.
+Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel.
 
 ##### Heading 5
 
-Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel. Voluptas odit at vitae minima. In assumenda ut. Voluptatem totam impedit accusantium reiciendis excepturi aut qui accusamus praesentium.
+Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel.
 
 ###### Heading 6
 
-Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel. Voluptas odit at vitae minima. In assumenda ut. Voluptatem totam impedit accusantium reiciendis excepturi aut qui accusamus praesentium.
+Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui veniam qui cum vel.
 
 ---
 
@@ -43,26 +41,18 @@ Doloremque dolor voluptas est sequi omnis. Pariatur ut aut. Sed enim tempora qui
 
 It's very easy to make some words **bold** and other words _italic_ with Markdown. You can even [link to Google!](http://google.com)
 
-Lorem ipsum dolor sit amet, test link adipiscing elit. This is strong. Nullam dignissim convallis est. Quisque aliquam. This is emphasized. Donec faucibus. Nunc iaculis suscipit dui. 53 = 125. Water is H2O. Nam sit amet sem. Aliquam libero nisi, imperdiet at, tincidunt nec, gravida vehicula, nisl. The New York Times (That's a citation). Underline. Maecenas ornare tortor. Donec sed tellus eget sapien fringilla nonummy. Mauris a ante. Suspendisse quam sem, consequat at, commodo vitae, feugiat in, nunc. Morbi imperdiet augue quis tellus.
-
-HTML and CSS are our tools. Mauris a ante. Suspendisse quam sem, consequat at, commodo vitae, feugiat in, nunc. Morbi imperdiet augue quis tellus. Praesent mattis, massa quis luctus fermentum, turpis mi volutpat justo, eu volutpat enim diam eget metus. To copy a file type COPY filename. Dinner's at 5:00. Let's make that 7. This text has been struck.
+HTML and CSS are our tools. Mauris a ante. Suspendisse quam sem, consequat at, commodo vitae, feugiat in, nunc. Morbi imperdiet augue quis tellus. Praesent mattis, massa quis luctus fermentum, turpis mi volutpat justo, eu volutpat enim diam eget metus. To copy a file type COPY filename. Dinner’s at 5:00. Let’s make that 7. This text has been struck.
 
 #### Emphasis
 
 _This text will be italic_\
-_This will also be italic_\
 **This text will be bold**\
-**This will also be bold**\
 _You **can** combine them_
 
 #### Preformatted Text
 
 The silver swan, who living had no note,\
-When death approached, unlocked her silent throat;\
-Leaning her breast against the reedy shore,\
-Thus sung her first and last, and sung no more:\
-Farewell, all joys; O death, come close mine eyes;\
-More geese than swans now live, more fools than wise.
+When death approached, unlocked her silent throat;
 
 #### Text-level semantics
 
@@ -140,12 +130,12 @@ But I have to admit, tasks lists are my favorite:
 
 ### Blockquotes
 
-Let's keep it simple. Italics are good to help set it off from the body text. Be sure to style the citation.
+Let’s keep it simple. Italics are good to help set it off from the body text. Be sure to style the citation.
 
 > Good afternoon, gentlemen. I am a HAL 9000 computer. I became operational at the H.A.L. plant in Urbana, Illinois on the 12th of January 1992. My instructor was Mr. Langley, and he taught me to sing a song. If you’d like to hear it I can sing it for you.
 > — [HAL 9000](http://en.wikipedia.org/wiki/HAL_9000)
 
-And here's a bit of trailing text.
+And here’s a bit of trailing text.
 
 ---
 

@@ -98,7 +98,6 @@ export const processAsset = async <T extends true | undefined = undefined>(
   const index = Math.min(queryIdx >= 0 ? queryIdx : Infinity, hashIdx >= 0 ? hashIdx : Infinity)
   const suffix = input.slice(index)
   const path = resolve(from, '..', input.slice(0, index))
-  console.log(path, suffix)
   const ext = extname(path)
 
   const buffer = await readFile(path)

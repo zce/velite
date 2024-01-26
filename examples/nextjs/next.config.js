@@ -2,7 +2,6 @@
 module.exports = {
   // othor next config here...
   webpack: config => {
-    config.watchOptions.ignored = /content/
     config.plugins.push(new VeliteWebpackPlugin())
     return config
   }

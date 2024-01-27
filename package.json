@@ -30,7 +30,7 @@
     "format": "prettier . --write"
   },
   "dependencies": {
-    "esbuild": "0.19.12",
+    "esbuild": "0.20.0",
     "sharp": "0.33.2"
   },
   "devDependencies": {

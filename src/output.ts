@@ -54,7 +54,7 @@ export const outputEntry = async (dest: string, configPath: string, collections:
   const dtsFile = join(dest, 'index.d.ts')
   await emit(dtsFile, banner + dts.join('\n'), `created entry dts file in '${dtsFile}'`)
 
-  logger.info(`output entry file in '${dest}'`, begin)
+  logger.log(`output entry file in '${dest}'`, begin)
 }
 
 /**
@@ -74,7 +74,7 @@ export const outputData = async (dest: string, result: Record<string, any>): Pro
       logs.push(`${data.length ?? 1} ${name}`)
     })
   )
-  logger.info(`output ${logs.join(', ')}`, begin)
+  logger.log(`output ${logs.join(', ')}`, begin)
 }
 
 /**
@@ -97,5 +97,5 @@ export const outputAssets = async (dest: string, assets: Map<string, string>): P
       count++
     })
   )
-  logger.info(`output ${count} assets`, begin)
+  logger.log(`output ${count} assets`, begin)
 }

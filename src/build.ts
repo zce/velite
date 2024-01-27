@@ -252,7 +252,9 @@ export const build = async (options: Options = {}): Promise<Record<string, unkno
   const { config: configFile, clean, logLevel } = options
   logLevel != null && logger.set(logLevel)
   const config = await init(configFile, clean)
+  const timer = setTimeout(() => logger.info(`building...`), 1000)
   const result = await resolve(config)
+  clearTimeout(timer)
   logger.info(`build finished`, begin)
   options.watch && watch(config)
   return result

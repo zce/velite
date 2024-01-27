@@ -4,7 +4,16 @@ import { name, version } from '../package.json'
 import { build } from './build'
 import { logger } from './logger'
 
-const { values, positionals } = parseArgs({
+const parse: typeof parseArgs = config => {
+  try {
+    return parseArgs(config)
+  } catch (err: any) {
+    logger.error(err.message)
+    process.exit(1)
+  }
+}
+
+const { values, positionals } = parse({
   allowPositionals: true,
   options: {
     config: { type: 'string', short: 'c' },

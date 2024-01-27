@@ -27,11 +27,10 @@ const flatten = (msg: unknown): unknown => {
 }
 
 const print = (type: LogType, msg: unknown, begin?: number): void => {
-  if (_logLevel <= logLevels[type]) {
-    const time = begin ? `in ${(performance.now() - begin).toFixed(2)}ms` : ''
-    const method = type === 'debug' ? 'log' : type
-    console[method](`\x1B[${colors[type]}m${identifer}\x1B[0m`, flatten(msg), time)
-  }
+  if (_logLevel > logLevels[type]) return
+  const time = begin ? `in ${(performance.now() - begin).toFixed(2)}ms` : ''
+  const method = type === 'debug' ? 'log' : type
+  console[method](`\x1B[${colors[type]}m${identifer}\x1B[0m`, flatten(msg), time)
 }
 
 const log = (msg: unknown, begin?: number): void => print('debug', msg, begin)

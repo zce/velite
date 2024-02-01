@@ -11,7 +11,6 @@ import { custom } from './zod'
 
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
-import type { Plugin } from 'unified'
 import type { MarkdownOptions } from '../types'
 
 declare module 'hast' {
@@ -20,7 +19,7 @@ declare module 'hast' {
   }
 }
 
-const remarkRemoveComments: Plugin<[], Mdast> = () => tree => {
+const remarkRemoveComments = () => (tree: Mdast) => {
   visit(tree, 'html', (node, index, parent) => {
     if (node.value.match(/<!--([\s\S]*?)-->/g)) {
       parent!.children.splice(index!, 1)
@@ -29,7 +28,7 @@ const remarkRemoveComments: Plugin<[], Mdast> = () => tree => {
   })
 }
 
-const rehypeMetaString: Plugin<[], Hast> = () => tree => {
+const rehypeMetaString = () => (tree: Hast) => {
   visit(tree, 'element', node => {
     if (node.tagName === 'code' && node.data?.meta) {
       node.properties ??= {}

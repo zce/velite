@@ -15,7 +15,8 @@ export default defineLoader({
   load: async file => {
     const value = file.toString().trim()
     const match = value.match(MATTER_RE)
-    const data = match == null ? null : yaml.parse(match[1])
+    const matter = match == null ? null : match[1]
+    const data = matter == null ? {} : yaml.parse(matter) ?? {}
     const content = match == null ? value : value.slice(match[0].length).trim()
     const mdast = fromMarkdown(content)
     const hast = raw(toHast(mdast, { allowDangerousHtml: true }))

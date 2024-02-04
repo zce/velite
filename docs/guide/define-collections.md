@@ -151,29 +151,54 @@ const posts = defineCollection({
 })
 ```
 
+### Transform Context Metadata
+
+The transform function can receive a second argument, which is the context object. This is useful for adding computed fields to the content items in a collection.
+
+```js
+const posts = defineCollection({
+  schema: s
+    .object({
+      // fields
+    })
+    .transform((data, { meta }) => ({
+      ...data,
+      // computed fields
+      slug: meta.file.stem.replace('/index', ''), // filename based slug
+      permalink: `/blog/${meta.file.stem.replace('/index', '')}`
+    }))
+})
+```
+
+#### Reference
+
+```ts
+interface ZodMeta {
+  file: VFile // vfile object
+  config: Config // velite config object with default options
+}
+```
+
 ## Content Body
 
-Velite built-in Loader keep content raw body with multiple keys to adapt to more personalized situations.
+Velite built-in Loader keep content raw body in `file.data.content`, and plain text body in `file.data.plain`.
 
-Except for the `content` field, the original document body can be accessed by the `metadata` / `raw` / `body` / `summary` / `excerpt` / `plain` / `html` / `code` field.
+To extract the original content, you can customize a schema.
 
 ```js
 const posts = defineCollection({
   schema: s.object({
-    content: s.string(),
-    metadata: s.string(),
-    raw: s.string(),
-    body: s.string(),
-    summary: s.string(),
-    excerpt: s.string(),
-    plain: s.string(),
-    html: s.string(),
-    code: s.string()
+    content: s.custom().transform((data, { meta }) => meta.file.data.content),
+    plain: s.custom().transform((data, { meta }) => meta.file.data.plain)
   })
 })
 ```
 
-`s.string()` schema will keep the original document body, In most cases, you should use `s.markdown()` / `s.mdx()` schema to transform the document body.
+::: tip
+
+This will keep the original document body, In most cases, you should use `s.markdown()` / `s.mdx()` schema to transform the document body.
+
+:::
 
 ### Markdown & MDX
 

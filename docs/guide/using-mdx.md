@@ -33,10 +33,11 @@ export const MDXContent = ({ code, components }: MdxProps) => {
 `./pages/posts/[slug].tsx`:
 
 ```jsx
+import { posts } from '@/.velite'
 import { MDXContent } from '@/components/mdx-content'
 
-export default async function Post({ params: { slug } }) {
-  const post = await getPostBySlug(slug)
+export default function Post({ params: { slug } }) {
+  const post = posts.find(i => i.slug === slug)
   return (
     <article>
       <h1>{post.title}</h1>

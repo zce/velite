@@ -5,30 +5,28 @@ import { pages } from '#site/content'
 
 import type { Metadata } from 'next'
 
-interface PageProps {
+type Props = {
   params: {
     slug: string
   }
 }
 
-async function getPageBySlug(slug: string) {
+function getPageBySlug(slug: string) {
   return pages.find(page => page.slug === slug)
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const page = await getPageBySlug(params.slug)
+export function generateMetadata({ params }: Props): Metadata {
+  const page = getPageBySlug(params.slug)
   if (page == null) return {}
   return { title: page.title }
 }
 
-export async function generateStaticParams(): Promise<PageProps['params'][]> {
-  return pages.map(page => ({
-    slug: page.slug
-  }))
+export function generateStaticParams(): Props['params'][] {
+  return pages.map(page => ({ slug: page.slug }))
 }
 
-export default async function PagePage({ params }: PageProps) {
-  const page = await getPageBySlug(params.slug)
+export default function PagePage({ params }: Props) {
+  const page = getPageBySlug(params.slug)
 
   if (page == null) notFound()
 

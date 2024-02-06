@@ -106,8 +106,9 @@ Then you can use it like this:
 ```tsx
 import Link from 'next/link'
 
+import { options } from '@/.velite'
+
 const Post = async () => {
-  const options = await getOptions()
   return (
     <div>
       {/* typed route */}

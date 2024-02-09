@@ -1,4 +1,5 @@
 import { compile } from '@mdx-js/mdx'
+import { minify } from 'terser'
 import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 
@@ -41,12 +42,18 @@ export const mdx = (options: MdxOptions = {}) =>
 
     try {
       const code = await compile({ value, path: file.path }, compilerOptions)
-      // TODO: minify output
-      return code
-        .toString()
-        .replace(/^"use strict";/, '')
-        .replace(/\s+/g, ' ')
-        .trim()
+      const minified = await minify(code.toString(), {
+        compress: true,
+        keep_classnames: true,
+        mangle: {
+          keep_fnames: true,
+        },
+        module: true,
+        parse: {
+          bare_returns: true,
+        },
+      })
+      return minified.code
     } catch (err: any) {
       addIssue({ code: 'custom', message: err.message })
       return value

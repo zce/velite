@@ -59,6 +59,7 @@
     "rollup": "^4.9.5",
     "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-esbuild": "^6.1.0",
+    "terser": "^5.27.0",
     "typescript": "^5.3.3",
     "unified": "^11.0.4",
     "unist-util-visit": "^5.0.0",

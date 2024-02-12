@@ -1,5 +1,5 @@
 import rehypePrettyCode from 'rehype-pretty-code'
-import { defineConfig, s } from 'velite'
+import { defineCollection, defineConfig, s } from 'velite'
 
 const slugify = (input: string) =>
   input
@@ -18,6 +18,85 @@ const meta = s
   })
   .default({})
 
+const options = defineCollection({
+  name: 'Options',
+  pattern: 'options/index.yml',
+  single: true,
+  schema: s.object({
+    name: s.string().max(20),
+    title: s.string().max(99),
+    description: s.string().max(999).optional(),
+    keywords: s.array(s.string()),
+    author: s.object({ name: s.string(), email: s.string().email(), url: s.string().url() }),
+    links: s.array(s.object({ text: s.string(), link: s.string(), type: s.enum(['navigation', 'footer', 'copyright']) })),
+    socials: s.array(s.object({ name: s.string(), icon, link: s.string().optional(), image: s.image().optional() }))
+  })
+})
+
+const categories = defineCollection({
+  name: 'Category',
+  pattern: 'categories/*.yml',
+  schema: s
+    .object({
+      name: s.string().max(20),
+      slug: s.slug('global', ['admin', 'login']),
+      cover: s.image().optional(),
+      description: s.string().max(999).optional(),
+      count
+    })
+    .transform(data => ({ ...data, permalink: `/${data.slug}` }))
+})
+
+const tags = defineCollection({
+  name: 'Tag',
+  pattern: 'tags/index.yml',
+  schema: s
+    .object({
+      name: s.string().max(20),
+      slug: s.slug('global', ['admin', 'login']),
+      cover: s.image().optional(),
+      description: s.string().max(999).optional(),
+      count
+    })
+    .transform(data => ({ ...data, permalink: `/${data.slug}` }))
+})
+
+const pages = defineCollection({
+  name: 'Page',
+  pattern: 'pages/**/*.mdx',
+  schema: s
+    .object({
+      title: s.string().max(99),
+      slug: s.slug('global', ['admin', 'login']),
+      body: s.mdx()
+    })
+    .transform(data => ({ ...data, permalink: `/${data.slug}` }))
+})
+
+const posts = defineCollection({
+  name: 'Post',
+  pattern: 'posts/**/*.md',
+  schema: s
+    .object({
+      title: s.string().max(99),
+      slug: s.slug('post'),
+      date: s.isodate(),
+      updated: s.isodate().optional(),
+      cover: s.image().optional(),
+      video: s.file().optional(),
+      description: s.string().max(999).optional(),
+      draft: s.boolean().default(false),
+      featured: s.boolean().default(false),
+      categories: s.array(s.string()).default(['Journal']),
+      tags: s.array(s.string()).default([]),
+      meta: meta,
+      metadata: s.metadata(),
+      excerpt: s.excerpt(),
+      content: s.markdown()
+    })
+    .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
+})
+
 export default defineConfig({
   root: 'content',
   output: {
@@ -27,82 +106,7 @@ export default defineConfig({
     name: '[name]-[hash:6].[ext]',
     clean: true
   },
-  collections: {
-    options: {
-      name: 'Options',
-      pattern: 'options/index.yml',
-      single: true,
-      schema: s.object({
-        name: s.string().max(20),
-        title: s.string().max(99),
-        description: s.string().max(999).optional(),
-        keywords: s.array(s.string()),
-        author: s.object({ name: s.string(), email: s.string().email(), url: s.string().url() }),
-        links: s.array(s.object({ text: s.string(), link: s.string(), type: s.enum(['navigation', 'footer', 'copyright']) })),
-        socials: s.array(s.object({ name: s.string(), icon, link: s.string().optional(), image: s.image().optional() }))
-      })
-    },
-    categories: {
-      name: 'Category',
-      pattern: 'categories/*.yml',
-      schema: s
-        .object({
-          name: s.string().max(20),
-          slug: s.slug('global', ['admin', 'login']),
-          cover: s.image().optional(),
-          description: s.string().max(999).optional(),
-          count
-        })
-        .transform(data => ({ ...data, permalink: `/${data.slug}` }))
-    },
-    tags: {
-      name: 'Tag',
-      pattern: 'tags/index.yml',
-      schema: s
-        .object({
-          name: s.string().max(20),
-          slug: s.slug('global', ['admin', 'login']),
-          cover: s.image().optional(),
-          description: s.string().max(999).optional(),
-          count
-        })
-        .transform(data => ({ ...data, permalink: `/${data.slug}` }))
-    },
-    pages: {
-      name: 'Page',
-      pattern: 'pages/**/*.mdx',
-      schema: s
-        .object({
-          title: s.string().max(99),
-          slug: s.slug('global', ['admin', 'login']),
-          body: s.mdx()
-        })
-        .transform(data => ({ ...data, permalink: `/${data.slug}` }))
-    },
-    posts: {
-      name: 'Post',
-      pattern: 'posts/**/*.md',
-      schema: s
-        .object({
-          title: s.string().max(99),
-          slug: s.slug('post'),
-          date: s.isodate(),
-          updated: s.isodate().optional(),
-          cover: s.image().optional(),
-          video: s.file().optional(),
-          description: s.string().max(999).optional(),
-          draft: s.boolean().default(false),
-          featured: s.boolean().default(false),
-          categories: s.array(s.string()).default(['Journal']),
-          tags: s.array(s.string()).default([]),
-          meta: meta,
-          metadata: s.metadata(),
-          excerpt: s.excerpt(),
-          content: s.markdown()
-        })
-        .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
-    }
-  },
+  collections: { options, categories, tags, pages, posts },
   markdown: {
     // https://rehype-pretty-code.netlify.app/
     rehypePlugins: [rehypePrettyCode]

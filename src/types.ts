@@ -141,15 +141,15 @@ export interface Output {
 /**
  * Collection options
  */
-export interface Collection {
+export interface Collection<T extends Schema> {
   /**
-   * Schema name (singular), for types generation
+   * Collection name (singular), for types generation
    * @example
    * 'Post'
    */
   name: string
   /**
-   * Schema glob pattern, based on `root`
+   * Collection glob pattern, based on `root`
    * @example
    * 'posts/*.md'
    */
@@ -160,7 +160,7 @@ export interface Collection {
    */
   single?: boolean
   /**
-   * Schema
+   * Collection schema
    * @see {@link https://zod.dev}
    * @example
    * s.object({
@@ -170,22 +170,25 @@ export interface Collection {
    *   content: s.string() // from markdown body
    * })
    */
-  schema: Schema
+  schema: T
 }
 
 /**
  * All collections
  */
 export interface Collections {
-  [name: string]: Collection
+  [name: string]: Collection<Schema>
 }
+
+/**
+ * Collection Type
+ */
+export type CollectionType<T extends Collections, P extends keyof T> = T[P]['single'] extends true ? T[P]['schema']['_output'] : Array<T[P]['schema']['_output']>
 
 /**
  * All collections result
  */
-export type Result<T extends Collections> = {
-  [K in keyof T]: T[K]['single'] extends true ? T[K]['schema']['_output'] : Array<T[K]['schema']['_output']>
-}
+export type Result<T extends Collections> = { [P in keyof T]: CollectionType<T, P> }
 
 /**
  * This interface for plugins extra user config
@@ -279,7 +282,7 @@ export interface Config extends Readonly<UserConfig> {
 /**
  * Define a collection (identity function for type inference)
  */
-export const defineCollection = (collection: Collection) => collection
+export const defineCollection = <T extends Schema>(collection: Collection<T>) => collection
 
 /**
  * Define a loader (identity function for type inference)
@@ -289,6 +292,6 @@ export const defineLoader = (loader: Loader) => loader
 /**
  * Define config (identity function for type inference)
  */
-export const defineConfig = <C extends Collections>(config: UserConfig<C>) => config
+export const defineConfig = <T extends Collections>(config: UserConfig<T>) => config
 
 // ↑↑↑ helper identity functions for type inference

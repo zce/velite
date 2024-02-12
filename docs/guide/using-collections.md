@@ -36,10 +36,12 @@ export { default as others } from './others.json'
 ```js [index.d.ts]
 import config from '../velite.config'
 
-export type Post = NonNullable<typeof config.collections>['posts']['schema']['_output']
+type Collections = typeof config.collections
+
+export type Post = Collections['posts']['schema']['_output']
 export declare const posts: Post[]
 
-export type Other = NonNullable<typeof config.collections>['others']['schema']['_output']
+export type Other = Collections['others']['schema']['_output']
 export declare const others: Other[]
 ```
 

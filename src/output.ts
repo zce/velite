@@ -39,10 +39,11 @@ export const outputEntry = async (dest: string, configPath: string, collections:
 
   const entry: string[] = []
   const dts: string[] = [`import config from '${configModPath}'\n`]
+  dts.push('type Collections = typeof config.collections\n')
 
   Object.entries(collections).map(([name, collection]) => {
     entry.push(`export { default as ${name} } from './${name}.json'`)
-    dts.push(`export type ${collection.name} = NonNullable<typeof config.collections>['${name}']['schema']['_output']`)
+    dts.push(`export type ${collection.name} = Collections['${name}']['schema']['_output']`)
     dts.push(`export declare const ${name}: ${collection.name + (collection.single ? '' : '[]')}\n`)
   })
 

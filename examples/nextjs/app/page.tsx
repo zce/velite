@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 import { posts } from '#site/content'
 
-export default async function Home() {
+export default function Home() {
   return (
     <div className="prose dark:prose-invert">
       {posts.map(post => (

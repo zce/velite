@@ -53,7 +53,7 @@ export const mdx = (options: MdxOptions = {}) =>
           bare_returns: true,
         },
       })
-      return minified.code
+      return minified.code || ''
     } catch (err: any) {
       addIssue({ code: 'custom', message: err.message })
       return value

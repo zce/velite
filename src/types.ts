@@ -58,6 +58,11 @@ export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
    * @default 'function-body'
    */
   outputFormat?: CompileOptions['outputFormat']
+  /**
+   * Minify the output code.
+   * @default true
+   */
+  minify?: boolean
 }
 
 declare module 'vfile' {

@@ -1,5 +1,3 @@
-import { compile } from '@mdx-js/mdx'
-import { minify } from 'terser'
 import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 
@@ -7,6 +5,7 @@ import { remarkCopyLinkedFiles } from '../assets'
 import { custom } from './zod'
 
 import type { Root } from 'mdast'
+import type { PluggableList } from 'unified'
 import type { MdxOptions } from '../types'
 
 const remarkRemoveComments = () => (tree: Root) => {
@@ -24,38 +23,43 @@ export const mdx = (options: MdxOptions = {}) =>
       value = file.data.content
     }
 
-    const gfm = options.gfm ?? config.mdx?.gfm ?? true
+    const enableGfm = options.gfm ?? config.mdx?.gfm ?? true
+    const enableMinify = options.minify ?? config.mdx?.minify ?? true
     const removeComments = options.removeComments ?? config.mdx?.removeComments ?? true
     const copyLinkedFiles = options.copyLinkedFiles ?? config.mdx?.copyLinkedFiles ?? true
     const outputFormat = options.outputFormat ?? config.mdx?.outputFormat ?? 'function-body'
 
-    const remarkPlugins = config.mdx?.remarkPlugins ?? []
-    const rehypePlugins = config.mdx?.rehypePlugins ?? []
+    const remarkPlugins = [] as PluggableList
+    const rehypePlugins = [] as PluggableList
 
-    if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
+    if (enableGfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
     if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, config.output]) // copy linked files to public path and replace their urls with public urls
     if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
     if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
+    if (config.mdx?.remarkPlugins != null) remarkPlugins.push(...config.mdx.remarkPlugins) // apply global remark plugins
+    if (config.mdx?.rehypePlugins != null) rehypePlugins.push(...config.mdx.rehypePlugins) // apply global rehype plugins
 
-    const compilerOptions = { ...mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
+    const compilerOptions = { ...config.mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
+
+    const { compile } = await import('@mdx-js/mdx')
+    const { minify } = await import('terser')
 
     try {
       const code = await compile({ value, path: file.path }, compilerOptions)
+
+      if (!enableMinify) return code.toString()
+
       const minified = await minify(code.toString(), {
+        module: true,
         compress: true,
         keep_classnames: true,
-        mangle: {
-          keep_fnames: true,
-        },
-        module: true,
-        parse: {
-          bare_returns: true,
-        },
+        mangle: { keep_fnames: true },
+        parse: { bare_returns: true }
       })
-      return minified.code || ''
+      return minified.code ?? code.toString()
     } catch (err: any) {
       addIssue({ code: 'custom', message: err.message })
-      return value
+      return null as never
     }
   })

@@ -11,6 +11,7 @@ import { custom } from './zod'
 
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
+import type { PluggableList } from 'unified'
 import type { MarkdownOptions } from '../types'
 
 declare module 'hast' {
@@ -43,14 +44,20 @@ export const markdown = (options: MarkdownOptions = {}) =>
       value = file.data.content
     }
 
-    const { remarkPlugins = [], rehypePlugins = [] } = config.markdown ?? {}
-    const { gfm = true, removeComments = true, copyLinkedFiles = true } = { ...config.markdown, ...options }
+    const enableGfm = options.gfm ?? config.markdown?.gfm ?? true
+    const removeComments = options.removeComments ?? config.markdown?.removeComments ?? true
+    const copyLinkedFiles = options.copyLinkedFiles ?? config.markdown?.copyLinkedFiles ?? true
 
-    if (gfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
+    const remarkPlugins = [] as PluggableList
+    const rehypePlugins = [] as PluggableList
+
+    if (enableGfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-    if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
     if (copyLinkedFiles) rehypePlugins.push([rehypeCopyLinkedFiles, config.output]) // copy linked files to public path and replace their urls with public urls
+    if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
     if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
+    if (config.markdown?.remarkPlugins != null) remarkPlugins.push(...config.markdown.remarkPlugins) // apply global remark plugins
+    if (config.markdown?.rehypePlugins != null) rehypePlugins.push(...config.markdown.rehypePlugins) // apply global rehype plugins
 
     try {
       const html = await unified()
@@ -65,6 +72,6 @@ export const markdown = (options: MarkdownOptions = {}) =>
       return html.toString()
     } catch (err: any) {
       addIssue({ code: 'custom', message: err.message })
-      return value
+      return null as never
     }
   })

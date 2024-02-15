@@ -17,8 +17,18 @@ export interface TocOptions extends Options {}
  * with title, url and items
  */
 export interface TocEntry {
+  /**
+   * Title of the entry
+   */
   title: string
+  /**
+   * URL that can be used to reach
+   * the content
+   */
   url: string
+  /**
+   * Nested items
+   */
   items: TocEntry[]
 }
 
@@ -28,7 +38,14 @@ export interface TocEntry {
  * original tree
  */
 export interface Toc {
+  /**
+   * Parsed entries
+   */
   entries: TocEntry[]
+  /**
+   * Original AST tree that can be
+   * used for custom parsing or rendering
+   */
   tree: Result
 }
 

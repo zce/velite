@@ -315,6 +315,57 @@ code: s.raw()
 // => raw document body
 ```
 
+## `s.toc(options)`
+
+`string => Toc`
+
+parse input or document body as markdown content and return the table of contents.
+
+```ts
+toc: s.excerpt()
+// document body => table of contents
+```
+
+### Parameters
+
+#### **options**: toc options
+
+- type: `TocOptions`, See [Options](https://github.com/syntax-tree/mdast-util-toc?tab=readme-ov-file#options)
+
+### Types
+
+```ts
+interface TocEntry {
+  /**
+   * Title of the entry
+   */
+  title: string
+  /**
+   * URL that can be used to reach
+   * the content
+   */
+  url: string
+  /**
+   * Nested items
+   */
+  items: TocEntry[]
+}
+
+interface Toc {
+  /**
+   * Parsed entries
+   */
+  entries: TocEntry[]
+  /**
+   * Original AST tree that can be
+   * used for custom parsing or rendering
+   */
+  tree: Result
+}
+```
+
+Refer to [mdast-util-toc](https://github.com/syntax-tree/mdast-util-toc) for more information about `Result` and `Options`.
+
 ## Zod Primitive Types
 
 In addition, all Zod's built-in schemas can be used normally, such as:

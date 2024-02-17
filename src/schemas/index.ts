@@ -7,6 +7,7 @@ import { mdx } from './mdx'
 import { metadata } from './metadata'
 import { raw } from './raw'
 import { slug } from './slug'
+import { toc } from './toc'
 import { unique } from './unique'
 import * as z from './zod'
 
@@ -31,9 +32,10 @@ export const s = {
   excerpt,
   markdown,
   mdx,
-  raw
+  raw,
+  toc
 }
 
 export { z } // keep z for backward compatibility
 
-export type { ZodType, Schema, infer } from './zod'
+export type { Schema, ZodType, infer } from './zod'

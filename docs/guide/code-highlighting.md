@@ -11,15 +11,15 @@ If you think code highlighting is necessary for your content, you can implement 
 ::: code-group
 
 ```sh [npm]
-$ npm install rehype-pretty-code shikiji
+$ npm install rehype-pretty-code shiki
 ```
 
 ```sh [pnpm]
-$ pnpm add rehype-pretty-code shikiji
+$ pnpm add rehype-pretty-code shiki
 ```
 
 ```sh [yarn]
-$ yarn add rehype-pretty-code shikiji
+$ yarn add rehype-pretty-code shiki
 ```
 
 :::
@@ -80,22 +80,20 @@ Add some necessary styles, such as:
 
 refer to [examples](https://github.com/zce/velite/blob/main/examples/nextjs/velite.config.ts) for more details.
 
-## rehype-shikiji
-
-> [Shikiji](https://github.com/antfu/shikiji) is a improved version of [Shiki](https://shiki.matsu.io)
+## @shikijs/rehype
 
 ::: code-group
 
 ```sh [npm]
-$ npm install rehype-shikiji
+$ npm install @shikijs/rehype
 ```
 
 ```sh [pnpm]
-$ pnpm add rehype-shikiji
+$ pnpm add @shikijs/rehype
 ```
 
 ```sh [yarn]
-$ yarn add rehype-shikiji
+$ yarn add @shikijs/rehype
 ```
 
 :::
@@ -103,29 +101,29 @@ $ yarn add rehype-shikiji
 In your `velite.config.js`:
 
 ```js
-import rehypeShikiji from 'rehype-shikiji'
+import rehypeShiki from '@shikijs/rehype'
 import { defineConfig } from 'velite'
 
 export default defineConfig({
   markdown: {
-    rehypePlugins: [[rehypeShikiji, { theme: 'nord' }]]
+    rehypePlugins: [[rehypeShiki, { theme: 'nord' }]]
   }
 })
 ```
 
 ::: tip
 
-Velite packages most types of third-party modules, this leads to incompatible type declarations for `rehype-shikiji`, but you can use it with confidence
+Velite packages most types of third-party modules, this leads to incompatible type declarations for `@shikijs/rehype`, but you can use it with confidence
 
 In your `velite.config.ts`:
 
 ```js
-import rehypeShikiji from 'rehype-shikiji'
+import rehypeShiki from '@shikijs/rehype'
 import { defineConfig } from 'velite'
 
 export default defineConfig({
   markdown: {
-    rehypePlugins: [[rehypeShikiji as any, { theme: 'nord' }]]
+    rehypePlugins: [[rehypeShiki as any, { theme: 'nord' }]]
   }
 })
 ```

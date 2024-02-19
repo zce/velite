@@ -90,6 +90,7 @@ const posts = defineCollection({
       categories: s.array(s.string()).default(['Journal']),
       tags: s.array(s.string()).default([]),
       meta: meta,
+      toc: s.toc(),
       metadata: s.metadata(),
       excerpt: s.excerpt(),
       content: s.markdown()

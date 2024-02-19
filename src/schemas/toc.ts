@@ -93,7 +93,7 @@ export const toc = (options?: TocOptions) =>
     try {
       // extract ast tree from markdown/mdx content
       // TODO: understand if is possible to reuse tree from markdown/mdx schema
-      const tree = await unified().use(remarkParse).parse({ value, path: file.path })
+      const tree = unified().use(remarkParse).parse({ value, path: file.path })
       const tocTree = extractToc(tree, options) // run toc extraction
       return { tree: tocTree, entries: parse(tocTree.map) }
     } catch (err: any) {

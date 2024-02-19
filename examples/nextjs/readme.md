@@ -43,7 +43,7 @@ class VeliteWebpackPlugin {
   apply(/** @type {import('webpack').Compiler} */ compiler) {
     // executed three times in nextjs
     // twice for the server (nodejs / edge runtime) and once for the client
-    compiler.hooks.beforeCompile.tap('VeliteWebpackPlugin', async () => {
+    compiler.hooks.beforeCompile.tapPromise('VeliteWebpackPlugin', async () => {
       if (VeliteWebpackPlugin.started) return
       VeliteWebpackPlugin.started = true
       const dev = compiler.options.mode === 'development'
@@ -73,7 +73,7 @@ class VeliteWebpackPlugin {
   apply(/** @type {import('webpack').Compiler} */ compiler) {
     // executed three times in nextjs
     // twice for the server (nodejs / edge runtime) and once for the client
-    compiler.hooks.beforeCompile.tap('VeliteWebpackPlugin', async () => {
+    compiler.hooks.beforeCompile.tapPromise('VeliteWebpackPlugin', async () => {
       if (VeliteWebpackPlugin.started) return
       VeliteWebpackPlugin.started = true
       const dev = compiler.options.mode === 'development'

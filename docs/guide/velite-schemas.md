@@ -322,7 +322,7 @@ code: s.raw()
 parse input or document body as markdown content and return the table of contents.
 
 ```ts
-toc: s.excerpt()
+toc: s.toc()
 // document body => table of contents
 ```
 

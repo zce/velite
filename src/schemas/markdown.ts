@@ -39,9 +39,9 @@ const rehypeMetaString = () => (tree: Hast) => {
 }
 
 export const markdown = (options: MarkdownOptions = {}) =>
-  custom<string>().transform<string>(async (value, { meta: { file, config }, addIssue }) => {
-    if (value == null && file.data.content != null) {
-      value = file.data.content
+  custom<string>().transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
+    if (value == null && content != null) {
+      value = content
     }
 
     const enableGfm = options.gfm ?? config.markdown?.gfm ?? true
@@ -68,7 +68,7 @@ export const markdown = (options: MarkdownOptions = {}) =>
         .use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
         .use(rehypePlugins) // apply rehype plugins
         .use(rehypeStringify) // serialize html syntax tree
-        .process({ value, path: file.path })
+        .process({ value, path })
       return html.toString()
     } catch (err: any) {
       addIssue({ code: 'custom', message: err.message })

@@ -16,9 +16,9 @@ export interface ExcerptOptions {
 }
 
 export const excerpt = ({ length = 260 }: ExcerptOptions = {}) =>
-  custom<string>().transform<string>(async (value, { meta: { file } }) => {
-    if (value == null && file.data.plain != null) {
-      value = file.data.plain
+  custom<string>().transform<string>(async (value, { meta: { plain } }) => {
+    if (value == null && plain != null) {
+      value = plain
     }
     return value.slice(0, length)
   })

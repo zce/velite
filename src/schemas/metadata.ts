@@ -45,33 +45,6 @@ const wordLength = (str: string) => {
   return words.length
 }
 
-const getMetadata = (text: string): Metadata => {
-  // https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby-transformer-remark/src/utils/time-to-read.js
-  const avgWPM = 265
-
-  const latinChars = []
-  const cjChars = []
-
-  for (const char of text) {
-    if (isCjChar(char)) {
-      cjChars.push(char)
-    } else {
-      latinChars.push(char)
-    }
-  }
-
-  // Multiply non-latin character string length by 0.56, because
-  // on average one word consists of 2 characters in both Chinese and Japanese
-  const wordCount = wordLength(latinChars.join('')) + cjChars.length * 0.56
-
-  const time = Math.round(wordCount / avgWPM)
-
-  return {
-    readingTime: time === 0 ? 1 : time,
-    wordCount: wordCount
-  }
-}
-
 /**
  * Document metadata.
  */
@@ -87,9 +60,33 @@ export interface Metadata {
 }
 
 export const metadata = () =>
-  custom<string>().transform<Metadata>(async (value, { meta: { file } }) => {
-    if (value == null && file.data.plain != null) {
-      value = file.data.plain
+  custom<string>().transform<Metadata>(async (value, { meta: { plain } }) => {
+    if (value == null && plain != null) {
+      value = plain
     }
-    return getMetadata(value)
+
+    // https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby-transformer-remark/src/utils/time-to-read.js
+    const avgWPM = 265
+
+    const latinChars = []
+    const cjChars = []
+
+    for (const char of value) {
+      if (isCjChar(char)) {
+        cjChars.push(char)
+      } else {
+        latinChars.push(char)
+      }
+    }
+
+    // Multiply non-latin character string length by 0.56, because
+    // on average one word consists of 2 characters in both Chinese and Japanese
+    const wordCount = wordLength(latinChars.join('')) + cjChars.length * 0.56
+
+    const time = Math.round(wordCount / avgWPM)
+
+    return {
+      readingTime: time === 0 ? 1 : time,
+      wordCount: wordCount
+    }
   })

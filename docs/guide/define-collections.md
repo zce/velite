@@ -164,8 +164,7 @@ const posts = defineCollection({
     .transform((data, { meta }) => ({
       ...data,
       // computed fields
-      slug: meta.file.stem.replace('/index', ''), // filename based slug
-      permalink: `/blog/${meta.file.stem.replace('/index', '')}`
+      path: meta.path // or parse to filename based slug
     }))
 })
 ```
@@ -173,23 +172,28 @@ const posts = defineCollection({
 #### Reference
 
 ```ts
-interface ZodMeta {
-  file: VFile // vfile object
-  config: Config // velite config object with default options
+interface ZodMeta extends VeliteMeta {}
+
+class VeliteMeta extends VFile {
+  config: Config
+  // raw file content body
+  get content(): string | undefined
+  // plain text content body
+  get plain(): string | undefined
 }
 ```
 
 ## Content Body
 
-Velite built-in Loader keep content raw body in `file.data.content`, and plain text body in `file.data.plain`.
+Velite built-in Loader keep content raw body in `meta.content`, and plain text body in `meta.plain`.
 
 To extract the original content, you can customize a schema.
 
 ```js
 const posts = defineCollection({
   schema: s.object({
-    content: s.custom().transform((data, { meta }) => meta.file.data.content),
-    plain: s.custom().transform((data, { meta }) => meta.file.data.plain)
+    content: s.custom().transform((data, { meta }) => meta.content),
+    plain: s.custom().transform((data, { meta }) => meta.plain)
   })
 })
 ```

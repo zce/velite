@@ -116,17 +116,16 @@ export interface ExcerptOptions {
 }
 
 export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
-  custom<string>().transform(async (value, ctx) => {
-    const { file } = ctx.meta
-    if (value == null && file.data.content != null) {
-      value = file.data.content
+  custom<string>().transform(async (value, { meta: { path, content, config } }) => {
+    if (value == null && content != null) {
+      value = content
     }
     try {
       const mdast = fromMarkdown(value)
       const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
       const exHast = hastExcerpt(hast, { comment: separator, maxSearchSize: 1024 })
       const output = exHast ?? truncate(hast, { size: length, ellipsis: '…' })
-      await extractHastLinkedFiles(output, file.path)
+      await rehypeCopyLinkedFiles(config.output)(output, { path })
       return toHtml(output)
     } catch (err: any) {
       ctx.addIssue({ code: 'custom', message: err.message })

@@ -28,9 +28,7 @@ export const makeIssue = (params: { data: any; path: (string | number)[]; errorM
   }
 }
 
-export interface ZodMeta {
-  [key: string | number | symbol]: unknown
-}
+export interface ZodMeta {}
 
 export type ParseParams = {
   path: (string | number)[]

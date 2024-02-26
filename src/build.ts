@@ -8,14 +8,12 @@ import { reporter } from 'vfile-reporter'
 import { assets } from './assets'
 import { resolveConfig } from './config'
 import { logger } from './logger'
+import { loaded, VeliteMeta } from './meta'
 import { outputAssets, outputData, outputEntry } from './output'
 
 import type { LogLevel } from './logger'
 import type { Schema } from './schemas'
 import type { Config } from './types'
-
-// cache loaded files for rebuild
-const loaded = new Map<string, VFile>()
 
 // cache resolved result for rebuild
 const resolved = new Map<string, VFile[]>()
@@ -66,18 +64,9 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
     return loaded.get(path)!
   }
 
-  const file = new VFile({ path })
-  loaded.set(path, file)
+  const meta = await VeliteMeta.create({ path, config })
 
-  const loader = config.loaders.find(loader => loader.test.test(path))
-  if (loader == null) file.fail(`no loader found for '${path}'`)
-
-  file.value = await readFile(file.path)
-  file.data = await loader!.load(file)
-
-  const { data } = file.data
-  if (data == null) file.fail(`no data loaded from this file`)
-
+  const { data } = meta.data
   // may be one or more records in one file, such as yaml array or json array
   const isArr = Array.isArray(data)
   const list = isArr ? data : [data]
@@ -86,16 +75,16 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
       // push index in path if file is array
       const path = isArr ? [index] : []
       // parse data with given schema
-      const result = await schema.safeParseAsync(item, { path, meta: { file, config } })
+      const result = await schema.safeParseAsync(item, { path, meta } as any)
       if (result.success) return result.data
       // report error if parsing failed
-      result.error.issues.forEach(issue => file.message(issue.message, { source: issue.path.join('.') }))
+      result.error.issues.forEach(issue => meta.message(issue.message, { source: issue.path.join('.') }))
     })
   )
 
   // logger.log(`loaded '${path}' with ${parsed.length} records`)
-  file.result = isArr ? parsed : parsed[0]
-  return file
+  meta.result = isArr ? parsed : parsed[0]
+  return meta
 }
 
 /**

@@ -6,11 +6,11 @@ import { string } from './zod'
  * @returns unique schema
  */
 export const unique = (by: string = 'global') =>
-  string().superRefine((value, { path, meta: { file, config }, addIssue }) => {
+  string().superRefine((value, { path, meta: { path: filepath, config }, addIssue }) => {
     const key = `schemas:unique:${by}:${value}`
     if (config.cache.has(key)) {
-      addIssue({ code: 'custom', message: `duplicate value '${value}' in '${file.path}:${path.join('.')}'` })
+      addIssue({ code: 'custom', message: `duplicate value '${value}' in '${filepath}:${path.join('.')}'` })
     } else {
-      config.cache.set(key, file.path)
+      config.cache.set(key, filepath)
     }
   })

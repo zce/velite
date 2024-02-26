@@ -18,9 +18,9 @@ const remarkRemoveComments = () => (tree: Root) => {
 }
 
 export const mdx = (options: MdxOptions = {}) =>
-  custom<string>().transform<string>(async (value, { meta: { file, config }, addIssue }) => {
-    if (value == null && file.data.content != null) {
-      value = file.data.content
+  custom<string>().transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
+    if (value == null && content != null) {
+      value = content
     }
 
     const enableGfm = options.gfm ?? config.mdx?.gfm ?? true
@@ -46,7 +46,7 @@ export const mdx = (options: MdxOptions = {}) =>
     const { minify } = await import('terser')
 
     try {
-      const code = await compile({ value, path: file.path }, compilerOptions)
+      const code = await compile({ value, path }, compilerOptions)
 
       if (!enableMinify) return code.toString()
 

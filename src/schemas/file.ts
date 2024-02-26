@@ -13,9 +13,9 @@ export interface FileOptions {
  * A file path relative to this file.
  */
 export const file = ({ allowNonRelativePath = true }: FileOptions = {}) =>
-  string().transform<string>((value, { meta: { file, config }, addIssue }) => {
+  string().transform<string>((value, { meta: { path, config }, addIssue }) => {
     if (allowNonRelativePath && !isRelativePath(value)) return value
-    return processAsset(value, file.path, config.output.name, config.output.base).catch(err => {
+    return processAsset(value, path, config.output.name, config.output.base).catch(err => {
       addIssue({ code: 'custom', message: err.message })
       return null as never
     })

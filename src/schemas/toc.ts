@@ -85,15 +85,15 @@ function parse(tree?: List): TocEntry[] {
 }
 
 export const toc = (options?: TocOptions) =>
-  custom<string>().transform<Toc>(async (value, { meta: { file }, addIssue }) => {
-    if (value == null && file.data.content != null) {
-      value = file.data.content
+  custom<string>().transform<Toc>(async (value, { meta: { path, content }, addIssue }) => {
+    if (value == null && content != null) {
+      value = content
     }
 
     try {
       // extract ast tree from markdown/mdx content
       // TODO: understand if is possible to reuse tree from markdown/mdx schema
-      const tree = unified().use(remarkParse).parse({ value, path: file.path })
+      const tree = unified().use(remarkParse).parse({ value, path })
       const tocTree = extractToc(tree, options) // run toc extraction
       return { tree: tocTree, entries: parse(tocTree.map) }
     } catch (err: any) {

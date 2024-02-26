@@ -146,7 +146,7 @@ export interface Output {
 /**
  * Collection options
  */
-export interface Collection<T extends Schema> {
+export interface Collection {
   /**
    * Collection name (singular), for types generation
    * @example
@@ -175,14 +175,14 @@ export interface Collection<T extends Schema> {
    *   content: s.string() // from markdown body
    * })
    */
-  schema: T
+  schema: Schema
 }
 
 /**
  * All collections
  */
 export interface Collections {
-  [name: string]: Collection<Schema>
+  [name: string]: Collection
 }
 
 /**
@@ -287,16 +287,16 @@ export interface Config extends Readonly<UserConfig> {
 /**
  * Define a collection (identity function for type inference)
  */
-export const defineCollection = <T extends Schema>(collection: Collection<T>) => collection
+export const defineCollection = <T extends Collection>(collection: T): T => collection
 
 /**
  * Define a loader (identity function for type inference)
  */
-export const defineLoader = (loader: Loader) => loader
+export const defineLoader = <T extends Loader>(loader: T): T => loader
 
 /**
  * Define config (identity function for type inference)
  */
-export const defineConfig = <T extends Collections>(config: UserConfig<T>) => config
+export const defineConfig = <T extends UserConfig<Collections>>(config: T): T => config
 
 // ↑↑↑ helper identity functions for type inference

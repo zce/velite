@@ -108,10 +108,7 @@ export default defineConfig({
     clean: true
   },
   collections: { options, categories, tags, pages, posts },
-  markdown: {
-    // https://rehype-pretty-code.netlify.app/
-    rehypePlugins: [rehypePrettyCode]
-  },
+  markdown: { rehypePlugins: [rehypePrettyCode] },
   prepare: ({ categories, tags, posts }) => {
     const docs = posts.filter(i => process.env.NODE_ENV !== 'production' || !i.draft)
 

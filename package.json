@@ -33,7 +33,7 @@
     "@mdx-js/mdx": "3.0.1",
     "esbuild": "0.20.1",
     "sharp": "0.33.2",
-    "terser": "5.28.0"
+    "terser": "5.28.1"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
@@ -68,7 +68,7 @@
     "vfile-reporter": "^8.1.0",
     "yaml": "^2.3.4"
   },
-  "packageManager": "pnpm@8.15.3",
+  "packageManager": "pnpm@8.15.4",
   "engines": {
     "node": "^18.17.0 || >=20.3.0"
   }

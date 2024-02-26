@@ -1,16 +1,22 @@
 import { Link, List, Paragraph } from 'mdast'
-import { toc as extractToc, Options, Result } from 'mdast-util-toc'
-import remarkParse from 'remark-parse'
-import { unified } from 'unified'
+import { fromMarkdown } from 'mdast-util-from-markdown'
+import { toc as extractToc } from 'mdast-util-toc'
 import { visit } from 'unist-util-visit'
 
 import { custom } from './zod'
+
+import type { Options } from 'mdast-util-toc'
 
 /**
  * Options for table of contents
  * extraction
  */
-export interface TocOptions extends Options {}
+export interface TocOptions extends Options {
+  /**
+   * keep the original tree
+   */
+  original?: boolean
+}
 
 /**
  * Entry for a table of contents
@@ -33,23 +39,30 @@ export interface TocEntry {
 }
 
 /**
- * Table of contents
- * with parsed entries and
- * original tree
+ * Tree for table of contents
  */
-export interface Toc {
+export interface TocTree {
   /**
-   * Parsed entries
+   *  Index of the node right after the table of contents heading, `-1` if no
+   *  heading was found, `undefined` if no `heading` was given.
    */
-  entries: TocEntry[]
+  index?: number
   /**
-   * Original AST tree that can be
-   * used for custom parsing or rendering
+   *  Index of the first node after `heading` that is not part of its section,
+   *  `-1` if no heading was found, `undefined` if no `heading` was given, same
+   *  as `index` if there are no nodes between `heading` and the first heading
+   *  in the table of contents.
    */
-  tree: Result
+  endIndex?: number
+  /**
+   *  List representing the generated table of contents, `undefined` if no table
+   *  of contents could be created, either because no heading was found or
+   *  because no following headings were found.
+   */
+  map?: List
 }
 
-function parseParagraph(node: Paragraph): Omit<TocEntry, 'items'> {
+const parseParagraph = (node: Paragraph): Omit<TocEntry, 'items'> => {
   if (node.type !== 'paragraph') return { title: '', url: '' }
   let extraction = { title: '', url: '' }
 
@@ -65,7 +78,7 @@ function parseParagraph(node: Paragraph): Omit<TocEntry, 'items'> {
   return extraction
 }
 
-function parse(tree?: List): TocEntry[] {
+const parse = (tree?: List): TocEntry[] => {
   if (!tree || tree?.type !== 'list') return []
 
   const layer = tree.children.flatMap(node => node.children)
@@ -84,8 +97,8 @@ function parse(tree?: List): TocEntry[] {
   return entries
 }
 
-export const toc = (options?: TocOptions) =>
-  custom<string>().transform<Toc>(async (value, { meta: { path, content }, addIssue }) => {
+export const toc = <T extends TocOptions>(options?: T) =>
+  custom<string>().transform<T extends { original: true } ? TocTree : TocEntry[]>(async (value, { meta: { content }, addIssue }) => {
     if (value == null && content != null) {
       value = content
     }
@@ -93,9 +106,11 @@ export const toc = (options?: TocOptions) =>
     try {
       // extract ast tree from markdown/mdx content
       // TODO: understand if is possible to reuse tree from markdown/mdx schema
-      const tree = unified().use(remarkParse).parse({ value, path })
-      const tocTree = extractToc(tree, options) // run toc extraction
-      return { tree: tocTree, entries: parse(tocTree.map) }
+      const tree = fromMarkdown(value)
+      const tocTree = extractToc(tree, options)
+      // return the original tree if requested
+      if (options?.original) return tocTree as T extends { original: true } ? TocTree : TocEntry[]
+      return parse(tocTree.map) as T extends { original: true } ? TocTree : TocEntry[]
     } catch (err: any) {
       addIssue({ code: 'custom', message: err.message })
       return null as never

@@ -5,6 +5,7 @@ import { isodate } from './isodate'
 import { markdown } from './markdown'
 import { mdx } from './mdx'
 import { metadata } from './metadata'
+import { path } from './path'
 import { raw } from './raw'
 import { slug } from './slug'
 import { toc } from './toc'
@@ -22,6 +23,7 @@ export const s = {
   excerpt,
   markdown,
   mdx,
+  path,
   raw,
   toc
 }

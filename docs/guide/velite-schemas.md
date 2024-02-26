@@ -366,6 +366,17 @@ interface Toc {
 
 Refer to [mdast-util-toc](https://github.com/syntax-tree/mdast-util-toc) for more information about `Result` and `Options`.
 
+## `s.path()`
+
+`=> string`
+
+get flattened path based on the file path.
+
+```ts
+path: s.path()
+// => flattened path, e.g. 'posts/2021-01-01-hello-world'
+```
+
 ## Zod Primitive Types
 
 In addition, all Zod's built-in schemas can be used normally, such as:

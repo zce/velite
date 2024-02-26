@@ -87,7 +87,7 @@ export default defineConfig({
       schema: s
         .object({
           title: s.string().max(99),
-          slug: s.slug('post'),
+          slug: s.path(),
           date: s.isodate(),
           updated: s.isodate().optional(),
           cover: s.image().optional(),

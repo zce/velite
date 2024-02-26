@@ -1,7 +1,3 @@
-import { raw } from 'hast-util-raw'
-import { toString } from 'hast-util-to-string'
-import { fromMarkdown } from 'mdast-util-from-markdown'
-import { toHast } from 'mdast-util-to-hast'
 import yaml from 'yaml'
 
 import { defineLoader } from '../types'
@@ -18,9 +14,6 @@ export default defineLoader({
     const matter = match == null ? null : match[1]
     const data = matter == null ? {} : yaml.parse(matter) ?? {}
     const content = match == null ? value : value.slice(match[0].length).trim()
-    const mdast = fromMarkdown(content)
-    const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
-    const plain = toString(hast).replace(/\s+/g, ' ')
-    return { data, content, plain }
+    return { data, content }
   }
 })

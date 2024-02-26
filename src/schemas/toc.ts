@@ -98,15 +98,11 @@ const parse = (tree?: List): TocEntry[] => {
 }
 
 export const toc = <T extends TocOptions>(options?: T) =>
-  custom<string>().transform<T extends { original: true } ? TocTree : TocEntry[]>(async (value, { meta: { content }, addIssue }) => {
-    if (value == null && content != null) {
-      value = content
-    }
-
+  custom<string>().transform<T extends { original: true } ? TocTree : TocEntry[]>(async (value, { meta, addIssue }) => {
     try {
       // extract ast tree from markdown/mdx content
-      // TODO: understand if is possible to reuse tree from markdown/mdx schema
-      const tree = fromMarkdown(value)
+      const tree = value != null ? fromMarkdown(value) : meta.mdast
+      if (tree == null) throw new Error('No tree found')
       const tocTree = extractToc(tree, options)
       // return the original tree if requested
       if (options?.original) return tocTree as T extends { original: true } ? TocTree : TocEntry[]

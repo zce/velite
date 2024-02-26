@@ -40,8 +40,10 @@ const rehypeMetaString = () => (tree: Hast) => {
 
 export const markdown = (options: MarkdownOptions = {}) =>
   custom<string>().transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
-    if (value == null && content != null) {
-      value = content
+    value = value ?? content
+    if (value == null) {
+      addIssue({ code: 'custom', message: 'No content found' })
+      return null as never
     }
 
     const enableGfm = options.gfm ?? config.markdown?.gfm ?? true

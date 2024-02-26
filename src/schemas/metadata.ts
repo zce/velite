@@ -60,9 +60,11 @@ export interface Metadata {
 }
 
 export const metadata = () =>
-  custom<string>().transform<Metadata>(async (value, { meta: { plain } }) => {
-    if (value == null && plain != null) {
-      value = plain
+  custom<string>().transform<Metadata>(async (value, { meta, addIssue }) => {
+    value = value ?? meta.plain
+    if (value == null) {
+      addIssue({ code: 'custom', message: 'No content found' })
+      return { readingTime: 0, wordCount: 0 }
     }
 
     // https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby-transformer-remark/src/utils/time-to-read.js

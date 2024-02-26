@@ -317,7 +317,7 @@ code: s.raw()
 
 ## `s.toc(options)`
 
-`string => Toc`
+`string => TocEntry[] | TocTree`
 
 parse input or document body as markdown content and return the table of contents.
 
@@ -331,6 +331,13 @@ toc: s.toc()
 #### **options**: toc options
 
 - type: `TocOptions`, See [Options](https://github.com/syntax-tree/mdast-util-toc?tab=readme-ov-file#options)
+
+##### **options.original**:
+
+keep the original table of contents.
+
+- type: `boolean`
+- default: `false`
 
 ### Types
 
@@ -351,16 +358,28 @@ interface TocEntry {
   items: TocEntry[]
 }
 
-interface Toc {
+/**
+ * Tree for table of contents
+ */
+export interface TocTree {
   /**
-   * Parsed entries
+   *  Index of the node right after the table of contents heading, `-1` if no
+   *  heading was found, `undefined` if no `heading` was given.
    */
-  entries: TocEntry[]
+  index?: number
   /**
-   * Original AST tree that can be
-   * used for custom parsing or rendering
+   *  Index of the first node after `heading` that is not part of its section,
+   *  `-1` if no heading was found, `undefined` if no `heading` was given, same
+   *  as `index` if there are no nodes between `heading` and the first heading
+   *  in the table of contents.
    */
-  tree: Result
+  endIndex?: number
+  /**
+   *  List representing the generated table of contents, `undefined` if no table
+   *  of contents could be created, either because no heading was found or
+   *  because no following headings were found.
+   */
+  map?: List
 }
 ```
 

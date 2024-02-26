@@ -34,9 +34,7 @@
     "pre-commit": "pnpm lint-staged"
   },
   "lint-staged": {
-    "*.{js,ts,md}": [
-      "prettier --write"
-    ]
+    "*.{js,ts,md}": "prettier --write"
   },
   "dependencies": {
     "@mdx-js/mdx": "3.0.1",

@@ -297,6 +297,6 @@ export const defineLoader = <T extends Loader>(loader: T): T => loader
 /**
  * Define config (identity function for type inference)
  */
-export const defineConfig = <T extends UserConfig<Collections>>(config: T): T => config
+export const defineConfig = <T extends Collections>(config: UserConfig<T>): UserConfig<T> => config
 
 // ↑↑↑ helper identity functions for type inference

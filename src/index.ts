@@ -1,5 +1,6 @@
 export * from './logger'
 export * from './schemas'
 export * from './assets'
+export * from './meta'
 export * from './build'
 export * from './types'

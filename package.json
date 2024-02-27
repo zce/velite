@@ -1,6 +1,6 @@
 {
   "name": "velite",
-  "version": "0.1.0-beta.10",
+  "version": "0.1.0-beta.11",
   "description": "Turns Markdown / MDX, YAML, JSON, or other files into app's data layer with type-safe schema.",
   "keywords": [
     "contentlayer",

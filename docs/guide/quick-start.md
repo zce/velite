@@ -52,9 +52,10 @@ export default defineConfig({
         .object({
           title: s.string().max(99), // Zod primitive type
           slug: s.slug('posts'), // validate format, unique in posts collection
+          // slug: s.path(), // auto generate slug from file path
           date: s.isodate(), // input Date-like string, output ISO Date string.
-          cover: s.image().optional(), // input image relpath, output image object with blurImage.
-          video: s.file().optional(), // input file relpath, output file public path.
+          cover: s.image(), // input image relative path, output image object with blurImage.
+          video: s.file().optional(), // input file relative path, output file public path.
           metadata: s.metadata(), // extract markdown reading-time, word-count, etc.
           excerpt: s.excerpt(), // excerpt of markdown content
           content: s.markdown() // transform markdown to html
@@ -170,6 +171,12 @@ If you're using Git for version control, we recommend ignoring the `.velite` dir
 echo '\n.velite' >> .gitignore
 ```
 
+If you have static files output, you also need to ignore the `public/static` directory:
+
+```sh
+echo '\npublic/static' >> .gitignore
+```
+
 :::
 
 ## Run Velite with Watch Mode
@@ -230,7 +237,7 @@ console.log(posts) // => [{ title: 'Hello world', slug: 'hello-world', ... }, ..
 
 ::: tip
 
-Velite is Framework Agnostic, you can use it output with any framework or library you like.
+Velite is **Framework Agnostic**, you can use it output with any framework or library you like.
 
 :::
 

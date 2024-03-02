@@ -385,7 +385,7 @@ export interface TocTree {
 
 Refer to [mdast-util-toc](https://github.com/syntax-tree/mdast-util-toc) for more information about `Result` and `Options`.
 
-## `s.path()`
+## `s.path(options)`
 
 `=> string`
 
@@ -394,6 +394,38 @@ get flattened path based on the file path.
 ```ts
 path: s.path()
 // => flattened path, e.g. 'posts/2021-01-01-hello-world'
+```
+
+### Parameters
+
+#### **options**: flattening options
+
+- type: `PathOptions`
+
+##### **options.removeIndex**:
+
+Removes index from path for subfolders
+
+- type: `boolean`
+- default: `false`
+
+### Types
+
+```ts
+/**
+ * Options for flattened path
+ * extraction
+ */
+export interface PathOptions {
+  /**
+   * removes `index` from the path
+   *
+   * `/docs/general/index.md` => `docs/general`
+   *
+   * @default false
+   */
+  removeIndex?: boolean
+}
 ```
 
 ## Zod Primitive Types

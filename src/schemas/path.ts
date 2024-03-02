@@ -16,5 +16,4 @@ export const path = () =>
     return relative(config.root, path)
       .replace(/\.[^.]+$/, '')
       .replace(/\\/g, '/')
-      .replace(/\/index$/, '')
   })

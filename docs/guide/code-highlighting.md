@@ -59,7 +59,7 @@ Add some necessary styles, such as:
   @apply mr-4 inline-block w-4 text-right text-gray-500;
 }
 
-[data-rehype-pretty-code-figure] pre [data-line] {
+[data-rehype-pretty-code-figure] [data-line] {
   @apply border-l-2 border-l-transparent px-3;
 }
 

@@ -6,6 +6,7 @@ import { build } from 'esbuild'
 import { name } from '../package.json'
 import { loaders } from './loaders'
 import { logger } from './logger'
+import * as z from './schemas/zod/'
 
 import type { Config, UserConfig } from './types'
 
@@ -39,12 +40,14 @@ const importFile = async (path: string) => {
   return mod.default ?? mod
 }
 
+const externalPackagesSchema = z.array(z.string())
+
 const loadExtraExternal = async (path: string) => {
   const externalStats = await stat(path)
   if (externalStats.isFile()) {
-    // TODO: validate its a json array of strings
     const res = await readFile(path, 'utf8')
-    return JSON.parse(res)
+    const json = JSON.parse(res)
+    return externalPackagesSchema.parseAsync(json)
   }
 
   return []

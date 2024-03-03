@@ -407,7 +407,7 @@ path: s.path()
 Removes index from path for subfolders
 
 - type: `boolean`
-- default: `false`
+- default: `true`
 
 ### Types
 

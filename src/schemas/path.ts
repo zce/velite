@@ -11,7 +11,7 @@ export interface PathOptions {
    * removes `index` from the path
    * for subfolders
    *
-   * @default false
+   * @default true
    */
   removeIndex?: boolean
 }
@@ -33,5 +33,5 @@ export const path = (options?: PathOptions) =>
       .replace(/\.[^.]+$/, '')
       .replace(/\\/g, '/')
 
-    return options?.removeIndex ? flattened.replace(/\/index$/, '') : flattened
+    return options?.removeIndex === false ? flattened : flattened.replace(/\/index$/, '')
   })

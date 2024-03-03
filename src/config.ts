@@ -1,4 +1,4 @@
-import { access } from 'node:fs/promises'
+import { access, readFile, stat } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
@@ -31,6 +31,25 @@ const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: 
   }
 }
 
+const importFile = async (path: string) => {
+  const pathUrl = pathToFileURL(path)
+  pathUrl.searchParams.set('t', Date.now().toString()) // prevent import cache
+
+  const mod = await import(pathUrl.href)
+  return mod.default ?? mod
+}
+
+const loadExtraExternal = async (path: string) => {
+  const externalStats = await stat(path)
+  if (externalStats.isFile()) {
+    // TODO: validate its a json array of strings
+    const res = await readFile(path, 'utf8')
+    return JSON.parse(res)
+  }
+
+  return []
+}
+
 /**
  * bundle and load user config file
  * @param path config file path
@@ -43,6 +62,12 @@ const loadConfig = async (path: string): Promise<UserConfig> => {
     throw new Error(`not supported config file with '${ext}' extension`)
   }
 
+  const baseExternal = ['velite']
+
+  const extraExternalFilePath = join(path, '../velite.external.json')
+
+  const extraExternal = await loadExtraExternal(extraExternalFilePath)
+
   const outfile = join(path, '../node_modules/.velite.config.compiled.mjs')
 
   await build({
@@ -52,15 +77,11 @@ const loadConfig = async (path: string): Promise<UserConfig> => {
     format: 'esm',
     target: 'node18',
     platform: 'node',
-    external: ['velite'],
+    external: [...baseExternal, ...extraExternal],
     outfile
   })
 
-  const configUrl = pathToFileURL(outfile)
-  configUrl.searchParams.set('t', Date.now().toString()) // prevent import cache
-
-  const mod = await import(configUrl.href)
-  return mod.default ?? mod
+  return importFile(outfile)
 }
 
 /**

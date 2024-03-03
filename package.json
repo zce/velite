@@ -23,6 +23,7 @@
     "dist"
   ],
   "scripts": {
+    "prepare": "npm run build",
     "build": "tsc && rollup -c",
     "test": "cd examples/basic && pnpm build && cd ../nextjs && pnpm build",
     "docs:dev": "cd docs && pnpm dev",

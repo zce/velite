@@ -14,7 +14,7 @@
       in
       with pkgs; {
         devShells = {
-          default = mkShell { buildInputs = [ nodeVerion ]; };
+          default = mkShell { buildInputs = [ nodeVerion nodePackages.pnpm ]; };
         };
       });
 }

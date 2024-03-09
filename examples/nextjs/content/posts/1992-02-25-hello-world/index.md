@@ -23,10 +23,11 @@ categories:
 ![some jpeg image](img.jpeg)
 ![some absolute image](https://google.com/img.gif)
 
-<audio src="audio.mp3" controls autoplay loop>
+<audio src="audio.mp3" controls autoplay loop></audio>
 
-<video src="video.mp4" controls autoplay loop>
-<video controls autoplay loop>
+<video width="100%" src="video.mp4" controls autoplay loop></video>
+<video width="100%" controls autoplay loop>
+
   <source type="video/mp4" src="video2.mp4"/>
   <p>Your browser does not support the video element.</p>
 </video>

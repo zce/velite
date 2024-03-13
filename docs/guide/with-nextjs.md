@@ -77,6 +77,13 @@ class VeliteWebpackPlugin {
 
 :::
 
+::: info
+
+ESM `import { build } from 'velite'` may be got a `[webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo]` warning generated during the `next build` process, which has little impact,
+refer to https://github.com/webpack/webpack/pull/15688
+
+:::
+
 ::: tip
 
 The Next.js plugin is still under development...

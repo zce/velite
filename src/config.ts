@@ -47,13 +47,13 @@ const loadConfig = async (path: string): Promise<UserConfig> => {
 
   await build({
     entryPoints: [path],
+    outfile,
     bundle: true,
     write: true,
     format: 'esm',
     target: 'node18',
     platform: 'node',
-    external: ['velite'],
-    outfile
+    packages: 'external'
   })
 
   const configUrl = pathToFileURL(outfile)

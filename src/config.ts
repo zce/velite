@@ -53,15 +53,7 @@ const loadConfig = async (path: string): Promise<UserConfig> => {
     format: 'esm',
     target: 'node18',
     platform: 'node',
-    plugins: [
-      {
-        name: 'make-all-packages-external',
-        setup: build => {
-          const filter = /^(?:@[a-z0-9_-]+\/)?[a-z0-9_-][a-z0-9._-]*$/i
-          build.onResolve({ filter }, args => ({ path: args.path, external: true }))
-        }
-      }
-    ]
+    packages: 'external'
   })
 
   const configUrl = pathToFileURL(outfile)

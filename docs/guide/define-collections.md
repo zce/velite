@@ -98,7 +98,9 @@ const posts = defineCollection({
 ```
 
 ::: tip
+
 The schema is usually a `ZodObject`, validating the shape of the content item. But it can be any valid Zod schema.
+
 :::
 
 For more useful schemas, I recommend that you use [Velite extended schemas `s`](velite-schemas.md):

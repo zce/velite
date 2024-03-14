@@ -18,7 +18,9 @@ export default {
 ```
 
 ::: tip
+
 Config file supports TypeScript & ESM & CommonJS. you can use the full power of TypeScript to write your config file, and it's recommended strongly.
+
 :::
 
 ## Typed Config

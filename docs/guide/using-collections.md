@@ -132,6 +132,57 @@ export function generateStaticParams() {
 }
 ```
 
+## Data Accessor
+
+Because each user's scenario is different, Velite is framework-agnostic and does not want to dictate the structure of the user's content or how to use the output it generates. Therefore, Velite does not have built-in APIs related to data access.
+
+You can use the output data in your application as you like, such as using a function to get a single post by slug, or using a function to get a list of posts by category.
+
+```ts [app/content.ts]
+import { posts, authors } from '../.velite'
+import type { Author, Post } from '../.velite'
+
+export const getPostBySlug = (slug: string) => {
+  return posts.find(post => post.slug === slug)
+}
+
+export const getPostsByCategory = (category: string) => {
+  return posts.filter(post => post.category === category)
+}
+
+export const getAuthors = async <F extends keyof Author>(
+  filter: Filter<Author>,
+  fields?: F[],
+  limit: number = Infinity,
+  offset: number = 0
+): Promise<Pick<Author, F>[]> => {
+  return authors
+    .filter(filter)
+    .sort((a, b) => (a.name > b.name ? -1 : 1))
+    .slice(offset, offset + limit)
+    .map(author => pick(author, fields))
+}
+
+export const getAuthorsCount = async (filter: Filter<Author> = filters.none): Promise<number> => {
+  return authors.filter(filter).length
+}
+
+export const getAuthor = async <F extends keyof Author>(filter: Filter<Author>, fields?: F[]): Promise<Pick<Author, F> | undefined> => {
+  const author = authors.find(filter)
+  return author && pick(author, fields)
+}
+
+export const getAuthorByName = async <F extends keyof Author>(name: string, fields?: F[]): Promise<Pick<Author, F> | undefined> => {
+  return getAuthor(i => i.name === name, fields)
+}
+
+export const getAuthorBySlug = async <F extends keyof Author>(slug: string, fields?: F[]): Promise<Pick<Author, F> | undefined> => {
+  return getAuthor(i => i.slug === slug, fields)
+}
+```
+
+In short, it is just raw JSON data that you can use in any way you want.
+
 ## Path Aliases
 
 You can define path aliases in `tsconfig.json`:

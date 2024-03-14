@@ -1,4 +1,4 @@
-import { access, readFile, stat } from 'node:fs/promises'
+import { access } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
@@ -6,7 +6,6 @@ import { build } from 'esbuild'
 import { name } from '../package.json'
 import { loaders } from './loaders'
 import { logger } from './logger'
-import * as z from './schemas/zod/'
 
 import type { Config, UserConfig } from './types'
 
@@ -32,27 +31,6 @@ const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: 
   }
 }
 
-const importFile = async (path: string) => {
-  const pathUrl = pathToFileURL(path)
-  pathUrl.searchParams.set('t', Date.now().toString()) // prevent import cache
-
-  const mod = await import(pathUrl.href)
-  return mod.default ?? mod
-}
-
-const externalPackagesSchema = z.array(z.string())
-
-const loadExtraExternal = async (path: string) => {
-  const externalStats = await stat(path)
-  if (externalStats.isFile()) {
-    const res = await readFile(path, 'utf8')
-    const json = JSON.parse(res)
-    return externalPackagesSchema.parseAsync(json)
-  }
-
-  return []
-}
-
 /**
  * bundle and load user config file
  * @param path config file path
@@ -65,26 +43,32 @@ const loadConfig = async (path: string): Promise<UserConfig> => {
     throw new Error(`not supported config file with '${ext}' extension`)
   }
 
-  const baseExternal = ['velite']
-
-  const extraExternalFilePath = join(path, '../velite.external.json')
-
-  const extraExternal = await loadExtraExternal(extraExternalFilePath)
-
   const outfile = join(path, '../node_modules/.velite.config.compiled.mjs')
 
   await build({
     entryPoints: [path],
+    outfile,
     bundle: true,
     write: true,
     format: 'esm',
     target: 'node18',
     platform: 'node',
-    external: [...baseExternal, ...extraExternal],
-    outfile
+    plugins: [
+      {
+        name: 'make-all-packages-external',
+        setup: build => {
+          const filter = /^(?:@[a-z0-9_-]+\/)?[a-z0-9_-][a-z0-9._-]*$/i
+          build.onResolve({ filter }, args => ({ path: args.path, external: true }))
+        }
+      }
+    ]
   })
 
-  return importFile(outfile)
+  const configUrl = pathToFileURL(outfile)
+  configUrl.searchParams.set('t', Date.now().toString()) // prevent import cache
+
+  const mod = await import(configUrl.href)
+  return mod.default ?? mod
 }
 
 /**

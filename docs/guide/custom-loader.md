@@ -17,7 +17,7 @@ import { defineConfig, defineLoader } from 'velite'
 const tomlLoader = defineLoader({
   test: /\.toml$/,
   load: vfile => {
-    return toml.parse(vfile.toString())
+    return { data: toml.parse(vfile.toString()) }
   }
 })
 

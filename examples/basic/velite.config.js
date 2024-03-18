@@ -71,7 +71,7 @@ export default defineConfig({
     },
     pages: {
       name: 'Page',
-      pattern: 'pages/**/*.mdx',
+      pattern: ['pages/**/*.mdx', '!pages/ignored/**'],
       schema: s
         .object({
           title: s.string().max(99),

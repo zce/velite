@@ -157,8 +157,9 @@ export interface Collection {
    * Collection glob pattern, based on `root`
    * @example
    * 'posts/*.md'
+   * ['posts/*.md', '!posts/index.md']
    */
-  pattern: string
+  pattern: string | string[]
   /**
    * Whether the schema is single
    * @default false

@@ -63,6 +63,7 @@ The glob pattern used to find content files for the collection.
 ```js
 const posts = defineCollection({
   pattern: 'posts/**/*.md'
+  // or pattern: ['posts/**/*.md', '!posts/private/**']
 })
 ```
 

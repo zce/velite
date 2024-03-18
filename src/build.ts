@@ -172,7 +172,7 @@ const watch = async (config: Config) => {
 
   logger.info(`watching for changes in '${root}'`)
 
-  const files = Object.values(collections).map(({ pattern }) => pattern)
+  const files = Object.values(collections).flatMap(({ pattern }) => pattern)
   files.push(configPath) // watch config file changes
 
   const watcher = watch(files, {

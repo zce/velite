@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { basename, extname, resolve } from 'node:path'
-import sharp from 'sharp'
 import { visit } from 'unist-util-visit'
 
 import type { Element, Root as Hast } from 'hast'
@@ -65,6 +64,7 @@ export const isRelativePath = (url: string): boolean => {
  * @returns image object with blurDataURL
  */
 export const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | undefined> => {
+  const { default: sharp } = await import('sharp')
   const img = sharp(buffer)
   const { width, height } = await img.metadata()
   if (width == null || height == null) return

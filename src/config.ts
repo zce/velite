@@ -63,13 +63,15 @@ const loadConfig = async (path: string): Promise<UserConfig> => {
   return mod.default ?? mod
 }
 
+export type ResolveConfigOptions = Pick<Config, 'strict'> & { clean?: boolean }
+
 /**
  * resolve config from user's project
  * @param path specific config file path (relative or absolute)
  * @param clean whether to clean output directories, for cli option
  * @returns resolved config object with default values
  */
-export const resolveConfig = async (path?: string, clean?: boolean): Promise<Config> => {
+export const resolveConfig = async (path?: string, opts: ResolveConfigOptions = {}): Promise<Config> => {
   const begin = performance.now()
 
   // prettier-ignore
@@ -104,8 +106,9 @@ export const resolveConfig = async (path?: string, clean?: boolean): Promise<Con
       base: output?.base ?? '/static/',
       name: output?.name ?? '[name]-[hash:8].[ext]',
       // ignore: output?.ignore ?? [],
-      clean: clean ?? output?.clean ?? false
+      clean: opts.clean ?? output?.clean ?? false
     },
-    loaders: [...customLoaders, ...loaders]
+    loaders: [...customLoaders, ...loaders],
+    strict: opts.strict ?? false
   }
 }

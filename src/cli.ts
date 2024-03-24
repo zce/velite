@@ -21,6 +21,7 @@ const { values, positionals } = parse({
     watch: { type: 'boolean', default: false },
     verbose: { type: 'boolean', default: false },
     silent: { type: 'boolean', default: false },
+    strict: { type: 'boolean', short: 's', default: false },
     debug: { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
     version: { type: 'boolean', short: 'v', default: false }
@@ -49,6 +50,7 @@ Options:
   --watch              Watch for changes and rebuild
   --verbose            Print additional information
   --silent             Silent mode (no output)
+  --strict             Throw error and terminate process if any schema validation fails
   --debug              Output full error stack trace
   -h, --help           Display this message
   -v, --version        Display version number

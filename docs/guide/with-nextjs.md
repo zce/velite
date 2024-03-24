@@ -90,6 +90,32 @@ The Next.js plugin is still under development...
 
 :::
 
+
+### Start Velite in npm script with `npm-run-all`:
+
+::: info
+
+`VeliteWebpackPlugin` is recommended, but if your project is deployed on Vercel, there may be an error of `free(): invalid size` or `munmap_chunk(): invalid pointer
+`, which is usually related to the sharp module. Please refer to: https://github.com/zce/velite/issues/52#issuecomment-2016789204
+
+:::
+
+**package.json**:
+
+```json
+{
+  "scripts": {
+    "dev:content": "velite --watch",
+    "build:content": "velite --clean",
+    "dev:next": "next dev",
+    "build:next": "next build",
+    "dev": "run-p dev:*",
+    "build": "run-s build:*",
+    "start": "next start"
+  }
+}
+```
+
 ## Typed Routes
 
 When you use the `typedRoutes` experimental feature, you can get the typed routes in your Next.js app.

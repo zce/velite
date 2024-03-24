@@ -11,6 +11,7 @@ import { logger } from './logger'
 import { loaded, VeliteMeta } from './meta'
 import { outputAssets, outputData, outputEntry } from './output'
 
+import type { ResolveConfigOptions } from './config'
 import type { LogLevel } from './logger'
 import type { Schema } from './schemas'
 import type { Config } from './types'
@@ -24,10 +25,10 @@ const resolved = new Map<string, VFile[]>()
  * @param clean clean output directories
  * @returns resolved config
  */
-const init = async (configFile?: string, clean?: boolean): Promise<Config> => {
+const init = async (configFile?: string, opts: ResolveConfigOptions = {}): Promise<Config> => {
   const begin = performance.now()
 
-  const config = await resolveConfig(configFile, clean)
+  const config = await resolveConfig(configFile, opts)
   const { configPath, output, collections } = config
 
   if (output.clean) {
@@ -118,6 +119,7 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
   const allFiles = entries.flatMap(([, files]) => files)
   const report = reporter(allFiles, { quiet: true })
   report.length > 0 && logger.warn(`issues:\n${report}`)
+  if (config.strict && report.length > 0) throw new Error(`Schema validation failed.`)
 
   const result = Object.fromEntries(
     entries.map(([name, files]): [string, any | any[]] => {
@@ -230,6 +232,12 @@ export interface Options {
    * @default 'info'
    */
   logLevel?: LogLevel
+  /**
+   * If true, throws error and terminates process if any schema validation fails.
+   *
+   * @default false
+   */
+  strict?: boolean
 }
 
 /**
@@ -238,9 +246,9 @@ export interface Options {
  */
 export const build = async (options: Options = {}): Promise<Record<string, unknown>> => {
   const begin = performance.now()
-  const { config: configFile, clean, logLevel } = options
+  const { config: configFile, clean, logLevel, strict } = options
   logLevel != null && logger.set(logLevel)
-  const config = await init(configFile, clean)
+  const config = await init(configFile, { clean, strict })
   const timer = setTimeout(() => logger.info(`building...`), 1000)
   const result = await resolve(config)
   clearTimeout(timer)

@@ -62,6 +62,13 @@ Whether to build in production mode. -->
 
 Log level.
 
+#### `options.strict`
+
+- Type: `boolean`
+- Default: `false`
+
+If true, throws an error and terminates the process if any schema validation fails. Otherwise, a warning is logged but the process does not terminate.
+
 ### Returns
 
 - Type: `Promise<Result>`, See [Result](#result).

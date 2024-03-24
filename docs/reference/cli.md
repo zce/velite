@@ -41,14 +41,15 @@ $ velite build [options]
 
 ### Options
 
-| Option                | Description                         | Default            |
-| --------------------- | ----------------------------------- | ------------------ |
-| `-c, --config <path>` | Use specified config file           | `velite.config.js` |
-| `--clean`             | Clean output directory before build | `false`            |
-| `--watch`             | Watch for changes and rebuild       | `false`            |
-| `--verbose`           | Print additional information        | `false`            |
-| `--silent`            | Silent mode (no output)             | `false`            |
-| `--debug`             | Output full error stack trace       | `false`            |
+| Option                | Description                                  | Default            |
+| --------------------- | -------------------------------------------- | ------------------ |
+| `-c, --config <path>` | Use specified config file                    | `velite.config.js` |
+| `--clean`             | Clean output directory before build          | `false`            |
+| `--watch`             | Watch for changes and rebuild                | `false`            |
+| `--verbose`           | Print additional information                 | `false`            |
+| `--silent`            | Silent mode (no output)                      | `false`            |
+| `--strict`            | Terminate process on schema validation error | `false`            |
+| `--debug`             | Output full error stack trace                | `false`            |
 
 ## `velite dev`
 
@@ -62,13 +63,14 @@ $ velite dev [options]
 
 ### Options
 
-| Option                | Description                         | Default            |
-| --------------------- | ----------------------------------- | ------------------ |
-| `-c, --config <path>` | Use specified config file           | `velite.config.js` |
-| `--clean`             | Clean output directory before build | `false`            |
-| `--verbose`           | Print additional information        | `false`            |
-| `--silent`            | Silent mode (no output)             | `false`            |
-| `--debug`             | Output full error stack trace       | `false`            |
+| Option                | Description                                  | Default            |
+| --------------------- | -------------------------------------------- | ------------------ |
+| `-c, --config <path>` | Use specified config file                    | `velite.config.js` |
+| `--clean`             | Clean output directory before build          | `false`            |
+| `--verbose`           | Print additional information                 | `false`            |
+| `--silent`            | Silent mode (no output)                      | `false`            |
+| `--strict`            | Terminate process on schema validation error | `false`            |
+| `--debug`             | Output full error stack trace                | `false`            |
 
 ## `velite init`
 

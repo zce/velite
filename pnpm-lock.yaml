@@ -18,8 +18,8 @@ importers:
         specifier: 0.33.3
         version: 0.33.3
       terser:
-        specifier: 5.29.2
-        version: 5.29.2
+        specifier: 5.30.0
+        version: 5.30.0
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^25.0.7
@@ -125,7 +125,7 @@ importers:
     devDependencies:
       vitepress:
         specifier: latest
-        version: 1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.2)(search-insights@2.13.0)(terser@5.29.2)(typescript@5.4.3)
+        version: 1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.2)(search-insights@2.13.0)(terser@5.30.0)(typescript@5.4.3)
 
   examples/basic:
     devDependencies:
@@ -506,14 +506,6 @@ packages:
       chalk: 2.4.2
       js-tokens: 4.0.0
       picocolors: 1.0.0
-
-  /@babel/parser@7.24.0:
-    resolution: {integrity: sha512-QuP/FxEAzMSjXygs8v4N9dvdXzEHN4W1oF3PxuWAtPo08UdM17u89RDMgjLn/mlc56iM0HlLmVkO/wgR+rDgHg==}
-    engines: {node: '>=6.0.0'}
-    hasBin: true
-    dependencies:
-      '@babel/types': 7.24.0
-    dev: true
 
   /@babel/parser@7.24.1:
     resolution: {integrity: sha512-Zo9c7N3xdOIQrNip7Lc9wvRPzlRtovHVE4lkz8WEDr7uYh/GMQhSiIgFxGIArRHYdJE5kxtZjAf8rT0xhdLCzg==}
@@ -1893,14 +1885,14 @@ packages:
       vite: ^5.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 5.1.4(@types/node@20.12.2)(terser@5.29.2)
+      vite: 5.1.4(@types/node@20.12.2)(terser@5.30.0)
       vue: 3.4.20(typescript@5.4.3)
     dev: true
 
   /@vue/compiler-core@3.4.20:
     resolution: {integrity: sha512-l7M+xUuL8hrGtRLkrf+62d9zucAdgqNBTbJ/NufCOIuJQhauhfyAKH9ra/qUctCXcULwmclGAVpvmxjbBO30qg==}
     dependencies:
-      '@babel/parser': 7.24.0
+      '@babel/parser': 7.24.1
       '@vue/shared': 3.4.20
       entities: 4.5.0
       estree-walker: 2.0.2
@@ -1917,7 +1909,7 @@ packages:
   /@vue/compiler-sfc@3.4.20:
     resolution: {integrity: sha512-nPuTZz0yxTPzjyYe+9nQQsFYImcz/57UX8N3jyhl5oIUUs2jqqAMaULsAlJwve3qNYfjQzq0bwy3pqJrN9ecZw==}
     dependencies:
-      '@babel/parser': 7.24.0
+      '@babel/parser': 7.24.1
       '@vue/compiler-core': 3.4.20
       '@vue/compiler-dom': 3.4.20
       '@vue/compiler-ssr': 3.4.20
@@ -5923,8 +5915,8 @@ packages:
     engines: {node: '>=6'}
     dev: false
 
-  /terser@5.29.2:
-    resolution: {integrity: sha512-ZiGkhUBIM+7LwkNjXYJq8svgkd+QK3UUr0wJqY4MieaezBSAIPgbSPZyIx0idM6XWK5CMzSWa8MJIzmRcB8Caw==}
+  /terser@5.30.0:
+    resolution: {integrity: sha512-Y/SblUl5kEyEFzhMAQdsxVHh+utAxd4IuRNJzKywY/4uzSogh3G219jqbDDxYu4MXO9CzY3tSEqmZvW6AoEDJw==}
     engines: {node: '>=10'}
     hasBin: true
     dependencies:
@@ -6190,7 +6182,7 @@ packages:
       unist-util-stringify-position: 4.0.0
       vfile-message: 4.0.2
 
-  /vite@5.1.4(@types/node@20.12.2)(terser@5.29.2):
+  /vite@5.1.4(@types/node@20.12.2)(terser@5.30.0):
     resolution: {integrity: sha512-n+MPqzq+d9nMVTKyewqw6kSt+R3CkvF9QAKY8obiQn8g1fwTscKxyfaYnC632HtBXAQGc1Yjomphwn1dtwGAHg==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -6222,12 +6214,12 @@ packages:
       esbuild: 0.19.12
       postcss: 8.4.35
       rollup: 4.13.2
-      terser: 5.29.2
+      terser: 5.30.0
     optionalDependencies:
       fsevents: 2.3.3
     dev: true
 
-  /vitepress@1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.2)(search-insights@2.13.0)(terser@5.29.2)(typescript@5.4.3):
+  /vitepress@1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.2)(search-insights@2.13.0)(terser@5.30.0)(typescript@5.4.3):
     resolution: {integrity: sha512-tO5taxGI7fSpBK1D8zrZTyJJERlyU9nnt0jHSt3fywfq3VKn977Hg0wUuTkEmwXlFYwuW26+6+3xorf4nD3XvA==}
     hasBin: true
     peerDependencies:
@@ -6252,7 +6244,7 @@ packages:
       mark.js: 8.11.1
       minisearch: 6.3.0
       shiki: 1.1.7
-      vite: 5.1.4(@types/node@20.12.2)(terser@5.29.2)
+      vite: 5.1.4(@types/node@20.12.2)(terser@5.30.0)
       vue: 3.4.20(typescript@5.4.3)
     transitivePeerDependencies:
       - '@algolia/client-search'

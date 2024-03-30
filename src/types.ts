@@ -238,6 +238,12 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
    */
   mdx?: MdxOptions
   /**
+   * If true, throws error and terminates process if any schema validation fails.
+   *
+   * @default false
+   */
+  strict?: boolean
+  /**
    * Data prepare hook, before write to file
    * @description
    * You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files.

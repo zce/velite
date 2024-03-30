@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 18
           cache: pnpm
-      - uses: actions/configure-pages@v4
+      - uses: actions/configure-pages@v5
       - run: pnpm install
       - run: pnpm docs:build && touch docs/.vitepress/dist/.nojekyll
       - uses: actions/upload-pages-artifact@v3

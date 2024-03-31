@@ -27,4 +27,5 @@ export default defineConfig({
 })
 ```
 
-This documentation is still being written. Please check back later.
+> [!TIP]
+> This documentation is still being written. Please check back later.

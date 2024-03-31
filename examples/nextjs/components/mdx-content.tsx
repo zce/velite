@@ -1,9 +1,11 @@
 import * as runtime from 'react/jsx-runtime'
 import Image from 'next/image'
 
-interface MdxProps {
-  code: string
-  components?: Record<string, React.ComponentType>
+import { Callout } from './callout'
+
+const sharedComponents = {
+  Callout,
+  Image
 }
 
 const useMDXComponent = (code: string) => {
@@ -11,7 +13,12 @@ const useMDXComponent = (code: string) => {
   return fn({ ...runtime }).default
 }
 
-export function MDXContent({ code, components }: MdxProps) {
+interface MDXProps {
+  code: string
+  components?: Record<string, React.ComponentType>
+}
+
+export const MDXContent = ({ code, components }: MDXProps) => {
   const Component = useMDXComponent(code)
-  return <Component components={{ Image, ...components }} />
+  return <Component components={{ ...sharedComponents, ...components }} />
 }

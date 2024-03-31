@@ -6,6 +6,10 @@ aside: false
 
 Velite loves [Next.js](https://nextjs.org/), it's a great framework for building full-stack web applications.
 
+> [!TIP] Some examples that may help you:
+>
+> - [zce/taxonomy](https://github.com/zce/taxonomy) - A fork of [shadcn-ui/taxonomy](https://github.com/shadcn-ui/taxonomy) using Velite.
+
 This example shows how to use Velite with Next.js.
 
 ## Try it online

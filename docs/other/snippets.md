@@ -1,28 +1,29 @@
 # Snippets
 
-## Built-in MDX Compiler Result Render
+## Built-in `s.mdx()` schema result render
 
 ```tsx
 import * as runtime from 'react/jsx-runtime'
-import Image from 'next/image'
 
-const mdxComponents = {
-  Image
+const sharedComponents = {
+  // Add your global components here
 }
 
+// parse the Velite generated MDX code into a React component function
 const useMDXComponent = (code: string) => {
   const fn = new Function(code)
   return fn({ ...runtime }).default
 }
 
-interface MdxProps {
+interface MDXProps {
   code: string
   components?: Record<string, React.ComponentType>
 }
 
-export const MDXContent = ({ code, components }: MdxProps) => {
+// MDXContent component
+export const MDXContent = ({ code, components }: MDXProps) => {
   const Component = useMDXComponent(code)
-  return <Component components={{ ...mdxComponents, ...components }} />
+  return <Component components={{ ...sharedComponents, ...components }} />
 }
 ```
 
@@ -85,7 +86,74 @@ const compileMdx = async (source: string): Promise<string> => {
 }
 ```
 
-## With Next.js
+## Next.js Integration
+
+::: code-group
+
+```js [CommonJS]
+/** @type {import('next').NextConfig} */
+module.exports = {
+  // othor next config here...
+  webpack: config => {
+    config.plugins.push(new VeliteWebpackPlugin())
+    return config
+  }
+}
+
+class VeliteWebpackPlugin {
+  static started = false
+  constructor(/** @type {import('velite').Options} */ options = {}) {
+    this.options = options
+  }
+  apply(/** @type {import('webpack').Compiler} */ compiler) {
+    // executed three times in nextjs !!!
+    // twice for the server (nodejs / edge runtime) and once for the client
+    compiler.hooks.beforeCompile.tapPromise('VeliteWebpackPlugin', async () => {
+      if (VeliteWebpackPlugin.started) return
+      VeliteWebpackPlugin.started = true
+      const dev = compiler.options.mode === 'development'
+      this.options.watch = this.options.watch ?? dev
+      this.options.clean = this.options.clean ?? !dev
+      const { build } = await import('velite')
+      await build(this.options) // start velite
+    })
+  }
+}
+```
+
+```js [ESM]
+import { build } from 'velite'
+
+/** @type {import('next').NextConfig} */
+export default {
+  // othor next config here...
+  webpack: config => {
+    config.plugins.push(new VeliteWebpackPlugin())
+    return config
+  }
+}
+
+class VeliteWebpackPlugin {
+  static started = false
+  constructor(/** @type {import('velite').Options} */ options = {}) {
+    this.options = options
+  }
+  apply(/** @type {import('webpack').Compiler} */ compiler) {
+    // executed three times in nextjs !!!
+    // twice for the server (nodejs / edge runtime) and once for the client
+    compiler.hooks.beforeCompile.tapPromise('VeliteWebpackPlugin', async () => {
+      if (VeliteWebpackPlugin.started) return
+      VeliteWebpackPlugin.started = true
+      const dev = compiler.options.mode === 'development'
+      this.options.watch = this.options.watch ?? dev
+      this.options.clean = this.options.clean ?? !dev
+      await build(this.options) // start velite
+    })
+  }
+}
+```
+
+:::
 
 ## HTML Excerpt
 

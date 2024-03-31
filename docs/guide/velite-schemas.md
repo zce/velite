@@ -272,7 +272,7 @@ interface ExcerptOptions {
 
 `string => string`
 
-parse input or document body as markdown content and return html content.
+parse input or document body as markdown content and return html content. refer to [Markdown Support](using-markdown.md) for more information.
 
 ```ts
 content: s.markdown()
@@ -290,7 +290,7 @@ content: s.markdown()
 
 `string => string`
 
-parse input or document body as mdx content and return component function-body.
+parse input or document body as mdx content and return component function-body. refer to [MDX Support](using-mdx.md) for more information.
 
 ```ts
 code: s.mdx()

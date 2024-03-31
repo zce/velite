@@ -439,3 +439,7 @@ featured: s.boolean().default(false)
 ```
 
 You can refer to https://zod.dev get complete support documentation.
+
+## Define a Custom Schema
+
+Refer to [Custom Schema](custom-schema.md) for more information about custom schema.

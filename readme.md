@@ -53,18 +53,23 @@ You can try Velite directly in your browser on StackBlitz:
 - https://stackblitz.com/edit/velite-basic
 - https://stackblitz.com/edit/velite-nextjs
 
+> [!NOTE]
+> You may need a real-world project to start Velite quickly.
+> I have forked the [shadcn-ui/taxonomy](https://tx.shadcn.com) project as an example, you can try it out.
+> https://github.com/zce/taxonomy
+
 ## Roadmap
 
 The following are the features I want to achieve or are under development:
 
-- [ ] Incremental build
 - [ ] Full documentation
+- [ ] More framework or build tool integration examples.
 - [ ] More built-in schemas
 - [ ] Unit & E2E tests?
-- [ ] Turborepo?
 - [ ] Scoffolding tool
-- [ ] Next.js plugin package
-- [ ] More examples
+- [ ] Incremental build
+- [ ] Turborepo?
+- [ ] Next.js plugin package? It's currently a [snippet](https://velite.js.org/guide/with-nextjs#start-velite-with-next-js-plugin).
 
 See the [open issues](https://github.com/zce/velite/issues) for a list of proposed features (and known issues).
 

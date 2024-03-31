@@ -302,6 +302,11 @@ export const defineCollection = <T extends Collection>(collection: T): T => coll
 export const defineLoader = <T extends Loader>(loader: T): T => loader
 
 /**
+ * Define a schema (identity function for type inference)
+ */
+export const defineSchema = <T extends () => Schema>(fn: T): T => fn
+
+/**
  * Define config (identity function for type inference)
  */
 export const defineConfig = <T extends Collections>(config: UserConfig<T>): UserConfig<T> => config

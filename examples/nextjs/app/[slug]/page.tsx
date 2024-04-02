@@ -34,7 +34,7 @@ export default function PagePage({ params }: Props) {
     <article className="prose dark:prose-invert py-6">
       <h1>{page.title}</h1>
       <hr />
-      <MDXContent code={page.body} />
+      <MDXContent code={page.body} name="props for mdx" />
     </article>
   )
 }

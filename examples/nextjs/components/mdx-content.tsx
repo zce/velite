@@ -16,9 +16,10 @@ const useMDXComponent = (code: string) => {
 interface MDXProps {
   code: string
   components?: Record<string, React.ComponentType>
+  [key: string]: any
 }
 
-export const MDXContent = ({ code, components }: MDXProps) => {
+export const MDXContent = ({ code, components, ...props }: MDXProps) => {
   const Component = useMDXComponent(code)
-  return <Component components={{ ...sharedComponents, ...components }} />
+  return <Component components={{ ...sharedComponents, ...components }} {...props} />
 }

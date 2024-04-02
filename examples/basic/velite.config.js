@@ -106,7 +106,8 @@ export default defineConfig({
         .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
     }
   },
-  prepare: ({ categories, tags, posts }) => {
+  prepare: collections => {
+    const { categories, tags, posts } = collections
     const docs = posts.filter(i => process.env.NODE_ENV !== 'production' || !i.draft)
 
     // missing categories, tags from posts or courses inlined
@@ -125,6 +126,12 @@ export default defineConfig({
       i.count.total = i.count.posts
       i.permalink = `/${i.slug}`
     })
+
+    // push extra data to collections, it's ok!!
+    // Object.assign(collections, {
+    //   anything: { name: 'Anything', data: { name: 'Anything' } },
+    //   list: ['one', 'two', 'three']
+    // })
 
     // return false // return false to prevent velite from writing data to disk
   }

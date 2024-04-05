@@ -40,7 +40,7 @@
     "@mdx-js/mdx": "3.0.1",
     "esbuild": "0.20.2",
     "sharp": "0.33.3",
-    "terser": "5.30.0"
+    "terser": "5.30.3"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
@@ -49,7 +49,7 @@
     "@types/hast": "^3.0.4",
     "@types/mdast": "^4.0.3",
     "@types/micromatch": "^4.0.6",
-    "@types/node": "^20.12.2",
+    "@types/node": "^20.12.4",
     "@zce/prettier-config": "^0.2.0",
     "chokidar": "^3.6.0",
     "fast-glob": "^3.3.2",
@@ -66,11 +66,11 @@
     "remark-gfm": "^4.0.0",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.0",
-    "rollup": "^4.13.2",
+    "rollup": "^4.14.0",
     "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-esbuild": "^6.1.1",
     "simple-git-hooks": "^2.11.1",
-    "typescript": "^5.4.3",
+    "typescript": "^5.4.4",
     "unified": "^11.0.4",
     "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.1",

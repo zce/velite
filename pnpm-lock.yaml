@@ -41,7 +41,7 @@ importers:
         version: 4.0.6
       '@types/node':
         specifier: ^20.12.4
-        version: 20.12.4
+        version: 20.12.5
       '@zce/prettier-config':
         specifier: ^0.2.0
         version: 0.2.0(prettier@3.2.5)
@@ -125,7 +125,7 @@ importers:
     devDependencies:
       vitepress:
         specifier: latest
-        version: 1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.4)(search-insights@2.13.0)(terser@5.30.3)(typescript@5.4.4)
+        version: 1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.5)(search-insights@2.13.0)(terser@5.30.3)(typescript@5.4.4)
 
   examples/basic:
     devDependencies:
@@ -140,7 +140,7 @@ importers:
         version: 0.5.10(tailwindcss@3.4.1)
       '@types/node':
         specifier: latest
-        version: 20.11.28
+        version: 20.12.5
       '@types/react':
         specifier: latest
         version: 18.2.58
@@ -506,14 +506,6 @@ packages:
       chalk: 2.4.2
       js-tokens: 4.0.0
       picocolors: 1.0.0
-
-  /@babel/parser@7.24.1:
-    resolution: {integrity: sha512-Zo9c7N3xdOIQrNip7Lc9wvRPzlRtovHVE4lkz8WEDr7uYh/GMQhSiIgFxGIArRHYdJE5kxtZjAf8rT0xhdLCzg==}
-    engines: {node: '>=6.0.0'}
-    hasBin: true
-    dependencies:
-      '@babel/types': 7.24.0
-    dev: true
 
   /@babel/parser@7.24.4:
     resolution: {integrity: sha512-zTvEBcghmeBma9QIGunWevvBAp4/Qu9Bdq+2k0Ot4fVMD6v3dsC9WOcRSKk7tRRyBM/53yKMJko9xOatGQAwSg==}
@@ -1762,17 +1754,10 @@ packages:
   /@types/ms@0.7.34:
     resolution: {integrity: sha512-nG96G3Wp6acyAgJqGasjODb+acrI7KltPiRxzHPXnP3NgI28bpQDRv53olbqGXbfcgF5aiiHmO3xpwEpS5Ld9g==}
 
-  /@types/node@20.11.28:
-    resolution: {integrity: sha512-M/GPWVS2wLkSkNHVeLkrF2fD5Lx5UC4PxA0uZcKc6QqbIQUJyW1jVjueJYi1z8n0I5PxYrtpnPnWglE+y9A0KA==}
+  /@types/node@20.12.5:
+    resolution: {integrity: sha512-BD+BjQ9LS/D8ST9p5uqBxghlN+S42iuNxjsUGjeZobe/ciXzk2qb1B6IXc6AnRLS+yFJRpN2IPEHMzwspfDJNw==}
     dependencies:
       undici-types: 5.26.5
-    dev: false
-
-  /@types/node@20.12.4:
-    resolution: {integrity: sha512-E+Fa9z3wSQpzgYQdYmme5X3OTuejnnTx88A6p6vkkJosR3KBz+HpE3kqNm98VE6cfLFcISx7zW7MsJkH6KwbTw==}
-    dependencies:
-      undici-types: 5.26.5
-    dev: true
 
   /@types/prop-types@15.7.11:
     resolution: {integrity: sha512-ga8y9v9uyeiLdpKddhxYQkxNDrfvuPrlFb0N1qnZZByvcElJaXthF1UhvCh9TLWJBEHeNtdnbysW7Y6Uq8CVng==}
@@ -1893,7 +1878,7 @@ packages:
       vite: ^5.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 5.1.4(@types/node@20.12.4)(terser@5.30.3)
+      vite: 5.1.4(@types/node@20.12.5)(terser@5.30.3)
       vue: 3.4.20(typescript@5.4.4)
     dev: true
 
@@ -1917,7 +1902,7 @@ packages:
   /@vue/compiler-sfc@3.4.20:
     resolution: {integrity: sha512-nPuTZz0yxTPzjyYe+9nQQsFYImcz/57UX8N3jyhl5oIUUs2jqqAMaULsAlJwve3qNYfjQzq0bwy3pqJrN9ecZw==}
     dependencies:
-      '@babel/parser': 7.24.1
+      '@babel/parser': 7.24.4
       '@vue/compiler-core': 3.4.20
       '@vue/compiler-dom': 3.4.20
       '@vue/compiler-ssr': 3.4.20
@@ -6190,7 +6175,7 @@ packages:
       unist-util-stringify-position: 4.0.0
       vfile-message: 4.0.2
 
-  /vite@5.1.4(@types/node@20.12.4)(terser@5.30.3):
+  /vite@5.1.4(@types/node@20.12.5)(terser@5.30.3):
     resolution: {integrity: sha512-n+MPqzq+d9nMVTKyewqw6kSt+R3CkvF9QAKY8obiQn8g1fwTscKxyfaYnC632HtBXAQGc1Yjomphwn1dtwGAHg==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -6218,7 +6203,7 @@ packages:
       terser:
         optional: true
     dependencies:
-      '@types/node': 20.12.4
+      '@types/node': 20.12.5
       esbuild: 0.19.12
       postcss: 8.4.35
       rollup: 4.14.0
@@ -6227,7 +6212,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vitepress@1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.4)(search-insights@2.13.0)(terser@5.30.3)(typescript@5.4.4):
+  /vitepress@1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.5)(search-insights@2.13.0)(terser@5.30.3)(typescript@5.4.4):
     resolution: {integrity: sha512-tO5taxGI7fSpBK1D8zrZTyJJERlyU9nnt0jHSt3fywfq3VKn977Hg0wUuTkEmwXlFYwuW26+6+3xorf4nD3XvA==}
     hasBin: true
     peerDependencies:
@@ -6252,7 +6237,7 @@ packages:
       mark.js: 8.11.1
       minisearch: 6.3.0
       shiki: 1.1.7
-      vite: 5.1.4(@types/node@20.12.4)(terser@5.30.3)
+      vite: 5.1.4(@types/node@20.12.5)(terser@5.30.3)
       vue: 3.4.20(typescript@5.4.4)
     transitivePeerDependencies:
       - '@algolia/client-search'

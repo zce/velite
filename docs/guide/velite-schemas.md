@@ -115,26 +115,18 @@ avatar: s.file()
 
 #### **options**: file options
 
-- type: `FileOptions`, See [FileOptions](#types)
-- default: `{ allowNonRelativePath: true }`
+##### **options.allowNonRelativePath**:
 
-### Types
+allow non-relative path, if true, the value will be returned directly, if false, the value will be processed as a relative path
 
-```ts
-interface FileOptions {
-  /**
-   * Allow non-relative path.
-   * @default true
-   */
-  allowNonRelativePath?: boolean
-}
-```
+- type: `boolean`
+- default: `true`
 
 ## `s.image()`
 
 `string => Image`
 
-image path relative to this file, like `s.file()`, copy file to `config.output.assets` directory and return the [Image](#types-1) (image object with meta data).
+image path relative to this file, like `s.file()`, copy file to `config.output.assets` directory and return the [Image](#types) (image object with meta data).
 
 ```ts
 avatar: s.image()
@@ -160,20 +152,14 @@ avatar: s.image()
 
 #### **options**: image options
 
-- type: `ImageOptions`, See [ImageOptions](#types-1)
-- default: `{ allowNonRelativePath: false }`
+##### **options.absoluteRoot**:
+
+root path for absolute path, if provided, the value will be processed as an absolute path.
+
+- type: `string`
+- default: `undefined`
 
 ### Types
-
-```ts
-interface ImageOptions {
-  /**
-   * Allow non-relative path.
-   * @default false
-   */
-  allowNonRelativePath?: boolean
-}
-```
 
 ```ts
 /**
@@ -211,7 +197,7 @@ interface Image {
 
 `string => Metadata`
 
-parse input or document body as markdown content and return [Metadata](#types-2).
+parse input or document body as markdown content and return [Metadata](#types-1).
 
 currently only support `readingTime` & `wordCount`.
 
@@ -253,20 +239,12 @@ excerpt: s.excerpt()
 
 #### **options**: excerpt options
 
-- type: `ExcerptOptions`, See [ExcerptOptions](#types-3)
-- default: `{ length: 260 }`
+##### **options.length**:
 
-### Types
+excerpt length.
 
-```ts
-interface ExcerptOptions {
-  /**
-   * Excerpt length.
-   * @default 260
-   */
-  length?: number
-}
-```
+- type: `number`
+- default: `260`
 
 ## `s.markdown(options)`
 
@@ -319,7 +297,7 @@ code: s.raw()
 
 `string => TocEntry[] | TocTree`
 
-parse input or document body as markdown content and return the table of contents.
+parse input or document body as markdown content and return the [table of contents](#types-2).
 
 ```ts
 toc: s.toc()
@@ -404,29 +382,10 @@ path: s.path()
 
 ##### **options.removeIndex**:
 
-Removes index from path for subfolders
+Removes `index` from the path.
 
 - type: `boolean`
 - default: `true`
-
-### Types
-
-```ts
-/**
- * Options for flattened path
- * extraction
- */
-export interface PathOptions {
-  /**
-   * removes `index` from the path
-   *
-   * `/docs/general/index.md` => `docs/general`
-   *
-   * @default false
-   */
-  removeIndex?: boolean
-}
-```
 
 ## Zod Primitive Types
 

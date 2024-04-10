@@ -24,7 +24,7 @@ export class File extends VFile {
   }
 
   /**
-   * Get resolved data from cache
+   * Get parsed records from file
    */
   get records(): unknown {
     return this.data.data

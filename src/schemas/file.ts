@@ -3,7 +3,7 @@ import { string } from './zod'
 
 export interface FileOptions {
   /**
-   * allow non-relative path
+   * allow non-relative path, if true, the value will be returned directly, if false, the value will be processed as a relative path
    * @default true
    */
   allowNonRelativePath?: boolean
@@ -13,10 +13,13 @@ export interface FileOptions {
  * A file path relative to this file.
  */
 export const file = ({ allowNonRelativePath = true }: FileOptions = {}) =>
-  string().transform<string>((value, { meta: { path, config }, addIssue }) => {
-    if (allowNonRelativePath && !isRelativePath(value)) return value
-    return processAsset(value, path, config.output.name, config.output.base).catch(err => {
-      addIssue({ code: 'custom', message: err.message })
+  string().transform<string>(async (value, { meta: { path, config }, addIssue }) => {
+    try {
+      if (allowNonRelativePath && !isRelativePath(value)) return value
+      return await processAsset(value, path, config.output.name, config.output.base)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      addIssue({ code: 'custom', message })
       return null as never
-    })
+    }
   })

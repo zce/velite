@@ -63,6 +63,53 @@ interface Loader {
 }
 ```
 
+## VeliteFile
+
+```ts
+interface ZodMeta extends File {}
+
+class File extends VFile {
+  /**
+   * Get parsed records from file
+   */
+  get records(): unknown
+
+  /**
+   * Get content of file
+   */
+  get content(): string | undefined
+
+  /**
+   * Get mdast object from cache
+   */
+  get mdast(): Root | undefined
+
+  /**
+   * Get hast object from cache
+   */
+  get hast(): Nodes | undefined
+
+  /**
+   * Get plain text of content from cache
+   */
+  get plain(): string | undefined
+
+  /**
+   * Get meta object from cache
+   * @param path file path
+   * @returns resolved meta object if exists
+   */
+  static get(path: string): File | undefined
+
+  /**
+   * Create meta object from file path
+   * @param options meta options
+   * @returns resolved meta object
+   */
+  static async create({ path, config }: { path: string; config: Config }): Promise<File>
+}
+```
+
 ## MarkdownOptions
 
 ```ts

@@ -72,6 +72,13 @@ And other identity functions to help you define the config file type:
 
 The root directory of the contents, relative to resolved config file.
 
+#### `strict`
+
+- Type: `boolean`
+- Default: `false`
+
+If true, throws an error and terminates the process if any schema validation fails. Otherwise, a warning is logged but the process does not terminate.
+
 ## `output`
 
 - Type: `object`

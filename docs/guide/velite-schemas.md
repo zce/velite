@@ -113,8 +113,6 @@ avatar: s.file()
 
 ### Parameters
 
-#### **options**: file options
-
 ##### **options.allowNonRelativePath**:
 
 allow non-relative path, if true, the value will be returned directly, if false, the value will be processed as a relative path
@@ -122,7 +120,7 @@ allow non-relative path, if true, the value will be returned directly, if false,
 - type: `boolean`
 - default: `true`
 
-## `s.image()`
+## `s.image(options)`
 
 `string => Image`
 
@@ -149,8 +147,6 @@ avatar: s.image()
 ```
 
 ### Parameters
-
-#### **options**: image options
 
 ##### **options.absoluteRoot**:
 

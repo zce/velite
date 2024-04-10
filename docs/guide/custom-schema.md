@@ -46,6 +46,35 @@ export const title = defineSchema(() => s.string().transform(value => value.toUp
 // ...
 ```
 
+### Example
+
+#### Remote Image with BlurDataURL Schema
+
+```ts
+import { getImageMetadata, s } from 'velite'
+
+import type { Image } from 'velite'
+
+/**
+ * Remote Image with metadata schema
+ */
+export const remoteImage = () =>
+  s.string().transform<Image>(async (value, { addIssue }) => {
+    try {
+      const response = await fetch(value)
+      const blob = await response.blob()
+      const buffer = await blob.arrayBuffer()
+      const metadata = await getImageMetadata(Buffer.from(buffer))
+      if (metadata == null) throw new Error(`Failed to get image metadata: ${value}`)
+      return { src: value, ...metadata }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      addIssue({ code: 'custom', message })
+      return null as never
+    }
+  })
+```
+
 ## Schema Context
 
 > [!TIP]

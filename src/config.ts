@@ -63,15 +63,14 @@ const loadConfig = async (path: string): Promise<UserConfig> => {
   return mod.default ?? mod
 }
 
-export type ResolveConfigOptions = Pick<Config, 'strict'> & { clean?: boolean }
-
 /**
  * resolve config from user's project
  * @param path specific config file path (relative or absolute)
- * @param clean whether to clean output directories, for cli option
+ * @param options.strict if true, throws error and terminates process if any schema validation fails
+ * @param options.clean if true, clean output directories before build
  * @returns resolved config object with default values
  */
-export const resolveConfig = async (path?: string, opts: ResolveConfigOptions = {}): Promise<Config> => {
+export const resolveConfig = async (path?: string, options: { strict?: boolean; clean?: boolean } = {}): Promise<Config> => {
   const begin = performance.now()
 
   // prettier-ignore
@@ -87,28 +86,27 @@ export const resolveConfig = async (path?: string, opts: ResolveConfigOptions = 
   const configPath = await searchFiles(files)
   if (configPath == null) throw new Error(`config file not found, create '${name}.config.ts' in your project root`)
 
-  const { root, output, collections, loaders: customLoaders = [], ...rest } = await loadConfig(configPath)
-  if (collections == null) throw new Error("'collections' is required in config file")
+  const loadedConfig = await loadConfig(configPath)
+
+  if (loadedConfig.collections == null) throw new Error(`'collections' is required in '${configPath}'`)
 
   logger.log(`using config '${configPath}'`, begin)
 
   const cwd = dirname(configPath)
 
   return {
-    ...rest,
+    ...loadedConfig,
     configPath,
-    collections,
     cache: new Map(),
-    root: resolve(cwd, root ?? 'content'),
+    root: resolve(cwd, loadedConfig.root ?? 'content'),
     output: {
-      data: resolve(cwd, output?.data ?? '.velite'),
-      assets: resolve(cwd, output?.assets ?? 'public/static'),
-      base: output?.base ?? '/static/',
-      name: output?.name ?? '[name]-[hash:8].[ext]',
-      // ignore: output?.ignore ?? [],
-      clean: opts.clean ?? output?.clean ?? false
+      data: resolve(cwd, loadedConfig.output?.data ?? '.velite'),
+      assets: resolve(cwd, loadedConfig.output?.assets ?? 'public/static'),
+      base: loadedConfig.output?.base ?? '/static/',
+      name: loadedConfig.output?.name ?? '[name]-[hash:8].[ext]',
+      clean: options.clean ?? loadedConfig.output?.clean ?? false
     },
-    loaders: [...customLoaders, ...loaders],
-    strict: opts.strict ?? false
+    loaders: [...(loadedConfig.loaders ?? []), ...loaders],
+    strict: options.strict ?? loadedConfig.strict ?? false
   }
 }

@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { join, normalize } from 'node:path'
 import glob from 'fast-glob'
 import micromatch from 'micromatch'
@@ -11,44 +11,12 @@ import { logger } from './logger'
 import { loaded, VeliteMeta } from './meta'
 import { outputAssets, outputData, outputEntry } from './output'
 
-import type { ResolveConfigOptions } from './config'
 import type { LogLevel } from './logger'
 import type { Schema } from './schemas'
 import type { Config } from './types'
 
 // cache resolved result for rebuild
 const resolved = new Map<string, VFile[]>()
-
-/**
- * initialize config
- * @param configFile specify config file path
- * @param clean clean output directories
- * @returns resolved config
- */
-const init = async (configFile?: string, opts: ResolveConfigOptions = {}): Promise<Config> => {
-  const begin = performance.now()
-
-  const config = await resolveConfig(configFile, opts)
-  const { configPath, output, collections } = config
-
-  if (output.clean) {
-    await rm(output.data, { recursive: true, force: true })
-    logger.log(`cleaned data output dir '${output.data}'`)
-
-    await rm(output.assets, { recursive: true, force: true })
-    logger.log(`cleaned assets output dir '${output.assets}'`)
-  }
-
-  // create output directories if not exists
-  await mkdir(output.data, { recursive: true })
-  await mkdir(output.assets, { recursive: true })
-
-  await outputEntry(output.data, configPath, collections)
-
-  logger.log(`initialized`, begin)
-
-  return config
-}
 
 /**
  * Load file and parse data with given schema
@@ -245,14 +213,40 @@ export interface Options {
  * @param options build options
  */
 export const build = async (options: Options = {}): Promise<Record<string, unknown>> => {
-  const begin = performance.now()
   const { config: configFile, clean, logLevel, strict } = options
+
   logLevel != null && logger.set(logLevel)
-  const config = await init(configFile, { clean, strict })
-  const timer = setTimeout(() => logger.info(`building...`), 1000)
+
+  const begin = performance.now()
+
+  const timer = setTimeout(() => logger.info('building...'), 1000)
+
+  const config = await resolveConfig(configFile, { clean, strict })
+
+  const { configPath, output, collections } = config
+
+  if (output.clean) {
+    await rm(output.data, { recursive: true, force: true })
+    logger.log(`cleaned data output dir '${output.data}'`)
+
+    await rm(output.assets, { recursive: true, force: true })
+    logger.log(`cleaned assets output dir '${output.assets}'`)
+  }
+
+  // create output directories if not exists
+  await mkdir(output.data, { recursive: true })
+  await mkdir(output.assets, { recursive: true })
+
+  await outputEntry(output.data, configPath, collections)
+
+  logger.log('initialized', begin)
+
   const result = await resolve(config)
+
   clearTimeout(timer)
+
   logger.info(`build finished`, begin)
+
   options.watch && watch(config)
   return result
 }

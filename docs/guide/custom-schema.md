@@ -96,14 +96,4 @@ export const path = defineSchema(() =>
 
 ### Reference
 
-```ts
-interface ZodMeta extends VeliteMeta {}
-
-class VeliteMeta extends VFile {
-  config: Config
-  // raw file content body
-  get content(): string | undefined
-  // plain text content body
-  get plain(): string | undefined
-}
-```
+the type of `meta` is `ZodMeta`, which extends [`VeliteFile`](../reference/types.md#VeliteFile).

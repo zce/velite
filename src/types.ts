@@ -217,6 +217,12 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
    */
   root?: string
   /**
+   * If true, throws error and terminates process if any schema validation fails.
+   *
+   * @default false
+   */
+  strict?: boolean
+  /**
    * Output configuration
    */
   output?: Partial<Output>
@@ -237,12 +243,6 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
    * Global MDX options
    */
   mdx?: MdxOptions
-  /**
-   * If true, throws error and terminates process if any schema validation fails.
-   *
-   * @default false
-   */
-  strict?: boolean
   /**
    * Data prepare hook, before write to file
    * @description
@@ -265,16 +265,20 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
  */
 export interface Config extends Readonly<UserConfig> {
   /**
+   * Resolved config file path
+   */
+  readonly configPath: string
+  /**
+   * Dependencies of the config file
+   */
+  readonly configImports: string[]
+  /**
    * Global cache (need refresh in rebuild)
    * memory level cache is enough for Velite. and it's easy & efficient.
    * maybe we can use other cache way in the future if needed.
    * but for now, we just need a simple cache.
    */
   readonly cache: Map<string, any>
-  /**
-   * Resolved config file path
-   */
-  readonly configPath: string
   /**
    * The root directory of the contents (relative to config file).
    */

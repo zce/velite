@@ -34,9 +34,9 @@ const searchFiles = async (files: string[], cwd: string = process.cwd(), depth: 
 /**
  * bundle and load user config file
  * @param path config file path
- * @returns user config module
+ * @returns user config object and dependencies
  */
-const loadConfig = async (path: string): Promise<UserConfig> => {
+const loadConfig = async (path: string): Promise<[UserConfig, string[]]> => {
   // TODO: import js (mjs, cjs) config file directly without esbuild?
   if (!/\.(js|mjs|cjs|ts|mts|cts)$/.test(path)) {
     const ext = path.split('.').pop()
@@ -45,7 +45,7 @@ const loadConfig = async (path: string): Promise<UserConfig> => {
 
   const outfile = join(path, '../node_modules/.velite.config.compiled.mjs')
 
-  await build({
+  const result = await build({
     entryPoints: [path],
     outfile,
     bundle: true,
@@ -53,14 +53,17 @@ const loadConfig = async (path: string): Promise<UserConfig> => {
     format: 'esm',
     target: 'node18',
     platform: 'node',
+    metafile: true,
     packages: 'external'
   })
+
+  const deps = Object.keys(result.metafile.inputs).map(file => join(path, '..', file))
 
   const configUrl = pathToFileURL(outfile)
   configUrl.searchParams.set('t', Date.now().toString()) // prevent import cache
 
   const mod = await import(configUrl.href)
-  return mod.default ?? mod
+  return [mod.default ?? mod, deps]
 }
 
 /**
@@ -86,7 +89,7 @@ export const resolveConfig = async (path?: string, options: { strict?: boolean; 
   const configPath = await searchFiles(files)
   if (configPath == null) throw new Error(`config file not found, create '${name}.config.ts' in your project root`)
 
-  const loadedConfig = await loadConfig(configPath)
+  const [loadedConfig, configImports] = await loadConfig(configPath)
 
   if (loadedConfig.collections == null) throw new Error(`'collections' is required in '${configPath}'`)
 
@@ -97,6 +100,7 @@ export const resolveConfig = async (path?: string, options: { strict?: boolean; 
   return {
     ...loadedConfig,
     configPath,
+    configImports,
     cache: new Map(),
     root: resolve(cwd, loadedConfig.root ?? 'content'),
     output: {

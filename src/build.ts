@@ -86,8 +86,11 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
 
   const allFiles = entries.flatMap(([, files]) => files)
   const report = reporter(allFiles, { quiet: true })
-  report.length > 0 && logger.warn(`issues:\n${report}`)
-  if (config.strict && report.length > 0) throw new Error(`Schema validation failed.`)
+
+  if (report.length > 0) {
+    logger.warn(`issues:\n${report}`)
+    if (config.strict) throw new Error('Schema validation failed.')
+  }
 
   const result = Object.fromEntries(
     entries.map(([name, files]): [string, any | any[]] => {
@@ -135,15 +138,16 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
 
 /**
  * watch files and rebuild on changes
+ * @param config resolved config
  */
 const watch = async (config: Config) => {
   const { watch } = await import('chokidar')
-  const { root, collections, configPath } = config
+  const { root, collections, configImports } = config
 
   logger.info(`watching for changes in '${root}'`)
 
   const files = Object.values(collections).flatMap(({ pattern }) => pattern)
-  files.push(configPath) // watch config file changes
+  files.push(...configImports) // watch config file and its dependencies
 
   const watcher = watch(files, {
     cwd: root,
@@ -153,17 +157,19 @@ const watch = async (config: Config) => {
   }).on('all', async (event, filename) => {
     if (event === 'addDir' || event === 'unlinkDir') return // ignore dir changes
     if (filename == null) return
+
     filename = join(root, filename)
+
     try {
       // remove changed file cache
       for (const [key, value] of config.cache.entries()) {
         if (value === filename) config.cache.delete(key)
       }
 
-      if (filename === configPath) {
+      if (configImports.includes(filename)) {
         logger.info('velite config changed, restarting...')
         watcher.close()
-        return build({ config: filename, clean: false, watch: true })
+        return build({ config: config.configPath, clean: false, watch: true })
       }
 
       const begin = performance.now()
@@ -202,7 +208,6 @@ export interface Options {
   logLevel?: LogLevel
   /**
    * If true, throws error and terminates process if any schema validation fails.
-   *
    * @default false
    */
   strict?: boolean

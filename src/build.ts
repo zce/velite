@@ -2,13 +2,12 @@ import { mkdir, rm } from 'node:fs/promises'
 import { join, normalize } from 'node:path'
 import glob from 'fast-glob'
 import micromatch from 'micromatch'
-import { VFile } from 'vfile'
 import { reporter } from 'vfile-reporter'
 
 import { assets } from './assets'
 import { resolveConfig } from './config'
+import { File } from './file'
 import { logger } from './logger'
-import { loaded, VeliteMeta } from './meta'
 import { outputAssets, outputData, outputEntry } from './output'
 
 import type { LogLevel } from './logger'
@@ -16,7 +15,7 @@ import type { Schema } from './schemas'
 import type { Config } from './types'
 
 // cache resolved result for rebuild
-const resolved = new Map<string, VFile[]>()
+const resolved = new Map<string, File[]>()
 
 /**
  * Load file and parse data with given schema
@@ -25,20 +24,21 @@ const resolved = new Map<string, VFile[]>()
  * @param schema data schema
  * @param changed changed file path (relative to content root)
  */
-const load = async (config: Config, path: string, schema: Schema, changed?: string): Promise<VFile> => {
+const load = async (config: Config, path: string, schema: Schema, changed?: string): Promise<File> => {
   path = normalize(path)
-  if (changed != null && path !== changed && loaded.has(path)) {
+
+  if (changed != null && path !== changed) {
+    const exists = File.get(path)
     // skip file if changed file not match
-    // logger.log(`skipped load '${path}', using previous loaded`)
-    return loaded.get(path)!
+    if (exists) return exists
   }
 
-  const meta = await VeliteMeta.create({ path, config })
+  const meta = await File.create({ path, config })
 
-  const { data } = meta.data
   // may be one or more records in one file, such as yaml array or json array
-  const isArr = Array.isArray(data)
-  const list = isArr ? data : [data]
+  const isArr = Array.isArray(meta.records)
+  const list = isArr ? meta.records : [meta.records]
+
   const parsed = await Promise.all(
     list.map(async (item, index) => {
       // push index in path if file is array
@@ -53,11 +53,12 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
 
   // logger.log(`loaded '${path}' with ${parsed.length} records`)
   meta.result = isArr ? parsed : parsed[0]
+
   return meta
 }
 
 /**
- * resolve collections from content root
+ * Resolve collections from content root
  * @param config resolved config
  * @param changed changed file path (relative to content root)
  * @returns resolved result
@@ -69,7 +70,7 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
   logger.log(`resolving collections from '${root}'`)
 
   const entries = await Promise.all(
-    Object.entries(collections).map(async ([name, { pattern, schema }]): Promise<[string, VFile[]]> => {
+    Object.entries(collections).map(async ([name, { pattern, schema }]): Promise<[string, File[]]> => {
       if (changed != null && !micromatch.contains(changed, pattern) && resolved.has(name)) {
         // skip collection if changed file not match
         logger.log(`skipped resolve '${name}', using previous resolved`)
@@ -137,7 +138,7 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
 }
 
 /**
- * watch files and rebuild on changes
+ * Watch files and rebuild on changes
  * @param config resolved config
  */
 const watch = async (config: Config) => {
@@ -214,7 +215,7 @@ export interface Options {
 }
 
 /**
- * build contents
+ * Build contents
  * @param options build options
  */
 export const build = async (options: Options = {}): Promise<Record<string, unknown>> => {

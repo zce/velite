@@ -6,7 +6,7 @@ import { reporter } from 'vfile-reporter'
 
 import { assets } from './assets'
 import { resolveConfig } from './config'
-import { File } from './file'
+import { VeliteFile } from './file'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
 
@@ -15,7 +15,7 @@ import type { Schema } from './schemas'
 import type { Config } from './types'
 
 // cache resolved result for rebuild
-const resolved = new Map<string, File[]>()
+const resolved = new Map<string, VeliteFile[]>()
 
 /**
  * Load file and parse data with given schema
@@ -24,16 +24,16 @@ const resolved = new Map<string, File[]>()
  * @param schema data schema
  * @param changed changed file path (relative to content root)
  */
-const load = async (config: Config, path: string, schema: Schema, changed?: string): Promise<File> => {
+const load = async (config: Config, path: string, schema: Schema, changed?: string): Promise<VeliteFile> => {
   path = normalize(path)
 
   if (changed != null && path !== changed) {
-    const exists = File.get(path)
+    const exists = VeliteFile.get(path)
     // skip file if changed file not match
     if (exists) return exists
   }
 
-  const meta = await File.create({ path, config })
+  const meta = await VeliteFile.create({ path, config })
 
   // may be one or more records in one file, such as yaml array or json array
   const isArr = Array.isArray(meta.records)
@@ -70,7 +70,7 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
   logger.log(`resolving collections from '${root}'`)
 
   const entries = await Promise.all(
-    Object.entries(collections).map(async ([name, { pattern, schema }]): Promise<[string, File[]]> => {
+    Object.entries(collections).map(async ([name, { pattern, schema }]): Promise<[string, VeliteFile[]]> => {
       if (changed != null && !micromatch.contains(changed, pattern) && resolved.has(name)) {
         // skip collection if changed file not match
         logger.log(`skipped resolve '${name}', using previous resolved`)

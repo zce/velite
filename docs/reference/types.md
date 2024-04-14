@@ -66,9 +66,9 @@ interface Loader {
 ## VeliteFile
 
 ```ts
-interface ZodMeta extends File {}
+interface ZodMeta extends VeliteFile {}
 
-class File extends VFile {
+class VeliteFile extends VFile {
   /**
    * Get parsed records from file
    */
@@ -99,14 +99,14 @@ class File extends VFile {
    * @param path file path
    * @returns resolved meta object if exists
    */
-  static get(path: string): File | undefined
+  static get(path: string): VeliteFile | undefined
 
   /**
    * Create meta object from file path
    * @param options meta options
    * @returns resolved meta object
    */
-  static async create({ path, config }: { path: string; config: Config }): Promise<File>
+  static async create({ path, config }: { path: string; config: Config }): Promise<VeliteFile>
 }
 ```
 

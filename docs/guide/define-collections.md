@@ -172,7 +172,7 @@ const posts = defineCollection({
 })
 ```
 
-the type of `meta` is `ZodMeta`, which extends [`VeliteFile`](../reference/types.md#VeliteFile). for more information, see [Custom Schema](custom-schema.md).
+the type of `meta` is `ZodMeta`, which extends [`VeliteFile`](../reference/types.md#velitefile). for more information, see [Custom Schema](custom-schema.md).
 
 ## Content Body
 

@@ -10,9 +10,9 @@ import type { Root } from 'mdast'
 import type { Config } from './types'
 
 // cache loaded files for rebuild
-const loaded = new Map<string, File>()
+const loaded = new Map<string, VeliteFile>()
 
-export class File extends VFile {
+export class VeliteFile extends VFile {
   config: Config
   private _mdast: Root | undefined
   private _hast: Nodes | undefined
@@ -72,7 +72,7 @@ export class File extends VFile {
    * @param path file path
    * @returns resolved meta object if exists
    */
-  static get(path: string): File | undefined {
+  static get(path: string): VeliteFile | undefined {
     return loaded.get(path)
   }
 
@@ -81,8 +81,8 @@ export class File extends VFile {
    * @param options meta options
    * @returns resolved meta object
    */
-  static async create({ path, config }: { path: string; config: Config }): Promise<File> {
-    const meta = new File({ path, config })
+  static async create({ path, config }: { path: string; config: Config }): Promise<VeliteFile> {
+    const meta = new VeliteFile({ path, config })
     const loader = config.loaders.find(loader => loader.test.test(path))
     if (loader == null) return meta.fail(`no loader found for '${path}'`)
     meta.value = await readFile(path)
@@ -94,5 +94,5 @@ export class File extends VFile {
 }
 
 declare module './schemas' {
-  interface ZodMeta extends File {}
+  interface ZodMeta extends VeliteFile {}
 }

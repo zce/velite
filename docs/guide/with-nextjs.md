@@ -15,7 +15,7 @@ in your `next.config.js`:
 ```js [CommonJS]
 /** @type {import('next').NextConfig} */
 module.exports = {
-  // othor next config here...
+  // other next config here...
   webpack: config => {
     config.plugins.push(new VeliteWebpackPlugin())
     return config

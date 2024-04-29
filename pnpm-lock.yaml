@@ -18,8 +18,8 @@ importers:
         specifier: 0.33.3
         version: 0.33.3
       terser:
-        specifier: 5.30.3
-        version: 5.30.3
+        specifier: 5.31.0
+        version: 5.31.0
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^25.0.7
@@ -125,7 +125,7 @@ importers:
     devDependencies:
       vitepress:
         specifier: latest
-        version: 1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.7)(search-insights@2.13.0)(terser@5.30.3)(typescript@5.4.5)
+        version: 1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.7)(search-insights@2.13.0)(terser@5.31.0)(typescript@5.4.5)
 
   examples/basic:
     devDependencies:
@@ -1885,7 +1885,7 @@ packages:
       vite: ^5.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 5.1.4(@types/node@20.12.7)(terser@5.30.3)
+      vite: 5.1.4(@types/node@20.12.7)(terser@5.31.0)
       vue: 3.4.20(typescript@5.4.5)
     dev: true
 
@@ -2068,7 +2068,7 @@ packages:
     resolution: {integrity: sha512-Xh1K+3bCL1+i2hnD6L8u3o5LgNGB3QtMQt3AOZk20ELmwVLoBFQin5TPYmKdKSmg0eiuDUJD5UlMNU+CVti3gA==}
     dependencies:
       '@ianvs/prettier-plugin-sort-imports': 4.2.1(prettier@3.2.5)
-      prettier-plugin-tailwindcss: 0.5.13(@ianvs/prettier-plugin-sort-imports@4.2.1)(prettier@3.2.5)
+      prettier-plugin-tailwindcss: 0.5.14(@ianvs/prettier-plugin-sort-imports@4.2.1)(prettier@3.2.5)
     transitivePeerDependencies:
       - '@prettier/plugin-pug'
       - '@shopify/prettier-plugin-liquid'
@@ -5173,8 +5173,8 @@ packages:
     engines: {node: '>= 0.8.0'}
     dev: false
 
-  /prettier-plugin-tailwindcss@0.5.13(@ianvs/prettier-plugin-sort-imports@4.2.1)(prettier@3.2.5):
-    resolution: {integrity: sha512-2tPWHCFNC+WRjAC4SIWQNSOdcL1NNkydXim8w7TDqlZi+/ulZYz2OouAI6qMtkggnPt7lGamboj6LcTMwcCvoQ==}
+  /prettier-plugin-tailwindcss@0.5.14(@ianvs/prettier-plugin-sort-imports@4.2.1)(prettier@3.2.5):
+    resolution: {integrity: sha512-Puaz+wPUAhFp8Lo9HuciYKM2Y2XExESjeT+9NQoVFXZsPPnc9VYss2SpxdQ6vbatmt8/4+SN0oe0I1cPDABg9Q==}
     engines: {node: '>=14.21.3'}
     peerDependencies:
       '@ianvs/prettier-plugin-sort-imports': '*'
@@ -5922,8 +5922,8 @@ packages:
     engines: {node: '>=6'}
     dev: false
 
-  /terser@5.30.3:
-    resolution: {integrity: sha512-STdUgOUx8rLbMGO9IOwHLpCqolkDITFFQSMYYwKE1N2lY6MVSaeoi10z/EhWxRc6ybqoVmKSkhKYH/XUpl7vSA==}
+  /terser@5.31.0:
+    resolution: {integrity: sha512-Q1JFAoUKE5IMfI4Z/lkE/E6+SwgzO+x4tq4v1AyBLRj8VSYvRO6A/rQrPg1yud4g0En9EKI1TvFRF2tQFcoUkg==}
     engines: {node: '>=10'}
     hasBin: true
     dependencies:
@@ -6182,7 +6182,7 @@ packages:
       unist-util-stringify-position: 4.0.0
       vfile-message: 4.0.2
 
-  /vite@5.1.4(@types/node@20.12.7)(terser@5.30.3):
+  /vite@5.1.4(@types/node@20.12.7)(terser@5.31.0):
     resolution: {integrity: sha512-n+MPqzq+d9nMVTKyewqw6kSt+R3CkvF9QAKY8obiQn8g1fwTscKxyfaYnC632HtBXAQGc1Yjomphwn1dtwGAHg==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -6214,12 +6214,12 @@ packages:
       esbuild: 0.19.12
       postcss: 8.4.35
       rollup: 4.14.1
-      terser: 5.30.3
+      terser: 5.31.0
     optionalDependencies:
       fsevents: 2.3.3
     dev: true
 
-  /vitepress@1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.7)(search-insights@2.13.0)(terser@5.30.3)(typescript@5.4.5):
+  /vitepress@1.0.0-rc.44(@algolia/client-search@4.23.2)(@types/node@20.12.7)(search-insights@2.13.0)(terser@5.31.0)(typescript@5.4.5):
     resolution: {integrity: sha512-tO5taxGI7fSpBK1D8zrZTyJJERlyU9nnt0jHSt3fywfq3VKn977Hg0wUuTkEmwXlFYwuW26+6+3xorf4nD3XvA==}
     hasBin: true
     peerDependencies:
@@ -6244,7 +6244,7 @@ packages:
       mark.js: 8.11.1
       minisearch: 6.3.0
       shiki: 1.1.7
-      vite: 5.1.4(@types/node@20.12.7)(terser@5.30.3)
+      vite: 5.1.4(@types/node@20.12.7)(terser@5.31.0)
       vue: 3.4.20(typescript@5.4.5)
     transitivePeerDependencies:
       - '@algolia/client-search'

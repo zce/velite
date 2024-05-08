@@ -26,7 +26,9 @@ categories:
 <audio src="audio.mp3" controls autoplay loop></audio>
 
 <video width="100%" src="video.mp4" controls autoplay loop></video>
+
 <video width="100%" controls autoplay loop>
+
   <source type="video/mp4" src="video2.mp4"/>
   <p>Your browser does not support the video element.</p>
 </video>

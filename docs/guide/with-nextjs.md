@@ -80,7 +80,6 @@ The Next.js plugin is still under development...
 
 :::
 
-
 ### Start Velite in npm script with `npm-run-all`:
 
 ::: info

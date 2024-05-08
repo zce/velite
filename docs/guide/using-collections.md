@@ -139,7 +139,8 @@ Because each user's scenario is different, Velite is framework-agnostic and does
 You can use the output data in your application as you like, such as using a function to get a single post by slug, or using a function to get a list of posts by category.
 
 ```ts [app/content.ts]
-import { posts, authors } from '../.velite'
+import { authors, posts } from '../.velite'
+
 import type { Author, Post } from '../.velite'
 
 export const getPostBySlug = (slug: string) => {

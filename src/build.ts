@@ -97,7 +97,7 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
     entries.map(([name, files]): [string, any | any[]] => {
       const data = files.flatMap(file => file.result).filter(Boolean)
       if (collections[name].single) {
-        if (data.length === 0) throw new Error(`no data resolved for '${name}'`)
+        if (data.length === 0) throw new Error(`no data resolved for '${name}' collection`)
         if (data.length > 1) logger.warn(`resolved ${data.length} ${name}, but expected single, using first one`)
         else logger.log(`resolved 1 ${name}`)
         return [name, data[0]]

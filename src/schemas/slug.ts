@@ -12,11 +12,12 @@ export const slug = (by: string = 'global', reserved: string[] = []) =>
     .max(200)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/i, 'Invalid slug')
     .refine(value => !reserved.includes(value), 'Reserved slug')
-    .superRefine((value, { path, meta: { path: filepath, config }, addIssue }) => {
+    .superRefine((value, { path, meta, addIssue }) => {
       const key = `schemas:slug:${by}:${value}`
-      if (config.cache.has(key)) {
-        addIssue({ fatal: true, code: 'custom', message: `duplicate slug '${value}' in '${filepath}:${path.join('.')}'` })
+      const { cache } = meta.config
+      if (cache.has(key)) {
+        addIssue({ fatal: true, code: 'custom', message: `duplicate slug '${value}' in '${meta.path}:${path.join('.')}'` })
       } else {
-        config.cache.set(key, filepath)
+        cache.set(key, meta.path)
       }
     })

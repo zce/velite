@@ -18,37 +18,39 @@ const remarkRemoveComments = () => (tree: Root) => {
 }
 
 export const mdx = (options: MdxOptions = {}) =>
-  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
-    value = value ?? content
+  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta, addIssue }) => {
+    value = value ?? meta.content
     if (value == null || value.length === 0) {
       addIssue({ code: 'custom', message: 'The content is empty' })
       return ''
     }
 
-    const enableGfm = options.gfm ?? config.mdx?.gfm ?? true
-    const enableMinify = options.minify ?? config.mdx?.minify ?? true
-    const removeComments = options.removeComments ?? config.mdx?.removeComments ?? true
-    const copyLinkedFiles = options.copyLinkedFiles ?? config.mdx?.copyLinkedFiles ?? true
-    const outputFormat = options.outputFormat ?? config.mdx?.outputFormat ?? 'function-body'
+    const { mdx, output } = meta.config
+
+    const enableGfm = options.gfm ?? mdx?.gfm ?? true
+    const enableMinify = options.minify ?? mdx?.minify ?? true
+    const removeComments = options.removeComments ?? mdx?.removeComments ?? true
+    const copyLinkedFiles = options.copyLinkedFiles ?? mdx?.copyLinkedFiles ?? true
+    const outputFormat = options.outputFormat ?? mdx?.outputFormat ?? 'function-body'
 
     const remarkPlugins = [] as PluggableList
     const rehypePlugins = [] as PluggableList
 
     if (enableGfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-    if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, config.output]) // copy linked files to public path and replace their urls with public urls
+    if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, output]) // copy linked files to public path and replace their urls with public urls
     if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
     if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
-    if (config.mdx?.remarkPlugins != null) remarkPlugins.push(...config.mdx.remarkPlugins) // apply global remark plugins
-    if (config.mdx?.rehypePlugins != null) rehypePlugins.push(...config.mdx.rehypePlugins) // apply global rehype plugins
+    if (mdx?.remarkPlugins != null) remarkPlugins.push(...mdx.remarkPlugins) // apply global remark plugins
+    if (mdx?.rehypePlugins != null) rehypePlugins.push(...mdx.rehypePlugins) // apply global rehype plugins
 
-    const compilerOptions = { ...config.mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
+    const compilerOptions = { ...mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
 
     const { compile } = await import('@mdx-js/mdx')
     const { minify } = await import('terser')
 
     try {
-      const code = await compile({ value, path }, compilerOptions)
+      const code = await compile({ value, path: meta.path }, compilerOptions)
 
       if (!enableMinify) return code.toString()
 

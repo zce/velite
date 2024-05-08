@@ -39,27 +39,29 @@ const rehypeMetaString = () => (tree: Hast) => {
 }
 
 export const markdown = (options: MarkdownOptions = {}) =>
-  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
-    value = value ?? content
+  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta, addIssue }) => {
+    value = value ?? meta.content
     if (value == null || value.length === 0) {
       addIssue({ code: 'custom', message: 'The content is empty' })
       return ''
     }
 
-    const enableGfm = options.gfm ?? config.markdown?.gfm ?? true
-    const removeComments = options.removeComments ?? config.markdown?.removeComments ?? true
-    const copyLinkedFiles = options.copyLinkedFiles ?? config.markdown?.copyLinkedFiles ?? true
+    const { markdown, output } = meta.config
+
+    const enableGfm = options.gfm ?? markdown?.gfm ?? true
+    const removeComments = options.removeComments ?? markdown?.removeComments ?? true
+    const copyLinkedFiles = options.copyLinkedFiles ?? markdown?.copyLinkedFiles ?? true
 
     const remarkPlugins = [] as PluggableList
     const rehypePlugins = [] as PluggableList
 
     if (enableGfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-    if (copyLinkedFiles) rehypePlugins.push([rehypeCopyLinkedFiles, config.output]) // copy linked files to public path and replace their urls with public urls
+    if (copyLinkedFiles) rehypePlugins.push([rehypeCopyLinkedFiles, output]) // copy linked files to public path and replace their urls with public urls
     if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
     if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
-    if (config.markdown?.remarkPlugins != null) remarkPlugins.push(...config.markdown.remarkPlugins) // apply global remark plugins
-    if (config.markdown?.rehypePlugins != null) rehypePlugins.push(...config.markdown.rehypePlugins) // apply global rehype plugins
+    if (markdown?.remarkPlugins != null) remarkPlugins.push(...markdown.remarkPlugins) // apply global remark plugins
+    if (markdown?.rehypePlugins != null) rehypePlugins.push(...markdown.rehypePlugins) // apply global rehype plugins
 
     try {
       const html = await unified()
@@ -70,7 +72,7 @@ export const markdown = (options: MarkdownOptions = {}) =>
         .use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
         .use(rehypePlugins) // apply rehype plugins
         .use(rehypeStringify) // serialize html syntax tree
-        .process({ value, path })
+        .process({ value, path: meta.path })
       return html.toString()
     } catch (err: any) {
       addIssue({ fatal: true, code: 'custom', message: err.message })

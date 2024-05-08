@@ -13,10 +13,11 @@ export interface FileOptions {
  * A file path relative to this file.
  */
 export const file = ({ allowNonRelativePath = true }: FileOptions = {}) =>
-  string().transform<string>(async (value, { meta: { path, config }, addIssue }) => {
+  string().transform<string>(async (value, { meta, addIssue }) => {
     try {
       if (allowNonRelativePath && !isRelativePath(value)) return value
-      return await processAsset(value, path, config.output.name, config.output.base)
+      const { output } = meta.config
+      return await processAsset(value, meta.path, output.name, output.base)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       addIssue({ fatal: true, code: 'custom', message })

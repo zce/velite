@@ -23,7 +23,7 @@ export interface ImageOptions {
  * Image schema
  */
 export const image = ({ absoluteRoot }: ImageOptions = {}) =>
-  string().transform<Image>(async (value, { meta: { path, config }, addIssue }) => {
+  string().transform<Image>(async (value, { meta, addIssue }) => {
     try {
       if (absoluteRoot && /^\//.test(value)) {
         const buffer = await readFile(join(absoluteRoot, value))
@@ -42,8 +42,9 @@ export const image = ({ absoluteRoot }: ImageOptions = {}) =>
       //   return { src: value, ...metadata }
       // }
 
+      const { output } = meta.config
       // process asset as relative path
-      return await processAsset(value, path, config.output.name, config.output.base, true)
+      return await processAsset(value, meta.path, output.name, output.base, true)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       addIssue({ fatal: true, code: 'custom', message })

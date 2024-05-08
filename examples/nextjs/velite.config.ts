@@ -130,7 +130,7 @@ export default defineConfig({
       i.permalink = `/${i.slug}`
     })
 
-    // push extra data to collections, it's ok!!
+    // push extra data to collections, it's ok!! but they are not type-safed
     // Object.assign(collections, {
     //   anything: { name: 'Anything', data: { name: 'Anything' } },
     //   list: ['one', 'two', 'three']

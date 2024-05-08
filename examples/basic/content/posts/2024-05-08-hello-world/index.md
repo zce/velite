@@ -1,7 +1,7 @@
 ---
 title: Hello world
 slug: hello-world
-date: 1992-02-25 13:00:00
+date: 2024-05-08 13:00:00
 cover: cover.jpg
 video: video.mp4
 categories:
@@ -27,7 +27,6 @@ categories:
 
 <video width="100%" src="video.mp4" controls autoplay loop></video>
 <video width="100%" controls autoplay loop>
-
   <source type="video/mp4" src="video2.mp4"/>
   <p>Your browser does not support the video element.</p>
 </video>

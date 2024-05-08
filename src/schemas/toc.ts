@@ -98,8 +98,9 @@ const parse = (tree?: List): TocEntry[] => {
 }
 
 export const toc = <T extends TocOptions>(options?: T) =>
-  custom<string>().transform<T extends { original: true } ? TocTree : TocEntry[]>(async (value, { meta, addIssue }) => {
+  custom<string | null | undefined>().transform<T extends { original: true } ? TocTree : TocEntry[]>(async (value, { meta, addIssue }) => {
     if (value == null || value.length === 0) {
+      addIssue({ code: 'custom', message: 'Empty content' })
       return (options?.original ? {} : []) as T extends { original: true } ? TocTree : TocEntry[]
     }
     try {

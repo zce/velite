@@ -23,9 +23,9 @@ export interface PathOptions {
  * @returns flattened path based on the file path
  */
 export const path = (options?: PathOptions) =>
-  custom<string>().transform<string>(async (value, { meta: { path, config }, addIssue }) => {
+  custom<string | null | undefined>().transform<string>(async (value, { meta: { path, config }, addIssue }) => {
     if (value != null) {
-      addIssue({ code: 'custom', message: '`s.path()` schema will resolve the flattening path based on the file path' })
+      addIssue({ fatal: false, code: 'custom', message: '`s.path()` schema will resolve the flattening path based on the file path' })
     }
 
     const flattened = relative(config.root, path)

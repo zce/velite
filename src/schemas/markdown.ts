@@ -39,10 +39,10 @@ const rehypeMetaString = () => (tree: Hast) => {
 }
 
 export const markdown = (options: MarkdownOptions = {}) =>
-  custom<string>().transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
+  custom<string | null | undefined>().transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
     value = value ?? content
     if (value == null || value.length === 0) {
-      addIssue({ code: 'custom', message: 'No content found' })
+      addIssue({ code: 'custom', message: 'Empty content' })
       return ''
     }
 

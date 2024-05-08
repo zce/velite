@@ -315,7 +315,7 @@ export const mdxBundle = (options: MdxOptions = {}) =>
   custom<string>().transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
     value = value ?? content
     if (value == null) {
-      addIssue({ fatal: true, code: 'custom', message: 'No content found' })
+      addIssue({ fatal: true, code: 'custom', message: 'Empty content' })
       return null as never
     }
 

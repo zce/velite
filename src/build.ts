@@ -70,7 +70,7 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
       ctx.common.issues.forEach(issue => {
         const source = issue.path.map(i => (typeof i === 'number' ? `[${i}]` : i)).join('.')
         const message = file.message(issue.message, { source })
-        message.fatal = issue.fatal
+        message.fatal = result.status === 'aborted' || issue.fatal
       })
 
       // return parsed data unless fatal error

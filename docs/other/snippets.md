@@ -21,7 +21,7 @@ export const remoteImage = () =>
       return { src: value, ...metadata }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      addIssue({ code: 'custom', message })
+      addIssue({ fatal: true, code: 'custom', message })
       return null as never
     }
   })
@@ -223,7 +223,7 @@ export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {
       await rehypeCopyLinkedFiles(config.output)(output, { path })
       return toHtml(output)
     } catch (err: any) {
-      ctx.addIssue({ code: 'custom', message: err.message })
+      ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
       return value
     }
   })

@@ -189,7 +189,9 @@ export interface Collections {
 /**
  * Collection Type
  */
-export type CollectionType<T extends Collections, P extends keyof T> = T[P]['single'] extends true ? T[P]['schema']['_output'] : Array<T[P]['schema']['_output']>
+export type CollectionType<T extends Collections, P extends keyof T> = T[P]['single'] extends true
+  ? T[P]['schema']['_output']
+  : Array<T[P]['schema']['_output']>
 
 /**
  * All collections result

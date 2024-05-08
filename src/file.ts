@@ -92,7 +92,3 @@ export class VeliteFile extends VFile {
     return meta
   }
 }
-
-declare module './schemas' {
-  interface ZodMeta extends VeliteFile {}
-}

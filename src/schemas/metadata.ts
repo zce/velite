@@ -62,7 +62,7 @@ export interface Metadata {
 export const metadata = () =>
   custom<string>().transform<Metadata>(async (value, { meta, addIssue }) => {
     value = value ?? meta.plain
-    if (value == null) {
+    if (value == null || value.length === 0) {
       addIssue({ code: 'custom', message: 'No content found' })
       return { readingTime: 0, wordCount: 0 }
     }

@@ -1,6 +1,5 @@
 ---
 title: Hello world
-slug: hello-world
 date: 2024-05-08 13:00:00
 cover: cover.jpg
 video: video.mp4

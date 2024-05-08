@@ -315,7 +315,7 @@ export const mdxBundle = (options: MdxOptions = {}) =>
   custom<string>().transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
     value = value ?? content
     if (value == null) {
-      addIssue({ code: 'custom', message: 'No content found' })
+      addIssue({ fatal: true, code: 'custom', message: 'No content found' })
       return null as never
     }
 
@@ -341,7 +341,7 @@ export const mdxBundle = (options: MdxOptions = {}) =>
     try {
       return await compileMdx(value, path, compilerOptions)
     } catch (err: any) {
-      addIssue({ code: 'custom', message: err.message })
+      addIssue({ fatal: true, code: 'custom', message: err.message })
       return null as never
     }
   })

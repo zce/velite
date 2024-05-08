@@ -69,7 +69,7 @@ export const remoteImage = () =>
       return { src: value, ...metadata }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      addIssue({ code: 'custom', message })
+      addIssue({ fatal: true, code: 'custom', message })
       return null as never
     }
   })

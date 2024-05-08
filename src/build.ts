@@ -9,10 +9,15 @@ import { resolveConfig } from './config'
 import { VeliteFile } from './file'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
+import { getParsedType, ParseContext } from './schemas/zod'
 
 import type { LogLevel } from './logger'
-import type { Schema } from './schemas'
+import type { Schema, ZodMeta } from './schemas'
 import type { Config } from './types'
+
+declare module './schemas' {
+  interface ZodMeta extends VeliteFile {}
+}
 
 // cache resolved result for rebuild
 const resolved = new Map<string, VeliteFile[]>()
@@ -33,28 +38,48 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
     if (exists) return exists
   }
 
-  const meta = await VeliteFile.create({ path, config })
+  const file = await VeliteFile.create({ path, config })
 
   // may be one or more records in one file, such as yaml array or json array
-  const isArr = Array.isArray(meta.records)
-  const list = isArr ? meta.records : [meta.records]
+  const isArr = Array.isArray(file.records)
+  const list = isArr ? file.records : [file.records]
 
   const parsed = await Promise.all(
-    list.map(async (item, index) => {
+    list.map(async (data, index) => {
       // push index in path if file is array
       const path = isArr ? [index] : []
+
+      const ctx: ParseContext = {
+        common: { issues: [], async: true },
+        path,
+        meta: file as ZodMeta,
+        data,
+        parent: null,
+        parsedType: getParsedType(data),
+        schemaErrorMap: schema._def.errorMap
+      }
+
       // parse data with given schema
-      const result = await schema.safeParseAsync(item, { path, meta } as any)
-      if (result.success) return result.data
+      const ret = schema._parse({ data, path, meta: ctx.meta, parent: ctx })
+
+      const result = await (ret instanceof Promise ? ret : Promise.resolve(ret))
+
+      if (result.status === 'valid') return result.value
+
       // report error if parsing failed
-      result.error.issues.forEach(issue => meta.message(issue.message, { source: issue.path.join('.') }))
+      ctx.common.issues.forEach(issue => {
+        const message = file.message(issue.message, { source: issue.path.join('.') })
+        message.fatal = issue.fatal
+      })
+
+      return result.status === 'dirty' && result.value
     })
   )
 
   // logger.log(`loaded '${path}' with ${parsed.length} records`)
-  meta.result = isArr ? parsed : parsed[0]
+  file.result = isArr ? parsed : parsed[0]
 
-  return meta
+  return file
 }
 
 /**

@@ -20,9 +20,9 @@ const remarkRemoveComments = () => (tree: Root) => {
 export const mdx = (options: MdxOptions = {}) =>
   custom<string>().transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
     value = value ?? content
-    if (value == null) {
+    if (value == null || value.length === 0) {
       addIssue({ code: 'custom', message: 'No content found' })
-      return null as never
+      return ''
     }
 
     const enableGfm = options.gfm ?? config.mdx?.gfm ?? true
@@ -61,7 +61,7 @@ export const mdx = (options: MdxOptions = {}) =>
       })
       return minified.code ?? code.toString()
     } catch (err: any) {
-      addIssue({ code: 'custom', message: err.message })
+      addIssue({ fatal: true, code: 'custom', message: err.message })
       return null as never
     }
   })

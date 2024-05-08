@@ -19,7 +19,7 @@ export const file = ({ allowNonRelativePath = true }: FileOptions = {}) =>
       return await processAsset(value, path, config.output.name, config.output.base)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      addIssue({ code: 'custom', message })
+      addIssue({ fatal: true, code: 'custom', message })
       return null as never
     }
   })

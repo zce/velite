@@ -99,6 +99,9 @@ const parse = (tree?: List): TocEntry[] => {
 
 export const toc = <T extends TocOptions>(options?: T) =>
   custom<string>().transform<T extends { original: true } ? TocTree : TocEntry[]>(async (value, { meta, addIssue }) => {
+    if (value == null || value.length === 0) {
+      return (options?.original ? {} : []) as T extends { original: true } ? TocTree : TocEntry[]
+    }
     try {
       // extract ast tree from markdown/mdx content
       const tree = value != null ? fromMarkdown(value) : meta.mdast
@@ -108,7 +111,7 @@ export const toc = <T extends TocOptions>(options?: T) =>
       if (options?.original) return tocTree as T extends { original: true } ? TocTree : TocEntry[]
       return parse(tocTree.map) as T extends { original: true } ? TocTree : TocEntry[]
     } catch (err: any) {
-      addIssue({ code: 'custom', message: err.message })
+      addIssue({ fatal: true, code: 'custom', message: err.message })
       return null as never
     }
   })

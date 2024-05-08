@@ -68,11 +68,13 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
 
       // report error if parsing failed
       ctx.common.issues.forEach(issue => {
-        const message = file.message(issue.message, { source: issue.path.join('.') })
+        const source = issue.path.map(i => (typeof i === 'number' ? `[${i}]` : i)).join('.')
+        const message = file.message(issue.message, { source })
         message.fatal = issue.fatal
       })
 
-      return result.status === 'dirty' && result.value
+      // return parsed data unless fatal error
+      return result.status !== 'aborted' && result.value
     })
   )
 

@@ -60,10 +60,10 @@ export interface Metadata {
 }
 
 export const metadata = () =>
-  custom<string | null | undefined>().transform<Metadata>(async (value, { meta: { plain }, addIssue }) => {
+  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<Metadata>(async (value, { meta: { plain }, addIssue }) => {
     value = value ?? plain
     if (value == null || value.length === 0) {
-      addIssue({ code: 'custom', message: 'Empty content' })
+      addIssue({ code: 'custom', message: 'The content is empty' })
       return { readingTime: 0, wordCount: 0 }
     }
 

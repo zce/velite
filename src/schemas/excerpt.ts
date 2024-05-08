@@ -16,10 +16,10 @@ export interface ExcerptOptions {
 }
 
 export const excerpt = ({ length = 260 }: ExcerptOptions = {}) =>
-  custom<string | null | undefined>().transform<string>(async (value, { meta: { plain }, addIssue }) => {
+  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta: { plain }, addIssue }) => {
     value = value ?? plain
     if (value == null || value.length === 0) {
-      addIssue({ code: 'custom', message: 'Empty content' })
+      addIssue({ code: 'custom', message: 'The content is empty' })
       return ''
     }
 

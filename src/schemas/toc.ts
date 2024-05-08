@@ -98,21 +98,23 @@ const parse = (tree?: List): TocEntry[] => {
 }
 
 export const toc = <T extends TocOptions>(options?: T) =>
-  custom<string | null | undefined>().transform<T extends { original: true } ? TocTree : TocEntry[]>(async (value, { meta, addIssue }) => {
-    if (value == null || value.length === 0) {
-      addIssue({ code: 'custom', message: 'Empty content' })
-      return (options?.original ? {} : []) as T extends { original: true } ? TocTree : TocEntry[]
+  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<T extends { original: true } ? TocTree : TocEntry[]>(
+    async (value, { meta, addIssue }) => {
+      if (value == null || value.length === 0) {
+        addIssue({ code: 'custom', message: 'The content is empty' })
+        return (options?.original ? {} : []) as T extends { original: true } ? TocTree : TocEntry[]
+      }
+      try {
+        // extract ast tree from markdown/mdx content
+        const tree = value != null ? fromMarkdown(value) : meta.mdast
+        if (tree == null) throw new Error('No tree found')
+        const tocTree = extractToc(tree, options)
+        // return the original tree if requested
+        if (options?.original) return tocTree as T extends { original: true } ? TocTree : TocEntry[]
+        return parse(tocTree.map) as T extends { original: true } ? TocTree : TocEntry[]
+      } catch (err: any) {
+        addIssue({ fatal: true, code: 'custom', message: err.message })
+        return null as never
+      }
     }
-    try {
-      // extract ast tree from markdown/mdx content
-      const tree = value != null ? fromMarkdown(value) : meta.mdast
-      if (tree == null) throw new Error('No tree found')
-      const tocTree = extractToc(tree, options)
-      // return the original tree if requested
-      if (options?.original) return tocTree as T extends { original: true } ? TocTree : TocEntry[]
-      return parse(tocTree.map) as T extends { original: true } ? TocTree : TocEntry[]
-    } catch (err: any) {
-      addIssue({ fatal: true, code: 'custom', message: err.message })
-      return null as never
-    }
-  })
+  )

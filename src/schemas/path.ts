@@ -23,7 +23,7 @@ export interface PathOptions {
  * @returns flattened path based on the file path
  */
 export const path = (options?: PathOptions) =>
-  custom<string | null | undefined>().transform<string>(async (value, { meta: { path, config }, addIssue }) => {
+  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta: { path, config }, addIssue }) => {
     if (value != null) {
       addIssue({ fatal: false, code: 'custom', message: '`s.path()` schema will resolve the flattening path based on the file path' })
     }

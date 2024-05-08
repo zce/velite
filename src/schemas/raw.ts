@@ -1,3 +1,4 @@
 import { custom } from './zod'
 
-export const raw = () => custom<string | null | undefined>().transform<string>(async (value, { meta: { content } }) => value ?? content ?? '')
+export const raw = () =>
+  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta: { content } }) => value ?? content ?? '')

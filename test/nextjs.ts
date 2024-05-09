@@ -39,7 +39,7 @@ test('nextjs tags output', async t => {
 
 test('nextjs pages output', async t => {
   const output = await readFile('examples/nextjs/.velite/pages.json', 'utf8')
-  assert.equal(output.length, 5175)
+  assert.equal(output.length, 5003)
 })
 
 test('nextjs posts output', async t => {

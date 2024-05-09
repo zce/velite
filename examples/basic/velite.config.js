@@ -79,7 +79,7 @@ export default defineConfig({
           body: s.mdx(),
           raw: s.raw()
         })
-        .transform(data => ({ ...data, permalink: `/${data.slug}` }))
+        .transform((data, { meta }) => ({ ...data, permalink: `/${data.slug}`, basename: meta.basename }))
     },
     posts: {
       name: 'Post',

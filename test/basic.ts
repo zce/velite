@@ -33,7 +33,7 @@ test('basic tags output', async t => {
 
 test('basic pages output', async t => {
   const output = await readFile('examples/basic/.velite/pages.json', 'utf8')
-  assert.equal(output.length, 6091)
+  assert.equal(output.length, 6149)
 })
 
 test('basic posts output', async t => {

@@ -48,7 +48,7 @@ export default defineConfig({
       pattern: 'categories/*.yml',
       schema: s
         .object({
-          name: s.string().max(20),
+          name: s.unique('categories'),
           slug: s.slug('global'),
           cover: s.image().optional(),
           description: s.string().max(999).optional(),
@@ -79,7 +79,7 @@ export default defineConfig({
           body: s.mdx(),
           raw: s.raw()
         })
-        .transform(data => ({ ...data, permalink: `/${data.slug}` }))
+        .transform((data, { meta }) => ({ ...data, permalink: `/${data.slug}`, basename: meta.basename }))
     },
     posts: {
       name: 'Post',

@@ -1,6 +1,6 @@
 {
   "name": "velite",
-  "version": "0.1.0-rc.0",
+  "version": "0.1.0-rc.1",
   "description": "Turns Markdown / MDX, YAML, JSON, or other files into app's data layer with type-safe schema.",
   "keywords": [
     "contentlayer",
@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "build": "tsc && rollup -c",
-    "test": "cd examples/basic && pnpm build && cd ../nextjs && pnpm build",
+    "test": "node --import tsx --test test/*.ts",
     "docs:dev": "cd docs && pnpm dev",
     "docs:build": "cd docs && pnpm build",
     "format": "prettier . --write"
@@ -70,6 +70,7 @@
     "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-esbuild": "^6.1.1",
     "simple-git-hooks": "^2.11.1",
+    "tsx": "^4.9.3",
     "typescript": "^5.4.5",
     "unified": "^11.0.4",
     "unist-util-visit": "^5.0.0",

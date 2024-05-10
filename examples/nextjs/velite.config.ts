@@ -70,7 +70,7 @@ const pages = defineCollection({
       slug: s.slug('global', ['admin', 'login']),
       body: s.mdx()
     })
-    .transform((data, { meta }) => ({ ...data, permalink: `/${data.slug}`, path: meta.path }))
+    .transform(data => ({ ...data, permalink: `/${data.slug}` }))
 })
 
 const posts = defineCollection({

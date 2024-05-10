@@ -34,7 +34,7 @@ import { IssueData, StringValidation, ZodCustomIssue, ZodError, ZodErrorMap, Zod
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-export type RefinementCtx = {
+export interface RefinementCtx {
   addIssue: (arg: IssueData) => void
   path: (string | number)[]
   meta: ZodMeta
@@ -4158,7 +4158,7 @@ export class ZodEffects<T extends ZodTypeAny, Output = output<T>, Input = input<
           parent: ctx
         })
 
-        if (!isValid(base)) return base
+        if (base.status === 'aborted') return base
 
         const result = effect.transform(base.value, checkCtx)
         if (result instanceof Promise) {
@@ -4175,7 +4175,7 @@ export class ZodEffects<T extends ZodTypeAny, Output = output<T>, Input = input<
             parent: ctx
           })
           .then(base => {
-            if (!isValid(base)) return base
+            if (base.status === 'aborted') return base
 
             return Promise.resolve(effect.transform(base.value, checkCtx)).then(result => ({ status: status.value, value: result }))
           })

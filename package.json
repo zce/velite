@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@mdx-js/mdx": "3.0.1",
-    "esbuild": "0.21.3",
+    "esbuild": "0.21.4",
     "sharp": "0.33.4",
     "terser": "5.31.0"
   },

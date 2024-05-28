@@ -37,10 +37,10 @@
     "*.{js,ts,md}": "prettier --write"
   },
   "dependencies": {
-    "@mdx-js/mdx": "3.0.1",
-    "esbuild": "0.21.3",
-    "sharp": "0.33.4",
-    "terser": "5.31.0"
+    "@mdx-js/mdx": "^3.0.1",
+    "esbuild": "^0.21.4",
+    "sharp": "^0.33.4",
+    "terser": "^5.31.0"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.8",

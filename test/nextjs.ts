@@ -4,6 +4,7 @@ import { readFile, rm } from 'node:fs/promises'
 import { test } from 'node:test'
 
 test('integration with nextjs fixtures', async t => {
+  // will use velite dist
   await new Promise((res, rej) => exec('npm run build', { cwd: 'examples/nextjs' }, (e, s) => (e ? rej(e) : res(s))))
 
   const entry = await readFile('examples/nextjs/.velite/index.js', 'utf8')

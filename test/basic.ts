@@ -2,6 +2,7 @@ import { equal } from 'node:assert'
 import { readFile, rm } from 'node:fs/promises'
 import { test } from 'node:test'
 
+// import from source
 import { build } from '../src'
 
 test('standalone fixtures', async t => {

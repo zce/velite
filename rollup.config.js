@@ -1,4 +1,5 @@
 // @ts-check
+
 import { builtinModules } from 'node:module'
 import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
@@ -7,7 +8,7 @@ import { defineConfig } from 'rollup'
 import dts from 'rollup-plugin-dts'
 import esbuild from 'rollup-plugin-esbuild'
 
-import pkg from './package.json' assert { type: 'json' }
+import pkg from './package.json' with { type: 'json' }
 
 const external = [...Object.keys(pkg.dependencies), ...builtinModules.flatMap(m => [m, `node:${m}`]), 'fsevents']
 

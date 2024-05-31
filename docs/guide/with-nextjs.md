@@ -4,7 +4,32 @@ Velite is a framework agnostic library, it can be used in any JavaScript framewo
 
 Here is some recipes for help you better integrate Velite with Next.js.
 
-## Start Velite with Next.js Plugin
+## 🎊 Start Velite with Next.js Config 🆕
+
+Next.js is gradually adopting Turbopack because it is significantly faster. However, Turbopack is not fully compatible with the Webpack ecosystem, which means that the `VeliteWebpackPlugin` does not function correctly when Turbopack is enabled. Here is a completely new solution.
+
+::: code-group
+
+```js [next.config.mjs]
+const isDev = process.argv.indexOf('dev') !== -1
+const isBuild = process.argv.indexOf('build') !== -1
+if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
+  process.env.VELITE_STARTED = '1'
+  const { build } = await import('velite')
+  await build({ watch: isDev, clean: !isDev })
+}
+
+/** @type {import('next').NextConfig} */
+export default {
+  // next config here...
+}
+```
+
+:::
+
+Note that this approach uses top-level await, so it only supports `next.config.mjs` or ESM enabled.
+
+## Start Velite with Next.js Webpack Plugin
 
 You can use the Next.js plugin to call Velite's programmatic API to start Velite with better integration.
 
@@ -72,15 +97,11 @@ class VeliteWebpackPlugin {
 ESM `import { build } from 'velite'` may be got a `[webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo]` warning generated during the `next build` process, which has little impact,
 refer to https://github.com/webpack/webpack/pull/15688
 
-:::
-
-::: tip
-
-The Next.js plugin is still under development...
+or [👆](#🎊-start-velite-with-next-js-config-🆕)
 
 :::
 
-### Start Velite in npm script with `npm-run-all`:
+## Start Velite in npm script with `npm-run-all`:
 
 ::: info
 

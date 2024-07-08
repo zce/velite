@@ -202,6 +202,9 @@ export type Result<T extends Collections> = { [P in keyof T]: CollectionType<T, 
  * Hook context
  */
 export type Context = {
+  /**
+   * Resolved config
+   */
   config: Config
 }
 

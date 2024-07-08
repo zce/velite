@@ -269,12 +269,29 @@ More options, see [MDX Compile Options](https://mdxjs.com/packages/mdx/#compileo
 
 ## `prepare`
 
-- Type: `(result: Result<Collections>) => Promisable<void | false>`
+- Type: `(data: Result<Collections>, context: Context) => Promisable<void | false>`
 
 Data prepare hook, executed before write to file. You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files. return false to prevent the default output to a file if you wanted.
 
+```js
+export default defineConfig({
+  collections: { posts, tags },
+  prepare: (data, context) => {
+    // modify data
+    data.posts.push({ ... })
+    data.tags.push({ ... })
+
+    // context
+    const { config } = context
+    // config is resolved from `velite.config.js` with default values
+
+    // return false to prevent the default output to a file
+  }
+})
+```
+
 ## `complete`
 
-- Type: `(result: Result<Collections>) => Promisable<void>`
+- Type: `(data: Result<Collections>, context: Context) => Promisable<void>`
 
 Build success hook, executed after the build is complete. You can do anything after the build is complete, such as print some tips or deploy the output files.

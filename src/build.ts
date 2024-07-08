@@ -134,11 +134,13 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
     })
   )
 
+  const context = { config }
+
   let shouldOutput = true
   // apply prepare hook
   if (typeof prepare === 'function') {
     const begin = performance.now()
-    shouldOutput = (await prepare(result)) ?? true
+    shouldOutput = (await prepare(result, context)) ?? true
     logger.log(`executed 'prepare' callback got ${shouldOutput}`, begin)
   }
 
@@ -155,7 +157,7 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
   // call complete hook
   if (typeof complete === 'function') {
     const begin = performance.now()
-    await complete(result)
+    await complete(result, context)
     logger.log(`executed 'complete' callback`, begin)
   }
 

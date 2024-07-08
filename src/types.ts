@@ -199,6 +199,13 @@ export type CollectionType<T extends Collections, P extends keyof T> = T[P]['sin
 export type Result<T extends Collections> = { [P in keyof T]: CollectionType<T, P> }
 
 /**
+ * Hook context
+ */
+export type Context = {
+  config: Config
+}
+
+/**
  * This interface for plugins extra user config
  * @example
  * declare module 'velite' {
@@ -252,14 +259,14 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
    * return false to prevent the default output to a file if you wanted
    * @param data loaded data
    */
-  prepare?: (data: Result<T>) => Promisable<void | false>
+  prepare?: (data: Result<T>, context: Context) => Promisable<void | false>
   /**
    * Build success hook
    * @description
    * You can do anything after the build is complete, such as print some tips or deploy the output files.
    * @param data loaded data
    */
-  complete?: (data: Result<T>) => Promisable<void>
+  complete?: (data: Result<T>, context: Context) => Promisable<void>
 }
 
 /**

@@ -19,7 +19,7 @@ importers:
         version: 0.33.4
       terser:
         specifier: ^5.31.1
-        version: 5.31.2
+        version: 5.31.3
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^26.0.1
@@ -128,7 +128,7 @@ importers:
     devDependencies:
       vitepress:
         specifier: latest
-        version: 1.3.1(@algolia/client-search@4.24.0)(@types/node@20.14.11)(@types/react@18.3.3)(postcss@8.4.39)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.14.0)(terser@5.31.2)(typescript@5.5.3)
+        version: 1.3.1(@algolia/client-search@4.24.0)(@types/node@20.14.11)(@types/react@18.3.3)(postcss@8.4.39)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.14.0)(terser@5.31.3)(typescript@5.5.3)
 
   examples/basic:
     devDependencies:
@@ -3258,8 +3258,8 @@ packages:
     resolution: {integrity: sha512-GNzQvQTOIP6RyTfE2Qxb8ZVlNmw0n88vp1szwWRimP02mnTsx3Wtn5qRdqY9w2XduFNUgvOwhNnQsjwCp+kqaQ==}
     engines: {node: '>=6'}
 
-  terser@5.31.2:
-    resolution: {integrity: sha512-LGyRZVFm/QElZHy/CPr/O4eNZOZIzsrQ92y4v9UJe/pFJjypje2yI3C2FmPtvUEnhadlSbmG2nXtdcjHOjCfxw==}
+  terser@5.31.3:
+    resolution: {integrity: sha512-pAfYn3NIZLyZpa83ZKigvj6Rn9c/vd5KfYGX7cN1mnzqgDcxWvrU5ZtAfIKhEXz9nRecw4z3LXkjaq96/qZqAA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -4393,9 +4393,9 @@ snapshots:
 
   '@ungap/structured-clone@1.2.0': {}
 
-  '@vitejs/plugin-vue@5.0.5(vite@5.3.3(@types/node@20.14.11)(terser@5.31.2))(vue@3.4.31(typescript@5.5.3))':
+  '@vitejs/plugin-vue@5.0.5(vite@5.3.3(@types/node@20.14.11)(terser@5.31.3))(vue@3.4.31(typescript@5.5.3))':
     dependencies:
-      vite: 5.3.3(@types/node@20.14.11)(terser@5.31.2)
+      vite: 5.3.3(@types/node@20.14.11)(terser@5.31.3)
       vue: 3.4.31(typescript@5.5.3)
 
   '@vue/compiler-core@3.4.31':
@@ -7178,7 +7178,7 @@ snapshots:
 
   tapable@2.2.1: {}
 
-  terser@5.31.2:
+  terser@5.31.3:
     dependencies:
       '@jridgewell/source-map': 0.3.6
       acorn: 8.12.1
@@ -7373,7 +7373,7 @@ snapshots:
       unist-util-stringify-position: 4.0.0
       vfile-message: 4.0.2
 
-  vite@5.3.3(@types/node@20.14.11)(terser@5.31.2):
+  vite@5.3.3(@types/node@20.14.11)(terser@5.31.3):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.4.39
@@ -7381,16 +7381,16 @@ snapshots:
     optionalDependencies:
       '@types/node': 20.14.11
       fsevents: 2.3.3
-      terser: 5.31.2
+      terser: 5.31.3
 
-  vitepress@1.3.1(@algolia/client-search@4.24.0)(@types/node@20.14.11)(@types/react@18.3.3)(postcss@8.4.39)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.14.0)(terser@5.31.2)(typescript@5.5.3):
+  vitepress@1.3.1(@algolia/client-search@4.24.0)(@types/node@20.14.11)(@types/react@18.3.3)(postcss@8.4.39)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.14.0)(terser@5.31.3)(typescript@5.5.3):
     dependencies:
       '@docsearch/css': 3.6.0
       '@docsearch/js': 3.6.0(@algolia/client-search@4.24.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.14.0)
       '@shikijs/core': 1.10.3
       '@shikijs/transformers': 1.10.3
       '@types/markdown-it': 14.1.1
-      '@vitejs/plugin-vue': 5.0.5(vite@5.3.3(@types/node@20.14.11)(terser@5.31.2))(vue@3.4.31(typescript@5.5.3))
+      '@vitejs/plugin-vue': 5.0.5(vite@5.3.3(@types/node@20.14.11)(terser@5.31.3))(vue@3.4.31(typescript@5.5.3))
       '@vue/devtools-api': 7.3.5
       '@vue/shared': 3.4.31
       '@vueuse/core': 10.11.0(vue@3.4.31(typescript@5.5.3))
@@ -7399,7 +7399,7 @@ snapshots:
       mark.js: 8.11.1
       minisearch: 7.0.2
       shiki: 1.10.3
-      vite: 5.3.3(@types/node@20.14.11)(terser@5.31.2)
+      vite: 5.3.3(@types/node@20.14.11)(terser@5.31.3)
       vue: 3.4.31(typescript@5.5.3)
     optionalDependencies:
       postcss: 8.4.39

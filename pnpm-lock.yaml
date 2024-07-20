@@ -116,7 +116,7 @@ importers:
         version: 5.0.0
       vfile:
         specifier: ^6.0.1
-        version: 6.0.1
+        version: 6.0.2
       vfile-reporter:
         specifier: ^8.1.1
         version: 8.1.1
@@ -3393,8 +3393,8 @@ packages:
   vfile-statistics@3.0.0:
     resolution: {integrity: sha512-/qlwqwWBWFOmpXujL/20P+Iuydil0rZZNglR+VNm6J0gpLHwuVM5s7g2TfVoswbXjZ4HuIhLMySEyIw5i7/D8w==}
 
-  vfile@6.0.1:
-    resolution: {integrity: sha512-1bYqc7pt6NIADBJ98UiG0Bn/CHIVOoZ/IyEkqIruLg0mE1BKzkOXY2D6CSqQIcKqgadppE5lrxgWXJmXd7zZJw==}
+  vfile@6.0.2:
+    resolution: {integrity: sha512-zND7NlS8rJYb/sPqkb13ZvbbUoExdbi4w3SfRrMq6R3FvnLQmmfpajJNITuuYm6AZ5uao9vy4BAos3EXBPf2rg==}
 
   vite@5.3.3:
     resolution: {integrity: sha512-NPQdeCU0Dv2z5fu+ULotpuq5yfCS1BzKUIPhNbP3YBfAMGJXbt2nS+sbTFu+qchaqWTD+H3JK++nRwr6XIcp6A==}
@@ -4116,7 +4116,7 @@ snapshots:
       unist-util-position-from-estree: 2.0.0
       unist-util-stringify-position: 4.0.0
       unist-util-visit: 5.0.0
-      vfile: 6.0.1
+      vfile: 6.0.2
     transitivePeerDependencies:
       - supports-color
 
@@ -5548,7 +5548,7 @@ snapshots:
       devlop: 1.1.0
       hast-util-from-parse5: 8.0.1
       parse5: 7.1.2
-      vfile: 6.0.1
+      vfile: 6.0.2
       vfile-message: 4.0.2
 
   hast-util-from-parse5@8.0.1:
@@ -5558,7 +5558,7 @@ snapshots:
       devlop: 1.1.0
       hastscript: 8.0.0
       property-information: 6.5.0
-      vfile: 6.0.1
+      vfile: 6.0.2
       vfile-location: 5.0.2
       web-namespaces: 2.0.1
 
@@ -5578,7 +5578,7 @@ snapshots:
       parse5: 7.1.2
       unist-util-position: 5.0.0
       unist-util-visit: 5.0.0
-      vfile: 6.0.1
+      vfile: 6.0.2
       web-namespaces: 2.0.1
       zwitch: 2.0.4
 
@@ -6122,7 +6122,7 @@ snapshots:
       trim-lines: 3.0.1
       unist-util-position: 5.0.0
       unist-util-visit: 5.0.0
-      vfile: 6.0.1
+      vfile: 6.0.2
 
   mdast-util-to-markdown@2.1.0:
     dependencies:
@@ -6771,7 +6771,7 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.4
       hast-util-raw: 9.0.4
-      vfile: 6.0.1
+      vfile: 6.0.2
 
   rehype-stringify@10.0.0:
     dependencies:
@@ -6812,7 +6812,7 @@ snapshots:
       '@types/mdast': 4.0.4
       mdast-util-to-hast: 13.2.0
       unified: 11.0.5
-      vfile: 6.0.1
+      vfile: 6.0.2
 
   remark-stringify@11.0.0:
     dependencies:
@@ -7284,7 +7284,7 @@ snapshots:
       extend: 3.0.2
       is-plain-obj: 4.1.0
       trough: 2.2.0
-      vfile: 6.0.1
+      vfile: 6.0.2
 
   unist-util-is@6.0.0:
     dependencies:
@@ -7339,7 +7339,7 @@ snapshots:
   vfile-location@5.0.2:
     dependencies:
       '@types/unist': 3.0.2
-      vfile: 6.0.1
+      vfile: 6.0.2
 
   vfile-message@4.0.2:
     dependencies:
@@ -7352,22 +7352,22 @@ snapshots:
       string-width: 6.1.0
       supports-color: 9.4.0
       unist-util-stringify-position: 4.0.0
-      vfile: 6.0.1
+      vfile: 6.0.2
       vfile-message: 4.0.2
       vfile-sort: 4.0.0
       vfile-statistics: 3.0.0
 
   vfile-sort@4.0.0:
     dependencies:
-      vfile: 6.0.1
+      vfile: 6.0.2
       vfile-message: 4.0.2
 
   vfile-statistics@3.0.0:
     dependencies:
-      vfile: 6.0.1
+      vfile: 6.0.2
       vfile-message: 4.0.2
 
-  vfile@6.0.1:
+  vfile@6.0.2:
     dependencies:
       '@types/unist': 3.0.2
       unist-util-stringify-position: 4.0.0

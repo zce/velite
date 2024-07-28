@@ -58,11 +58,17 @@ You can try Velite directly in your browser on StackBlitz:
 > I have forked the [shadcn-ui/taxonomy](https://tx.shadcn.com) project as an example, you can try it out.
 > https://github.com/zce/taxonomy
 
+## Who's using Velite?
+
+- [Ark UI](https://github.com/chakra-ui/ark)
+- [Chakra UI](https://github.com/chakra-ui/chakra-ui)
+- [Park UI](https://github.com/cschroeter/park-ui)
+- [etc.](https://github.com/zce/velite/network/dependents)
+
 ## Roadmap
 
 The following are the features I want to achieve or are under development:
 
-- [ ] Full documentation
 - [ ] More framework or build tool integration examples.
 - [ ] More built-in schemas
 - [ ] Unit & E2E tests?

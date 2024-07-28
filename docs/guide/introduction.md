@@ -40,6 +40,13 @@ You can try Velite directly in your browser on StackBlitz, It runs Velite direct
 - https://stackblitz.com/edit/velite-basic
 - https://stackblitz.com/edit/velite-nextjs
 
+## Who's using Velite?
+
+- [Ark UI](https://github.com/chakra-ui/ark)
+- [Chakra UI](https://github.com/chakra-ui/chakra-ui)
+- [Park UI](https://github.com/cschroeter/park-ui)
+- [etc.](https://github.com/zce/velite/network/dependents)
+
 ## Why Velite?
 
 ### Type-Safe Contents

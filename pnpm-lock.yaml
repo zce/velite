@@ -59,7 +59,7 @@ importers:
         version: 3.0.0
       lint-staged:
         specifier: ^15.2.7
-        version: 15.2.7
+        version: 15.2.8
       mdast-util-from-markdown:
         specifier: ^2.0.1
         version: 2.0.1
@@ -128,7 +128,7 @@ importers:
     devDependencies:
       vitepress:
         specifier: latest
-        version: 1.3.1(@algolia/client-search@4.24.0)(@types/node@22.0.2)(@types/react@18.3.3)(postcss@8.4.40)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.14.0)(terser@5.31.3)(typescript@5.5.4)
+        version: 1.3.1(@algolia/client-search@4.24.0)(@types/node@22.1.0)(@types/react@18.3.3)(postcss@8.4.40)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.14.0)(terser@5.31.3)(typescript@5.5.4)
 
   examples/basic:
     devDependencies:
@@ -143,7 +143,7 @@ importers:
         version: 0.5.13(tailwindcss@3.4.7)
       '@types/node':
         specifier: latest
-        version: 22.0.2
+        version: 22.1.0
       '@types/react':
         specifier: latest
         version: 18.3.3
@@ -152,7 +152,7 @@ importers:
         version: 18.3.0
       autoprefixer:
         specifier: latest
-        version: 10.4.19(postcss@8.4.40)
+        version: 10.4.20(postcss@8.4.40)
       eslint:
         specifier: ^8
         version: 8.57.0
@@ -176,10 +176,10 @@ importers:
         version: 18.3.1(react@18.3.1)
       rehype-pretty-code:
         specifier: latest
-        version: 0.13.2(shiki@1.12.0)
+        version: 0.13.2(shiki@1.12.1)
       shiki:
         specifier: latest
-        version: 1.12.0
+        version: 1.12.1
       tailwindcss:
         specifier: latest
         version: 3.4.7
@@ -1023,8 +1023,8 @@ packages:
   '@shikijs/core@1.10.3':
     resolution: {integrity: sha512-D45PMaBaeDHxww+EkcDQtDAtzv00Gcsp72ukBtaLSmqRvh0WgGMq3Al0rl1QQBZfuneO75NXMIzEZGFitThWbg==}
 
-  '@shikijs/core@1.12.0':
-    resolution: {integrity: sha512-mc1cLbm6UQ8RxLc0dZES7v5rkH+99LxQp/ZvTqV3NLyYsO/fD6JhEflP1H5b2SDq9gI0+0G36AVZWxvounfR9w==}
+  '@shikijs/core@1.12.1':
+    resolution: {integrity: sha512-biCz/mnkMktImI6hMfMX3H9kOeqsInxWEyCHbSlL8C/2TR1FqfmGxTLRNwYCKsyCyxWLbB8rEqXRVZuyxuLFmA==}
 
   '@shikijs/transformers@1.10.3':
     resolution: {integrity: sha512-MNjsyye2WHVdxfZUSr5frS97sLGe6G1T+1P41QjyBFJehZphMcr4aBlRLmq6OSPBslYe9byQPVvt/LJCOfxw8Q==}
@@ -1085,8 +1085,8 @@ packages:
   '@types/node@20.14.12':
     resolution: {integrity: sha512-r7wNXakLeSsGT0H1AU863vS2wa5wBOK4bWMjZz2wj+8nBx+m5PeIn0k8AloSLpRuiwdRQZwarZqHE4FNArPuJQ==}
 
-  '@types/node@22.0.2':
-    resolution: {integrity: sha512-yPL6DyFwY5PiMVEwymNeqUTKsDczQBJ/5T7W/46RwLU/VH+AA8aT5TZkvBviLKLbbm0hlfftEkGrNzfRk/fofQ==}
+  '@types/node@22.1.0':
+    resolution: {integrity: sha512-AOmuRF0R2/5j1knA3c6G3HOk523Ga+l+ZXltX8SF1+5oqcXijjfTd8fY3XRZqSihEu9XhtQnKYLmkFaoxgsJHw==}
 
   '@types/prop-types@15.7.12':
     resolution: {integrity: sha512-5zvhXYtRNRluoE/jAp4GVsSduVUzNWKkOZrCDBWYtE7biZywwdC2AcEzg+cSMLFRfVgeAFqpfNabiPjxFddV1Q==}
@@ -1349,8 +1349,8 @@ packages:
     resolution: {integrity: sha512-ISvCdHdlTDlH5IpxQJIex7BWBywFWgjJSVdwst+/iQCoEYnyOaQ95+X1JGshuBjGp6nxKUy1jMgE3zPqN7fQdg==}
     hasBin: true
 
-  autoprefixer@10.4.19:
-    resolution: {integrity: sha512-BaENR2+zBZ8xXhM4pUaKUxlVdxZ0EZhjvbopwnXmxRUfqDmwSpC2lAi/QXvx7NRdPCo1WKEcEF6mV64si1z4Ew==}
+  autoprefixer@10.4.20:
+    resolution: {integrity: sha512-XY25y5xSv/wEoqzDyXXME4AFfkZI0P23z6Fs3YgymDnKJkCGOnkL0iTxCa85UTqaSgfcqyf3UA6+c7wUvx/16g==}
     engines: {node: ^10 || ^12 || >=14}
     hasBin: true
     peerDependencies:
@@ -1390,13 +1390,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  browserslist@4.23.1:
-    resolution: {integrity: sha512-TUfofFo/KsK/bWZ9TWQ5O26tsWW4Uhmt8IYklbnUa70udB6P2wA7w7o4PY4muaEPBQaAX+CEnmmIA41NVHtPVw==}
-    engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
-    hasBin: true
-
-  browserslist@4.23.2:
-    resolution: {integrity: sha512-qkqSyistMYdxAcw+CzbZwlBy8AGmS/eEWs+sEV5TnLRGDOL+C5M2EnH6tlZyg0YoAxGJAFKh61En9BR941GnHA==}
+  browserslist@4.23.3:
+    resolution: {integrity: sha512-btwCFJVjI4YWDNfau8RhZ+B1Q/VLoUITrm3RlP6y1tYGWIOa+InuYiRGXUBXo8nA1qKmHMyLB/iVQg5TT4eFoA==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
 
@@ -1426,8 +1421,8 @@ packages:
   caniuse-lite@1.0.30001640:
     resolution: {integrity: sha512-lA4VMpW0PSUrFnkmVuEKBUovSWKhj7puyCg8StBChgu298N1AtuF1sKWEvfDuimSEDbhlb/KqPKC3fs1HbuQUA==}
 
-  caniuse-lite@1.0.30001646:
-    resolution: {integrity: sha512-dRg00gudiBDDTmUhClSdv3hqRfpbOnU28IpI1T6PBTLWa+kOj0681C8uML3PifYfREuBrVjDGhL3adYpBT6spw==}
+  caniuse-lite@1.0.30001647:
+    resolution: {integrity: sha512-n83xdNiyeNcHpzWY+1aFbqCK7LuLfBricc4+alSQL2Xb6OR3XpnQAmlDG+pQcdTfiHRuLcQ96VOfrPSGiNJYSg==}
 
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
@@ -1630,9 +1625,6 @@ packages:
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
-
-  electron-to-chromium@1.4.818:
-    resolution: {integrity: sha512-eGvIk2V0dGImV9gWLq8fDfTTsCAeMDwZqEPMr+jMInxZdnp9Us8UpovYpRCf9NQ7VOFgrN2doNSgvISbsbNpxA==}
 
   electron-to-chromium@1.5.4:
     resolution: {integrity: sha512-orzA81VqLyIGUEA77YkVA1D+N+nNfl2isJVjjmOyrlxuooZ19ynb+dOlaDTqd/idKRS9lDCSBmtzM+kyCsMnkA==}
@@ -2337,8 +2329,8 @@ packages:
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
 
-  lint-staged@15.2.7:
-    resolution: {integrity: sha512-+FdVbbCZ+yoh7E/RosSdqKJyUM2OEjTciH0TFNkawKgvFp1zbGlEC39RADg+xKBG1R4mhoH2j85myBQZ5wR+lw==}
+  lint-staged@15.2.8:
+    resolution: {integrity: sha512-PUWFf2zQzsd9EFU+kM1d7UP+AZDbKFKuj+9JNVTBkhUFhbg4MAt6WfyMMwBfM4lYqd4D2Jwac5iuTu9rVj4zCQ==}
     engines: {node: '>=18.12.0'}
     hasBin: true
 
@@ -2628,9 +2620,6 @@ packages:
         optional: true
       sass:
         optional: true
-
-  node-releases@2.0.14:
-    resolution: {integrity: sha512-y10wOWt8yZpqXmOgRo77WaHEmhYQYGNA6y421PKsKYWEK8aW+cqAphborZDhqfyKrbZEN92CN1X2KbafY2s7Yw==}
 
   node-releases@2.0.18:
     resolution: {integrity: sha512-d9VeXT4SJ7ZeOqGX6R5EM022wpL+eWPooLI+5UpWn2jCT1aosUQEhQP214x33Wkwx3JQMvIm+tIoVOdodFS40g==}
@@ -3069,8 +3058,8 @@ packages:
   shiki@1.10.3:
     resolution: {integrity: sha512-eneCLncGuvPdTutJuLyUGS8QNPAVFO5Trvld2wgEq1e002mwctAhJKeMGWtWVXOIEzmlcLRqcgPSorR6AVzOmQ==}
 
-  shiki@1.12.0:
-    resolution: {integrity: sha512-BuAxWOm5JhRcbSOl7XCei8wGjgJJonnV0oipUupPY58iULxUGyHhW5CF+9FRMuM1pcJ5cGEJGll1LusX6FwpPA==}
+  shiki@1.12.1:
+    resolution: {integrity: sha512-nwmjbHKnOYYAe1aaQyEBHvQymJgfm86ZSS7fT8OaPRr4sbAcBNz7PbfAikMEFSDQ6se2j2zobkXvVKcBOm0ysg==}
 
   side-channel@1.0.6:
     resolution: {integrity: sha512-fDW/EZ6Q9RiO8eFG8Hj+7u/oW+XrPTIChwCOM2+th2A6OblDtYYIpve9m+KvI9Z4C9qSEXlaGR6bTEYHReuglA==}
@@ -3330,8 +3319,8 @@ packages:
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
-  undici-types@6.11.1:
-    resolution: {integrity: sha512-mIDEX2ek50x0OlRgxryxsenE5XaQD4on5U2inY7RApK3SOJpofyw7uW2AyfMKkhAxXIceo2DeWGVGwyvng1GNQ==}
+  undici-types@6.13.0:
+    resolution: {integrity: sha512-xtFJHudx8S2DSoujjMd1WeWvn7KKWFRESZTMeL1RptAYERu29D6jphMjjY+vn96jvN3kVPDNxU/E13VTaXj6jg==}
 
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
@@ -3490,11 +3479,6 @@ packages:
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
-
-  yaml@2.4.5:
-    resolution: {integrity: sha512-aBx2bnqDzVOyNKfsysjA2ms5ZlnjSAW2eG3/L5G/CSujfjLJTJsEw1bGw8kCf04KodQWk1pxlGnZ56CRxiawmg==}
-    engines: {node: '>= 14'}
-    hasBin: true
 
   yaml@2.5.0:
     resolution: {integrity: sha512-2wWLbGbYDiSqqIKoPjar3MPgB94ErzCtrNE1FdqGuaO0pi2JGjmE8aW8TDZwzU7vuxcGRdL/4gPQwQ7hD5AMSw==}
@@ -3659,7 +3643,7 @@ snapshots:
     dependencies:
       '@babel/compat-data': 7.25.2
       '@babel/helper-validator-option': 7.24.8
-      browserslist: 4.23.2
+      browserslist: 4.23.3
       lru-cache: 5.1.1
       semver: 6.3.1
 
@@ -4227,7 +4211,7 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.4
 
-  '@shikijs/core@1.12.0':
+  '@shikijs/core@1.12.1':
     dependencies:
       '@types/hast': 3.0.4
 
@@ -4297,9 +4281,9 @@ snapshots:
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@22.0.2':
+  '@types/node@22.1.0':
     dependencies:
-      undici-types: 6.11.1
+      undici-types: 6.13.0
 
   '@types/prop-types@15.7.12': {}
 
@@ -4366,9 +4350,9 @@ snapshots:
 
   '@ungap/structured-clone@1.2.0': {}
 
-  '@vitejs/plugin-vue@5.0.5(vite@5.3.3(@types/node@22.0.2)(terser@5.31.3))(vue@3.4.31(typescript@5.5.4))':
+  '@vitejs/plugin-vue@5.0.5(vite@5.3.3(@types/node@22.1.0)(terser@5.31.3))(vue@3.4.31(typescript@5.5.4))':
     dependencies:
-      vite: 5.3.3(@types/node@22.0.2)(terser@5.31.3)
+      vite: 5.3.3(@types/node@22.1.0)(terser@5.31.3)
       vue: 3.4.31(typescript@5.5.4)
 
   '@vue/compiler-core@3.4.31':
@@ -4638,10 +4622,10 @@ snapshots:
 
   astring@1.8.6: {}
 
-  autoprefixer@10.4.19(postcss@8.4.40):
+  autoprefixer@10.4.20(postcss@8.4.40):
     dependencies:
-      browserslist: 4.23.1
-      caniuse-lite: 1.0.30001640
+      browserslist: 4.23.3
+      caniuse-lite: 1.0.30001647
       fraction.js: 4.3.7
       normalize-range: 0.1.2
       picocolors: 1.0.1
@@ -4679,19 +4663,12 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  browserslist@4.23.1:
+  browserslist@4.23.3:
     dependencies:
-      caniuse-lite: 1.0.30001640
-      electron-to-chromium: 1.4.818
-      node-releases: 2.0.14
-      update-browserslist-db: 1.1.0(browserslist@4.23.1)
-
-  browserslist@4.23.2:
-    dependencies:
-      caniuse-lite: 1.0.30001646
+      caniuse-lite: 1.0.30001647
       electron-to-chromium: 1.5.4
       node-releases: 2.0.18
-      update-browserslist-db: 1.1.0(browserslist@4.23.2)
+      update-browserslist-db: 1.1.0(browserslist@4.23.3)
 
   buffer-from@1.1.2: {}
 
@@ -4715,7 +4692,7 @@ snapshots:
 
   caniuse-lite@1.0.30001640: {}
 
-  caniuse-lite@1.0.30001646: {}
+  caniuse-lite@1.0.30001647: {}
 
   ccount@2.0.1: {}
 
@@ -4915,8 +4892,6 @@ snapshots:
       esutils: 2.0.3
 
   eastasianwidth@0.2.0: {}
-
-  electron-to-chromium@1.4.818: {}
 
   electron-to-chromium@1.5.4: {}
 
@@ -5897,7 +5872,7 @@ snapshots:
 
   lines-and-columns@1.2.4: {}
 
-  lint-staged@15.2.7:
+  lint-staged@15.2.8:
     dependencies:
       chalk: 5.3.0
       commander: 12.1.0
@@ -5908,7 +5883,7 @@ snapshots:
       micromatch: 4.0.7
       pidtree: 0.6.0
       string-argv: 0.3.2
-      yaml: 2.4.5
+      yaml: 2.5.0
     transitivePeerDependencies:
       - supports-color
 
@@ -6475,8 +6450,6 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  node-releases@2.0.14: {}
-
   node-releases@2.0.18: {}
 
   normalize-path@3.0.0: {}
@@ -6742,13 +6715,13 @@ snapshots:
       hast-util-from-html: 2.0.1
       unified: 11.0.5
 
-  rehype-pretty-code@0.13.2(shiki@1.12.0):
+  rehype-pretty-code@0.13.2(shiki@1.12.1):
     dependencies:
       '@types/hast': 3.0.4
       hast-util-to-string: 3.0.0
       parse-numeric-range: 1.3.0
       rehype-parse: 9.0.0
-      shiki: 1.12.0
+      shiki: 1.12.1
       unified: 11.0.5
       unist-util-visit: 5.0.0
 
@@ -6955,9 +6928,9 @@ snapshots:
       '@shikijs/core': 1.10.3
       '@types/hast': 3.0.4
 
-  shiki@1.12.0:
+  shiki@1.12.1:
     dependencies:
-      '@shikijs/core': 1.12.0
+      '@shikijs/core': 1.12.1
       '@types/hast': 3.0.4
 
   side-channel@1.0.6:
@@ -7262,7 +7235,7 @@ snapshots:
 
   undici-types@5.26.5: {}
 
-  undici-types@6.11.1: {}
+  undici-types@6.13.0: {}
 
   unified@11.0.5:
     dependencies:
@@ -7306,15 +7279,9 @@ snapshots:
       unist-util-is: 6.0.0
       unist-util-visit-parents: 6.0.1
 
-  update-browserslist-db@1.1.0(browserslist@4.23.1):
+  update-browserslist-db@1.1.0(browserslist@4.23.3):
     dependencies:
-      browserslist: 4.23.1
-      escalade: 3.1.2
-      picocolors: 1.0.1
-
-  update-browserslist-db@1.1.0(browserslist@4.23.2):
-    dependencies:
-      browserslist: 4.23.2
+      browserslist: 4.23.3
       escalade: 3.1.2
       picocolors: 1.0.1
 
@@ -7361,24 +7328,24 @@ snapshots:
       unist-util-stringify-position: 4.0.0
       vfile-message: 4.0.2
 
-  vite@5.3.3(@types/node@22.0.2)(terser@5.31.3):
+  vite@5.3.3(@types/node@22.1.0)(terser@5.31.3):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.4.40
       rollup: 4.19.1
     optionalDependencies:
-      '@types/node': 22.0.2
+      '@types/node': 22.1.0
       fsevents: 2.3.3
       terser: 5.31.3
 
-  vitepress@1.3.1(@algolia/client-search@4.24.0)(@types/node@22.0.2)(@types/react@18.3.3)(postcss@8.4.40)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.14.0)(terser@5.31.3)(typescript@5.5.4):
+  vitepress@1.3.1(@algolia/client-search@4.24.0)(@types/node@22.1.0)(@types/react@18.3.3)(postcss@8.4.40)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.14.0)(terser@5.31.3)(typescript@5.5.4):
     dependencies:
       '@docsearch/css': 3.6.0
       '@docsearch/js': 3.6.0(@algolia/client-search@4.24.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.14.0)
       '@shikijs/core': 1.10.3
       '@shikijs/transformers': 1.10.3
       '@types/markdown-it': 14.1.1
-      '@vitejs/plugin-vue': 5.0.5(vite@5.3.3(@types/node@22.0.2)(terser@5.31.3))(vue@3.4.31(typescript@5.5.4))
+      '@vitejs/plugin-vue': 5.0.5(vite@5.3.3(@types/node@22.1.0)(terser@5.31.3))(vue@3.4.31(typescript@5.5.4))
       '@vue/devtools-api': 7.3.5
       '@vue/shared': 3.4.31
       '@vueuse/core': 10.11.0(vue@3.4.31(typescript@5.5.4))
@@ -7387,7 +7354,7 @@ snapshots:
       mark.js: 8.11.1
       minisearch: 7.0.2
       shiki: 1.10.3
-      vite: 5.3.3(@types/node@22.0.2)(terser@5.31.3)
+      vite: 5.3.3(@types/node@22.1.0)(terser@5.31.3)
       vue: 3.4.31(typescript@5.5.4)
     optionalDependencies:
       postcss: 8.4.40
@@ -7499,8 +7466,6 @@ snapshots:
   wrappy@1.0.2: {}
 
   yallist@3.1.1: {}
-
-  yaml@2.4.5: {}
 
   yaml@2.5.0: {}
 

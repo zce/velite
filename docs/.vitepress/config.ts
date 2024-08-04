@@ -68,7 +68,8 @@ export default defineConfig({
           { text: 'Code Highlighting', link: 'code-highlighting' },
           { text: 'Integration with Next.js', link: 'with-nextjs' },
           { text: 'Custom Loader', link: 'custom-loader' },
-          { text: 'Custom Schema', link: 'custom-schema' }
+          { text: 'Custom Schema', link: 'custom-schema' },
+          { text: 'Last Modified', link: 'last-modified' }
           // { text: 'Fast Refresh', link: 'fast-refresh' }
         ]
       },

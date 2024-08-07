@@ -179,9 +179,9 @@ echo '\npublic/static' >> .gitignore
 
 :::
 
-## Run Velite with Watch Mode
+## Run Velite in Watch Mode
 
-Run `velite dev` or `velite` with `--watch` option, then Velite will watch the contents files and rebuild them automatically when they are changed.
+When the `--watch` flag is used with `velite dev` or `velite`, Velite will watch the contents files and rebuild them automatically when they are changed.
 
 ::: code-group
 

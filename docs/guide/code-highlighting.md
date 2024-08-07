@@ -1,8 +1,6 @@
 # Code Highlighting
 
-Considering that not all content contains code, and that syntax highlighting often comes with custom styles, Velite doesn't want to subjectively determine the final presentation of your content. So we don't include built-in code highlighting features.
-
-If you think code highlighting is necessary for your content, you can implement if by referring to the following methods.
+Velite doesn't include built-in code highlighting features because not all content contains code, and that syntax highlighting often comes with custom styles. But you can easily implement it yourself with build-time plugins or client-side highlighters.
 
 ## rehype-pretty-code
 
@@ -38,7 +36,7 @@ export default defineConfig({
 })
 ```
 
-Add some necessary styles, such as:
+`rehype-pretty-code` creates the proper HTML structure for syntax highlighting, you can then add styles however you like. Here is an example stylesheet:
 
 ```css
 [data-rehype-pretty-code-figure] pre {
@@ -78,7 +76,7 @@ Add some necessary styles, such as:
 }
 ```
 
-refer to [examples](https://github.com/zce/velite/blob/main/examples/nextjs/velite.config.ts) for more details.
+Refer to [examples](https://github.com/zce/velite/blob/main/examples/nextjs/velite.config.ts) for more details.
 
 ## @shikijs/rehype
 
@@ -165,9 +163,9 @@ export default defineConfig({
 
 ## Client-side
 
-Code highlighting in Client-side. You can use [prismjs](https://prismjs.com) or [shiki](https://shiki.matsu.io) to highlight code in client-side.
+You can use [prismjs](https://prismjs.com) or [shiki](https://shiki.matsu.io) to highlight code on the client side. Client-side highlighting does not add build overhead to Velite.
 
-for example:
+For example:
 
 ```js
 import { codeToHtml } from 'https://esm.sh/shikiji'
@@ -179,6 +177,6 @@ Array.from(document.querySelectorAll('pre code[class*="language-"]')).map(async 
 
 ::: tip
 
-This method is most recommended if there are a large number of documents that need to be processed frequently. Because syntax highlighting and parsing is very time-consuming, it will greatly affect the construction speed of Velite.
+If you have a large of number of documents that need to be syntax highlighted, it is recommended to use the client-side method. Because syntax highlighting and parsing can be very time-consuming, and it will greatly affect the construction speed of Velite.
 
 :::

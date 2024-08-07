@@ -1,6 +1,6 @@
 # Define Collections
 
-Content collections are the best way to manage and author content in content-first applications. Velite help to organize and validate your your contents, and provide automatic TypeScript type-safety for all of your contents.
+Content collections are the best way to manage and author content in content-first applications. Velite helps you organize and validate your contents, and provides type-safety through automatic type generations.
 
 ## What is a Collection?
 
@@ -86,7 +86,7 @@ const site = defineCollection({
 
 Velite uses [Zod](https://zod.dev) to validate the content items in a collection. The `schema` option is used to define the Zod schema used to validate the content items in the collection.
 
-To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of the Zod library, and it supports all of the features of Zod. See [Zod's Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
+To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of Zod's `z` object, and it supports all of the features of Zod. See [Zod's Docs](https://zod.dev) for a complete documentation on how Zod works and what features are available.
 
 ```js
 import { z } from 'velite'
@@ -104,7 +104,7 @@ The schema is usually a `ZodObject`, validating the shape of the content item. B
 
 :::
 
-For more useful schemas, I recommend that you use [Velite extended schemas `s`](velite-schemas.md):
+For more complex schemas, I recommend that you use [Velite extended schemas `s`](velite-schemas.md):
 
 - `s.slug()`: validate slug format, unique in posts collection.
 - `s.isodate()`: format date string to ISO date string.
@@ -156,7 +156,7 @@ const posts = defineCollection({
 
 ### Transform Context Metadata
 
-The transform function can receive a second argument, which is the context object. This is useful for adding computed fields to the content items in a collection.
+The `transform()` function can receive a second argument, which is the context object. This is useful for adding computed fields to the content items in a collection.
 
 ```js
 const posts = defineCollection({
@@ -176,9 +176,9 @@ the type of `meta` is `ZodMeta`, which extends [`VeliteFile`](../reference/types
 
 ## Content Body
 
-Velite built-in Loader keep content raw body in `meta.content`, and plain text body in `meta.plain`.
+Velite's built-in loader keeps content's raw body in `meta.content`, and the plain text body in `meta.plain`.
 
-To extract the original content, you can customize a schema.
+To add them as a field, you can use a custom schema.
 
 ```js
 const posts = defineCollection({
@@ -237,11 +237,11 @@ Velite can extract excerpt from content files. This is useful for adding compute
 ```js
 const posts = defineCollection({
   schema: s.object({
-    excerpt: s.excerpt() // excerpt of markdown content
+    excerpt: s.excerpt({ length: 200 }) // excerpt of the markdown body
   })
 })
 ```
 
 #### Reference
 
-- [`s.excerpt()`](velite-schemas.md#s-excerpt)
+- [`s.excerpt(options)`](velite-schemas.md#s-excerpt)

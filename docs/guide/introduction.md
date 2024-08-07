@@ -2,7 +2,7 @@
 
 ::: warning
 
-🚧 this documentation is not yet complete currently. but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+🚧 This documentation is not yet complete currently. but the functionality is mostly stable, although there is still a possibility of significant changes being made.
 
 However, I have provided some [examples](https://github.com/zce/velite/tree/main/examples) for your consideration.
 
@@ -10,7 +10,7 @@ However, I have provided some [examples](https://github.com/zce/velite/tree/main
 
 ## What is Velite?
 
-Velite is a tool for building type-safe data layer, turn Markdown / MDX, YAML, JSON, or other files into app's data layer with Zod schema.
+Velite is a tool for building type-safe data layer, turns Markdown / MDX, YAML, JSON, or other files into app's data layer with Zod schema.
 
 ![Velite Workflow](/assets/flow-dark.svg#dark 'Velite Workflow')
 ![Velite Workflow](/assets/flow.svg#light 'Velite Workflow')
@@ -24,7 +24,7 @@ Velite is a tool for building type-safe data layer, turn Markdown / MDX, YAML, J
 ## Key Features
 
 - **Easy to use**: Move your contents into `content` folder, define collections schema, run `velite`, then use the output data in your application.
-- **Type-safe**: Contents schema validation by [Zod](https://zod.dev), and generate type inference for TypeScript.
+- **Type-safe**: Contents schema validation by [Zod](https://zod.dev), and generate type definitions for TypeScript.
 - **Framework Agnostic**: JSON & Entry & DTS output, out of the box support for any JavaScript framework or library.
 - **Light-weight**: Choose more native APIs instead of bloated NPM modules, less runtime dependencies, so it is fast and efficiently.
 - **Still powerful**: Built-in Markdown / MDX, YAML, JSON support, relative files & images processing, schema validation, etc.
@@ -51,13 +51,13 @@ You can try Velite directly in your browser on StackBlitz, It runs Velite direct
 
 ### Type-Safe Contents
 
-Velite validates your contents by [Zod](https://zod.dev) schema, and generates type inference for TypeScript. so you can use the output data in your application with confidence.
+Velite validates your contents by [Zod](https://zod.dev) schema, and generates type definitions for TypeScript. so you can use the output data in your application with confidence.
 
 ### Full Type inference
 
 <p><video src="/assets/type-inference@2x.mp4" loop muted autoplay /></p>
 
-- auto-generate TypeScript type inference for each collection
+- auto-generate TypeScript type definitions for each collection
 - support IDE IntelliSense, auto-completion & type checking & refactoring & etc.
 
 ### Full Controllable Content Transform

@@ -9,7 +9,7 @@ Velite supports MDX out of the box. You can use MDX to write your content, and V
 
 ## Getting Started
 
-For example, you have the following content structure:
+For example, suppose you have the following content structure:
 
 ```diff {2,3,4}
 project-root
@@ -21,7 +21,7 @@ project-root
 └── velite.config.js
 ```
 
-In your `./content/posts/hello-world.mdx`:
+The`./content/posts/hello-world.mdx` document is a MDX document with the following content:
 
 ```mdx
 ---
@@ -39,7 +39,7 @@ flood conditions in many of the nearby rivers.
 <Chart year={year} color="#fcb32c" />
 ```
 
-In your `./velite.config.js`:
+Use the `s.mdx()` schema to add the compiled MDX code to your content collection.
 
 ```js {10}
 import { defineConfig, s } from 'velite'
@@ -75,7 +75,7 @@ By default, Velite will compile the MDX content into a function-body string, whi
 
 ## Rendering MDX Content
 
-First of all, you can create a component to render the MDX content:
+First, you can create a generic component for rendering the compiled mdx code. It should accept the code and a list of components that are used in the MDX content.
 
 `./components/mdx-content.tsx`:
 
@@ -128,7 +128,7 @@ export default function Post({ params: { slug } }) {
 
 ### How to import components in MDX?
 
-Velite's built-in `s.mdx()` schema does not support importing components in MDX. The main reason is that I don't want a lot of repetition and redundancy in the output code.
+You don't need to, since Velite's `s.mdx()` schema does not bundle those components at build time. There is no need to construct a import tree. This can help reduce output size for your contents.
 
 For example, suppose you extract a common component for multiple MDXs and import the component in these MDXs.
 
@@ -167,9 +167,9 @@ import { Callout } from '../components/callout'
 
 :::
 
-If Velite uses bundling to compile MDX, the `Callout` component will be bundled into each MDX file, which will cause a lot of redundancy in the output code.
+If Velite uses a bundler to comiple your MDX, the `Callout` component will be bundled into each MDX file, which will cause a lot of redundancy in the output code.
 
-If you want to use components in MDX, you can use the following workaround:
+Instead, simply use whatever components you want in your MDX files without a import.
 
 ::: code-group
 
@@ -212,7 +212,7 @@ export default function Post({ params: { slug } }) {
 }
 ```
 
-or Global components:
+You can also add global components so that they are available to all MDX files.
 
 ```tsx {3,7}
 import * as runtime from 'react/jsx-runtime'
@@ -240,9 +240,9 @@ export const MDXContent = ({ code, components }: MDXProps) => {
 }
 ```
 
-### How to bundle MDX?
+### What if I want to bundle MDX?
 
-If your scenario can ignore the size of data and duplication of code, bundling MDX is really a better choice because it has better portability.
+If you can make do with the increased output size, bundling MDX can be a good option for better portability.
 
 You can install the following packages to bundle MDX:
 

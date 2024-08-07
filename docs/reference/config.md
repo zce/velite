@@ -25,7 +25,7 @@ Config file supports TypeScript & ESM & CommonJS. you can use the full power of 
 
 ## Typed Config
 
-For the better experience, Velite provides a `defineConfig` identity function to define the config file type.
+For better typing, Velite provides a `defineConfig` identity function to define the config file type.
 
 ```js
 import { defineConfig } from 'velite'

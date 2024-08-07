@@ -5,15 +5,21 @@
 ### Based on file stat
 
 ```ts
-const timestamp = () =>
-  s.custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta, addIssue }) => {
-    if (value != null) {
-      addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the file modified timestamp' })
-    }
+import { stat } from 'fs/promises'
+import { defineSchema } from 'velite'
 
-    const stats = await stat(meta.path)
-    return stats.mtime.toISOString()
-  })
+const timestamp = defineSchema(() =>
+  s
+    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
+    .transform<string>(async (value, { meta, addIssue }) => {
+      if (value != null) {
+        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the file modified timestamp' })
+      }
+
+      const stats = await stat(meta.path)
+      return stats.mtime.toISOString()
+    })
+)
 
 // use it in your schema
 const posts = defineCollection({
@@ -28,16 +34,23 @@ const posts = defineCollection({
 ### Based on git timestamp
 
 ```ts
+import { exec } from 'child_process'
+import { promisify } from 'util'
+import { defineSchema } from 'velite'
+
 const execAsync = promisify(exec)
 
-const timestamp = () =>
-  s.custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta, addIssue }) => {
-    if (value != null) {
-      addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
-    }
-    const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
-    return new Date(stdout).toISOString()
-  })
+const timestamp = defineSchema(() =>
+  s
+    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
+    .transform<string>(async (value, { meta, addIssue }) => {
+      if (value != null) {
+        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
+      }
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
+      return new Date(stdout).toISOString()
+    })
+)
 
 // use it in your schema
 const posts = defineCollection({

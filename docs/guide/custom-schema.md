@@ -2,7 +2,7 @@
 
 > Schema is the core of Velite. It defines the structure and type of your content and validates it.
 >
-> refer to [Velite Schemas](velite-schemas.md) for more information about built-in schema.
+> Refer to [Velite Schemas](velite-schemas.md) for more information about built-in schema.
 
 Velite supports custom schema. A schema is a JavaScript function that returns a [Zod](https://zod.dev) schema object.
 
@@ -33,7 +33,7 @@ export const hello = defineSchema(() =>
 )
 ```
 
-refer to [Zod documentation](https://zod.dev) for more information about Zod.
+Refer to [Zod documentation](https://zod.dev) for more information about Zod.
 
 ## Define a Transformation Schema
 

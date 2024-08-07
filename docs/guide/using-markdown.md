@@ -7,7 +7,7 @@ Markdown is a lightweight markup language with plain text formatting syntax. It 
 
 ::: tip Markdown or MDX
 
-Markdown is top-level supported in Velite, Although we also support MDX, I think that MDX is not the best choice for content creators. Although it is powerful and has stronger programmability, it is easy to lose the essence of writing and recording, and become addicted to technology.
+Markdown has top-level support in Velite. Although we also support MDX, I think that MDX is not the best choice for content creators. Although it is powerful and has stronger programmability, it is easy to lose the essence of writing and recording, and become addicted to technology.
 
 - **Portable**: Markdown is portable, you can use it anywhere, even in the terminal.
 - **Simple**: Markdown is simple, you can learn it in 10 minutes, don't need to spend a lot of time to learn React.

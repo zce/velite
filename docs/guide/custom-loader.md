@@ -1,6 +1,6 @@
 # Custom Loader
 
-built-in loaders are:
+Built-in loaders are:
 
 - `matter-loader`: parse frontmatter and provide content and data
 - `json-loader`: parse document as json

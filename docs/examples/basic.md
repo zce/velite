@@ -52,7 +52,7 @@ basic
 
 ```shell
 $ npm install # install dependencies
-$ npm run dev # run build with watch mode
+$ npm run dev # run build in watch mode
 $ npm run build # build content by velite
 ```
 

@@ -23,7 +23,7 @@ import { s } from 'velite'
 
 `string => string`
 
-format date string to ISO date string.
+Format date string to ISO date string.
 
 ```ts
 date: s.isodate()

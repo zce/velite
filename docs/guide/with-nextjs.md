@@ -2,7 +2,7 @@
 
 Velite is a framework agnostic library, it can be used in any JavaScript framework or library, including Next.js.
 
-Here is some recipes for help you better integrate Velite with Next.js.
+Here are some recipes for help you better integrate Velite with Next.js.
 
 ## 🎊 Start Velite with Next.js Config 🆕
 
@@ -33,7 +33,7 @@ Note that this approach uses top-level await, so it only supports `next.config.m
 
 You can use the Next.js plugin to call Velite's programmatic API to start Velite with better integration.
 
-in your `next.config.js`:
+In `next.config.js`:
 
 ::: code-group
 

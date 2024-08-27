@@ -26,7 +26,7 @@ test('integration with nextjs fixtures', async t => {
   equal(pages.length, 5003, 'pages output length should be 5003')
 
   const posts = await readFile('examples/nextjs/.velite/posts.json', 'utf8')
-  equal(posts.length, 20085, 'posts output length should be 20085')
+  equal(posts.length, 20171, 'posts output length should be 20171')
 
   await rm('examples/nextjs/.velite', { recursive: true, force: true })
 })

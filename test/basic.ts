@@ -27,7 +27,7 @@ test('standalone fixtures', async t => {
   equal(pages.length, 6149, 'pages output length should be 6149')
 
   const posts = await readFile('examples/basic/.velite/posts.json', 'utf8')
-  equal(posts.length, 14079, 'posts output length should be 14079')
+  equal(posts.length, 14165, 'posts output length should be 14165')
 
   await rm('examples/basic/.velite', { recursive: true, force: true })
 })

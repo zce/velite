@@ -1,3 +1,5 @@
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
 import rehypePrettyCode from 'rehype-pretty-code'
 import { defineCollection, defineConfig, s } from 'velite'
 
@@ -17,6 +19,19 @@ const meta = s
     keywords: s.array(s.string()).optional()
   })
   .default({})
+
+const execAsync = promisify(exec)
+
+const timestamp = () =>
+  s
+    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
+    .transform<string>(async (value, { meta, addIssue }) => {
+      if (value != null) {
+        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
+      }
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
+      return new Date(stdout).toISOString()
+    })
 
 const options = defineCollection({
   name: 'Options',
@@ -81,7 +96,7 @@ const posts = defineCollection({
       title: s.string().max(99),
       slug: s.slug('post'),
       date: s.isodate(),
-      updated: s.isodate().optional(),
+      updated: timestamp(),
       cover: s.image().optional(),
       video: s.file().optional(),
       description: s.string().max(999).optional(),

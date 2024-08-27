@@ -1,5 +1,7 @@
 // @ts-check
 
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
 import { defineConfig, s } from 'velite'
 
 const slugify = input =>
@@ -18,6 +20,18 @@ const meta = s
     keywords: s.array(s.string()).optional()
   })
   .default({})
+
+const execAsync = promisify(exec)
+const timestamp = () =>
+  s
+    .custom(i => i === undefined || typeof i === 'string')
+    .transform(async (value, { meta, addIssue }) => {
+      if (value != null) {
+        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
+      }
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
+      return new Date(stdout).toISOString()
+    })
 
 export default defineConfig({
   root: 'content',
@@ -89,7 +103,7 @@ export default defineConfig({
           title: s.string().max(99),
           slug: s.path(),
           date: s.isodate(),
-          updated: s.isodate().optional(),
+          updated: timestamp(),
           cover: s.image().optional(),
           video: s.file().optional(),
           description: s.string().max(999).optional(),

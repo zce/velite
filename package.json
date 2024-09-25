@@ -51,7 +51,7 @@
     "@types/micromatch": "^4.0.9",
     "@types/node": "^20.16.5",
     "@zce/prettier-config": "^0.4.0",
-    "chokidar": "^3.6.0",
+    "chokidar": "^4.0.0",
     "fast-glob": "^3.3.2",
     "hast-util-raw": "^9.0.4",
     "hast-util-to-string": "^3.0.0",

@@ -1,7 +1,7 @@
-import { mkdir, rm } from 'node:fs/promises'
-import { join, normalize } from 'node:path'
 import glob from 'fast-glob'
 import micromatch from 'micromatch'
+import { mkdir, rm } from 'node:fs/promises'
+import { join, normalize } from 'node:path'
 import { reporter } from 'vfile-reporter'
 
 import { assets } from './assets'
@@ -241,6 +241,12 @@ export interface Options {
    * @default false
    */
   strict?: boolean
+  /**
+   * If true, preserves the extension of the `velite.config` file in the output `index.d.ts` file.
+   * Useful if `"moduleResolution": "NodeNext"` where extension-less files aren't supported.
+   * @default false
+   */
+  preserveConfigExtension?: boolean
 }
 
 /**
@@ -248,7 +254,7 @@ export interface Options {
  * @param options build options
  */
 export const build = async (options: Options = {}): Promise<Record<string, unknown>> => {
-  const { config: configFile, clean, logLevel, strict } = options
+  const { config: configFile, clean, logLevel, strict, preserveConfigExtension = false } = options
 
   logLevel != null && logger.set(logLevel)
 
@@ -272,7 +278,7 @@ export const build = async (options: Options = {}): Promise<Record<string, unkno
   await mkdir(output.data, { recursive: true })
   await mkdir(output.assets, { recursive: true })
 
-  await outputEntry(output.data, configPath, collections)
+  await outputEntry(output.data, configPath, collections, preserveConfigExtension)
 
   logger.log('initialized', begin)
 

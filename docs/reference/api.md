@@ -101,6 +101,12 @@ interface Options {
    * @default 'info'
    */
   logLevel?: LogLevel
+  /**
+   * If true, preserves the extension of the `velite.config.[ts|js]` file in the output `index.d.ts` file.
+   * Useful if `"moduleResolution": "NodeNext"` where extension-less files aren't supported.
+   * @default false
+   */
+  preserveConfigExtension?: boolean
 }
 ```
 

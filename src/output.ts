@@ -28,14 +28,18 @@ export const emit = async (path: string, content: string, log?: string): Promise
  * @param dest output destination directory
  * @param configPath resolved config file path
  * @param collections collection options
+ * @param preserveConfigExtension if true, preserves the extension of the `velite.config` file in the output `index.d.ts` file.
  */
-export const outputEntry = async (dest: string, configPath: string, collections: Collections): Promise<void> => {
+export const outputEntry = async (dest: string, configPath: string, collections: Collections, preserveConfigExtension: boolean = false): Promise<void> => {
   const begin = performance.now()
 
   // generate entry according to `config.collections`
-  const configModPath = relative(dest, configPath)
+  let configModPath = relative(dest, configPath)
     .replace(/\\/g, '/') // replace windows path separator
-    .replace(/\.[mc]?[jt]s$/i, '') // remove extension
+
+  if (!preserveConfigExtension) {
+	configModPath = configModPath.replace(/\.[mc]?[jt]s$/i, '') // remove extension
+  }
 
   const entry: string[] = []
   const dts: string[] = [`import config from '${configModPath}'\n`]

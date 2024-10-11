@@ -48,7 +48,7 @@ const timestamp = defineSchema(() =>
         addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
       }
       const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
-      return new Date(stdout).toISOString()
+      return new Date(stdout || Date.now()).toISOString()
     })
 )
 

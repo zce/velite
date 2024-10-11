@@ -1,7 +1,6 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { join, normalize } from 'node:path'
 import glob from 'fast-glob'
-import micromatch from 'micromatch'
 import { reporter } from 'vfile-reporter'
 
 import { assets } from './assets'
@@ -10,6 +9,7 @@ import { VeliteFile } from './file'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
 import { getParsedType, ParseContext } from './schemas/zod'
+import { matchPatterns } from './utils'
 
 import type { LogLevel } from './logger'
 import type { Schema, ZodMeta } from './schemas'
@@ -98,7 +98,7 @@ const resolve = async (config: Config, changed?: string): Promise<Record<string,
 
   const entries = await Promise.all(
     Object.entries(collections).map(async ([name, { pattern, schema }]): Promise<[string, VeliteFile[]]> => {
-      if (changed != null && !micromatch.contains(changed, pattern) && resolved.has(name)) {
+      if (changed != null && !matchPatterns(changed, pattern, root) && resolved.has(name)) {
         // skip collection if changed file not match
         logger.log(`skipped resolve '${name}', using previous resolved`)
         return [name, resolved.get(name)!]
@@ -176,35 +176,36 @@ const watch = async (config: Config) => {
 
   logger.info(`watching for changes in '${root}'`)
 
-  const files = Object.values(collections).flatMap(({ pattern }) => pattern)
-  files.push(...configImports) // watch config file and its dependencies
+  const patterns = Object.values(collections).flatMap(({ pattern }) => pattern)
 
-  const watcher = watch(files, {
+  const watcher = watch(['.', ...configImports], {
     cwd: root,
-    ignored: /(^|[\/\\])[\._]./, // ignore dot & underscore files
-    ignoreInitial: true, // ignore initial scan
+    ignoreInitial: true,
     awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 }
   }).on('all', async (event, filename) => {
-    if (event === 'addDir' || event === 'unlinkDir') return // ignore dir changes
+    if (event === 'addDir' || event === 'unlinkDir') return
     if (filename == null) return
 
-    filename = join(root, filename)
-
     try {
-      // remove changed file cache
-      for (const [key, value] of config.cache.entries()) {
-        if (value === filename) config.cache.delete(key)
-      }
+      const fullpath = join(root, filename)
 
-      if (configImports.includes(filename)) {
+      if (configImports.includes(fullpath)) {
         logger.info('velite config changed, restarting...')
         watcher.close()
         return build({ config: config.configPath, clean: false, watch: true })
       }
 
+      // skip if filename not match any collection pattern
+      if (!matchPatterns(filename, patterns)) return
+
+      // remove changed file cache
+      for (const [key, value] of config.cache.entries()) {
+        if (value === fullpath) config.cache.delete(key)
+      }
+
       const begin = performance.now()
-      logger.info(`changed: '${filename}', rebuilding...`)
-      await resolve(config, filename)
+      logger.info(`changed: '${fullpath}', rebuilding...`)
+      await resolve(config, fullpath)
       logger.info(`rebuild finished`, begin)
     } catch (err) {
       logger.warn(err)

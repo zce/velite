@@ -127,6 +127,13 @@ The extensions blacklist of the assets, such as `['.md', '.yml']`, will be ignor
 
 Whether to clean the output directories before build.
 
+### `output.format`
+
+- Type: `'esm' | 'cjs'`
+- Default: `'esm'`
+
+The output format of the entry file.
+
 ## `collections`
 
 - Type: `{ [name: string]: Collection }`

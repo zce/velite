@@ -108,7 +108,8 @@ export const resolveConfig = async (path?: string, options: { strict?: boolean; 
       assets: resolve(cwd, loadedConfig.output?.assets ?? 'public/static'),
       base: loadedConfig.output?.base ?? '/static/',
       name: loadedConfig.output?.name ?? '[name]-[hash:8].[ext]',
-      clean: options.clean ?? loadedConfig.output?.clean ?? false
+      clean: options.clean ?? loadedConfig.output?.clean ?? false,
+      format: loadedConfig.output?.format ?? 'esm'
     },
     loaders: [...(loadedConfig.loaders ?? []), ...loaders],
     strict: options.strict ?? loadedConfig.strict ?? false

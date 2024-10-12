@@ -3,7 +3,9 @@ import { join, relative } from 'node:path'
 
 import { logger } from './logger'
 
-import type { Collections } from './types'
+import type { Collections, Output } from './types'
+
+const isProduction = process.env.NODE_ENV === 'production'
 
 const emitted = new Map<string, string>()
 
@@ -29,20 +31,21 @@ export const emit = async (path: string, content: string, log?: string): Promise
  * @param configPath resolved config file path
  * @param collections collection options
  */
-export const outputEntry = async (dest: string, configPath: string, collections: Collections): Promise<void> => {
+export const outputEntry = async (dest: string, format: Output['format'], configPath: string, collections: Collections): Promise<void> => {
   const begin = performance.now()
 
-  // generate entry according to `config.collections`
-  const configModPath = relative(dest, configPath)
-    .replace(/\\/g, '/') // replace windows path separator
-    .replace(/\.[mc]?[jt]s$/i, '') // remove extension
+  const configModPath = relative(dest, configPath).replace(/\\/g, '/')
 
   const entry: string[] = []
-  const dts: string[] = [`import config from '${configModPath}'\n`]
+  const dts: string[] = [`import type config from '${configModPath}'\n`]
   dts.push('type Collections = typeof config.collections\n')
 
   Object.entries(collections).map(([name, collection]) => {
-    entry.push(`export { default as ${name} } from './${name}.json'`)
+    if (format === 'cjs') {
+      entry.push(`exports.${name} = require('./${name}.json')`)
+    } else {
+      entry.push(`export { default as ${name} } from './${name}.json'`)
+    }
     dts.push(`export type ${collection.name} = Collections['${name}']['schema']['_output']`)
     dts.push(`export declare const ${name}: ${collection.name + (collection.single ? '' : '[]')}\n`)
   })
@@ -71,7 +74,8 @@ export const outputData = async (dest: string, result: Record<string, any>): Pro
       if (data == null) return
       const target = join(dest, name + '.json')
       // TODO: output each record separately to a single file to improve fast refresh performance in app
-      await emit(target, JSON.stringify(data, null, 2), `wrote '${target}' with ${data.length ?? 1} ${name}`)
+      const content = isProduction ? JSON.stringify(data) : JSON.stringify(data, null, 2)
+      await emit(target, content, `wrote '${target}' with ${data.length ?? 1} ${name}`)
       logs.push(`${data.length ?? 1} ${name}`)
     })
   )

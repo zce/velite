@@ -141,6 +141,11 @@ export interface Output {
    * @default false
    */
   clean: boolean
+  /**
+   * Output entry file format
+   * @default 'esm'
+   */
+  format: 'esm' | 'cjs'
 }
 
 /**

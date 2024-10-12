@@ -239,6 +239,8 @@ console.log(posts) // => [{ title: 'Hello world', slug: 'hello-world', ... }, ..
 
 Velite is **Framework Agnostic**, you can use it output with any framework or library you like.
 
+From version `0.2.0`, Velite will output the entry file in the format you specified in the config. so you can choose the format you like.
+
 :::
 
 For more information about using collections, see [Using Collections](using-collections.md).

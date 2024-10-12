@@ -273,7 +273,7 @@ export const build = async (options: Options = {}): Promise<Record<string, unkno
   await mkdir(output.data, { recursive: true })
   await mkdir(output.assets, { recursive: true })
 
-  await outputEntry(output.data, configPath, collections)
+  await outputEntry(output.data, output.format, configPath, collections)
 
   logger.log('initialized', begin)
 

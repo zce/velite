@@ -12,7 +12,7 @@ test('standalone fixtures', async t => {
   equal(entry.length, 288, 'entry output length should be 288')
 
   const dts = await readFile('examples/basic/.velite/index.d.ts', 'utf8')
-  equal(dts.length, 628, 'dts output length should be 628')
+  equal(dts.length, 636, 'dts output length should be 636')
 
   const options = await readFile('examples/basic/.velite/options.json', 'utf8')
   equal(options.length, 1121, 'options output length should be 1121')
@@ -20,14 +20,14 @@ test('standalone fixtures', async t => {
   const categories = await readFile('examples/basic/.velite/categories.json', 'utf8')
   equal(categories.length, 880, 'categories output length should be 880')
 
-  const tags = await readFile('examples/basic/.velite/tags.json', 'utf8')
-  equal(tags.length, 315, 'tags output length should be 315')
-
   const pages = await readFile('examples/basic/.velite/pages.json', 'utf8')
   equal(pages.length, 6182, 'pages output length should be 6182')
 
   const posts = await readFile('examples/basic/.velite/posts.json', 'utf8')
   equal(posts.length, 14165, 'posts output length should be 14165')
+
+  const tags = await readFile('examples/basic/.velite/tags.json', 'utf8')
+  equal(tags.length, 315, 'tags output length should be 315')
 
   await rm('examples/basic/.velite', { recursive: true, force: true })
 })

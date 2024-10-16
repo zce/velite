@@ -64,7 +64,7 @@ export interface TocTree {
 
 const parseParagraph = (node: Paragraph): Omit<TocEntry, 'items'> => {
   if (node.type !== 'paragraph') return { title: '', url: '' }
-  let extraction = { title: '', url: '' }
+  const extraction = { title: '', url: '' }
 
   visit(node, 'link', (link: Link) => {
     extraction.url = link.url

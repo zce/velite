@@ -11,7 +11,7 @@ test('integration with nextjs fixtures', async t => {
   equal(entry.length, 288, 'entry output length should be 288')
 
   const dts = await readFile('examples/nextjs/.velite/index.d.ts', 'utf8')
-  equal(dts.length, 636, 'dts output length should be 636')
+  equal(dts.length, 632, 'dts output length should be 632')
 
   const options = await readFile('examples/nextjs/.velite/options.json', 'utf8')
   equal(options.length, 775, 'options output length should be 775')

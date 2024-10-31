@@ -34,9 +34,9 @@ export { default as others } from './others.json'
 ```
 
 ```js [index.d.ts]
-import config from '../velite.config'
+import type __vc from '../velite.config.js'
 
-type Collections = typeof config.collections
+type Collections = typeof __vc.collections
 
 export type Post = Collections['posts']['schema']['_output']
 export declare const posts: Post[]

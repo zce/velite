@@ -37,8 +37,8 @@ export const outputEntry = async (dest: string, format: Output['format'], config
   const configModPath = relative(dest, configPath).replace(/\\/g, '/')
 
   const entry: string[] = []
-  const dts: string[] = [`import type config from '${configModPath}'\n`]
-  dts.push('type Collections = typeof config.collections\n')
+  const dts: string[] = [`import type __vc from '${configModPath}'\n`]
+  dts.push('type Collections = typeof __vc.collections\n')
 
   Object.entries(collections).map(([name, collection]) => {
     if (format === 'cjs') {

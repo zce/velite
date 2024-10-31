@@ -3,32 +3,17 @@ import { notFound } from 'next/navigation'
 
 import { posts } from '#site/content'
 
-import type { Metadata } from 'next'
-
 interface PostProps {
-  params: {
-    slug: string
-  }
+  params: Promise<{ slug: string }>
 }
 
 function getPostBySlug(slug: string) {
   return posts.find(post => post.slug === slug)
 }
 
-export function generateMetadata({ params }: PostProps): Metadata {
-  const post = getPostBySlug(params.slug)
-  if (post == null) return {}
-  return { title: post.title, description: post.description }
-}
-
-export function generateStaticParams(): PostProps['params'][] {
-  return posts.map(post => ({
-    slug: post.slug
-  }))
-}
-
-export default function PostPage({ params }: PostProps) {
-  const post = getPostBySlug(params.slug)
+export default async function PostPage({ params }: PostProps) {
+  const { slug } = await params
+  const post = getPostBySlug(slug)
 
   if (post == null) notFound()
 
@@ -41,4 +26,15 @@ export default function PostPage({ params }: PostProps) {
       <div className="prose" dangerouslySetInnerHTML={{ __html: post.content }}></div>
     </article>
   )
+}
+
+export async function generateMetadata({ params }: PostProps) {
+  const { slug } = await params
+  const post = getPostBySlug(slug)
+  if (post == null) return {}
+  return { title: post.title, description: post.description }
+}
+
+export function generateStaticParams() {
+  return posts.map(post => ({ slug: post.slug }))
 }

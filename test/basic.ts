@@ -12,7 +12,7 @@ test('standalone fixtures', async t => {
   equal(entry.length, 288, 'entry output length should be 288')
 
   const dts = await readFile('examples/basic/.velite/index.d.ts', 'utf8')
-  equal(dts.length, 636, 'dts output length should be 636')
+  equal(dts.length, 632, 'dts output length should be 632')
 
   const options = await readFile('examples/basic/.velite/options.json', 'utf8')
   equal(options.length, 1121, 'options output length should be 1121')

@@ -20,9 +20,11 @@
   overflow: hidden;
 }
 
-html:not(.dark) .vp-doc img[src$='#dark']{
+html:not(.dark) .vp-doc img[src$='#dark'] {
   display: none;
 }
+
+.light .vp-doc img[src$='#dark'] {
   display: none;
 }
 

@@ -1,7 +1,7 @@
 import Link from 'next/link'
+import { ThemeProvider } from 'next-themes'
 
 import { ModeToggle } from '@/components/mode-toggle'
-import { ThemeProvider } from '@/components/theme-provider'
 
 import './globals.css'
 

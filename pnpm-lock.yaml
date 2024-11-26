@@ -44,7 +44,7 @@ importers:
         version: 3.0.1
       '@zce/prettier-config':
         specifier: ^0.4.0
-        version: 0.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.3.3)
+        version: 0.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.4.0)
       chokidar:
         specifier: ^4.0.1
         version: 4.0.1
@@ -74,7 +74,7 @@ importers:
         version: 4.0.2
       prettier:
         specifier: ^3.3.3
-        version: 3.3.3
+        version: 3.4.0
       rehype-raw:
         specifier: ^7.0.0
         version: 7.0.0
@@ -128,7 +128,7 @@ importers:
     devDependencies:
       vitepress:
         specifier: latest
-        version: 1.5.0(@algolia/client-search@5.15.0)(@types/node@22.9.3)(@types/react@18.3.12)(postcss@8.4.49)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(terser@5.36.0)(typescript@5.7.2)
+        version: 1.5.0(@algolia/client-search@5.15.0)(@types/node@22.10.0)(@types/react@18.3.12)(postcss@8.4.49)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(terser@5.36.0)(typescript@5.7.2)
 
   examples/basic:
     devDependencies:
@@ -143,7 +143,7 @@ importers:
         version: 0.5.15(tailwindcss@3.4.15)
       '@types/node':
         specifier: latest
-        version: 22.9.3
+        version: 22.10.0
       '@types/react':
         specifier: latest
         version: 18.3.12
@@ -1202,6 +1202,9 @@ packages:
 
   '@types/ms@0.7.34':
     resolution: {integrity: sha512-nG96G3Wp6acyAgJqGasjODb+acrI7KltPiRxzHPXnP3NgI28bpQDRv53olbqGXbfcgF5aiiHmO3xpwEpS5Ld9g==}
+
+  '@types/node@22.10.0':
+    resolution: {integrity: sha512-XC70cRZVElFHfIUB40FgZOBbgJYFKKMa5nb9lxcwYstFG/Mi+/Y0bGS+rs6Dmhmkpq4pnNiLiuZAbc02YCOnmA==}
 
   '@types/node@22.9.3':
     resolution: {integrity: sha512-F3u1fs/fce3FFk+DAxbxc78DF8x0cY09RRL8GnXLmkJ1jvx3TtPdWoTT5/NiYfI5ASqXBmfqJi9dZ3gxMx4lzw==}
@@ -2980,8 +2983,8 @@ packages:
       prettier-plugin-svelte:
         optional: true
 
-  prettier@3.3.3:
-    resolution: {integrity: sha512-i2tDNA0O5IrMO757lfrdQZCc2jPNDVntV0m/+4whiDfWaTKfMNgR7Qz0NAeGz/nRqF4m5/6CLzbP4/liHt12Ew==}
+  prettier@3.4.0:
+    resolution: {integrity: sha512-/OXNZcLyWkfo13ofOW5M7SLh+k5pnIs07owXK2teFpnfaOEcycnSy7HQxldaVX1ZP/7Q8oO1eDuQJNwbomQq5Q==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -3427,6 +3430,9 @@ packages:
 
   undici-types@6.19.8:
     resolution: {integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==}
+
+  undici-types@6.20.0:
+    resolution: {integrity: sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==}
 
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
@@ -4034,13 +4040,13 @@ snapshots:
 
   '@humanwhocodes/object-schema@2.0.3': {}
 
-  '@ianvs/prettier-plugin-sort-imports@4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.3.3)':
+  '@ianvs/prettier-plugin-sort-imports@4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.4.0)':
     dependencies:
       '@babel/generator': 7.26.2
       '@babel/parser': 7.26.2
       '@babel/traverse': 7.25.9
       '@babel/types': 7.26.0
-      prettier: 3.3.3
+      prettier: 3.4.0
       semver: 7.6.3
     optionalDependencies:
       '@vue/compiler-sfc': 3.5.13
@@ -4412,6 +4418,10 @@ snapshots:
 
   '@types/ms@0.7.34': {}
 
+  '@types/node@22.10.0':
+    dependencies:
+      undici-types: 6.20.0
+
   '@types/node@22.9.3':
     dependencies:
       undici-types: 6.19.8
@@ -4525,9 +4535,9 @@ snapshots:
 
   '@ungap/structured-clone@1.2.0': {}
 
-  '@vitejs/plugin-vue@5.2.0(vite@5.4.11(@types/node@22.9.3)(terser@5.36.0))(vue@3.5.13(typescript@5.7.2))':
+  '@vitejs/plugin-vue@5.2.0(vite@5.4.11(@types/node@22.10.0)(terser@5.36.0))(vue@3.5.13(typescript@5.7.2))':
     dependencies:
-      vite: 5.4.11(@types/node@22.9.3)(terser@5.36.0)
+      vite: 5.4.11(@types/node@22.10.0)(terser@5.36.0)
       vue: 3.5.13(typescript@5.7.2)
 
   '@vue/compiler-core@3.5.13':
@@ -4632,10 +4642,10 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@zce/prettier-config@0.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.3.3)':
+  '@zce/prettier-config@0.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.4.0)':
     dependencies:
-      '@ianvs/prettier-plugin-sort-imports': 4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.3.3)
-      prettier-plugin-tailwindcss: 0.6.9(@ianvs/prettier-plugin-sort-imports@4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.3.3))(prettier@3.3.3)
+      '@ianvs/prettier-plugin-sort-imports': 4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.4.0)
+      prettier-plugin-tailwindcss: 0.6.9(@ianvs/prettier-plugin-sort-imports@4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.4.0))(prettier@3.4.0)
     transitivePeerDependencies:
       - '@prettier/plugin-pug'
       - '@shopify/prettier-plugin-liquid'
@@ -6758,13 +6768,13 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier-plugin-tailwindcss@0.6.9(@ianvs/prettier-plugin-sort-imports@4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.3.3))(prettier@3.3.3):
+  prettier-plugin-tailwindcss@0.6.9(@ianvs/prettier-plugin-sort-imports@4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.4.0))(prettier@3.4.0):
     dependencies:
-      prettier: 3.3.3
+      prettier: 3.4.0
     optionalDependencies:
-      '@ianvs/prettier-plugin-sort-imports': 4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.3.3)
+      '@ianvs/prettier-plugin-sort-imports': 4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.4.0)
 
-  prettier@3.3.3: {}
+  prettier@3.4.0: {}
 
   prop-types@15.8.1:
     dependencies:
@@ -7385,6 +7395,8 @@ snapshots:
 
   undici-types@6.19.8: {}
 
+  undici-types@6.20.0: {}
+
   unified@11.0.5:
     dependencies:
       '@types/unist': 3.0.3
@@ -7470,17 +7482,17 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.2
 
-  vite@5.4.11(@types/node@22.9.3)(terser@5.36.0):
+  vite@5.4.11(@types/node@22.10.0)(terser@5.36.0):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.4.49
       rollup: 4.27.4
     optionalDependencies:
-      '@types/node': 22.9.3
+      '@types/node': 22.10.0
       fsevents: 2.3.3
       terser: 5.36.0
 
-  vitepress@1.5.0(@algolia/client-search@5.15.0)(@types/node@22.9.3)(@types/react@18.3.12)(postcss@8.4.49)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(terser@5.36.0)(typescript@5.7.2):
+  vitepress@1.5.0(@algolia/client-search@5.15.0)(@types/node@22.10.0)(@types/react@18.3.12)(postcss@8.4.49)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(terser@5.36.0)(typescript@5.7.2):
     dependencies:
       '@docsearch/css': 3.8.0
       '@docsearch/js': 3.8.0(@algolia/client-search@5.15.0)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)
@@ -7489,7 +7501,7 @@ snapshots:
       '@shikijs/transformers': 1.23.1
       '@shikijs/types': 1.23.1
       '@types/markdown-it': 14.1.2
-      '@vitejs/plugin-vue': 5.2.0(vite@5.4.11(@types/node@22.9.3)(terser@5.36.0))(vue@3.5.13(typescript@5.7.2))
+      '@vitejs/plugin-vue': 5.2.0(vite@5.4.11(@types/node@22.10.0)(terser@5.36.0))(vue@3.5.13(typescript@5.7.2))
       '@vue/devtools-api': 7.6.4
       '@vue/shared': 3.5.13
       '@vueuse/core': 11.3.0(vue@3.5.13(typescript@5.7.2))
@@ -7498,7 +7510,7 @@ snapshots:
       mark.js: 8.11.1
       minisearch: 7.1.1
       shiki: 1.23.1
-      vite: 5.4.11(@types/node@22.9.3)(terser@5.36.0)
+      vite: 5.4.11(@types/node@22.10.0)(terser@5.36.0)
       vue: 3.5.13(typescript@5.7.2)
     optionalDependencies:
       postcss: 8.4.49

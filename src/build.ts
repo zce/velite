@@ -1,6 +1,6 @@
+import glob from 'fast-glob'
 import { mkdir, rm } from 'node:fs/promises'
 import { join, normalize } from 'node:path'
-import glob from 'fast-glob'
 import { reporter } from 'vfile-reporter'
 
 import { assets } from './assets'
@@ -184,7 +184,7 @@ const watch = async (config: Config) => {
     awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 }
   }).on('all', async (event, filename) => {
     if (event === 'addDir' || event === 'unlinkDir') return
-    if (filename == null) return
+    if (filename == null || typeof filename !== 'string') return
 
     try {
       const fullpath = join(root, filename)

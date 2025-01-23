@@ -38,7 +38,7 @@ export default defineConfig({
     socialLinks: [{ icon: 'github', link: 'https://github.com/zce/velite' }],
     footer: {
       message: 'Distributed under the MIT License.',
-      copyright: '© 2024 Lei, All rights reserved.'
+      copyright: `© ${new Date().getFullYear()} Lei, All rights reserved.`
     },
     nav: [
       { text: 'Guide', link: '/guide/introduction', activeMatch: '/guide/' },

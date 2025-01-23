@@ -22,6 +22,7 @@ const meta = s
 
 const execAsync = promisify(exec)
 
+// refer to https://velite.js.org/guide/last-modified#based-on-git-timestamp for more details
 const timestamp = () =>
   s
     .custom<string | undefined>(i => i === undefined || typeof i === 'string')

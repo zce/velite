@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 
-import { posts } from '#site/content'
+import { posts } from '#velite'
 
 interface PostProps {
   params: Promise<{ slug: string }>

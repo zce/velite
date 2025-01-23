@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 
 import { MDXContent } from '@/components/mdx-content'
-import { pages } from '#site/content'
+import { pages } from '#velite'
 
 type Props = {
   params: Promise<{ slug: string }>

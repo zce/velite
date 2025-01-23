@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { posts } from '#site/content'
+import { posts } from '#velite'
 
 export default function Home() {
   return (

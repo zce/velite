@@ -6,11 +6,7 @@
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
     "content": "velite --clean"
-  },
-  "eslintConfig": {
-    "extends": "next/core-web-vitals"
   },
   "dependencies": {
     "@tailwindcss/typography": "latest",
@@ -18,8 +14,6 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "autoprefixer": "latest",
-    "eslint": "^8",
-    "eslint-config-next": "latest",
     "next": "latest",
     "next-themes": "latest",
     "postcss": "latest",

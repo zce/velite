@@ -21,7 +21,7 @@
     "react-dom": "latest",
     "rehype-pretty-code": "latest",
     "shiki": "latest",
-    "tailwindcss": "latest",
+    "tailwindcss": "3.4.17",
     "typescript": "latest",
     "velite": "workspace:*"
   }

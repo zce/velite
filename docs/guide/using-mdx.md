@@ -167,7 +167,7 @@ import { Callout } from '../components/callout'
 
 :::
 
-If Velite uses a bundler to comiple your MDX, the `Callout` component will be bundled into each MDX file, which will cause a lot of redundancy in the output code.
+If Velite uses a bundler to compile your MDX, the `Callout` component will be bundled into each MDX file, which will cause a lot of redundancy in the output code.
 
 Instead, simply use whatever components you want in your MDX files without a import.
 

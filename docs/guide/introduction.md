@@ -111,7 +111,7 @@ Velite is framework agnostic, and out of the box support for React, Vue, Svelte,
 - image processing by [Sharp](https://sharp.pixelplumbing.com)
 - file watching by [Chokidar](https://github.com/paulmillr/chokidar)
 
-### Fast Rebuid
+### Fast Rebuild
 
 More then **1000** documents with **2000** assets, less then **8s** for cold start, less then **60ms** for hot rebuild.
 

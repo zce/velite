@@ -186,7 +186,11 @@ pre.shiki {
   @apply max-h-(--max-height,80svh) relative flex flex-col overflow-hidden p-0;
 
   code {
-    @apply block size-full overflow-auto py-5;
+    @apply grid overflow-auto py-5;
+  }
+
+  .line {
+    @apply relative px-5;
   }
 
   button {

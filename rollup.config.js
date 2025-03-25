@@ -20,12 +20,7 @@ export default defineConfig([
       chunkFileNames: 'velite-[hash].js'
     },
     external,
-    plugins: [
-      json(),
-      commonjs(),
-      nodeResolve(),
-      esbuild({ target: 'node18' })
-    ]
+    plugins: [json(), commonjs(), nodeResolve(), esbuild({ target: 'node18' })]
   },
   {
     input: 'src/index.ts',
@@ -41,7 +36,7 @@ export default defineConfig([
           for (const fileName in bundle) {
             const chunk = bundle[fileName]
             if (chunk.type === 'chunk') {
-              chunk.code = chunk.code.replace(/\ndeclare module ['"].+['"] {([^]+?)\n}/g, "$1")
+              chunk.code = chunk.code.replace(/\ndeclare module ['"].+['"] {([^]+?)\n}/g, '$1')
               // (_, inner) => inner.split('\n').map(line => line.replace(/^    /, '')).join('\n')
             }
           }

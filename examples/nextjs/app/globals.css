@@ -28,7 +28,7 @@
   }
 
   [data-rehype-pretty-code-figure] code {
-    @apply text-sm leading-loose! md:text-base;
+    @apply leading-loose! text-sm md:text-base;
   }
 
   [data-rehype-pretty-code-figure] code[data-line-numbers] {

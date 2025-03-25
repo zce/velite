@@ -12,7 +12,7 @@ export default defineLoader({
     const value = file.toString().trim()
     const match = value.match(MATTER_RE)
     const matter = match == null ? null : match[1]
-    const data = matter == null ? {} : yaml.parse(matter) ?? {}
+    const data = matter == null ? {} : (yaml.parse(matter) ?? {})
     const content = match == null ? value : value.slice(match[0].length).trim()
     return { data, content }
   }

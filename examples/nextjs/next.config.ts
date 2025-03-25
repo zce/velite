@@ -1,12 +1,17 @@
-const isDev = process.argv.indexOf('dev') !== -1
-const isBuild = process.argv.indexOf('build') !== -1
-if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
-  process.env.VELITE_STARTED = '1'
-  import('velite').then(v => v.build({ watch: isDev, clean: !isDev }))
-}
+import { build } from 'velite'
 
-/** @type {import('next').NextConfig} */
-export default {}
+import type { NextConfig } from 'next'
+
+export default async (): Promise<NextConfig> => {
+  const isDev = process.argv.indexOf('dev') !== -1
+  const isBuild = process.argv.indexOf('build') !== -1
+  if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
+    process.env.VELITE_STARTED = '1'
+    await build({ watch: isDev, clean: !isDev })
+  }
+
+  return {}
+}
 
 // legacy next.config.js ↓ (not support turbopack)
 

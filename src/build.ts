@@ -1,6 +1,6 @@
-import glob from 'fast-glob'
 import { mkdir, rm } from 'node:fs/promises'
 import { join, normalize } from 'node:path'
+import glob from 'fast-glob'
 import { reporter } from 'vfile-reporter'
 
 import { assets } from './assets'

@@ -43,8 +43,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       '@zce/prettier-config':
-        specifier: ^0.4.0
-        version: 0.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.5.3)
+        specifier: ^1.0.0
+        version: 1.0.0(@vue/compiler-sfc@3.5.13)(prettier@3.5.3)
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
@@ -1259,8 +1259,10 @@ packages:
   '@vueuse/shared@12.5.0':
     resolution: {integrity: sha512-vMpcL1lStUU6O+kdj6YdHDixh0odjPAUM15uJ9f7MY781jcYkIwFA4iv2EfoIPO6vBmvutI1HxxAwmf0cx5ISQ==}
 
-  '@zce/prettier-config@0.4.0':
-    resolution: {integrity: sha512-KpzL5OTnhu3ZYxV5ekTAum+nxzMv9Rlay1pJ3CW2oy9kpUN77kW7sq7IDgHmc4J4ezyTBJObZhTtH2X0bYnYPA==}
+  '@zce/prettier-config@1.0.0':
+    resolution: {integrity: sha512-qLTE62i+C8t3GvqJC3q3t4gu9j84BERIGs0UbaA7kFjk/X5nMbodfsr6ptApfp+KwKte8gW4IQsgKI+MjlcNFA==}
+    peerDependencies:
+      prettier: '>=3.0.0'
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -3491,9 +3493,10 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@zce/prettier-config@0.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.5.3)':
+  '@zce/prettier-config@1.0.0(@vue/compiler-sfc@3.5.13)(prettier@3.5.3)':
     dependencies:
       '@ianvs/prettier-plugin-sort-imports': 4.4.1(@vue/compiler-sfc@3.5.13)(prettier@3.5.3)
+      prettier: 3.5.3
       prettier-plugin-tailwindcss: 0.6.11(@ianvs/prettier-plugin-sort-imports@4.4.1(@vue/compiler-sfc@3.5.13)(prettier@3.5.3))(prettier@3.5.3)
     transitivePeerDependencies:
       - '@prettier/plugin-pug'
@@ -3501,7 +3504,6 @@ snapshots:
       - '@trivago/prettier-plugin-sort-imports'
       - '@vue/compiler-sfc'
       - '@zackad/prettier-plugin-twig'
-      - prettier
       - prettier-plugin-astro
       - prettier-plugin-css-order
       - prettier-plugin-import-sort

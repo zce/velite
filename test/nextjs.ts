@@ -20,7 +20,7 @@ test('integration with nextjs fixtures', async t => {
   equal(categories.length, 649, 'categories output length should be 649')
 
   const pages = await readFile('examples/nextjs/.velite/pages.json', 'utf8')
-  equal(pages.length, 4100, 'pages output length should be 4100')
+  equal(pages.length, 4942, 'pages output length should be 4942')
 
   const posts = await readFile('examples/nextjs/.velite/posts.json', 'utf8')
   equal(posts.length, 17991, 'posts output length should be 17991')

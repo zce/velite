@@ -1,0 +1,37 @@
+name: Velite
+title: Next.js with Velite
+description: Turns Markdown / MDX, YAML, JSON, or others into app's data layer with Zod schema.
+keywords:
+  - Blog
+  - Portfolio
+  - Content-first
+author:
+  name: zce
+  email: zce@example.com
+  url: https://zce.me
+links:
+  - text: HOME
+    link: /
+    type: navigation
+  - text: Blog
+    link: /blog
+    type: navigation
+  - text: About
+    link: /about
+    type: footer
+  - text: Contact
+    link: /contact
+    type: footer
+  - text: Privacy Policy
+    link: /privacy-policy
+    type: copyright
+  - text: Terms of Service
+    link: /terms-of-service
+    type: copyright
+socials:
+  - name: GitHub
+    icon: github
+    link: https://github.com/zce
+  - name: YouTube
+    icon: youtube
+    link: https://www.youtube.com/@zceme

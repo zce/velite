@@ -5,7 +5,7 @@ A Vite plugin for integrating Velite content processing.
 ## Installation
 
 ```bash
-npm install -D @velite/plugin-vite
+npm install -D velite @velite/plugin-vite
 ```
 
 ## Usage

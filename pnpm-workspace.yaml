@@ -2,3 +2,7 @@ packages:
   - docs
   - examples/*
   - packages/*
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - simple-git-hooks

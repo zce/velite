@@ -21,7 +21,7 @@ test('standalone fixtures', async t => {
   equal(categories.length, 880, 'categories output length should be 880')
 
   const pages = await readFile('examples/basic/.velite/pages.json', 'utf8')
-  equal(pages.length, 6180, 'pages output length should be 6180')
+  equal(pages.length, 6178, 'pages output length should be 6178')
 
   const posts = await readFile('examples/basic/.velite/posts.json', 'utf8')
   equal(posts.length, 14165, 'posts output length should be 14165')

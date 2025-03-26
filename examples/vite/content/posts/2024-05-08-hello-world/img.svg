@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <mask id="shape" fill="#fff">
+    <path d="M467.96 220H76.87L8 20h715.95l68.86 200-460.77 360h391.09L792 780H76.05L7.18 580l460.78-360z" />
+  </mask>
+  <filter id="blur" x="-1" width="3">
+    <feGaussianBlur stdDeviation="50" />
+  </filter>
+  <g mask="url(#shape)">
+    <path d="M0 0h800v800H0z" fill="#059669" />
+    <g transform="rotate(52)" transform-origin="400">
+      <path d="M300-100h200V900H300z" filter="url(#blur)" />
+      <path d="M300-100h200V900H300z" fill="#cbd5e1" />
+    </g>
+  </g>
+</svg>

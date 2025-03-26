@@ -11,20 +11,20 @@ Next.js is gradually adopting Turbopack because it is significantly faster. Howe
 ::: code-group
 
 ```ts [next.config.ts]
-import { build } from 'velite'
-
 import type { NextConfig } from 'next'
 
-export default async (): Promise<NextConfig> => {
-  const isDev = process.argv.indexOf('dev') !== -1
-  const isBuild = process.argv.indexOf('build') !== -1
-  if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
-    process.env.VELITE_STARTED = '1'
-    await build({ watch: isDev, clean: !isDev })
-  }
-
-  return {}
+const isDev = process.argv.indexOf('dev') !== -1
+const isBuild = process.argv.indexOf('build') !== -1
+if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
+  process.env.VELITE_STARTED = '1'
+  import('velite').then(m => m.build({ watch: isDev, clean: !isDev }))
 }
+
+const nextConfig: NextConfig = {
+  /* config options here */
+}
+
+export default nextConfig
 ```
 
 ```js [next.config.mjs]

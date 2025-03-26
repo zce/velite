@@ -1,0 +1,24 @@
+{
+  "name": "@velite/plugin-vite",
+  "version": "0.0.1",
+  "description": "Vite plugin for integrating Velite",
+  "type": "module",
+  "exports": "./index.js",
+  "types": "./index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ],
+  "keywords": [
+    "vite-plugin",
+    "velite",
+    "content"
+  ],
+  "peerDependencies": {
+    "vite": "^5.0.0 || ^6.0.0",
+    "velite": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

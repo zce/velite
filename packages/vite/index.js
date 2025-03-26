@@ -12,25 +12,19 @@ export default (options = {}) => {
   return {
     name: '@velite/plugin-vite',
 
-    async configureServer() {
+    configureServer: async () => {
       if (started) return
       started = true
 
       // Start watch mode in dev
-      await build({
-        config: options.config,
-        watch: true
-      })
+      await build({ config: options.config, watch: true })
     },
 
-    async buildStart() {
+    buildStart: async () => {
       if (started) return
 
       // Run build in production
-      await build({
-        config: options.config,
-        watch: false
-      })
+      await build({ config: options.config, watch: false })
     }
   }
 }

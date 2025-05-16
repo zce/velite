@@ -16,6 +16,7 @@
   "license": "MIT",
   "author": "zce <w@zce.me> (https://zce.me)",
   "type": "module",
+  "main": "./dist/index.js",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": "./bin/velite.js",

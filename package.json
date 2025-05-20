@@ -16,8 +16,16 @@
   "license": "MIT",
   "author": "zce <w@zce.me> (https://zce.me)",
   "type": "module",
-  "exports": "./dist/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
   "bin": "./bin/velite.js",
   "files": [
     "dist"
@@ -35,7 +43,8 @@
       "src/cli.ts"
     ],
     "format": [
-      "esm"
+      "esm",
+      "cjs"
     ],
     "platform": "node",
     "target": "node18",

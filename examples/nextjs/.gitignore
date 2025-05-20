@@ -35,5 +35,3 @@ next-env.d.ts
 # velite generated files
 /.velite
 /public/static
-
-!dist

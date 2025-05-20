@@ -23,6 +23,6 @@
     "shiki": "^1.29.2",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.8.3",
-    "velite": "file:./velite"
+    "velite": "workspace:*"
   }
 }

@@ -16,8 +16,9 @@
   "license": "MIT",
   "author": "zce <w@zce.me> (https://zce.me)",
   "type": "module",
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
+  "bin": "./bin/velite.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
@@ -26,7 +27,6 @@
       "require": "./dist/index.cjs"
     }
   },
-  "bin": "./bin/velite.js",
   "files": [
     "dist"
   ],

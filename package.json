@@ -16,7 +16,6 @@
   "license": "MIT",
   "author": "zce <w@zce.me> (https://zce.me)",
   "type": "module",
-  "main": "./dist/index.js",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": "./bin/velite.js",
@@ -24,11 +23,30 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && rollup -c",
+    "build": "tsc && tsup",
     "test": "node --import tsx --test test/*.ts",
     "docs:dev": "cd docs && pnpm dev",
     "docs:build": "cd docs && pnpm build",
     "format": "prettier . --write"
+  },
+  "tsup": {
+    "entry": [
+      "src/index.ts",
+      "src/cli.ts"
+    ],
+    "format": [
+      "esm"
+    ],
+    "platform": "node",
+    "target": "node18",
+    "banner": {
+      "js": "import {createRequire as __createRequire} from 'module';const require=__createRequire(import.meta.url);"
+    },
+    "dts": {
+      "resolve": true
+    },
+    "treeshake": true,
+    "clean": true
   },
   "prettier": "@zce/prettier-config",
   "simple-git-hooks": {
@@ -44,9 +62,6 @@
     "terser": "^5.39.2"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^28.0.3",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^16.0.1",
     "@types/hast": "^3.0.4",
     "@types/mdast": "^4.0.4",
     "@types/node": "^22.15.19",
@@ -67,10 +82,8 @@
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
-    "rollup": "^4.41.0",
-    "rollup-plugin-dts": "^6.2.1",
-    "rollup-plugin-esbuild": "^6.2.1",
     "simple-git-hooks": "^2.13.0",
+    "tsup": "^8.5.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "unified": "^11.0.5",

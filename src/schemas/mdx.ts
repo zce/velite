@@ -47,13 +47,13 @@ export const mdx = (options: MdxOptions = {}) =>
     const compilerOptions = { ...mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
 
     const { compile } = await import('@mdx-js/mdx')
-    const { minify } = await import('terser')
 
     try {
       const code = await compile({ value, path: meta.path }, compilerOptions)
 
       if (!enableMinify) return code.toString()
 
+      const { minify } = await import('terser')
       const minified = await minify(code.toString(), {
         module: true,
         compress: true,

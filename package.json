@@ -56,7 +56,7 @@
     "fast-glob": "^3.3.3",
     "hast-util-raw": "^9.1.0",
     "hast-util-to-string": "^3.0.1",
-    "lint-staged": "^15.5.2",
+    "lint-staged": "^16.0.0",
     "mdast-util-from-markdown": "^2.0.2",
     "mdast-util-to-hast": "^13.2.0",
     "mdast-util-toc": "^7.1.0",

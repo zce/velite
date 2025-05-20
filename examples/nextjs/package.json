@@ -2,7 +2,6 @@
   "name": "@velite/next-starter",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
@@ -24,6 +23,6 @@
     "shiki": "^1.29.2",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.8.3",
-    "velite": "workspace:*"
+    "velite": "file:./velite"
   }
 }

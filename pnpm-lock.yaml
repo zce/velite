@@ -166,8 +166,8 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
       velite:
-        specifier: file:./velite
-        version: file:examples/nextjs/velite(acorn@8.14.1)
+        specifier: workspace:*
+        version: link:../..
 
   examples/vite:
     dependencies:
@@ -3074,11 +3074,6 @@ packages:
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
-
-  velite@file:examples/nextjs/velite:
-    resolution: {directory: examples/nextjs/velite, type: directory}
-    engines: {node: ^18.17.0 || >=20.3.0}
-    hasBin: true
 
   vfile-location@5.0.3:
     resolution: {integrity: sha512-5yXvWDEgqeiYiBe1lbxYF7UMAIm/IcopxMHrMQDq3nvKcjPKIhZklUKL+AE7J7uApI4kwe2snsK+eI6UTj9EHg==}
@@ -6437,16 +6432,6 @@ snapshots:
       punycode: 2.3.1
 
   util-deprecate@1.0.2: {}
-
-  velite@file:examples/nextjs/velite(acorn@8.14.1):
-    dependencies:
-      '@mdx-js/mdx': 3.1.0(acorn@8.14.1)
-      esbuild: 0.25.4
-      sharp: 0.34.1
-      terser: 5.39.2
-    transitivePeerDependencies:
-      - acorn
-      - supports-color
 
   vfile-location@5.0.3:
     dependencies:

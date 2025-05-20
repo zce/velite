@@ -50,7 +50,7 @@
     "@types/hast": "^3.0.4",
     "@types/mdast": "^4.0.4",
     "@types/node": "^22.15.19",
-    "@types/picomatch": "^3.0.2",
+    "@types/picomatch": "^4.0.0",
     "@zce/prettier-config": "^1.0.0",
     "chokidar": "^4.0.3",
     "fast-glob": "^3.3.3",

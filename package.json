@@ -39,9 +39,9 @@
   },
   "dependencies": {
     "@mdx-js/mdx": "^3.1.0",
-    "esbuild": "^0.25.1",
+    "esbuild": "^0.25.4",
     "sharp": "^0.33.5",
-    "terser": "^5.39.0"
+    "terser": "^5.39.2"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.3",
@@ -49,14 +49,14 @@
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@types/hast": "^3.0.4",
     "@types/mdast": "^4.0.4",
-    "@types/node": "^22.13.13",
+    "@types/node": "^22.15.19",
     "@types/picomatch": "^3.0.2",
     "@zce/prettier-config": "^1.0.0",
     "chokidar": "^4.0.3",
     "fast-glob": "^3.3.3",
     "hast-util-raw": "^9.1.0",
     "hast-util-to-string": "^3.0.1",
-    "lint-staged": "^15.5.0",
+    "lint-staged": "^15.5.2",
     "mdast-util-from-markdown": "^2.0.2",
     "mdast-util-to-hast": "^13.2.0",
     "mdast-util-toc": "^7.1.0",
@@ -66,20 +66,20 @@
     "rehype-stringify": "^10.0.1",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
-    "remark-rehype": "^11.1.1",
-    "rollup": "^4.37.0",
+    "remark-rehype": "^11.1.2",
+    "rollup": "^4.41.0",
     "rollup-plugin-dts": "^6.2.1",
     "rollup-plugin-esbuild": "^6.2.1",
-    "simple-git-hooks": "^2.12.1",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.2",
+    "simple-git-hooks": "^2.13.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.3",
     "vfile-reporter": "^8.1.1",
-    "yaml": "^2.7.0"
+    "yaml": "^2.8.0"
   },
-  "packageManager": "pnpm@10.7.0",
+  "packageManager": "pnpm@10.11.0",
   "engines": {
     "node": "^18.17.0 || >=20.3.0"
   }

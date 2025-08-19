@@ -101,7 +101,7 @@
     "vfile-reporter": "^8.1.1",
     "yaml": "^2.8.0"
   },
-  "packageManager": "pnpm@10.11.0",
+  "packageManager": "pnpm@10.15.0",
   "engines": {
     "node": "^18.17.0 || >=20.3.0"
   }

@@ -15,10 +15,6 @@ import type { LogLevel } from './logger'
 import type { Schema, ZodMeta } from './schemas'
 import type { Config } from './types'
 
-declare module './schemas' {
-  interface ZodMeta extends VeliteFile {}
-}
-
 // cache resolved result for rebuild
 const resolved = new Map<string, VeliteFile[]>()
 

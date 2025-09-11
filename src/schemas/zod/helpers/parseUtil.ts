@@ -1,3 +1,4 @@
+import { VeliteFile } from '../../../file'
 import { getErrorMap } from '../errors'
 import defaultErrorMap from '../locales/en'
 
@@ -36,9 +37,7 @@ export const makeIssue = (params: { data: any; path: (string | number)[]; errorM
   }
 }
 
-export interface ZodMeta {
-  [key: string | number | symbol]: unknown
-}
+export interface ZodMeta extends VeliteFile {}
 
 export type ParseParams = {
   path: (string | number)[]

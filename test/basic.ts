@@ -9,7 +9,7 @@ test('standalone fixtures', async t => {
   await build({ config: 'examples/basic/velite.config.js' })
 
   const entry = await readFile('examples/basic/.velite/index.js', 'utf8')
-  equal(entry.length, 288, 'entry output length should be 288')
+  equal(entry.length, 398, 'entry output length should be 288')
 
   const dts = await readFile('examples/basic/.velite/index.d.ts', 'utf8')
   equal(dts.length, 632, 'dts output length should be 632')

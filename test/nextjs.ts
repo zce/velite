@@ -8,7 +8,7 @@ test('integration with nextjs fixtures', async t => {
   await new Promise((res, rej) => exec('npm run build', { cwd: 'examples/nextjs' }, (e, s) => (e ? rej(e) : res(s))))
 
   const entry = await readFile('examples/nextjs/.velite/index.js', 'utf8')
-  equal(entry.length, 398, 'entry output length should be 288')
+  equal(entry.length, 398, 'entry output length should be 398')
 
   const dts = await readFile('examples/nextjs/.velite/index.d.ts', 'utf8')
   equal(dts.length, 632, 'dts output length should be 632')

@@ -1,4 +1,6 @@
-import { custom } from '../zod'
+import { custom } from 'zod'
+
+import { currentFile } from './zod'
 
 // Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters
 const cjRanges = [
@@ -61,7 +63,7 @@ export interface Metadata {
 
 export const metadata = () =>
   custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<Metadata>(async (value, ctx) => {
-    value = value ?? ctx.file.plain
+    value = value ?? currentFile().plain
     if (value == null || value.length === 0) {
       ctx.addIssue({ code: 'custom', message: 'The content is empty' })
       return { readingTime: 0, wordCount: 0 }

@@ -2,8 +2,9 @@ import { Link, List, Paragraph } from 'mdast'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toc as extractToc } from 'mdast-util-toc'
 import { visit } from 'unist-util-visit'
+import { custom } from 'zod'
 
-import { custom } from '../zod'
+import { currentFile } from './zod'
 
 import type { Options } from 'mdast-util-toc'
 
@@ -100,13 +101,14 @@ const parse = (tree?: List): TocEntry[] => {
 export const toc = <T extends TocOptions>(options?: T) =>
   custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<T extends { original: true } ? TocTree : TocEntry[]>(
     async (value, ctx) => {
-      value = value ?? ctx.file.content
+      const file = currentFile()
+      value = value ?? file.content
       if (value == null || value.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
         return (options?.original ? {} : []) as T extends { original: true } ? TocTree : TocEntry[]
       }
       try {
-        const tree = value != null ? fromMarkdown(value) : ctx.file.mdast
+        const tree = value != null ? fromMarkdown(value) : file.mdast
         if (tree == null) throw new Error('No tree found')
         const tocTree = extractToc(tree, options)
         if (options?.original) return tocTree as T extends { original: true } ? TocTree : TocEntry[]

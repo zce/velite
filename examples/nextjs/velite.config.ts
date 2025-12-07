@@ -26,11 +26,11 @@ const execAsync = promisify(exec)
 const timestamp = () =>
   s
     .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { meta, addIssue }) => {
+    .transform<string>(async (value, { addIssue }) => {
       if (value != null) {
         addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
       }
-      const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${s.currentFile().path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
 

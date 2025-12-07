@@ -1,8 +1,9 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { string } from 'zod'
 
 import { getImageMetadata, processAsset } from '../assets'
-import { string } from '../zod'
+import { currentFile } from './zod'
 
 import type { Image } from '../assets'
 
@@ -42,9 +43,10 @@ export const image = ({ absoluteRoot }: ImageOptions = {}) =>
       //   return { src: value, ...metadata }
       // }
 
-      const { output } = ctx.file.config
+      const file = currentFile()
+      const { output } = file.config
       // process asset as relative path
-      return await processAsset(value, ctx.file.path, output.name, output.base, true)
+      return await processAsset(value, file.path, output.name, output.base, true)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       ctx.addIssue({ fatal: true, code: 'custom', message })

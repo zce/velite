@@ -5,9 +5,10 @@ import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
+import { custom } from 'zod'
 
 import { rehypeCopyLinkedFiles } from '../assets'
-import { custom } from '../zod'
+import { currentFile } from './zod'
 
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
@@ -40,13 +41,14 @@ const rehypeMetaString = () => (tree: Hast) => {
 
 export const markdown = (options: MarkdownOptions = {}) =>
   custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, ctx) => {
-    value = value ?? ctx.file.content
+    const file = currentFile()
+    value = value ?? file.content
     if (value == null || value.length === 0) {
       ctx.addIssue({ code: 'custom', message: 'The content is empty' })
       return ''
     }
 
-    const { markdown, output } = ctx.file.config
+    const { markdown, output } = file.config
 
     const enableGfm = options.gfm ?? markdown?.gfm ?? true
     const removeComments = options.removeComments ?? markdown?.removeComments ?? true
@@ -72,7 +74,7 @@ export const markdown = (options: MarkdownOptions = {}) =>
         .use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
         .use(rehypePlugins) // apply rehype plugins
         .use(rehypeStringify) // serialize html syntax tree
-        .process({ value, path: ctx.file.path })
+        .process({ value, path: file.path })
       return html.toString()
     } catch (err: any) {
       ctx.addIssue({ fatal: true, code: 'custom', message: err.message })

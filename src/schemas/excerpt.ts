@@ -1,4 +1,6 @@
-import { custom } from '../zod'
+import { custom } from 'zod'
+
+import { currentFile } from './zod'
 
 export interface ExcerptOptions {
   // /**
@@ -17,7 +19,7 @@ export interface ExcerptOptions {
 
 export const excerpt = ({ length = 260 }: ExcerptOptions = {}) =>
   custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, ctx) => {
-    value = value ?? ctx.file.plain
+    value = value ?? currentFile().plain
     if (value == null || value.length === 0) {
       ctx.addIssue({ code: 'custom', message: 'The content is empty' })
       return ''

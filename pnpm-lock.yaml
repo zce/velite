@@ -12,8 +12,8 @@ importers:
         specifier: ^3.1.1
         version: 3.1.1
       esbuild:
-        specifier: ^0.25.12
-        version: 0.25.12
+        specifier: ^0.27.0
+        version: 0.27.1
       sharp:
         specifier: ^0.34.5
         version: 0.34.5

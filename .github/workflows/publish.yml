@@ -11,9 +11,9 @@ jobs:
     if: github.repository == 'zce/velite'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           registry-url: https://registry.npmjs.org/
           node-version: lts/*

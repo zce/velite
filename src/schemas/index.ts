@@ -1,3 +1,4 @@
+import * as z from '../zod'
 import { excerpt } from './excerpt'
 import { file } from './file'
 import { image } from './image'
@@ -10,7 +11,6 @@ import { raw } from './raw'
 import { slug } from './slug'
 import { toc } from './toc'
 import { unique } from './unique'
-import * as z from './zod'
 
 export const s = {
   ...z,
@@ -28,6 +28,4 @@ export const s = {
   toc
 }
 
-export { z } // keep z for backward compatibility
-
-export type { Schema, ZodType, ZodMeta, infer } from './zod'
+export type { infer, Schema, ZodType } from '../zod'

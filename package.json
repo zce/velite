@@ -60,7 +60,8 @@
     "@mdx-js/mdx": "^3.1.1",
     "esbuild": "^0.25.12",
     "sharp": "^0.34.5",
-    "terser": "^5.44.1"
+    "terser": "^5.44.1",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",

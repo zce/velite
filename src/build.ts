@@ -8,11 +8,11 @@ import { resolveConfig } from './config'
 import { VeliteFile } from './file'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
-import { getParsedType, ParseContext } from './schemas/zod'
 import { matchPatterns } from './utils'
+import { parseWithFile } from './zod'
 
 import type { LogLevel } from './logger'
-import type { Schema, ZodMeta } from './schemas'
+import type { Schema } from './schemas'
 import type { Config } from './types'
 
 // cache resolved result for rebuild
@@ -43,34 +43,18 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
   const parsed = await Promise.all(
     list.map(async (data, index) => {
       // push index in path if file is array
-      const path = isArr ? [index] : []
+      const pathPrefix = isArr ? [index] : []
 
-      const ctx: ParseContext = {
-        common: { issues: [], async: true },
-        path,
-        meta: file as ZodMeta,
-        data,
-        parent: null,
-        parsedType: getParsedType(data),
-        schemaErrorMap: schema._def.errorMap
-      }
+      const result = await parseWithFile(schema, data, file)
 
-      // parse data with given schema
-      const ret = schema._parse({ data, path, meta: ctx.meta, parent: ctx })
-
-      const result = await (ret instanceof Promise ? ret : Promise.resolve(ret))
-
-      if (result.status === 'valid') return result.value
+      if (result.success) return result.data
 
       // report error if parsing failed
-      ctx.common.issues.forEach(issue => {
-        const source = issue.path.map(i => (typeof i === 'number' ? `[${i}]` : i)).join('.')
-        const message = file.message(issue.message, { source })
-        message.fatal = result.status === 'aborted' || issue.fatal
+      result.error.issues.forEach(issue => {
+        const source = [...pathPrefix, ...(issue.path ?? [])].map(p => (typeof p === 'number' ? `[${p}]` : String(p))).join('.')
+        const message = file.message(issue.message ?? 'Validation error', { source })
+        message.fatal = (issue as any).fatal || file.config.strict === true
       })
-
-      // return parsed data unless fatal error
-      return result.status !== 'aborted' && result.value
     })
   )
 

@@ -1,5 +1,5 @@
 import { isRelativePath, processAsset } from '../assets'
-import { string } from './zod'
+import { string } from '../zod'
 
 export interface FileOptions {
   /**
@@ -13,14 +13,14 @@ export interface FileOptions {
  * A file path relative to this file.
  */
 export const file = ({ allowNonRelativePath = true }: FileOptions = {}) =>
-  string().transform<string>(async (value, { meta, addIssue }) => {
+  string().transform<string>(async (value, ctx) => {
     try {
       if (allowNonRelativePath && !isRelativePath(value)) return value
-      const { output } = meta.config
-      return await processAsset(value, meta.path, output.name, output.base)
+      const { output } = ctx.file.config
+      return await processAsset(value, ctx.file.path, output.name, output.base)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      addIssue({ fatal: true, code: 'custom', message })
+      ctx.addIssue({ fatal: true, code: 'custom', message, continue: false })
       return null as never
     }
   })

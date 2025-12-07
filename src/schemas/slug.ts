@@ -1,4 +1,4 @@
-import { string } from './zod'
+import { string } from '../zod'
 
 /**
  * generate a slug schema
@@ -12,12 +12,12 @@ export const slug = (by: string = 'global', reserved: string[] = []) =>
     .max(200)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/i, 'Invalid slug')
     .refine(value => !reserved.includes(value), 'Reserved slug')
-    .superRefine((value, { path, meta, addIssue }) => {
+    .superRefine((value, ctx) => {
       const key = `schemas:slug:${by}:${value}`
-      const { cache } = meta.config
+      const { cache } = ctx.file.config
       if (cache.has(key)) {
-        addIssue({ fatal: true, code: 'custom', message: `duplicate slug '${value}' in '${meta.path}:${path.join('.')}'` })
+        ctx.addIssue({ fatal: true, code: 'custom', message: `duplicate slug '${value}' in '${ctx.file.path}'` })
       } else {
-        cache.set(key, meta.path)
+        cache.set(key, ctx.file.path)
       }
     })

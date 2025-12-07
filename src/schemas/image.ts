@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { getImageMetadata, processAsset } from '../assets'
-import { string } from './zod'
+import { string } from '../zod'
 
 import type { Image } from '../assets'
 
@@ -23,7 +23,7 @@ export interface ImageOptions {
  * Image schema
  */
 export const image = ({ absoluteRoot }: ImageOptions = {}) =>
-  string().transform<Image>(async (value, { meta, addIssue }) => {
+  string().transform<Image>(async (value, ctx) => {
     try {
       if (absoluteRoot && /^\//.test(value)) {
         const buffer = await readFile(join(absoluteRoot, value))
@@ -42,12 +42,12 @@ export const image = ({ absoluteRoot }: ImageOptions = {}) =>
       //   return { src: value, ...metadata }
       // }
 
-      const { output } = meta.config
+      const { output } = ctx.file.config
       // process asset as relative path
-      return await processAsset(value, meta.path, output.name, output.base, true)
+      return await processAsset(value, ctx.file.path, output.name, output.base, true)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      addIssue({ fatal: true, code: 'custom', message })
+      ctx.addIssue({ fatal: true, code: 'custom', message })
       return null as never
     }
   })

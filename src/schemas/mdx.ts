@@ -2,7 +2,7 @@ import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 
 import { remarkCopyLinkedFiles } from '../assets'
-import { custom } from './zod'
+import { custom } from '../zod'
 
 import type { Root } from 'mdast'
 import type { PluggableList } from 'unified'
@@ -18,14 +18,14 @@ const remarkRemoveComments = () => (tree: Root) => {
 }
 
 export const mdx = (options: MdxOptions = {}) =>
-  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta, addIssue }) => {
-    value = value ?? meta.content
+  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, ctx) => {
+    value = value ?? ctx.file.content
     if (value == null || value.length === 0) {
-      addIssue({ code: 'custom', message: 'The content is empty' })
+      ctx.addIssue({ code: 'custom', message: 'The content is empty' })
       return ''
     }
 
-    const { mdx, output } = meta.config
+    const { mdx, output } = ctx.file.config
 
     const enableGfm = options.gfm ?? mdx?.gfm ?? true
     const enableMinify = options.minify ?? mdx?.minify ?? true
@@ -49,7 +49,7 @@ export const mdx = (options: MdxOptions = {}) =>
     const { compile } = await import('@mdx-js/mdx')
 
     try {
-      const code = await compile({ value, path: meta.path }, compilerOptions)
+      const code = await compile({ value, path: ctx.file.path }, compilerOptions)
 
       if (!enableMinify) return code.toString()
 
@@ -63,7 +63,7 @@ export const mdx = (options: MdxOptions = {}) =>
       })
       return minified.code ?? code.toString()
     } catch (err: any) {
-      addIssue({ fatal: true, code: 'custom', message: err.message })
+      ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
       return null as never
     }
   })

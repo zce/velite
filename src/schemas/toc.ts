@@ -3,7 +3,7 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toc as extractToc } from 'mdast-util-toc'
 import { visit } from 'unist-util-visit'
 
-import { custom } from './zod'
+import { custom } from '../zod'
 
 import type { Options } from 'mdast-util-toc'
 
@@ -99,22 +99,20 @@ const parse = (tree?: List): TocEntry[] => {
 
 export const toc = <T extends TocOptions>(options?: T) =>
   custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<T extends { original: true } ? TocTree : TocEntry[]>(
-    async (value, { meta, addIssue }) => {
-      value = value ?? meta.content
+    async (value, ctx) => {
+      value = value ?? ctx.file.content
       if (value == null || value.length === 0) {
-        addIssue({ code: 'custom', message: 'The content is empty' })
+        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
         return (options?.original ? {} : []) as T extends { original: true } ? TocTree : TocEntry[]
       }
       try {
-        // extract ast tree from markdown/mdx content
-        const tree = value != null ? fromMarkdown(value) : meta.mdast
+        const tree = value != null ? fromMarkdown(value) : ctx.file.mdast
         if (tree == null) throw new Error('No tree found')
         const tocTree = extractToc(tree, options)
-        // return the original tree if requested
         if (options?.original) return tocTree as T extends { original: true } ? TocTree : TocEntry[]
         return parse(tocTree.map) as T extends { original: true } ? TocTree : TocEntry[]
       } catch (err: any) {
-        addIssue({ fatal: true, code: 'custom', message: err.message })
+        ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
         return null as never
       }
     }

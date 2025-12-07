@@ -7,7 +7,7 @@ import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
 
 import { rehypeCopyLinkedFiles } from '../assets'
-import { custom } from './zod'
+import { custom } from '../zod'
 
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
@@ -39,14 +39,14 @@ const rehypeMetaString = () => (tree: Hast) => {
 }
 
 export const markdown = (options: MarkdownOptions = {}) =>
-  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta, addIssue }) => {
-    value = value ?? meta.content
+  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, ctx) => {
+    value = value ?? ctx.file.content
     if (value == null || value.length === 0) {
-      addIssue({ code: 'custom', message: 'The content is empty' })
+      ctx.addIssue({ code: 'custom', message: 'The content is empty' })
       return ''
     }
 
-    const { markdown, output } = meta.config
+    const { markdown, output } = ctx.file.config
 
     const enableGfm = options.gfm ?? markdown?.gfm ?? true
     const removeComments = options.removeComments ?? markdown?.removeComments ?? true
@@ -72,10 +72,10 @@ export const markdown = (options: MarkdownOptions = {}) =>
         .use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
         .use(rehypePlugins) // apply rehype plugins
         .use(rehypeStringify) // serialize html syntax tree
-        .process({ value, path: meta.path })
+        .process({ value, path: ctx.file.path })
       return html.toString()
     } catch (err: any) {
-      addIssue({ fatal: true, code: 'custom', message: err.message })
+      ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
       return null as never
     }
   })

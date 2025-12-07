@@ -44,7 +44,7 @@ export const outputEntry = async (dest: string, format: Output['format'], config
     if (format === 'cjs') {
       entry.push(`exports.${name} = require('./${name}.json')`)
     } else {
-      entry.push(`export { default as ${name} } from './${name}.json'`)
+      entry.push(`export { default as ${name} } from './${name}.json' with { type: 'json' }`)
     }
     dts.push(`export type ${collection.name} = Collections['${name}']['schema']['_output']`)
     dts.push(`export declare const ${name}: ${collection.name + (collection.single ? '' : '[]')}\n`)

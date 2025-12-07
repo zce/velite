@@ -50,7 +50,6 @@
     "treeshake": true,
     "clean": true
   },
-  "prettier": "@zce/prettier-config",
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged"
   },
@@ -68,7 +67,7 @@
     "@types/mdast": "^4.0.4",
     "@types/node": "^22.15.19",
     "@types/picomatch": "^4.0.2",
-    "@zce/prettier-config": "^1.0.0",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "chokidar": "^4.0.3",
     "fast-glob": "^3.3.3",
     "hast-util-raw": "^9.1.0",
@@ -96,6 +95,6 @@
   },
   "packageManager": "pnpm@10.15.0",
   "engines": {
-    "node": "^18.17.0 || >=20.3.0"
+    "node": "^18.20.0 || >=20.3.0"
   }
 }

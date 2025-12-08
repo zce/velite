@@ -1,6 +1,6 @@
 import { custom } from 'zod'
 
-import { currentFile } from './zod'
+import { currentFile } from '../parser'
 
 export interface ExcerptOptions {
   // /**

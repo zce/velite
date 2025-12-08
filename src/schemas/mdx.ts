@@ -3,7 +3,7 @@ import { visit } from 'unist-util-visit'
 import { custom } from 'zod'
 
 import { remarkCopyLinkedFiles } from '../assets'
-import { currentFile } from './zod'
+import { currentConfig, currentFile } from '../parser'
 
 import type { Root } from 'mdast'
 import type { PluggableList } from 'unified'
@@ -27,7 +27,7 @@ export const mdx = (options: MdxOptions = {}) =>
       return ''
     }
 
-    const { mdx, output } = file.config
+    const { mdx, output } = currentConfig()
 
     const enableGfm = options.gfm ?? mdx?.gfm ?? true
     const enableMinify = options.minify ?? mdx?.minify ?? true

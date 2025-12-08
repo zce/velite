@@ -8,7 +8,7 @@ import { resolveConfig } from './config'
 import { VeliteFile } from './file'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
-import { parseWithFile } from './schemas/zod'
+import { parseWithFile } from './parser'
 import { matchPatterns } from './utils'
 
 import type { LogLevel } from './logger'
@@ -34,7 +34,7 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
     if (exists) return exists
   }
 
-  const file = await VeliteFile.create({ path, config })
+  const file = await VeliteFile.create(path, config.loaders)
 
   // may be one or more records in one file, such as yaml array or json array
   const isArr = Array.isArray(file.records)
@@ -45,7 +45,7 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
       // push index in path if file is array
       const pathPrefix = isArr ? [index] : []
 
-      const result = await parseWithFile(schema, data, file)
+      const result = await parseWithFile(schema, data, config, file)
 
       if (result.success) return result.data
 
@@ -53,7 +53,7 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
       result.error.issues.forEach(issue => {
         const source = [...pathPrefix, ...(issue.path ?? [])].map(p => (typeof p === 'number' ? `[${p}]` : String(p))).join('.')
         const message = file.message(issue.message ?? 'Validation error', { source })
-        message.fatal = (issue as any).fatal || file.config.strict === true
+        message.fatal = (issue as any).fatal || config.strict === true
       })
     })
   )

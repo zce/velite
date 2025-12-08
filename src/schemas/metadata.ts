@@ -1,6 +1,6 @@
 import { custom } from 'zod'
 
-import { currentFile } from './zod'
+import { currentFile } from '../parser'
 
 // Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters
 const cjRanges = [

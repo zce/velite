@@ -7,21 +7,15 @@ import { VFile } from 'vfile'
 
 import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
-import type { Config } from './types'
+import type { Loader } from './types'
 
 // cache loaded files for rebuild
 const loaded = new Map<string, VeliteFile>()
 
 export class VeliteFile extends VFile {
-  config: Config
   private _mdast: Root | undefined
   private _hast: Nodes | undefined
   private _plain: string | undefined
-
-  constructor({ path, config }: { path: string; config: Config }) {
-    super({ path })
-    this.config = config
-  }
 
   /**
    * Get parsed records from file
@@ -81,14 +75,14 @@ export class VeliteFile extends VFile {
    * @param options meta options
    * @returns resolved meta object
    */
-  static async create({ path, config }: { path: string; config: Config }): Promise<VeliteFile> {
-    const meta = new VeliteFile({ path, config })
-    const loader = config.loaders.find(loader => loader.test.test(path))
-    if (loader == null) return meta.fail(`no loader found for '${path}'`)
-    meta.value = await readFile(path)
-    meta.data = await loader.load(meta)
-    if (meta.data?.data == null) return meta.fail(`no data loaded from '${path}'`)
-    loaded.set(path, meta)
-    return meta
+  static async create(path: string, loaders: Loader[]): Promise<VeliteFile> {
+    const loader = loaders.find(l => l.test.test(path))
+    const file = new VeliteFile({ path })
+    if (loader == null) return file.fail(`no loader found for '${path}'`)
+    file.value = await readFile(path)
+    file.data = await loader.load(file)
+    if (file.data?.data == null) return file.fail(`no data loaded from '${path}'`)
+    loaded.set(path, file)
+    return file
   }
 }

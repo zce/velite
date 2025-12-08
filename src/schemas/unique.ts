@@ -1,6 +1,6 @@
 import { string } from 'zod'
 
-import { currentFile } from './zod'
+import { currentConfig, currentFile } from '../parser'
 
 /**
  * generate a unique schema
@@ -10,7 +10,7 @@ import { currentFile } from './zod'
 export const unique = (by: string = 'global') =>
   string().superRefine((value, ctx) => {
     const key = `schemas:unique:${by}:${value}`
-    const { cache } = currentFile().config
+    const { cache } = currentConfig()
     if (cache.has(key)) {
       ctx.addIssue({ fatal: true, code: 'custom', message: `duplicate value '${value}' in '${currentFile().path}'` })
     } else {

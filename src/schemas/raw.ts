@@ -1,6 +1,6 @@
 import { custom } from 'zod'
 
-import { currentFile } from './zod'
+import { currentFile } from '../parser'
 
 export const raw = () =>
   custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(value => {

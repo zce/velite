@@ -8,7 +8,7 @@ import { visit } from 'unist-util-visit'
 import { custom } from 'zod'
 
 import { rehypeCopyLinkedFiles } from '../assets'
-import { currentFile } from './zod'
+import { currentConfig, currentFile } from '../parser'
 
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
@@ -48,7 +48,7 @@ export const markdown = (options: MarkdownOptions = {}) =>
       return ''
     }
 
-    const { markdown, output } = file.config
+    const { markdown, output } = currentConfig()
 
     const enableGfm = options.gfm ?? markdown?.gfm ?? true
     const removeComments = options.removeComments ?? markdown?.removeComments ?? true

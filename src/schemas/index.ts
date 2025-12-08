@@ -1,34 +1,14 @@
-import * as z from 'zod'
-
-import { excerpt } from './excerpt'
-import { file } from './file'
-import { image } from './image'
-import { isodate } from './isodate'
-import { markdown } from './markdown'
-import { mdx } from './mdx'
-import { metadata } from './metadata'
-import { path } from './path'
-import { raw } from './raw'
-import { slug } from './slug'
-import { toc } from './toc'
-import { unique } from './unique'
-import { currentFile } from './zod'
-
-export const s = {
-  ...z,
-  isodate,
-  unique,
-  slug,
-  file,
-  image,
-  metadata,
-  excerpt,
-  markdown,
-  mdx,
-  path,
-  raw,
-  toc,
-  currentFile
-}
-
-export type { infer, ZodType as Schema, ZodType } from 'zod'
+export * from 'zod'
+export type { Infer, ZodType as Schema, ZodType } from 'zod'
+export { excerpt } from './excerpt'
+export { file } from './file'
+export { image } from './image'
+export { isodate } from './isodate'
+export { markdown } from './markdown'
+export { mdx } from './mdx'
+export { metadata } from './metadata'
+export { path } from './path'
+export { raw } from './raw'
+export { slug } from './slug'
+export { toc } from './toc'
+export { unique } from './unique'

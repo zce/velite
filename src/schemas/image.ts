@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { string } from 'zod'
 
 import { getImageMetadata, processAsset } from '../assets'
-import { currentFile } from './zod'
+import { currentConfig, currentFile } from '../parser'
 
 import type { Image } from '../assets'
 
@@ -43,10 +43,9 @@ export const image = ({ absoluteRoot }: ImageOptions = {}) =>
       //   return { src: value, ...metadata }
       // }
 
-      const file = currentFile()
-      const { output } = file.config
       // process asset as relative path
-      return await processAsset(value, file.path, output.name, output.base, true)
+      const { output } = currentConfig()
+      return await processAsset(value, currentFile().path, output.name, output.base, true)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       ctx.addIssue({ fatal: true, code: 'custom', message })

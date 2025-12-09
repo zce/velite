@@ -32,7 +32,7 @@ importers:
         version: 4.0.4
       '@types/node':
         specifier: ^22.19.1
-        version: 22.19.1
+        version: 22.19.2
       '@types/picomatch':
         specifier: ^4.0.2
         version: 4.0.2
@@ -131,7 +131,7 @@ importers:
         version: 0.5.16(tailwindcss@4.1.12)
       '@types/node':
         specifier: ^24.3.0
-        version: 24.3.0
+        version: 22.19.2
       '@types/react':
         specifier: 19.2.7
         version: 19.2.7
@@ -1696,8 +1696,8 @@ packages:
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
-  '@types/node@22.19.1':
-    resolution: {integrity: sha512-LCCV0HdSZZZb34qifBsyWlUmok6W7ouER+oQIGBScS8EsZsQbrtFTUrDX4hOl+CS6p7cnNC4td+qrSVGSCTUfQ==}
+  '@types/node@22.19.2':
+    resolution: {integrity: sha512-LPM2G3Syo1GLzXLGJAKdqoU35XvrWzGJ21/7sgZTUpbkBaOasTj8tjwn6w+hCkqaa1TfJ/w67rJSwYItlJ2mYw==}
 
   '@types/node@24.3.0':
     resolution: {integrity: sha512-aPTXCrfwnDLj4VvXrm+UUCQjNEvJgNA8s5F1cvwQU+3KNltTOkBm1j30uNLyqqPNe7gE3KFzImYoZEfLhp4Yow==}
@@ -4726,13 +4726,14 @@ snapshots:
 
   '@types/ms@2.1.0': {}
 
-  '@types/node@22.19.1':
+  '@types/node@22.19.2':
     dependencies:
       undici-types: 6.21.0
 
   '@types/node@24.3.0':
     dependencies:
       undici-types: 7.10.0
+    optional: true
 
   '@types/picomatch@4.0.2': {}
 
@@ -6939,7 +6940,8 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.10.0: {}
+  undici-types@7.10.0:
+    optional: true
 
   unified@11.0.5:
     dependencies:

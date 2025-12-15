@@ -3,7 +3,7 @@ import { visit } from 'unist-util-visit'
 import { custom } from 'zod'
 
 import { remarkCopyLinkedFiles } from '../assets'
-import { currentConfig, currentFile } from '../parser'
+import { context } from '../context'
 
 import type { Root } from 'mdast'
 import type { PluggableList } from 'unified'
@@ -20,14 +20,14 @@ const remarkRemoveComments = () => (tree: Root) => {
 
 export const mdx = (options: MdxOptions = {}) =>
   custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, ctx) => {
-    const file = currentFile()
+    const { file, config } = context()
     value = value ?? file.content
     if (value == null || value.length === 0) {
       ctx.addIssue({ code: 'custom', message: 'The content is empty' })
       return ''
     }
 
-    const { mdx, output } = currentConfig()
+    const { mdx, output } = config
 
     const enableGfm = options.gfm ?? mdx?.gfm ?? true
     const enableMinify = options.minify ?? mdx?.minify ?? true

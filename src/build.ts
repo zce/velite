@@ -5,10 +5,11 @@ import { reporter } from 'vfile-reporter'
 
 import { assets } from './assets'
 import { resolveConfig } from './config'
+import { parseWithContext } from './context'
 import { VeliteFile } from './file'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
-import { parseWithFile } from './parser'
+import { uniqueCache } from './schemas/unique'
 import { matchPatterns } from './utils'
 
 import type { LogLevel } from './logger'
@@ -45,7 +46,7 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
       // push index in path if file is array
       const pathPrefix = isArr ? [index] : []
 
-      const result = await parseWithFile(schema, data, config, file)
+      const result = await parseWithContext(schema, data, { config, file })
 
       if (result.success) return result.data
 
@@ -179,9 +180,7 @@ const watch = async (config: Config) => {
       if (!matchPatterns(filename, patterns)) return
 
       // remove changed file cache
-      for (const [key, value] of config.cache.entries()) {
-        if (value === fullpath) config.cache.delete(key)
-      }
+      uniqueCache.reset(fullpath)
 
       const begin = performance.now()
       logger.info(`changed: '${fullpath}', rebuilding...`)

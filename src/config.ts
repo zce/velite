@@ -101,7 +101,6 @@ export const resolveConfig = async (path?: string, options: { strict?: boolean; 
     ...loadedConfig,
     configPath,
     configImports,
-    cache: new Map(),
     root: resolve(cwd, loadedConfig.root ?? 'content'),
     output: {
       data: resolve(cwd, loadedConfig.output?.data ?? '.velite'),

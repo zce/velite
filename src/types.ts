@@ -206,7 +206,7 @@ export type Result<T extends Collections> = { [P in keyof T]: CollectionType<T, 
 /**
  * Hook context
  */
-export type Context = {
+export type HookContext = {
   /**
    * Resolved config
    */
@@ -267,14 +267,14 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
    * return false to prevent the default output to a file if you wanted
    * @param data loaded data
    */
-  prepare?: (data: Result<T>, context: Context) => Promisable<void | false>
+  prepare?: (data: Result<T>, context: HookContext) => Promisable<void | false>
   /**
    * Build success hook
    * @description
    * You can do anything after the build is complete, such as print some tips or deploy the output files.
    * @param data loaded data
    */
-  complete?: (data: Result<T>, context: Context) => Promisable<void>
+  complete?: (data: Result<T>, context: HookContext) => Promisable<void>
 }
 
 /**
@@ -289,13 +289,6 @@ export interface Config extends Readonly<UserConfig> {
    * Dependencies of the config file
    */
   readonly configImports: string[]
-  /**
-   * Global cache (need refresh in rebuild)
-   * memory level cache is enough for Velite. and it's easy & efficient.
-   * maybe we can use other cache way in the future if needed.
-   * but for now, we just need a simple cache.
-   */
-  readonly cache: Map<string, any>
   /**
    * The root directory of the contents (relative to config file).
    */

@@ -1,6 +1,6 @@
 import { custom } from 'zod'
 
-import { currentFile } from '../parser'
+import { context } from '../context'
 
 export interface ExcerptOptions {
   // /**
@@ -19,7 +19,7 @@ export interface ExcerptOptions {
 
 export const excerpt = ({ length = 260 }: ExcerptOptions = {}) =>
   custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, ctx) => {
-    value = value ?? currentFile().plain
+    value = value ?? context().file.plain
     if (value == null || value.length === 0) {
       ctx.addIssue({ code: 'custom', message: 'The content is empty' })
       return ''

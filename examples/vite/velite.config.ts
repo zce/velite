@@ -1,7 +1,7 @@
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 import rehypePrettyCode from 'rehype-pretty-code'
-import { defineCollection, defineConfig, s } from 'velite'
+import { context, defineCollection, defineConfig, s } from 'velite'
 
 const slugify = (input: string) =>
   input
@@ -30,7 +30,7 @@ const timestamp = () =>
       if (value != null) {
         addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
       }
-      const { stdout } = await execAsync(`git log -1 --format=%cd ${s.currentFile().path}`)
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${context().file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
 

@@ -1,7 +1,7 @@
 import { relative } from 'node:path'
 import { custom } from 'zod'
 
-import { currentConfig, currentFile } from '../parser'
+import { context } from '../context'
 
 /**
  * Options for flattened path
@@ -29,7 +29,9 @@ export const path = (options?: PathOptions) =>
       ctx.addIssue({ fatal: false, code: 'custom', message: '`s.path()` schema will resolve the flattening path based on the file path' })
     }
 
-    const flattened = relative(currentConfig().root, currentFile().path)
+    const { config, file } = context()
+
+    const flattened = relative(config.root, file.path)
       .replace(/\.[^.]+$/, '')
       .replace(/\\/g, '/')
 

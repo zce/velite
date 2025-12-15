@@ -22,13 +22,18 @@ export const title = defineSchema(() => s.string().min(1).max(100))
 // for validating email
 export const email = defineSchema(() => s.string().email({ message: 'Invalid email address' }))
 
-// custom validation logic
-export const hello = defineSchema(() =>
-  s.string().refine(value => {
-    if (value !== 'hello') {
-      return 'Value must be "hello"'
+// custom validation logic using refine
+export const hello = defineSchema(() => s.string().refine(value => value === 'hello', 'Value must be "hello"'))
+
+// custom validation logic using superRefine (for more control)
+export const customValidation = defineSchema(() =>
+  s.string().superRefine((value, ctx) => {
+    if (value.length < 5) {
+      ctx.addIssue({ code: 'custom', message: 'Value must be at least 5 characters' })
     }
-    return true
+    if (!value.includes('@')) {
+      ctx.addIssue({ code: 'custom', message: 'Value must contain @ symbol' })
+    }
   })
 )
 ```
@@ -40,10 +45,28 @@ Refer to [Zod documentation](https://zod.dev) for more information about Zod.
 ```ts
 import { defineSchema, s } from 'velite'
 
-// for transforming title
+// for transforming title (simple transform)
 export const title = defineSchema(() => s.string().transform(value => value.toUpperCase()))
 
-// ...
+// for transforming with error handling (using ctx.addIssue)
+export const safeTransform = defineSchema(() =>
+  s.string().transform((value, ctx) => {
+    try {
+      return value.toUpperCase()
+    } catch (err) {
+      ctx.addIssue({ fatal: true, code: 'custom', message: 'Transform failed' })
+      return value
+    }
+  })
+)
+
+// async transform (zod 4 supports async transforms)
+export const asyncTransform = defineSchema(() =>
+  s.string().transform(async (value, ctx) => {
+    // async operations...
+    return processedValue
+  })
+)
 ```
 
 ### Example
@@ -59,7 +82,7 @@ import type { Image } from 'velite'
  * Remote Image with metadata schema
  */
 export const remoteImage = () =>
-  s.string().transform<Image>(async (value, { addIssue }) => {
+  s.string().transform<Image>(async (value, ctx) => {
     try {
       const response = await fetch(value)
       const blob = await response.blob()
@@ -69,7 +92,7 @@ export const remoteImage = () =>
       return { src: value, ...metadata }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      addIssue({ fatal: true, code: 'custom', message })
+      ctx.addIssue({ fatal: true, code: 'custom', message })
       return null as never
     }
   })
@@ -78,22 +101,62 @@ export const remoteImage = () =>
 ## Schema Context
 
 > [!TIP]
-> Considering that Velite's scenario often needs to obtain metadata information about the current file in the schema, Velite does not use the original Zod package. Instead, it uses a custom Zod package that provides a `meta` member in the schema context.
+> In Zod 4, the context object (`ctx`) in `refine`, `superRefine`, and `transform` provides an `addIssue()` method for adding validation errors. Velite extends this context to provide access to file metadata through `context()` function.
+
+### Using Context API
 
 ```ts
-import { defineSchema, s } from 'velite'
+import { context, defineSchema, s } from 'velite'
 
-// convert a nonexistent field
+// Access file context in transform
 export const path = defineSchema(() =>
   s.custom<string>().transform((value, ctx) => {
-    if (ctx.meta.path) {
-      return ctx.meta.path
+    // Use context() to access current file information
+    const { file, config } = context()
+
+    if (value == null) {
+      // Use ctx.addIssue() to add validation errors (Zod 4 API)
+      ctx.addIssue({ fatal: false, code: 'custom', message: 'Using file path as fallback' })
+      return file.path
     }
     return value
   })
 )
 ```
 
+### Context API Reference
+
+The `context()` function returns an object with:
+
+- `config`: The resolved Velite configuration
+- `file`: The current [`VeliteFile`](../reference/types.md#velitefile) being processed
+
+### Error Handling in Transforms
+
+```ts
+import { defineSchema, s } from 'velite'
+
+export const safeTransform = defineSchema(() =>
+  s.string().transform(async (value, ctx) => {
+    try {
+      // async operation
+      const result = await processValue(value)
+      return result
+    } catch (err) {
+      // Add error issue using Zod 4 API
+      ctx.addIssue({
+        fatal: true, // Set to true to stop processing
+        code: 'custom', // Error code
+        message: err.message // Error message
+      })
+      return null as never // Type assertion for TypeScript
+    }
+  })
+)
+```
+
 ### Reference
 
-the type of `meta` is `ZodMeta`, which extends [`VeliteFile`](../reference/types.md#velitefile).
+- `context()` returns `{ config: Config, file: VeliteFile }`
+- `ctx.addIssue()` accepts `{ fatal?: boolean, code: string, message: string }`
+- See [`VeliteFile`](../reference/types.md#velitefile) for file metadata structure

@@ -12,17 +12,18 @@ Create a timestamp schema based on file stat.
 
 ```ts
 import { stat } from 'fs/promises'
-import { defineSchema } from 'velite'
+import { context, defineSchema } from 'velite'
 
 const timestamp = defineSchema(() =>
   s
     .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { meta, addIssue }) => {
+    .transform<string>(async (value, ctx) => {
       if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the file modified timestamp' })
+        ctx.addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the file modified timestamp' })
       }
 
-      const stats = await stat(meta.path)
+      const { file } = context()
+      const stats = await stat(file.path)
       return stats.mtime.toISOString()
     })
 )
@@ -45,18 +46,19 @@ const posts = defineCollection({
 ```ts
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { defineSchema } from 'velite'
+import { context, defineSchema } from 'velite'
 
 const execAsync = promisify(exec)
 
 const timestamp = defineSchema(() =>
   s
     .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { meta, addIssue }) => {
+    .transform<string>(async (value, ctx) => {
       if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
+        ctx.addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
       }
-      const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
+      const { file } = context()
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
 )

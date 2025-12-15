@@ -312,10 +312,11 @@ const compileMdx = async (source: string, path: string, options: CompileOptions)
 }
 
 export const mdxBundle = (options: MdxOptions = {}) =>
-  custom<string>().transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
-    value = value ?? content
+  custom<string>().transform<string>(async (value, ctx) => {
+    const { file, config } = context()
+    value = value ?? file.content
     if (value == null) {
-      addIssue({ fatal: true, code: 'custom', message: 'The content is empty' })
+      ctx.addIssue({ fatal: true, code: 'custom', message: 'The content is empty' })
       return null as never
     }
 
@@ -339,9 +340,9 @@ export const mdxBundle = (options: MdxOptions = {}) =>
     const compilerOptions = { ...config.mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
 
     try {
-      return await compileMdx(value, path, compilerOptions)
+      return await compileMdx(value, file.path, compilerOptions)
     } catch (err: any) {
-      addIssue({ fatal: true, code: 'custom', message: err.message })
+      ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
       return null as never
     }
   })

@@ -11,12 +11,13 @@ import { defineSchema } from 'velite'
 const timestamp = defineSchema(() =>
   s
     .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { meta, addIssue }) => {
+    .transform<string>(async (value, ctx) => {
       if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the file modified timestamp' })
+        ctx.addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the file modified timestamp' })
       }
 
-      const stats = await stat(meta.path)
+      const { file } = context()
+      const stats = await stat(file.path)
       return stats.mtime.toISOString()
     })
 )
@@ -43,11 +44,12 @@ const execAsync = promisify(exec)
 const timestamp = defineSchema(() =>
   s
     .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { meta, addIssue }) => {
+    .transform<string>(async (value, ctx) => {
       if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
+        ctx.addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
       }
-      const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
+      const { file } = context()
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
 )
@@ -73,7 +75,7 @@ import type { Image } from 'velite'
  * Remote Image with metadata schema
  */
 export const remoteImage = () =>
-  s.string().transform<Image>(async (value, { addIssue }) => {
+  s.string().transform<Image>(async (value, ctx) => {
     try {
       const response = await fetch(value)
       const blob = await response.blob()
@@ -83,7 +85,7 @@ export const remoteImage = () =>
       return { src: value, ...metadata }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      addIssue({ fatal: true, code: 'custom', message })
+      ctx.addIssue({ fatal: true, code: 'custom', message })
       return null as never
     }
   })
@@ -273,16 +275,17 @@ export interface ExcerptOptions {
 }
 
 export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
-  custom<string>().transform(async (value, { meta: { path, content, config } }) => {
-    if (value == null && content != null) {
-      value = content
+  custom<string>().transform(async (value, ctx) => {
+    const { file, config } = context()
+    if (value == null && file.content != null) {
+      value = file.content
     }
     try {
       const mdast = fromMarkdown(value)
       const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
       const exHast = hastExcerpt(hast, { comment: separator, maxSearchSize: 1024 })
       const output = exHast ?? truncate(hast, { size: length, ellipsis: '…' })
-      await rehypeCopyLinkedFiles(config.output)(output, { path })
+      await rehypeCopyLinkedFiles(config.output)(output, { path: file.path })
       return toHtml(output)
     } catch (err: any) {
       ctx.addIssue({ fatal: true, code: 'custom', message: err.message })

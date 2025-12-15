@@ -156,35 +156,49 @@ const posts = defineCollection({
 
 ### Transform Context Metadata
 
-The `transform()` function can receive a second argument, which is the context object. This is useful for adding computed fields to the content items in a collection.
+The `transform()` function can receive a second argument, which is the context object (in Zod 4). To access file metadata, use the `context()` function from Velite.
 
 ```js
+import { context, s } from 'velite'
+
 const posts = defineCollection({
   schema: s
     .object({
       // fields
     })
-    .transform((data, { meta }) => ({
-      ...data,
-      // computed fields
-      path: meta.path // or parse to filename based slug
-    }))
+    .transform(data => {
+      const { file } = context()
+      return {
+        ...data,
+        // computed fields
+        path: file.path, // or parse to filename based slug
+        basename: file.basename
+      }
+    })
 })
 ```
 
-the type of `meta` is `ZodMeta`, which extends [`VeliteFile`](../reference/types.md#velitefile). for more information, see [Custom Schema](custom-schema.md).
+For more information about accessing file context, see [Custom Schema](custom-schema.md).
 
 ## Content Body
 
-Velite's built-in loader keeps content's raw body in `meta.content`, and the plain text body in `meta.plain`.
+Velite's built-in loader keeps content's raw body in `file.content`, and the plain text body in `file.plain`.
 
-To add them as a field, you can use a custom schema.
+To add them as a field, you can use a custom schema with the `context()` function.
 
 ```js
+import { context, s } from 'velite'
+
 const posts = defineCollection({
   schema: s.object({
-    content: s.custom().transform((data, { meta }) => meta.content),
-    plain: s.custom().transform((data, { meta }) => meta.plain)
+    content: s.custom().transform(() => {
+      const { file } = context()
+      return file.content
+    }),
+    plain: s.custom().transform(() => {
+      const { file } = context()
+      return file.plain
+    })
   })
 })
 ```

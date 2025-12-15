@@ -49,7 +49,7 @@ name: s.unique('taxonomies')
 // 'foo' => 'foo'
 
 // case 2. non-unique value (in all unique by 'taxonomies')
-// 'foo' => issue 'Already exists'
+// 'foo' => issue 'Duplicate 'foo' with '/path/to/existing/file.yml''
 ```
 
 ### Parameters

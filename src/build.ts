@@ -173,6 +173,7 @@ const watch = async (config: Config) => {
       if (configImports.includes(fullpath)) {
         logger.info('velite config changed, restarting...')
         watcher.close()
+        uniqueCache.reset()
         return build({ config: config.configPath, clean: false, watch: true })
       }
 

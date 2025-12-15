@@ -1,12 +1,12 @@
 import { equal } from 'node:assert'
+// import from source
+import { exec } from 'node:child_process'
 import { readFile, rm } from 'node:fs/promises'
 import { test } from 'node:test'
 
-// import from source
-import { build } from '../src'
-
 test('standalone fixtures', async t => {
-  await build({ config: 'examples/basic/velite.config.js' })
+  // will use velite dist
+  await new Promise((res, rej) => exec('npm run build', { cwd: 'examples/basic' }, (e, s) => (e ? rej(e) : res(s))))
 
   const entry = await readFile('examples/basic/.velite/index.js', 'utf8')
   equal(entry.length, 398, 'entry output length should be 398')

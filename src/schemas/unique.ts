@@ -14,10 +14,8 @@ class UniqueCache {
   }
 
   reset(path?: string) {
-    if (path == null) {
-      this.store.clear()
-      return
-    }
+    if (path == null) return this.store.clear()
+
     for (const [key, value] of this.store.entries()) {
       if (value === path) this.store.delete(key)
     }
@@ -32,10 +30,10 @@ export const uniqueCache = new UniqueCache()
  * @returns unique schema
  */
 export const unique = (group: string = 'global') =>
-  string().superRefine((value, ctx) => {
+  string().superRefine(async (value, ctx) => {
     const conflict = uniqueCache.get(group, value)
     if (conflict) {
-      ctx.addIssue({ fatal: true, code: 'custom', message: `Duplicate '${value}': already exists in '${conflict}'` })
+      ctx.addIssue({ fatal: true, code: 'custom', message: `Duplicate '${value}' with '${conflict}'` })
     } else {
       uniqueCache.set(group, value, context().file.path)
     }

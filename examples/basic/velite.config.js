@@ -63,7 +63,7 @@ export default defineConfig({
       schema: s
         .object({
           name: s.unique('categories'),
-          slug: s.slug('global'),
+          slug: s.slug(),
           cover: s.image().optional(),
           description: s.string().max(999).optional(),
           count
@@ -76,7 +76,7 @@ export default defineConfig({
       schema: s
         .object({
           name: s.string().max(20),
-          slug: s.slug('global'),
+          slug: s.slug(),
           cover: s.image().optional(),
           description: s.string().max(999).optional(),
           count
@@ -89,7 +89,7 @@ export default defineConfig({
       schema: s
         .object({
           title: s.string().max(99),
-          slug: s.slug('global'),
+          slug: s.slug(),
           body: s.mdx(),
           raw: s.raw()
         })

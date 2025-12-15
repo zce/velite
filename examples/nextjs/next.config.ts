@@ -1,8 +1,9 @@
 import type { NextConfig } from 'next'
 
-const isDev = process.argv.indexOf('dev') !== -1
+const isDev = process.env.NODE_ENV === 'development'
 const isBuild = process.argv.indexOf('build') !== -1
-if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
+const isTypegen = process.argv.indexOf('typegen') !== -1
+if (!process.env.VELITE_STARTED && (isDev || isBuild || isTypegen)) {
   process.env.VELITE_STARTED = '1'
   import('velite').then(m => m.build({ watch: isDev, clean: !isDev }))
 }

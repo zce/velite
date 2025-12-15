@@ -1,18 +1,6 @@
-import type { NextConfig } from 'next'
+import { withVelite } from '@velite/plugin-next'
 
-const isDev = process.env.NODE_ENV === 'development'
-const isBuild = process.argv.indexOf('build') !== -1
-const isTypegen = process.argv.indexOf('typegen') !== -1
-if (!process.env.VELITE_STARTED && (isDev || isBuild || isTypegen)) {
-  process.env.VELITE_STARTED = '1'
-  import('velite').then(m => m.build({ watch: isDev, clean: !isDev }))
-}
-
-const nextConfig: NextConfig = {
-  /* config options here */
-}
-
-export default nextConfig
+export default withVelite()
 
 // legacy next.config.js ↓ (not support turbopack)
 

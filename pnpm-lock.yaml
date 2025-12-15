@@ -141,6 +141,9 @@ importers:
       '@types/react-dom':
         specifier: 19.2.3
         version: 19.2.3(@types/react@19.2.7)
+      '@velite/plugin-next':
+        specifier: workspace:*
+        version: link:../../packages/next
       next:
         specifier: 16.0.10
         version: 16.0.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -226,6 +229,15 @@ importers:
       vite:
         specifier: ^7.2.7
         version: 7.2.7(@types/node@25.0.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+
+  packages/next:
+    dependencies:
+      next:
+        specifier: ^16.0.0
+        version: 16.0.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      velite:
+        specifier: workspace:*
+        version: link:../..
 
   packages/vite:
     dependencies:

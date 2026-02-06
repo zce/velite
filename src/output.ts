@@ -1,5 +1,5 @@
-import { copyFile, writeFile } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { copyFile, mkdir, writeFile } from 'node:fs/promises'
+import { dirname, join, relative } from 'node:path'
 
 import { logger } from './logger'
 
@@ -96,8 +96,12 @@ export const outputAssets = async (dest: string, assets: Map<string, string>): P
         logger.log(`skipped copy '${name}' with same content`)
         return
       }
-      await copyFile(from, join(dest, name))
-      // logger.log(`copied '${name}' from '${from}'`)
+      const destPath = join(dest, name)
+      const destDir = dirname(destPath)
+      if (destDir !== dest) {
+        await mkdir(destDir, { recursive: true })
+      }
+      await copyFile(from, destPath)
       emitted.set(name, from)
       count++
     })

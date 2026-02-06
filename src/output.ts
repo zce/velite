@@ -102,6 +102,7 @@ export const outputAssets = async (dest: string, assets: Map<string, string>): P
         await mkdir(destDir, { recursive: true })
       }
       await copyFile(from, destPath)
+      // logger.log(`copied '${name}' from '${from}'`)
       emitted.set(name, from)
       count++
     })

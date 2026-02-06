@@ -12,17 +12,21 @@ export interface ImageOptions {
    * @default undefined
    */
   absoluteRoot?: string
-  // /**
-  //  * allow remote url
-  //  * @default false
-  //  */
-  // allowRemoteUrl?: boolean
+  /**
+   * Custom output name template for the asset
+   * Supports placeholders: [name], [hash], [hash:N], [ext]
+   * Can include subdirectories (e.g., 'logos/[name]-[hash:6].[ext]')
+   * @default undefined (uses global output.name from config)
+   * @example 'logo-[name]-[hash:6].[ext]'
+   * @example 'logos/[name]-[hash:6].[ext]'
+   */
+  outputName?: string
 }
 
 /**
  * Image schema
  */
-export const image = ({ absoluteRoot }: ImageOptions = {}) =>
+export const image = ({ absoluteRoot, outputName }: ImageOptions = {}) =>
   string().transform<Image>(async (value, { meta, addIssue }) => {
     try {
       if (absoluteRoot && /^\//.test(value)) {
@@ -44,7 +48,8 @@ export const image = ({ absoluteRoot }: ImageOptions = {}) =>
 
       const { output } = meta.config
       // process asset as relative path
-      return await processAsset(value, meta.path, output.name, output.base, true)
+      const assetName = outputName ?? output.name
+      return await processAsset(value, meta.path, assetName, output.base, true)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       addIssue({ fatal: true, code: 'custom', message })

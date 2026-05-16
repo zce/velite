@@ -1,6 +1,6 @@
 {
   "name": "@velite/plugin-next",
-  "version": "0.0.1",
+  "version": "0.1.0-alpha.1",
   "description": "Next.js plugin for integrating Velite",
   "type": "module",
   "exports": "./index.js",

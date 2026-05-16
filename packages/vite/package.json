@@ -1,6 +1,6 @@
 {
   "name": "@velite/plugin-vite",
-  "version": "0.0.2",
+  "version": "0.1.0-alpha.1",
   "description": "Vite plugin for integrating Velite",
   "type": "module",
   "exports": "./index.js",

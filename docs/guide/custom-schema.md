@@ -20,7 +20,7 @@ import { defineSchema, s } from 'velite'
 export const title = defineSchema(() => s.string().min(1).max(100))
 
 // for validating email
-export const email = defineSchema(() => s.string().email({ message: 'Invalid email address' }))
+export const email = defineSchema(() => s.email({ message: 'Invalid email address' }))
 
 // custom validation logic using refine
 export const hello = defineSchema(() => s.string().refine(value => value === 'hello', 'Value must be "hello"'))

@@ -50,7 +50,7 @@ export default defineConfig({
         title: s.string().max(99),
         description: s.string().max(999).optional(),
         keywords: s.array(s.string()),
-        author: s.object({ name: s.string(), email: s.string().email(), url: s.string().url() }),
+        author: s.object({ name: s.string(), email: s.email(), url: s.url() }),
         links: s.array(s.object({ text: s.string(), link: s.string(), type: s.enum(['navigation', 'footer', 'copyright']) })),
         socials: s.array(s.object({ name: s.string(), icon, link: s.string().optional(), image: s.image().optional() }))
       })

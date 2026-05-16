@@ -29,4 +29,8 @@ export const s = {
   unique
 } as const
 
-export type Schema = z.ZodType
+export { z }
+
+export type Schema<Output = unknown, Input = unknown> = z.ZodType<Output, Input>
+export type ZodType<Output = unknown, Input = unknown> = z.ZodType<Output, Input>
+export type infer<T extends z.ZodType> = z.infer<T>

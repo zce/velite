@@ -4,7 +4,7 @@ import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 import { context, defineConfig, s } from 'velite'
 
-const slugify = input =>
+const slugify = (/** @type {string} */ input) =>
   input
     .toLowerCase()
     .replace(/\s+/g, '-')
@@ -24,11 +24,9 @@ const meta = s
 const execAsync = promisify(exec)
 const timestamp = () =>
   s
-    .custom(i => i === undefined || typeof i === 'string')
-    .transform(async (value, { addIssue }) => {
-      if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
-      }
+    .custom(i => typeof i === 'string')
+    .optional()
+    .transform(async () => {
       const { stdout } = await execAsync(`git log -1 --format=%cd ${context().file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })

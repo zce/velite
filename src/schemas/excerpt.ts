@@ -18,12 +18,14 @@ export interface ExcerptOptions {
 }
 
 export const excerpt = ({ length = 260 }: ExcerptOptions = {}) =>
-  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, ctx) => {
-    value = value ?? context().file.plain
-    if (value == null || value.length === 0) {
-      ctx.addIssue({ code: 'custom', message: 'The content is empty' })
-      return ''
-    }
+  custom<string>(i => typeof i === 'string')
+    .optional()
+    .transform<string>(async (value, ctx) => {
+      value = value ?? context().file.plain
+      if (value == null || value.length === 0) {
+        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        return ''
+      }
 
-    return value.slice(0, length)
-  })
+      return value.slice(0, length)
+    })

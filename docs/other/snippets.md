@@ -6,16 +6,13 @@
 
 ```ts
 import { stat } from 'fs/promises'
-import { defineSchema } from 'velite'
+import { context, defineSchema } from 'velite'
 
 const timestamp = defineSchema(() =>
   s
-    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, ctx) => {
-      if (value != null) {
-        ctx.addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the file modified timestamp' })
-      }
-
+    .custom<string>(i => typeof i === 'string')
+    .optional()
+    .transform<string>(async () => {
       const { file } = context()
       const stats = await stat(file.path)
       return stats.mtime.toISOString()
@@ -37,17 +34,15 @@ const posts = defineCollection({
 ```ts
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { defineSchema } from 'velite'
+import { context, defineSchema } from 'velite'
 
 const execAsync = promisify(exec)
 
 const timestamp = defineSchema(() =>
   s
-    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, ctx) => {
-      if (value != null) {
-        ctx.addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
-      }
+    .custom<string>(i => typeof i === 'string')
+    .optional()
+    .transform<string>(async () => {
       const { file } = context()
       const { stdout } = await execAsync(`git log -1 --format=%cd ${file.path}`)
       return new Date(stdout || Date.now()).toISOString()
@@ -255,9 +250,7 @@ import { toHtml } from 'hast-util-to-html'
 import { truncate } from 'hast-util-truncate'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
-
-import { extractHastLinkedFiles } from '../assets'
-import { custom } from './zod'
+import { context, s } from 'velite'
 
 export interface ExcerptOptions {
   /**
@@ -275,7 +268,7 @@ export interface ExcerptOptions {
 }
 
 export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
-  custom<string>().transform(async (value, ctx) => {
+  s.custom<string>().transform(async (value, ctx) => {
     const { file, config } = context()
     if (value == null && file.content != null) {
       value = file.content

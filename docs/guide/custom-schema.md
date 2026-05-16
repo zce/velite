@@ -110,13 +110,11 @@ import { context, defineSchema, s } from 'velite'
 
 // Access file context in transform
 export const path = defineSchema(() =>
-  s.custom<string>().transform((value, ctx) => {
+  s.custom<string>().transform(value => {
     // Use context() to access current file information
     const { file, config } = context()
 
     if (value == null) {
-      // Use ctx.addIssue() to add validation errors (Zod 4 API)
-      ctx.addIssue({ fatal: false, code: 'custom', message: 'Using file path as fallback' })
       return file.path
     }
     return value

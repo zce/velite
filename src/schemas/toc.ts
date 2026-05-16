@@ -99,8 +99,9 @@ const parse = (tree?: List): TocEntry[] => {
 }
 
 export const toc = <T extends TocOptions>(options?: T) =>
-  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<T extends { original: true } ? TocTree : TocEntry[]>(
-    async (value, ctx) => {
+  custom<string>(i => typeof i === 'string')
+    .optional()
+    .transform<T extends { original: true } ? TocTree : TocEntry[]>(async (value, ctx) => {
       const { file } = context()
       value = value ?? file.content
       if (value == null || value.length === 0) {
@@ -117,5 +118,4 @@ export const toc = <T extends TocOptions>(options?: T) =>
         ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
         return null as never
       }
-    }
-  )
+    })

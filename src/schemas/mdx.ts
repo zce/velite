@@ -19,53 +19,55 @@ const remarkRemoveComments = () => (tree: Root) => {
 }
 
 export const mdx = (options: MdxOptions = {}) =>
-  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, ctx) => {
-    const { file, config } = context()
-    value = value ?? file.content
-    if (value == null || value.length === 0) {
-      ctx.addIssue({ code: 'custom', message: 'The content is empty' })
-      return ''
-    }
+  custom<string>(i => typeof i === 'string')
+    .optional()
+    .transform<string>(async (value, ctx) => {
+      const { file, config } = context()
+      value = value ?? file.content
+      if (value == null || value.length === 0) {
+        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        return ''
+      }
 
-    const { mdx, output } = config
+      const { mdx, output } = config
 
-    const enableGfm = options.gfm ?? mdx?.gfm ?? true
-    const enableMinify = options.minify ?? mdx?.minify ?? true
-    const removeComments = options.removeComments ?? mdx?.removeComments ?? true
-    const copyLinkedFiles = options.copyLinkedFiles ?? mdx?.copyLinkedFiles ?? true
-    const outputFormat = options.outputFormat ?? mdx?.outputFormat ?? 'function-body'
+      const enableGfm = options.gfm ?? mdx?.gfm ?? true
+      const enableMinify = options.minify ?? mdx?.minify ?? true
+      const removeComments = options.removeComments ?? mdx?.removeComments ?? true
+      const copyLinkedFiles = options.copyLinkedFiles ?? mdx?.copyLinkedFiles ?? true
+      const outputFormat = options.outputFormat ?? mdx?.outputFormat ?? 'function-body'
 
-    const remarkPlugins = [] as PluggableList
-    const rehypePlugins = [] as PluggableList
+      const remarkPlugins = [] as PluggableList
+      const rehypePlugins = [] as PluggableList
 
-    if (enableGfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
-    if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-    if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, output]) // copy linked files to public path and replace their urls with public urls
-    if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
-    if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
-    if (mdx?.remarkPlugins != null) remarkPlugins.push(...mdx.remarkPlugins) // apply global remark plugins
-    if (mdx?.rehypePlugins != null) rehypePlugins.push(...mdx.rehypePlugins) // apply global rehype plugins
+      if (enableGfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
+      if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
+      if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, output]) // copy linked files to public path and replace their urls with public urls
+      if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
+      if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
+      if (mdx?.remarkPlugins != null) remarkPlugins.push(...mdx.remarkPlugins) // apply global remark plugins
+      if (mdx?.rehypePlugins != null) rehypePlugins.push(...mdx.rehypePlugins) // apply global rehype plugins
 
-    const compilerOptions = { ...mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
+      const compilerOptions = { ...mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
 
-    const { compile } = await import('@mdx-js/mdx')
+      const { compile } = await import('@mdx-js/mdx')
 
-    try {
-      const code = await compile({ value, path: file.path }, compilerOptions)
+      try {
+        const code = await compile({ value, path: file.path }, compilerOptions)
 
-      if (!enableMinify) return code.toString()
+        if (!enableMinify) return code.toString()
 
-      const { minify } = await import('terser')
-      const minified = await minify(code.toString(), {
-        module: true,
-        compress: true,
-        keep_classnames: true,
-        mangle: { keep_fnames: true },
-        parse: { bare_returns: true }
-      })
-      return minified.code ?? code.toString()
-    } catch (err: any) {
-      ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
-      return null as never
-    }
-  })
+        const { minify } = await import('terser')
+        const minified = await minify(code.toString(), {
+          module: true,
+          compress: true,
+          keep_classnames: true,
+          mangle: { keep_fnames: true },
+          parse: { bare_returns: true }
+        })
+        return minified.code ?? code.toString()
+      } catch (err: any) {
+        ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
+        return null as never
+      }
+    })

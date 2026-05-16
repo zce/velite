@@ -25,11 +25,9 @@ const execAsync = promisify(exec)
 // refer to https://velite.js.org/guide/last-modified#based-on-git-timestamp for more details
 const timestamp = () =>
   s
-    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { addIssue }) => {
-      if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
-      }
+    .custom<string>(i => typeof i === 'string')
+    .optional()
+    .transform<string>(async () => {
       const { stdout } = await execAsync(`git log -1 --format=%cd ${context().file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })

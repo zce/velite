@@ -260,6 +260,7 @@ import { dirname, join } from 'node:path'
 import { globalExternals } from '@fal-works/esbuild-plugin-global-externals'
 import mdxPlugin from '@mdx-js/esbuild'
 import { build } from 'esbuild'
+import { context, s } from 'velite'
 
 import type { Plugin } from 'esbuild'
 
@@ -312,7 +313,7 @@ const compileMdx = async (source: string, path: string, options: CompileOptions)
 }
 
 export const mdxBundle = (options: MdxOptions = {}) =>
-  custom<string>().transform<string>(async (value, ctx) => {
+  s.custom<string>().transform<string>(async (value, ctx) => {
     const { file, config } = context()
     value = value ?? file.content
     if (value == null) {

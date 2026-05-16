@@ -62,35 +62,37 @@ export interface Metadata {
 }
 
 export const metadata = () =>
-  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<Metadata>(async (value, ctx) => {
-    value = value ?? context().file.plain
-    if (value == null || value.length === 0) {
-      ctx.addIssue({ code: 'custom', message: 'The content is empty' })
-      return { readingTime: 0, wordCount: 0 }
-    }
-
-    // https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby-transformer-remark/src/utils/time-to-read.js
-    const avgWPM = 265
-
-    const latinChars = []
-    const cjChars = []
-
-    for (const char of value) {
-      if (isCjChar(char)) {
-        cjChars.push(char)
-      } else {
-        latinChars.push(char)
+  custom<string>(i => typeof i === 'string')
+    .optional()
+    .transform<Metadata>(async (value, ctx) => {
+      value = value ?? context().file.plain
+      if (value == null || value.length === 0) {
+        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        return { readingTime: 0, wordCount: 0 }
       }
-    }
 
-    // Multiply non-latin character string length by 0.56, because
-    // on average one word consists of 2 characters in both Chinese and Japanese
-    const wordCount = wordLength(latinChars.join('')) + cjChars.length * 0.56
+      // https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby-transformer-remark/src/utils/time-to-read.js
+      const avgWPM = 265
 
-    const time = Math.round(wordCount / avgWPM)
+      const latinChars = []
+      const cjChars = []
 
-    return {
-      readingTime: time === 0 ? 1 : time,
-      wordCount: wordCount
-    }
-  })
+      for (const char of value) {
+        if (isCjChar(char)) {
+          cjChars.push(char)
+        } else {
+          latinChars.push(char)
+        }
+      }
+
+      // Multiply non-latin character string length by 0.56, because
+      // on average one word consists of 2 characters in both Chinese and Japanese
+      const wordCount = wordLength(latinChars.join('')) + cjChars.length * 0.56
+
+      const time = Math.round(wordCount / avgWPM)
+
+      return {
+        readingTime: time === 0 ? 1 : time,
+        wordCount: wordCount
+      }
+    })

@@ -1,0 +1,203 @@
+# Migration to 1.0 Alpha
+
+Velite 1.0 alpha modernizes the parser pipeline around Zod 4 and introduces framework plugins for app integrations. This guide covers the changes you should apply when upgrading from `0.3.x` or an earlier `1.0.0-alpha` build.
+
+## Upgrade Packages
+
+Install the alpha release and update your package manager lockfile:
+
+```bash
+pnpm add -D velite@1.0.0-alpha.2
+```
+
+If you use the framework plugins, install the matching package:
+
+```bash
+pnpm add -D @velite/plugin-next@latest
+pnpm add -D @velite/plugin-vite@latest
+```
+
+## Runtime Requirements
+
+Velite now targets Node.js `>=20.19.0`.
+
+This aligns the package with current versions of the runtime dependencies used by the build and watch pipeline. Update local development, CI, and deployment environments before upgrading.
+
+## Zod 4 Schema Semantics
+
+Velite now uses the official `zod` package directly. The `s` helper still includes Velite-specific schemas and all Zod exports, and `z` is also exported from `velite` for code that prefers the Zod namespace.
+
+```ts
+import { s, z } from 'velite'
+
+const post = s.object({
+  title: z.string(),
+  slug: s.path()
+})
+```
+
+### Replace `ctx.meta` With `context()`
+
+The parser no longer passes Velite file metadata through Zod's transform context. Use `context()` to access the current file and resolved config.
+
+Before:
+
+```ts
+import { defineSchema, s } from 'velite'
+
+export const sourcePath = defineSchema(() =>
+  s.custom<string>().transform((value, { meta }) => {
+    return value ?? meta.path
+  })
+)
+```
+
+After:
+
+```ts
+import { context, defineSchema, s } from 'velite'
+
+export const sourcePath = defineSchema(() =>
+  s
+    .custom<string>(value => typeof value === 'string')
+    .optional()
+    .transform(value => {
+      return value ?? context().file.path
+    })
+)
+```
+
+The `context()` function returns:
+
+```ts
+{
+  config: Config
+  file: VeliteFile
+}
+```
+
+### Mark Context-Derived Fields as Optional
+
+In Zod 4, object keys are required unless the schema is explicitly optional. If a field is usually missing from frontmatter and should be derived from the current file, add `.optional()` before `.transform()`.
+
+Before:
+
+```ts
+const posts = defineCollection({
+  schema: s.object({
+    content: s.custom<string | undefined>().transform(value => value ?? context().file.content ?? '')
+  })
+})
+```
+
+After:
+
+```ts
+const posts = defineCollection({
+  schema: s.object({
+    content: s
+      .custom<string>(value => typeof value === 'string')
+      .optional()
+      .transform(value => value ?? context().file.content ?? '')
+  })
+})
+```
+
+Velite's built-in context-derived schemas already follow this pattern, including `s.path()`, `s.raw()`, `s.markdown()`, `s.mdx()`, `s.excerpt()`, `s.metadata()`, and `s.toc()`.
+
+### Do Not Use `addIssue()` for Warnings
+
+Zod 4 treats any `ctx.addIssue()` call as a validation failure. `fatal: false` does not mean "warning" and does not keep the parse result successful.
+
+Before:
+
+```ts
+s.string().transform((value, ctx) => {
+  ctx.addIssue({ fatal: false, code: 'custom', message: 'Using fallback value' })
+  return value
+})
+```
+
+After:
+
+```ts
+s.string().transform(value => {
+  return value
+})
+```
+
+Only call `ctx.addIssue()` when the current value should fail validation.
+
+## Next.js Integration
+
+Use `@velite/plugin-next` instead of manually starting Velite from `next.config.ts`.
+
+Before:
+
+```ts
+const isDev = process.argv.includes('dev')
+const isBuild = process.argv.includes('build')
+
+if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
+  process.env.VELITE_STARTED = '1'
+  import('velite').then(m => m.build({ watch: isDev, clean: !isDev }))
+}
+
+export default {}
+```
+
+After:
+
+```ts
+import { withVelite } from '@velite/plugin-next'
+
+export default withVelite()
+```
+
+To pass Velite options:
+
+```ts
+import { createNextPlugin } from '@velite/plugin-next'
+
+const withVelite = createNextPlugin({ config: './velite.config.ts' })
+
+export default withVelite({
+  reactStrictMode: true
+})
+```
+
+## Vite Integration
+
+`@velite/plugin-vite` supports Vite 5 through Vite 8. Keep the plugin in your Vite config and upgrade Vite normally:
+
+```ts
+import { velite } from '@velite/plugin-vite'
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [velite(), react()]
+})
+```
+
+## Type Exports
+
+The public entry exports Zod-related helpers for schema typing:
+
+```ts
+import { z } from 'velite'
+
+import type { infer, Schema, ZodType } from 'velite'
+```
+
+Use `context()` for Velite parser metadata instead of relying on `ZodMeta`.
+
+## Recommended Upgrade Checklist
+
+- Update Node.js to `>=20.19.0` in local development and CI.
+- Upgrade `velite` to `1.0.0-alpha.2`.
+- Replace `ctx.meta` access with `context()`.
+- Add `.optional()` to custom schemas that derive missing object fields from the current file.
+- Remove `ctx.addIssue({ fatal: false, ... })` warning patterns.
+- Switch Next.js projects to `@velite/plugin-next`.
+- Run `velite build`, your app build, and your type checks.

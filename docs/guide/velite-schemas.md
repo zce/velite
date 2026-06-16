@@ -155,6 +155,21 @@ root path for absolute path, if provided, the value will be processed as an abso
 - type: `string`
 - default: `undefined`
 
+##### **options.blur**:
+
+blur placeholder options, used to customize the generated `blurDataURL`.
+
+- type: `{ width?: number; height?: number; quality?: number }`
+- default: `undefined`
+
+```ts
+avatar: s.image({ blur: { width: 16, quality: 30 } })
+```
+
+- `blur.width`: blur image width. default: `8`
+- `blur.height`: blur image height. default: derived from the image aspect ratio
+- `blur.quality`: webp quality of the blur image (1-100). default: `1`
+
 ### Types
 
 ```ts

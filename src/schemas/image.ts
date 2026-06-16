@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { getImageMetadata, processAsset } from '../assets'
 import { string } from './zod'
 
-import type { Image } from '../assets'
+import type { BlurOptions, Image } from '../assets'
 
 export interface ImageOptions {
   /**
@@ -12,6 +12,11 @@ export interface ImageOptions {
    * @default undefined
    */
   absoluteRoot?: string
+  /**
+   * blur placeholder options (width / height / quality)
+   * @default undefined
+   */
+  blur?: BlurOptions
   // /**
   //  * allow remote url
   //  * @default false
@@ -22,12 +27,12 @@ export interface ImageOptions {
 /**
  * Image schema
  */
-export const image = ({ absoluteRoot }: ImageOptions = {}) =>
+export const image = ({ absoluteRoot, blur }: ImageOptions = {}) =>
   string().transform<Image>(async (value, { meta, addIssue }) => {
     try {
       if (absoluteRoot && /^\//.test(value)) {
         const buffer = await readFile(join(absoluteRoot, value))
-        const metadata = await getImageMetadata(buffer)
+        const metadata = await getImageMetadata(buffer, blur)
         if (metadata == null) throw new Error(`Failed to get image metadata: ${value}`)
         return { src: value, ...metadata }
       }
@@ -44,7 +49,7 @@ export const image = ({ absoluteRoot }: ImageOptions = {}) =>
 
       const { output } = meta.config
       // process asset as relative path
-      return await processAsset(value, meta.path, output.name, output.base, true)
+      return await processAsset(value, meta.path, output.name, output.base, true, blur)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       addIssue({ fatal: true, code: 'custom', message })

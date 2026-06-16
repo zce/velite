@@ -38,6 +38,27 @@ export interface Image {
   blurHeight: number
 }
 
+/**
+ * Blur placeholder options
+ */
+export interface BlurOptions {
+  /**
+   * blur image width
+   * @default 8
+   */
+  width?: number
+  /**
+   * blur image height
+   * @default derived from aspect ratio
+   */
+  height?: number
+  /**
+   * webp quality of the blur image (1-100)
+   * @default 1
+   */
+  quality?: number
+}
+
 export const assets = new Map<string, string>()
 
 // https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
@@ -63,15 +84,16 @@ export const isRelativePath = (url: string): boolean => {
  * @param buffer image buffer
  * @returns image object with blurDataURL
  */
-export const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src'> | undefined> => {
+export const getImageMetadata = async (buffer: Buffer, blurOptions: BlurOptions = {}): Promise<Omit<Image, 'src'> | undefined> => {
   const { default: sharp } = await import('sharp')
   const img = sharp(buffer)
   const { width, height } = await img.metadata()
   if (width == null || height == null) return
   const aspectRatio = width / height
-  const blurWidth = 8
-  const blurHeight = Math.max(1, Math.round(blurWidth / aspectRatio))
-  const blurImage = await img.resize(blurWidth, blurHeight).webp({ quality: 1 }).toBuffer()
+  const blurWidth = blurOptions.width ?? 8
+  const blurHeight = blurOptions.height ?? Math.max(1, Math.round(blurWidth / aspectRatio))
+  const quality = blurOptions.quality ?? 1
+  const blurImage = await img.resize(blurWidth, blurHeight).webp({ quality }).toBuffer()
   const blurDataURL = `data:image/webp;base64,${blurImage.toString('base64')}`
   return { height, width, blurDataURL, blurWidth, blurHeight }
 }
@@ -83,6 +105,7 @@ export const getImageMetadata = async (buffer: Buffer): Promise<Omit<Image, 'src
  * @param filename output filename template
  * @param baseUrl output public base url
  * @param isImage process as image and return image object with blurDataURL
+ * @param blurOptions blur placeholder options (only used when isImage is true)
  * @returns reference public url or image object
  */
 export const processAsset = async <T extends true | undefined = undefined>(
@@ -90,7 +113,8 @@ export const processAsset = async <T extends true | undefined = undefined>(
   from: string,
   filename: string,
   baseUrl: string,
-  isImage?: T
+  isImage?: T,
+  blurOptions?: BlurOptions
 ): Promise<T extends true ? Image : string> => {
   // e.g. input = '../assets/image.png?foo=bar#hash'
   const queryIdx = input.indexOf('?')
@@ -125,7 +149,7 @@ export const processAsset = async <T extends true | undefined = undefined>(
 
   if (isImage !== true) return src as T extends true ? Image : string
 
-  const metadata = await getImageMetadata(buffer)
+  const metadata = await getImageMetadata(buffer, blurOptions)
   if (metadata == null) throw new Error(`invalid image: ${from}`)
   return { src, ...metadata } as T extends true ? Image : string
 }

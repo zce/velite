@@ -92,13 +92,8 @@ export const outputAssets = async (dest: string, assets: Map<string, string>): P
   let count = 0
   await Promise.all(
     Array.from(assets.entries()).map(async ([name, from]) => {
-      if (emitted.get(name) === from) {
-        logger.log(`skipped copy '${name}' with same content`)
-        return
-      }
       await copyFile(from, join(dest, name))
       // logger.log(`copied '${name}' from '${from}'`)
-      emitted.set(name, from)
       count++
     })
   )

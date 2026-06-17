@@ -85,10 +85,13 @@ import { context, defineSchema, s } from 'velite'
 
 // convert a nonexistent field
 export const path = defineSchema(() =>
-  s.custom<string | undefined>().transform(value => {
-    if (value != null) return value
-    return context().file.path
-  })
+  s
+    .string()
+    .optional()
+    .transform(value => {
+      if (value != null) return value
+      return context().file.path
+    })
 )
 ```
 

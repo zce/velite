@@ -191,14 +191,20 @@ import { context, s } from 'velite'
 
 const posts = defineCollection({
   schema: s.object({
-    content: s.custom().transform(() => {
-      const { file } = context()
-      return file.content
-    }),
-    plain: s.custom().transform(() => {
-      const { file } = context()
-      return file.plain
-    })
+    content: s
+      .string()
+      .optional()
+      .transform(() => {
+        const { file } = context()
+        return file.content
+      }),
+    plain: s
+      .string()
+      .optional()
+      .transform(() => {
+        const { file } = context()
+        return file.plain
+      })
   })
 })
 ```

@@ -124,7 +124,7 @@ allow non-relative path, if true, the value will be returned directly, if false,
 
 `string => Image`
 
-image path relative to this file, like `s.file()`, copy file to `config.output.assets` directory and return the [Image](#types) (image object with meta data).
+Image path relative to the current file, like `s.file()`. Relative images are copied to `config.output.assets` and returned as [Image](#types) objects.
 
 ```ts
 avatar: s.image()
@@ -141,7 +141,7 @@ avatar: s.image()
 // case 2. non-exists file
 // 'not-exists.png' => issue 'File not exists'
 
-// case 3. absolute path or full url (if allowed)
+// case 3. absolute path or full URL
 // '/icon.png' => { src: '/icon.png', width: 0, height: 0, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
 // 'https://zce.me/logo.png' => { src: 'https://zce.me/logo.png', width: 0, height: 0, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
 ```
@@ -403,7 +403,7 @@ Removes `index` from the path.
 In addition, all Zod's built-in schemas can be used normally, such as:
 
 ```ts
-title: s.string().mix(3).max(100)
+title: s.string().min(3).max(100)
 description: s.string().optional()
 featured: s.boolean().default(false)
 ```

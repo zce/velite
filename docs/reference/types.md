@@ -42,24 +42,16 @@ interface Image {
  */
 interface Loader {
   /**
-   * Loader name
-   * @description
-   * The same name will overwrite the built-in loader,
-   * built-in loaders: 'json', 'yaml', 'matter'
-   */
-  name: string
-  /**
    * File test regexp
    * @example
    * /\.md$/
    */
   test: RegExp
   /**
-   * Load file content
+   * Load file data from file.value
    * @param file vfile
-   * @returns entry or entries
    */
-  load: (file: VFile) => Promisable<Entry | Entry[]>
+  load: (file: VFile) => Promisable<Data>
 }
 ```
 
@@ -93,9 +85,9 @@ class VeliteFile extends VFile {
   get plain(): string | undefined
 
   /**
-   * Get meta object from cache
+   * Get loaded file object from cache
    * @param path file path
-   * @returns resolved meta object if exists
+   * @returns loaded file object if exists
    */
   static get(path: string): VeliteFile | undefined
 
@@ -103,7 +95,7 @@ class VeliteFile extends VFile {
    * Create file object from file path
    * @param path file path
    * @param loaders file loaders
-   * @returns resolved meta object
+   * @returns loaded file object
    */
   static async create(path: string, loaders: Loader[]): Promise<VeliteFile>
 }
@@ -139,19 +131,6 @@ type Context = {
 ```
 
 Hook callbacks such as `prepare` and `complete` receive this context type.
-
-## Config Cache
-
-```ts
-interface Config {
-  /**
-   * @deprecated Internal cache is managed by Velite. This field will be removed in 1.0.
-   */
-  readonly cache: Map<string, any>
-}
-```
-
-`Config.cache` is kept for compatibility in 0.x. Do not use it in user code.
 
 ## MarkdownOptions
 
@@ -215,6 +194,11 @@ export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
    * @default 'function-body'
    */
   outputFormat?: CompileOptions['outputFormat']
+  /**
+   * Minify the output code.
+   * @default true
+   */
+  minify?: boolean
 }
 ```
 

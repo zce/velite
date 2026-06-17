@@ -10,6 +10,7 @@ import { VeliteFile } from './file'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
 import { uniqueCache } from './schemas/unique'
+import { loadedFiles } from './state'
 import { matchPatterns } from './utils'
 
 import type { LogLevel } from './logger'
@@ -18,6 +19,13 @@ import type { Config } from './types'
 
 // cache resolved result for rebuild
 const resolved = new Map<string, VeliteFile[]>()
+
+const clearBuildState = (): void => {
+  resolved.clear()
+  loadedFiles.clear()
+  assets.clear()
+  uniqueCache.reset()
+}
 
 /**
  * Load file and parse data with given schema
@@ -173,19 +181,16 @@ const watch = async (config: Config) => {
       if (configImports.includes(fullpath)) {
         logger.info('velite config changed, restarting...')
         watcher.close()
-        uniqueCache.reset()
         return build({ config: config.configPath, clean: false, watch: true })
       }
 
       // skip if filename not match any collection pattern
       if (!matchPatterns(filename, patterns)) return
 
-      // remove changed file from unique cache
-      uniqueCache.reset(fullpath)
-
       const begin = performance.now()
       logger.info(`changed: '${fullpath}', rebuilding...`)
-      await resolve(config, fullpath)
+      clearBuildState()
+      await resolve(config)
       logger.info(`rebuild finished`, begin)
     } catch (err) {
       logger.warn(err)
@@ -241,7 +246,7 @@ export const build = async (options: Options = {}): Promise<Record<string, unkno
 
   const { configPath, output, collections } = config
 
-  uniqueCache.reset()
+  clearBuildState()
 
   if (output.clean) {
     await rm(output.data, { recursive: true, force: true })

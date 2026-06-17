@@ -101,6 +101,11 @@ interface Options {
    * @default 'info'
    */
   logLevel?: LogLevel
+  /**
+   * If true, throws error and terminates process if any schema validation fails.
+   * @default false
+   */
+  strict?: boolean
 }
 ```
 
@@ -117,22 +122,6 @@ interface Entry {
 interface Result {
   [name: string]: Entry | Entry[]
 }
-```
-
-## `outputFile`
-
-### Signature
-
-```ts
-const outputFile: async <T extends string | undefined>(ref: T, fromPath: string) => Promise<T>
-```
-
-## `outputImage`
-
-### Signature
-
-```ts
-const outputImage: async <T extends string | undefined>(ref: T, fromPath: string) => Promise<Image | T>
 ```
 
 ## `context`
@@ -156,9 +145,3 @@ const context: () => ParserContext
 - Type: `ParserContext`, See [ParserContext](./types.md#parsercontext).
 
 The parser context contains the resolved config and current file. Call `context()` inside schema callbacks such as `.transform()`, `.refine()`, or `.superRefine()`.
-
-## `cache`
-
-Deprecated internal implementation detail. Do not use it in user code.
-
-...

@@ -171,7 +171,7 @@ export default withVelite({
 `@velite/plugin-vite` supports Vite 5 through Vite 8. Keep the plugin in your Vite config and upgrade Vite normally:
 
 ```ts
-import { velite } from '@velite/plugin-vite'
+import velite from '@velite/plugin-vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 

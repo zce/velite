@@ -5,12 +5,11 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 import { VFile } from 'vfile'
 
+import { loadedFiles } from './state'
+
 import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
 import type { Loader } from './types'
-
-// cache loaded files for rebuild
-const loaded = new Map<string, VeliteFile>()
 
 export class VeliteFile extends VFile {
   private _mdast: Root | undefined
@@ -62,18 +61,18 @@ export class VeliteFile extends VFile {
   }
 
   /**
-   * Get meta object from cache
+   * Get loaded file object from cache
    * @param path file path
-   * @returns resolved meta object if exists
+   * @returns loaded file object if exists
    */
   static get(path: string): VeliteFile | undefined {
-    return loaded.get(path)
+    return loadedFiles.get(path)
   }
 
   /**
-   * Create meta object from file path
+   * Create file object from file path
    * @param options meta options
-   * @returns resolved meta object
+   * @returns loaded file object
    */
   static async create(path: string, loaders: Loader[]): Promise<VeliteFile> {
     const loader = loaders.find(l => l.test.test(path))
@@ -82,7 +81,7 @@ export class VeliteFile extends VFile {
     file.value = await readFile(path)
     file.data = await loader.load(file)
     if (file.data?.data == null) return file.fail(`no data loaded from '${path}'`)
-    loaded.set(path, file)
+    loadedFiles.set(path, file)
     return file
   }
 }

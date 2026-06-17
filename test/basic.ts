@@ -31,3 +31,10 @@ test('standalone fixtures', async t => {
 
   await rm('examples/basic/.velite', { recursive: true, force: true })
 })
+
+test('consecutive builds do not reuse unique values from previous builds', async () => {
+  await build({ config: 'examples/basic/velite.config.js', strict: true })
+  await build({ config: 'examples/basic/velite.config.js', strict: true })
+
+  await rm('examples/basic/.velite', { recursive: true, force: true })
+})

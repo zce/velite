@@ -110,6 +110,50 @@ class VeliteFile extends VFile {
 }
 ```
 
+## ParserContext
+
+```ts
+interface ParserContext {
+  /**
+   * Resolved config being used.
+   */
+  readonly config: Config
+
+  /**
+   * Current file being parsed.
+   */
+  readonly file: VeliteFile
+}
+```
+
+Use [`context()`](./api.md#context) inside custom schema callbacks to access `ParserContext`.
+
+## Context
+
+```ts
+type Context = {
+  /**
+   * Resolved config.
+   */
+  config: Config
+}
+```
+
+Hook callbacks such as `prepare` and `complete` receive this context type.
+
+## Config Cache
+
+```ts
+interface Config {
+  /**
+   * @deprecated Internal cache is managed by Velite. This field will be removed in 1.0.
+   */
+  readonly cache: Map<string, any>
+}
+```
+
+`Config.cache` is kept for compatibility in 0.x. Do not use it in user code.
+
 ## MarkdownOptions
 
 ```ts

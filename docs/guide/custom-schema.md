@@ -78,22 +78,44 @@ export const remoteImage = () =>
 ## Schema Context
 
 > [!TIP]
-> Considering that Velite's scenario often needs to obtain metadata information about the current file in the schema, Velite does not use the original Zod package. Instead, it uses a custom Zod package that provides a `meta` member in the schema context.
+> Custom schemas often need to read the current file or resolved config. For new schemas, use `context()` to access this parser context.
 
 ```ts
-import { defineSchema, s } from 'velite'
+import { context, defineSchema, s } from 'velite'
 
 // convert a nonexistent field
 export const path = defineSchema(() =>
-  s.custom<string>().transform((value, ctx) => {
-    if (ctx.meta.path) {
-      return ctx.meta.path
-    }
-    return value
+  s.custom<string | undefined>().transform(value => {
+    if (value != null) return value
+    return context().file.path
   })
 )
 ```
 
+`context()` must be called while Velite is parsing a schema, such as inside `.transform()`, `.refine()`, or `.superRefine()`. It returns the current parser context:
+
+```ts
+interface ParserContext {
+  readonly config: Config
+  readonly file: VeliteFile
+}
+```
+
+The previous schema callback `meta` value is still supported for compatibility:
+
+```ts
+import { defineSchema, s } from 'velite'
+
+export const path = defineSchema(() =>
+  s.custom<string | undefined>().transform((value, { meta }) => {
+    if (value != null) return value
+    return meta.path
+  })
+)
+```
+
+Prefer `context()` for new custom schemas. It keeps file/config access explicit and avoids relying on Velite's extended Zod callback metadata.
+
 ### Reference
 
-the type of `meta` is `ZodMeta`, which extends [`VeliteFile`](../reference/types.md#velitefile).
+The type of `context().file` is [`VeliteFile`](../reference/types.md#velitefile). The type of the compatibility `meta` value is `ZodMeta`, which extends `VeliteFile`.

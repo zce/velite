@@ -135,8 +135,30 @@ const outputFile: async <T extends string | undefined>(ref: T, fromPath: string)
 const outputImage: async <T extends string | undefined>(ref: T, fromPath: string) => Promise<Image | T>
 ```
 
+## `context`
+
+Get the current parser context while Velite is parsing a schema.
+
+### Usage
+
+```ts
+import { context } from 'velite'
+```
+
+### Signature
+
+```ts
+const context: () => ParserContext
+```
+
+### Returns
+
+- Type: `ParserContext`, See [ParserContext](./types.md#parsercontext).
+
+The parser context contains the resolved config and current file. Call `context()` inside schema callbacks such as `.transform()`, `.refine()`, or `.superRefine()`.
+
 ## `cache`
 
-- `loaded:${path}`: VFile of loaded file.
+Deprecated internal implementation detail. Do not use it in user code.
 
 ...

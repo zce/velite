@@ -291,9 +291,7 @@ export interface Config extends Readonly<UserConfig> {
   readonly configImports: string[]
   /**
    * Global cache (need refresh in rebuild)
-   * memory level cache is enough for Velite. and it's easy & efficient.
-   * maybe we can use other cache way in the future if needed.
-   * but for now, we just need a simple cache.
+   * @deprecated Internal cache is now managed by UniqueCache. This field will be removed in 1.0.
    */
   readonly cache: Map<string, any>
   /**

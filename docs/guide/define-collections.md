@@ -156,35 +156,39 @@ const posts = defineCollection({
 
 ### Transform Context Metadata
 
-The `transform()` function can receive a second argument, which is the context object. This is useful for adding computed fields to the content items in a collection.
+Use `context()` when a transform needs to read the current file or resolved config. This is useful for adding computed fields to the content items in a collection.
 
 ```js
+import { context } from 'velite'
+
 const posts = defineCollection({
   schema: s
     .object({
       // fields
     })
-    .transform((data, { meta }) => ({
+    .transform(data => ({
       ...data,
       // computed fields
-      path: meta.path // or parse to filename based slug
+      path: context().file.path // or parse to filename based slug
     }))
 })
 ```
 
-the type of `meta` is `ZodMeta`, which extends [`VeliteFile`](../reference/types.md#velitefile). for more information, see [Custom Schema](custom-schema.md).
+The schema callback `meta` value is still supported for compatibility. For new custom schemas, prefer `context()`. For more information, see [Custom Schema](custom-schema.md).
 
 ## Content Body
 
-Velite's built-in loader keeps content's raw body in `meta.content`, and the plain text body in `meta.plain`.
+Velite's built-in loader keeps content's raw body and plain text body on the current file context.
 
 To add them as a field, you can use a custom schema.
 
 ```js
+import { context } from 'velite'
+
 const posts = defineCollection({
   schema: s.object({
-    content: s.custom().transform((data, { meta }) => meta.content),
-    plain: s.custom().transform((data, { meta }) => meta.plain)
+    content: s.custom().transform(() => context().file.content),
+    plain: s.custom().transform(() => context().file.plain)
   })
 })
 ```

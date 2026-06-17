@@ -5,9 +5,11 @@ import { reporter } from 'vfile-reporter'
 
 import { assets } from './assets'
 import { resolveConfig } from './config'
+import { runWithContext } from './context'
 import { VeliteFile } from './file'
 import { logger } from './logger'
 import { outputAssets, outputData, outputEntry } from './output'
+import { uniqueCache } from './schemas/unique'
 import { getParsedType, ParseContext } from './schemas/zod'
 import { matchPatterns } from './utils'
 
@@ -40,38 +42,40 @@ const load = async (config: Config, path: string, schema: Schema, changed?: stri
   const isArr = Array.isArray(file.records)
   const list = isArr ? file.records : [file.records]
 
-  const parsed = await Promise.all(
-    list.map(async (data, index) => {
-      // push index in path if file is array
-      const path = isArr ? [index] : []
+  const parsed = await runWithContext({ config, file }, () =>
+    Promise.all(
+      list.map(async (data, index) => {
+        // push index in path if file is array
+        const path = isArr ? [index] : []
 
-      const ctx: ParseContext = {
-        common: { issues: [], async: true },
-        path,
-        meta: file as ZodMeta,
-        data,
-        parent: null,
-        parsedType: getParsedType(data),
-        schemaErrorMap: schema._def.errorMap
-      }
+        const ctx: ParseContext = {
+          common: { issues: [], async: true },
+          path,
+          meta: file as ZodMeta,
+          data,
+          parent: null,
+          parsedType: getParsedType(data),
+          schemaErrorMap: schema._def.errorMap
+        }
 
-      // parse data with given schema
-      const ret = schema._parse({ data, path, meta: ctx.meta, parent: ctx })
+        // parse data with given schema (vendored zod, passes meta through parse context)
+        const ret = schema._parse({ data, path, meta: ctx.meta, parent: ctx })
 
-      const result = await (ret instanceof Promise ? ret : Promise.resolve(ret))
+        const result = await (ret instanceof Promise ? ret : Promise.resolve(ret))
 
-      if (result.status === 'valid') return result.value
+        if (result.status === 'valid') return result.value
 
-      // report error if parsing failed
-      ctx.common.issues.forEach(issue => {
-        const source = issue.path.map(i => (typeof i === 'number' ? `[${i}]` : i)).join('.')
-        const message = file.message(issue.message, { source })
-        message.fatal = result.status === 'aborted' || issue.fatal
+        // report error if parsing failed
+        ctx.common.issues.forEach(issue => {
+          const source = issue.path.map(i => (typeof i === 'number' ? `[${i}]` : i)).join('.')
+          const message = file.message(issue.message, { source })
+          message.fatal = result.status === 'aborted' || issue.fatal
+        })
+
+        // return parsed data unless fatal error
+        return result.status !== 'aborted' && result.value
       })
-
-      // return parsed data unless fatal error
-      return result.status !== 'aborted' && result.value
-    })
+    )
   )
 
   // logger.log(`loaded '${path}' with ${parsed.length} records`)
@@ -188,16 +192,15 @@ const watch = async (config: Config) => {
       if (configImports.includes(fullpath)) {
         logger.info('velite config changed, restarting...')
         watcher.close()
+        uniqueCache.reset(config)
         return build({ config: config.configPath, clean: false, watch: true })
       }
 
       // skip if filename not match any collection pattern
       if (!matchPatterns(filename, patterns)) return
 
-      // remove changed file cache
-      for (const [key, value] of config.cache.entries()) {
-        if (value === fullpath) config.cache.delete(key)
-      }
+      // remove changed file from unique cache
+      uniqueCache.reset(config, fullpath)
 
       const begin = performance.now()
       logger.info(`changed: '${fullpath}', rebuilding...`)
@@ -256,6 +259,8 @@ export const build = async (options: Options = {}): Promise<Record<string, unkno
   const config = await resolveConfig(configFile, { clean, strict })
 
   const { configPath, output, collections } = config
+
+  uniqueCache.reset(config)
 
   if (output.clean) {
     await rm(output.data, { recursive: true, force: true })

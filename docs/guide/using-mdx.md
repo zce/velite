@@ -260,6 +260,7 @@ import { dirname, join } from 'node:path'
 import { globalExternals } from '@fal-works/esbuild-plugin-global-externals'
 import mdxPlugin from '@mdx-js/esbuild'
 import { build } from 'esbuild'
+import { context, s } from 'velite'
 
 import type { Plugin } from 'esbuild'
 
@@ -312,7 +313,10 @@ const compileMdx = async (source: string, path: string, options: CompileOptions)
 }
 
 export const mdxBundle = (options: MdxOptions = {}) =>
-  custom<string>().transform<string>(async (value, { meta: { path, content, config }, addIssue }) => {
+  s.custom<string>().transform<string>(async (value, { addIssue }) => {
+    const { config, file } = context()
+    const { path, content } = file
+
     value = value ?? content
     if (value == null) {
       addIssue({ fatal: true, code: 'custom', message: 'The content is empty' })

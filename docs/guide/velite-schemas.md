@@ -37,44 +37,44 @@ date: s.isodate()
 // 'foo bar invalid' => issue 'Invalid date string'
 ```
 
-## `s.unique(by)`
+## `s.unique(group)`
 
 `string => string`
 
-validate unique value in collections.
+Validate a string value that must be unique within a named group.
 
 ```ts
 name: s.unique('taxonomies')
 // case 1. unique value
 // 'foo' => 'foo'
 
-// case 2. non-unique value (in all unique by 'taxonomies')
-// 'foo' => issue 'Already exists'
+// case 2. non-unique value in the 'taxonomies' group
+// 'foo' => issue "duplicate value 'foo' ..."
 ```
 
 ### Parameters
 
-#### **by**: unique identifier
+#### **group**: unique group name
 
 - type: `string`
 - default: `'global'`
 
-## `s.slug(by, reserved)`
+## `s.slug(group, reserved)`
 
 `string => string`
 
-base on `s.unique()`, unique in collections, not allow reserved values, and validate slug format.
+Validate a slug string. It checks length, slug format, reserved values, and uniqueness within a named slug group.
 
 ```ts
 slug: s.slug('taxonomies', ['admin', 'login'])
 // case 1. unique slug value
 // 'hello-world' => 'hello-world'
 
-// case 2. non-unique value (in all unique by 'taxonomies')
-// 'hello-world' => issue 'Slug already exists'
+// case 2. non-unique value in the 'taxonomies' slug group
+// 'hello-world' => issue "duplicate value 'hello-world' ..."
 
 // case 3. reserved slug value
-// 'admin' => issue 'Slug is reserved'
+// 'admin' => issue 'Reserved slug'
 
 // case 4. invalid slug value
 // 'Hello World' => issue 'Invalid slug'
@@ -82,7 +82,7 @@ slug: s.slug('taxonomies', ['admin', 'login'])
 
 ### Parameters
 
-#### **by**: unique identifier
+#### **group**: unique group name
 
 - type: `string`
 - default: `'global'`

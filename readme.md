@@ -42,7 +42,7 @@ Velite is a tool for building type-safe data layer, turns Markdown / MDX, YAML, 
 - **Light-weight**: Choose more native APIs instead of bloated NPM modules, less runtime dependencies, so it is fast and efficiently.
 - **Still powerful**: Built-in Markdown / MDX, YAML, JSON support, relative files & images processing, schema validation, etc.
 - **Configurable**: Both input and output directories can be customized, and support for custom loaders, hooks, etc.
-- **Extensible**: Support any file types by custom loaders, Custom field validation and transform by custom schema, and any output formats by hooks.
+- **Extensible**: Support any file types by custom loaders, custom field validation and transform by custom schema with parser `context()`, and any output formats by hooks.
 
 Check out our detailed [Why Velite](https://velite.js.org/guide/introduction#why-velite) to learn more about what makes Velite special. ✨
 

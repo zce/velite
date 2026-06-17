@@ -6,17 +6,17 @@
 
 ```ts
 import { stat } from 'fs/promises'
-import { defineSchema } from 'velite'
+import { context, defineSchema, s } from 'velite'
 
 const timestamp = defineSchema(() =>
   s
     .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { meta, addIssue }) => {
+    .transform<string>(async (value, { addIssue }) => {
       if (value != null) {
         addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the file modified timestamp' })
       }
 
-      const stats = await stat(meta.path)
+      const stats = await stat(context().file.path)
       return stats.mtime.toISOString()
     })
 )
@@ -36,18 +36,18 @@ const posts = defineCollection({
 ```ts
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { defineSchema } from 'velite'
+import { context, defineSchema, s } from 'velite'
 
 const execAsync = promisify(exec)
 
 const timestamp = defineSchema(() =>
   s
     .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { meta, addIssue }) => {
+    .transform<string>(async (value, { addIssue }) => {
       if (value != null) {
         addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
       }
-      const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${context().file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
 )
@@ -253,9 +253,9 @@ import { toHtml } from 'hast-util-to-html'
 import { truncate } from 'hast-util-truncate'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
+import { context, s } from 'velite'
 
 import { extractHastLinkedFiles } from '../assets'
-import { custom } from './zod'
 
 export interface ExcerptOptions {
   /**
@@ -273,7 +273,10 @@ export interface ExcerptOptions {
 }
 
 export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
-  custom<string>().transform(async (value, { meta: { path, content, config } }) => {
+  s.custom<string>().transform(async (value, { addIssue }) => {
+    const { config, file } = context()
+    const { path, content } = file
+
     if (value == null && content != null) {
       value = content
     }
@@ -285,7 +288,7 @@ export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {
       await rehypeCopyLinkedFiles(config.output)(output, { path })
       return toHtml(output)
     } catch (err: any) {
-      ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
+      addIssue({ fatal: true, code: 'custom', message: err.message })
       return value
     }
   })

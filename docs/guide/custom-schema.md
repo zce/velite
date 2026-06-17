@@ -20,20 +20,15 @@ import { defineSchema, s } from 'velite'
 export const title = defineSchema(() => s.string().min(1).max(100))
 
 // for validating email
-export const email = defineSchema(() => s.email({ message: 'Invalid email address' }))
+export const email = defineSchema(() => s.string().email({ message: 'Invalid email address' }))
 
-// custom validation logic using refine
-export const hello = defineSchema(() => s.string().refine(value => value === 'hello', 'Value must be "hello"'))
-
-// custom validation logic using superRefine (for more control)
-export const customValidation = defineSchema(() =>
-  s.string().superRefine((value, ctx) => {
-    if (value.length < 5) {
-      ctx.addIssue({ code: 'custom', message: 'Value must be at least 5 characters' })
+// custom validation logic
+export const hello = defineSchema(() =>
+  s.string().refine(value => {
+    if (value !== 'hello') {
+      return 'Value must be "hello"'
     }
-    if (!value.includes('@')) {
-      ctx.addIssue({ code: 'custom', message: 'Value must contain @ symbol' })
-    }
+    return true
   })
 )
 ```
@@ -45,28 +40,10 @@ Refer to [Zod documentation](https://zod.dev) for more information about Zod.
 ```ts
 import { defineSchema, s } from 'velite'
 
-// for transforming title (simple transform)
+// for transforming title
 export const title = defineSchema(() => s.string().transform(value => value.toUpperCase()))
 
-// for transforming with error handling (using ctx.addIssue)
-export const safeTransform = defineSchema(() =>
-  s.string().transform((value, ctx) => {
-    try {
-      return value.toUpperCase()
-    } catch (err) {
-      ctx.addIssue({ fatal: true, code: 'custom', message: 'Transform failed' })
-      return value
-    }
-  })
-)
-
-// async transform (zod 4 supports async transforms)
-export const asyncTransform = defineSchema(() =>
-  s.string().transform(async (value, ctx) => {
-    // async operations...
-    return processedValue
-  })
-)
+// ...
 ```
 
 ### Example
@@ -101,35 +78,32 @@ export const remoteImage = () =>
 ## Schema Context
 
 > [!TIP]
-> In Zod 4, the context object (`ctx`) in `refine`, `superRefine`, and `transform` provides an `addIssue()` method for adding validation errors. Velite extends this context to provide access to file metadata through `context()` function.
-
-### Using Context API
+> Custom schemas often need to read the current file or resolved config. Use `context()` to access this parser context.
 
 ```ts
 import { context, defineSchema, s } from 'velite'
 
-// Access file context in transform
+// convert a nonexistent field
 export const path = defineSchema(() =>
-  s.custom<string>().transform(value => {
-    // Use context() to access current file information
-    const { file, config } = context()
-
-    if (value == null) {
-      return file.path
-    }
-    return value
+  s.custom<string | undefined>().transform(value => {
+    if (value != null) return value
+    return context().file.path
   })
 )
 ```
 
-### Context API Reference
+`context()` must be called while Velite is parsing a schema, such as inside `.transform()`, `.refine()`, or `.superRefine()`. It returns the current parser context:
 
-The `context()` function returns an object with:
-
-- `config`: The resolved Velite configuration
-- `file`: The current [`VeliteFile`](../reference/types.md#velitefile) being processed
+```ts
+interface ParserContext {
+  readonly config: Config
+  readonly file: VeliteFile
+}
+```
 
 ### Error Handling in Transforms
+
+In Zod 4, schema callbacks receive a context object that provides `addIssue()` for reporting validation errors.
 
 ```ts
 import { defineSchema, s } from 'velite'
@@ -137,17 +111,15 @@ import { defineSchema, s } from 'velite'
 export const safeTransform = defineSchema(() =>
   s.string().transform(async (value, ctx) => {
     try {
-      // async operation
       const result = await processValue(value)
       return result
     } catch (err) {
-      // Add error issue using Zod 4 API
       ctx.addIssue({
-        fatal: true, // Set to true to stop processing
-        code: 'custom', // Error code
-        message: err.message // Error message
+        fatal: true,
+        code: 'custom',
+        message: err instanceof Error ? err.message : String(err)
       })
-      return null as never // Type assertion for TypeScript
+      return null as never
     }
   })
 )
@@ -155,6 +127,6 @@ export const safeTransform = defineSchema(() =>
 
 ### Reference
 
-- `context()` returns `{ config: Config, file: VeliteFile }`
-- `ctx.addIssue()` accepts `{ fatal?: boolean, code: string, message: string }`
-- See [`VeliteFile`](../reference/types.md#velitefile) for file metadata structure
+- `context()` returns `{ config: Config, file: VeliteFile }`.
+- `ctx.addIssue()` accepts `{ fatal?: boolean, code: string, message: string }`.
+- See [`VeliteFile`](../reference/types.md#velitefile) for file metadata structure.

@@ -6,7 +6,7 @@
 
 ```ts
 import { stat } from 'fs/promises'
-import { context, defineSchema } from 'velite'
+import { context, defineSchema, s } from 'velite'
 
 const timestamp = defineSchema(() =>
   s
@@ -34,7 +34,7 @@ const posts = defineCollection({
 ```ts
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { context, defineSchema } from 'velite'
+import { context, defineSchema, s } from 'velite'
 
 const execAsync = promisify(exec)
 
@@ -251,6 +251,8 @@ import { truncate } from 'hast-util-truncate'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 import { context, s } from 'velite'
+
+import { extractHastLinkedFiles } from '../assets'
 
 export interface ExcerptOptions {
   /**

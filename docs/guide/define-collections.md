@@ -156,7 +156,7 @@ const posts = defineCollection({
 
 ### Transform Context Metadata
 
-The `transform()` function can receive a second argument, which is the context object (in Zod 4). To access file metadata, use the `context()` function from Velite.
+Use `context()` when a transform needs to read the current file or resolved config. This is useful for adding computed fields to the content items in a collection.
 
 ```js
 import { context, s } from 'velite'

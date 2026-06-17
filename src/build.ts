@@ -180,7 +180,7 @@ const watch = async (config: Config) => {
       // skip if filename not match any collection pattern
       if (!matchPatterns(filename, patterns)) return
 
-      // remove changed file cache
+      // remove changed file from unique cache
       uniqueCache.reset(fullpath)
 
       const begin = performance.now()
@@ -240,6 +240,8 @@ export const build = async (options: Options = {}): Promise<Record<string, unkno
   const config = await resolveConfig(configFile, { clean, strict })
 
   const { configPath, output, collections } = config
+
+  uniqueCache.reset()
 
   if (output.clean) {
     await rm(output.data, { recursive: true, force: true })

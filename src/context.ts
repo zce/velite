@@ -5,33 +5,33 @@ import type { Schema } from './schemas'
 import type { Config } from './types'
 
 /**
- * Context in pipeline
+ * Context available during schema parsing.
  */
-export interface Context {
+export interface ParserContext {
   /**
-   * Resolved config being used
+   * Resolved config being used.
    */
   readonly config: Config
   /**
-   * Current file being parsed
+   * Current file being parsed.
    */
   readonly file: VeliteFile
 }
 
-const store = new AsyncLocalStorage<Context>()
+const store = new AsyncLocalStorage<ParserContext>()
 
 /**
- * Get current context in pipeline
+ * Get current parser context.
  */
-export const context = () => {
+export const context = (): ParserContext => {
   const ctx = store.getStore()
   if (ctx) return ctx
-  throw new Error('Missing parser context')
+  throw new Error('Missing parser context — are you calling context() outside of a schema parse?')
 }
 
 /**
  * Run safeParse with context injected.
  */
-export const parseWithContext = async (schema: Schema, data: unknown, context: Context) => {
+export const parseWithContext = async (schema: Schema, data: unknown, context: ParserContext) => {
   return store.run(context, () => schema.safeParseAsync(data))
 }

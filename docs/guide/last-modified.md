@@ -12,7 +12,7 @@ Create a timestamp schema based on file stat.
 
 ```ts
 import { stat } from 'fs/promises'
-import { context, defineSchema } from 'velite'
+import { context, defineSchema, s } from 'velite'
 
 const timestamp = defineSchema(() =>
   s
@@ -43,7 +43,7 @@ const posts = defineCollection({
 ```ts
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { context, defineSchema } from 'velite'
+import { context, defineSchema, s } from 'velite'
 
 const execAsync = promisify(exec)
 

@@ -37,11 +37,11 @@ date: s.isodate()
 // 'foo bar invalid' => issue 'Invalid date string'
 ```
 
-## `s.unique(by)`
+## `s.unique(group)`
 
 `string => string`
 
-validate unique value in collections.
+Validate a string value that must be unique within a named group.
 
 ```ts
 name: s.unique('taxonomies')
@@ -54,27 +54,27 @@ name: s.unique('taxonomies')
 
 ### Parameters
 
-#### **by**: unique identifier
+#### **group**: unique group name
 
 - type: `string`
 - default: `'global'`
 
-## `s.slug(by, reserved)`
+## `s.slug(group, reserved)`
 
 `string => string`
 
-base on `s.unique()`, unique in collections, not allow reserved values, and validate slug format.
+Validate a slug string. It checks length, slug format, reserved values, and uniqueness within a named slug group.
 
 ```ts
 slug: s.slug('taxonomies', ['admin', 'login'])
 // case 1. unique slug value
 // 'hello-world' => 'hello-world'
 
-// case 2. non-unique value (in all unique by 'taxonomies')
-// 'hello-world' => issue 'Slug already exists'
+// case 2. non-unique value in the 'taxonomies' slug group
+// 'hello-world' => issue "duplicate value 'hello-world' ..."
 
 // case 3. reserved slug value
-// 'admin' => issue 'Slug is reserved'
+// 'admin' => issue 'Reserved slug'
 
 // case 4. invalid slug value
 // 'Hello World' => issue 'Invalid slug'
@@ -82,7 +82,7 @@ slug: s.slug('taxonomies', ['admin', 'login'])
 
 ### Parameters
 
-#### **by**: unique identifier
+#### **group**: unique group name
 
 - type: `string`
 - default: `'global'`
@@ -154,6 +154,21 @@ root path for absolute path, if provided, the value will be processed as an abso
 
 - type: `string`
 - default: `undefined`
+
+##### **options.blur**:
+
+blur placeholder options, used to customize the generated `blurDataURL`.
+
+- type: `{ width?: number; height?: number; quality?: number }`
+- default: `undefined`
+
+```ts
+avatar: s.image({ blur: { width: 16, quality: 30 } })
+```
+
+- `blur.width`: blur image width. default: `8`
+- `blur.height`: blur image height. default: derived from the image aspect ratio
+- `blur.quality`: webp quality of the blur image (1-100). default: `1`
 
 ### Types
 

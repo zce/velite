@@ -1,5 +1,4 @@
 import { equal } from 'node:assert'
-// import from source
 import { exec } from 'node:child_process'
 import { readFile, rm } from 'node:fs/promises'
 import { test } from 'node:test'
@@ -28,6 +27,15 @@ test('standalone fixtures', async t => {
 
   const tags = await readFile('examples/basic/.velite/tags.json', 'utf8')
   equal(tags.length, 315, 'tags output length should be 315')
+
+  await rm('examples/basic/.velite', { recursive: true, force: true })
+})
+
+test('consecutive builds do not reuse unique values from previous builds', async () => {
+  const { build } = await import('velite')
+
+  await build({ config: 'examples/basic/velite.config.js', strict: true })
+  await build({ config: 'examples/basic/velite.config.js', strict: true })
 
   await rm('examples/basic/.velite', { recursive: true, force: true })
 })

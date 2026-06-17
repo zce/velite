@@ -1,7 +1,7 @@
 import { equal } from 'node:assert'
 import { test } from 'node:test'
 
-import { parseWithContext, s, z } from '../src'
+import { context, parseWithContext, s, z } from '../src'
 
 import type { Schema } from '../src'
 
@@ -36,4 +36,15 @@ test('context schemas resolve missing object fields from the current file', asyn
 
   equal(result.success, true)
   equal((result.data as any).raw, 'Hello from file')
+})
+
+test('parser context exposes generic store instead of schema-specific state', async () => {
+  const schema = z.string().transform(() => Object.keys(context()).sort())
+  const result = await parseWithContext(schema, 'value', {
+    config: { root: '/site/content' } as any,
+    file: { path: '/site/content/pages/about.mdx' } as any
+  })
+
+  equal(result.success, true)
+  if (result.success) equal(result.data.join(','), 'config,file,store')
 })

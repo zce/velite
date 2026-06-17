@@ -1,7 +1,7 @@
 import { relative } from 'node:path'
 import { custom } from 'zod'
 
-import { context } from '../context'
+import { context } from '../core/context'
 
 /**
  * Options for flattened path

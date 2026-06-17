@@ -1,6 +1,6 @@
 import { custom } from 'zod'
 
-import { context } from '../context'
+import { context } from '../core/context'
 
 export interface ExcerptOptions {
   // /**

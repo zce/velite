@@ -2,10 +2,10 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { string } from 'zod'
 
-import { getImageMetadata, processAsset } from '../assets'
-import { context } from '../context'
+import { assetStoreKey, getImageMetadata, processAsset } from '../core/assets'
+import { context } from '../core/context'
 
-import type { BlurOptions, Image } from '../assets'
+import type { BlurOptions, Image } from '../core/assets'
 
 export interface ImageOptions {
   /**
@@ -18,15 +18,10 @@ export interface ImageOptions {
    * @default undefined
    */
   blur?: BlurOptions
-  // /**
-  //  * allow remote url
-  //  * @default false
-  //  */
-  // allowRemoteUrl?: boolean
 }
 
 /**
- * Image schema
+ * Image schema.
  */
 export const image = ({ absoluteRoot, blur }: ImageOptions = {}) =>
   string().transform<Image>(async (value, ctx) => {
@@ -38,20 +33,11 @@ export const image = ({ absoluteRoot, blur }: ImageOptions = {}) =>
         return { src: value, ...metadata }
       }
 
-      // TODO: is it necessary to allow remote url?
-      // if (allowRemoteUrl && /^https?:\/\//.test(value)) {
-      //   const response = await fetch(value)
-      //   const blob = await response.blob()
-      //   const buffer = await blob.arrayBuffer()
-      //   const metadata = await getImageMetadata(Buffer.from(buffer))
-      //   if (metadata == null) throw new Error(`Failed to get image metadata: ${value}`)
-      //   return { src: value, ...metadata }
-      // }
-
-      const { file, config } = context()
+      const { file, config, store } = context()
+      const assets = store.get(assetStoreKey)
 
       // process asset as relative path
-      return await processAsset(value, file.path, config.output.name, config.output.base, true, blur)
+      return await processAsset(value, file.path, config.output.name, config.output.base, assets, true, blur)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       ctx.addIssue({ fatal: true, code: 'custom', message })

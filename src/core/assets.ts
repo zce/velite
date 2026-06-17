@@ -3,44 +3,115 @@ import { readFile } from 'node:fs/promises'
 import { basename, extname, resolve } from 'node:path'
 import { visit } from 'unist-util-visit'
 
+import { defineStoreKey } from './store'
+
 import type { Element, Root as Hast } from 'hast'
 import type { Root as Mdast, Node } from 'mdast'
 import type { VFile } from 'vfile'
-import type { Output } from './types'
+import type { Output } from '../types'
 
-/**
- * Image object with metadata & blur image
- */
-export interface Image {
-  /**
-   * public url of the image
-   */
-  src: string
-  /**
-   * image width
-   */
-  width: number
-  /**
-   * image height
-   */
-  height: number
-  /**
-   * blurDataURL of the image
-   */
-  blurDataURL: string
-  /**
-   * blur image width
-   */
-  blurWidth: number
-  /**
-   * blur image height
-   */
-  blurHeight: number
+/** Asset record collected during a build session. */
+export interface AssetRecord {
+  /** Absolute source path of the original asset. */
+  sourcePath: string
+  /** Rendered output filename. Used as the dedup key. */
+  outputName: string
+  /** Final public URL exposed in parsed content. */
+  publicUrl: string
+  /** Content files that caused this asset to be collected. */
+  ownerFiles: Set<string>
 }
 
 /**
- * Blur placeholder options
+ * Session-owned store for asset collection.
+ *
+ * `add()` is idempotent for the same `outputName`. The same `outputName` with
+ * a different `sourcePath` is accepted as long as the caller asserts the
+ * content is identical (typically by passing a content `fingerprint`, e.g.
+ * an md5 of the source bytes). When the caller provides fingerprints and they
+ * disagree, `add()` throws to surface a real hash collision or an unsafe
+ * filename template.
  */
+export interface AssetStore {
+  add(input: { sourcePath: string; outputName: string; publicUrl: string; ownerFile: string; fingerprint?: string }): AssetRecord
+  list(): AssetRecord[]
+  byOwner(file: string): AssetRecord[]
+}
+
+interface InternalRecord extends AssetRecord {
+  fingerprint?: string
+}
+
+/**
+ * Create a new asset store backed by an in-memory map.
+ */
+export const createAssetStore = (): AssetStore => {
+  const records = new Map<string, InternalRecord>()
+
+  return {
+    add({ sourcePath, outputName, publicUrl, ownerFile, fingerprint }) {
+      const existing = records.get(outputName)
+      if (existing != null) {
+        if (existing.sourcePath !== sourcePath) {
+          // Different source path is fine when the caller proves the content
+          // is identical (same md5 / same hash). Without a fingerprint, we
+          // assume the template embeds enough entropy (typically `[hash]`).
+          if (fingerprint != null && existing.fingerprint != null && fingerprint !== existing.fingerprint) {
+            throw new Error(
+              `Asset name collision for '${outputName}': '${existing.sourcePath}' and '${sourcePath}' have different content. ` +
+                'Adjust the output filename template (for example include [hash:8]).'
+            )
+          }
+          if (fingerprint != null && existing.fingerprint == null) {
+            existing.fingerprint = fingerprint
+          }
+        }
+        existing.ownerFiles.add(ownerFile)
+        return existing
+      }
+      const record: InternalRecord = {
+        sourcePath,
+        outputName,
+        publicUrl,
+        ownerFiles: new Set([ownerFile]),
+        fingerprint
+      }
+      records.set(outputName, record)
+      return record
+    },
+    list() {
+      return Array.from(records.values())
+    },
+    byOwner(file) {
+      const out: AssetRecord[] = []
+      for (const r of records.values()) {
+        if (r.ownerFiles.has(file)) out.push(r)
+      }
+      return out
+    }
+  }
+}
+
+/** Store key used by asset-producing schemas. */
+export const assetStoreKey = defineStoreKey('velite.assets', createAssetStore)
+
+/** Image object with metadata & blur image. */
+export interface Image {
+  /** public url of the image */
+  src: string
+  /** image width */
+  width: number
+  /** image height */
+  height: number
+  /** blurDataURL of the image */
+  blurDataURL: string
+  /** blur image width */
+  blurWidth: number
+  /** blur image height */
+  blurHeight: number
+}
+
+/** Blur placeholder options. */
 export interface BlurOptions {
   /**
    * blur image width
@@ -59,31 +130,21 @@ export interface BlurOptions {
   quality?: number
 }
 
-export const assets = new Map<string, string>()
-
 // https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
 const ABS_URL_RE = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/
 const ABS_PATH_RE = /^(\/[^/\\]|[a-zA-Z]:\\)/
 
-/**
- * validate if a url is a relative path
- * @param url url to validate
- * @returns true if the url is a relative path
- */
+/** Validate if a url is a relative path. */
 export const isRelativePath = (url: string): boolean => {
-  if (url.startsWith('#')) return false // ignore hash anchor
-  if (url.startsWith('?')) return false // ignore query
-  if (url.startsWith('//')) return false // ignore protocol relative urlet name
-  if (ABS_URL_RE.test(url)) return false // ignore absolute url
-  if (ABS_PATH_RE.test(url)) return false // ignore absolute path
+  if (url.startsWith('#')) return false
+  if (url.startsWith('?')) return false
+  if (url.startsWith('//')) return false
+  if (ABS_URL_RE.test(url)) return false
+  if (ABS_PATH_RE.test(url)) return false
   return true
 }
 
-/**
- * get public directory
- * @param buffer image buffer
- * @returns image object with blurDataURL
- */
+/** Read image metadata and generate a blur placeholder. */
 export const getImageMetadata = async (buffer: Buffer, blurOptions: BlurOptions = {}): Promise<Omit<Image, 'src'> | undefined> => {
   const { default: sharp } = await import('sharp')
   const img = sharp(buffer)
@@ -99,24 +160,20 @@ export const getImageMetadata = async (buffer: Buffer, blurOptions: BlurOptions 
 }
 
 /**
- * process referenced asset of a file
- * @param input relative path of the asset
- * @param from source file path
- * @param filename output filename template
- * @param baseUrl output public base url
- * @param isImage process as image and return image object with blurDataURL
- * @param blurOptions blur placeholder options (only used when isImage is true)
- * @returns reference public url or image object
+ * Process a referenced asset of a file.
+ *
+ * Records the asset on the supplied `AssetStore` (session-scoped) and returns
+ * either the public URL (for `s.file()`) or an `Image` object (for `s.image()`).
  */
 export const processAsset = async <T extends true | undefined = undefined>(
   input: string,
   from: string,
   filename: string,
   baseUrl: string,
+  assets: AssetStore,
   isImage?: T,
   blurOptions?: BlurOptions
 ): Promise<T extends true ? Image : string> => {
-  // e.g. input = '../assets/image.png?foo=bar#hash'
   const queryIdx = input.indexOf('?')
   const hashIdx = input.indexOf('#')
   const index = Math.min(queryIdx >= 0 ? queryIdx : Infinity, hashIdx >= 0 ? hashIdx : Infinity)
@@ -125,6 +182,7 @@ export const processAsset = async <T extends true | undefined = undefined>(
   const ext = extname(path)
 
   const buffer = await readFile(path)
+  const fingerprint = createHash('md5').update(buffer).digest('hex')
 
   const name = filename.replace(/\[(name|hash|ext)(:(\d+))?\]/g, (substring, ...groups) => {
     const key = groups[0]
@@ -133,11 +191,7 @@ export const processAsset = async <T extends true | undefined = undefined>(
       case 'name':
         return basename(path, ext).slice(0, length)
       case 'hash':
-        // TODO: md5 is slow and not-FIPS compliant, consider using sha256
-        // https://github.com/joshwiens/hash-perf
-        // https://stackoverflow.com/q/2722943
-        // https://stackoverflow.com/q/14139727
-        return createHash('md5').update(buffer).digest('hex').slice(0, length)
+        return fingerprint.slice(0, length)
       case 'ext':
         return ext.slice(1, length)
     }
@@ -145,7 +199,7 @@ export const processAsset = async <T extends true | undefined = undefined>(
   })
 
   const src = baseUrl + name + suffix
-  assets.set(name, path) // write to assets map waiting for copy
+  assets.add({ sourcePath: path, outputName: name, publicUrl: src, ownerFile: from, fingerprint })
 
   if (isImage !== true) return src as T extends true ? Image : string
 
@@ -154,11 +208,9 @@ export const processAsset = async <T extends true | undefined = undefined>(
   return { src, ...metadata } as T extends true ? Image : string
 }
 
-export type CopyLinkedFilesOptions = Omit<Output, 'data' | 'clean'>
+export type CopyLinkedFilesOptions = Omit<Output, 'data' | 'clean'> & { assets: AssetStore }
 
-/**
- * rehype (markdown) plugin to copy linked files to public path and replace their urls with public urls
- */
+/** rehype plugin to collect linked files and rewrite their urls. */
 export const rehypeCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async (tree: Hast, file: VFile) => {
   const links = new Map<string, Element[]>()
   const linkedPropertyNames = ['href', 'src', 'poster']
@@ -174,7 +226,7 @@ export const rehypeCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async 
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, elements]) => {
-      const publicUrl = await processAsset(url, file.path, options.name, options.base)
+      const publicUrl = await processAsset(url, file.path, options.name, options.base, options.assets)
       if (publicUrl == null || publicUrl === url) return
       elements.forEach(node => {
         linkedPropertyNames.forEach(name => {
@@ -187,15 +239,13 @@ export const rehypeCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async 
   )
 }
 
-/**
- * remark (mdx) plugin to copy linked files to public path and replace their urls with public urls
- */
+/** remark plugin to collect linked files and rewrite their urls. */
 export const remarkCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async (tree: Mdast, file: VFile) => {
   const links = new Map<string, Node[]>()
   const linkedPropertyNames = ['href', 'src', 'poster']
   visit(tree, ['link', 'image', 'definition'], (node: any) => {
     if (isRelativePath(node.url)) {
-      const nodes = links.get(node.url) || []
+      const nodes = links.get(node.url) ?? []
       nodes.push(node)
       links.set(node.url, nodes)
     }
@@ -203,7 +253,7 @@ export const remarkCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async 
   visit(tree, 'mdxJsxFlowElement', node => {
     node.attributes.forEach((attr: any) => {
       if (linkedPropertyNames.includes(attr.name) && typeof attr.value === 'string' && isRelativePath(attr.value)) {
-        const nodes = links.get(attr.value) || []
+        const nodes = links.get(attr.value) ?? []
         nodes.push(node)
         links.set(attr.value, nodes)
       }
@@ -211,7 +261,7 @@ export const remarkCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async 
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, nodes]) => {
-      const publicUrl = await processAsset(url, file.path, options.name, options.base)
+      const publicUrl = await processAsset(url, file.path, options.name, options.base, options.assets)
       if (publicUrl == null || publicUrl === url) return
       nodes.forEach((node: any) => {
         if (node.url === url) {

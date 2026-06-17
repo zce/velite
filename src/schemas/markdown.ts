@@ -7,8 +7,8 @@ import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
 import { custom } from 'zod'
 
-import { rehypeCopyLinkedFiles } from '../assets'
-import { context } from '../context'
+import { assetStoreKey, rehypeCopyLinkedFiles } from '../core/assets'
+import { context } from '../core/context'
 
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
@@ -43,7 +43,8 @@ export const markdown = (options: MarkdownOptions = {}) =>
   custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
-      const { file, config } = context()
+      const { file, config, store } = context()
+      const assets = store.get(assetStoreKey)
       value = value ?? file.content
       if (value == null || value.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
@@ -59,27 +60,28 @@ export const markdown = (options: MarkdownOptions = {}) =>
       const remarkPlugins = [] as PluggableList
       const rehypePlugins = [] as PluggableList
 
-      if (enableGfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
-      if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-      if (copyLinkedFiles) rehypePlugins.push([rehypeCopyLinkedFiles, output]) // copy linked files to public path and replace their urls with public urls
-      if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
-      if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
-      if (markdown?.remarkPlugins != null) remarkPlugins.push(...markdown.remarkPlugins) // apply global remark plugins
-      if (markdown?.rehypePlugins != null) rehypePlugins.push(...markdown.rehypePlugins) // apply global rehype plugins
+      if (enableGfm) remarkPlugins.push(remarkGfm) // gfm: autolinks, footnotes, strikethrough, tables, tasklists
+      if (removeComments) remarkPlugins.push(remarkRemoveComments) // strip html comments
+      if (copyLinkedFiles) rehypePlugins.push([rehypeCopyLinkedFiles, { ...output, assets }]) // copy linked files
+      if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins)
+      if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
+      if (markdown?.remarkPlugins != null) remarkPlugins.push(...markdown.remarkPlugins)
+      if (markdown?.rehypePlugins != null) rehypePlugins.push(...markdown.rehypePlugins)
 
       try {
         const html = await unified()
-          .use(remarkParse) // parse markdown content to a syntax tree
-          .use(remarkPlugins) // apply remark plugins
+          .use(remarkParse)
+          .use(remarkPlugins)
           .use(remarkRehype, { allowDangerousHtml: true })
-          .use(rehypeMetaString) // ensure `data.meta` is preserved in `properties.metastring` for rehype syntax highlighters
-          .use(rehypeRaw) // turn markdown syntax tree to html syntax tree, with raw html support
-          .use(rehypePlugins) // apply rehype plugins
-          .use(rehypeStringify) // serialize html syntax tree
+          .use(rehypeMetaString) // preserve `data.meta` in `properties.metastring` for highlighters
+          .use(rehypeRaw)
+          .use(rehypePlugins)
+          .use(rehypeStringify)
           .process({ value, path: file.path })
         return html.toString()
-      } catch (err: any) {
-        ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        ctx.addIssue({ fatal: true, code: 'custom', message })
         return null as never
       }
     })

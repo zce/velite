@@ -4,7 +4,7 @@ import { toc as extractToc } from 'mdast-util-toc'
 import { visit } from 'unist-util-visit'
 import { custom } from 'zod'
 
-import { context } from '../context'
+import { context } from '../core/context'
 
 import type { Options } from 'mdast-util-toc'
 

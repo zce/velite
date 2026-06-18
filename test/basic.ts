@@ -1,4 +1,4 @@
-import { equal } from 'node:assert'
+import { deepStrictEqual, equal, ok } from 'node:assert'
 import { exec } from 'node:child_process'
 import { access, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -10,25 +10,43 @@ test('standalone fixtures', async t => {
   await new Promise((res, rej) => exec('npm run build', { cwd: 'examples/basic' }, (e, s) => (e ? rej(e) : res(s))))
 
   const entry = await readFile('examples/basic/.velite/index.js', 'utf8')
-  equal(entry.length, 398, 'entry output length should be 398')
+  ok(entry.includes("export { default as options } from './options.json'"))
+  ok(entry.includes("export { default as posts } from './posts.json'"))
 
   const dts = await readFile('examples/basic/.velite/index.d.ts', 'utf8')
-  equal(dts.length, 632, 'dts output length should be 632')
+  ok(dts.includes('export declare const options: Option'))
+  ok(dts.includes('export declare const posts: Post[]'))
 
-  const options = await readFile('examples/basic/.velite/options.json', 'utf8')
-  equal(options.length, 1121, 'options output length should be 1121')
+  const options = JSON.parse(await readFile('examples/basic/.velite/options.json', 'utf8'))
+  equal(options.name, 'Velite')
+  equal(options.links.length, 6)
 
-  const categories = await readFile('examples/basic/.velite/categories.json', 'utf8')
-  equal(categories.length, 880, 'categories output length should be 880')
+  const categories = JSON.parse(await readFile('examples/basic/.velite/categories.json', 'utf8'))
+  equal(categories.length, 3)
+  deepStrictEqual(
+    categories.map((category: { slug: string }) => category.slug),
+    ['journal', 'photography', 'travel']
+  )
+  equal(categories[0].cover.src, '/static/journal-63fcc0.webp')
 
-  const pages = await readFile('examples/basic/.velite/pages.json', 'utf8')
-  equal(pages.length, 6178, 'pages output length should be 6178')
+  const pages = JSON.parse(await readFile('examples/basic/.velite/pages.json', 'utf8'))
+  equal(pages.length, 2)
+  deepStrictEqual(pages.map((page: { slug: string }) => page.slug).sort(), ['about', 'contact'])
+  ok(pages.find((page: { slug: string }) => page.slug === 'about').body.includes('/static/cover-ed37d5.webp'))
 
-  const posts = await readFile('examples/basic/.velite/posts.json', 'utf8')
-  equal(posts.length, 14165, 'posts output length should be 14165')
+  const posts = JSON.parse(await readFile('examples/basic/.velite/posts.json', 'utf8'))
+  equal(posts.length, 2)
+  deepStrictEqual(posts.map((post: { slug: string }) => post.slug).sort(), ['posts/1970-01-01-style-guide', 'posts/2024-05-08-hello-world'])
+  const helloWorld = posts.find((post: { slug: string }) => post.slug === 'posts/2024-05-08-hello-world')
+  equal(helloWorld.video, '/static/video-08fc25.mp4')
+  ok(helloWorld.content.includes('/static/plain-5cd675.txt'))
 
-  const tags = await readFile('examples/basic/.velite/tags.json', 'utf8')
-  equal(tags.length, 315, 'tags output length should be 315')
+  const tags = JSON.parse(await readFile('examples/basic/.velite/tags.json', 'utf8'))
+  equal(tags.length, 2)
+  deepStrictEqual(
+    tags.map((tag: { slug: string }) => tag.slug),
+    ['engineering', 'modularization']
+  )
 
   await rm('examples/basic/.velite', { recursive: true, force: true })
 })

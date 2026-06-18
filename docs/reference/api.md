@@ -48,6 +48,8 @@ Clean output directories before build.
 
 Watch files and rebuild on changes.
 
+For programmatic watch mode, prefer [`watch()`](#watch) so you can close the returned watcher handle. `build({ watch: true })` preserves the historical build facade behavior and still returns only the initial build result.
+
 <!-- #### `options.production`
 
 - Type: `boolean`

@@ -50,7 +50,7 @@ Velite — a tool that turns Markdown / MDX, YAML, JSON into a type-safe data la
 | `file-cache.ts`   | `FileCache` — session-scoped loaded-file cache                                                                                                      |
 | `output-state.ts` | `OutputState` — emit cache shared within an engine, never across independent `build()` calls                                                        |
 | `output.ts`       | `OutputWriter` — writes entry/d.ts/data/assets, accepts injected `fs`/`logger`                                                                      |
-| `discover.ts`     | `Discoverer` — fast-glob wrapper accepting injected glob fn                                                                                         |
+| `discover.ts`     | `Discoverer` — tinyglobby wrapper accepting injected glob fn                                                                                        |
 | `resolver.ts`     | `ContentResolver` — discover + load + parse + assemble per-collection results                                                                       |
 | `config.ts`       | `ConfigLoader` — esbuild-bundles user config into a stable temp dir; symlinks `node_modules`                                                        |
 | `watch.ts`        | `WatchController` — chokidar wrapper; on content change calls `engine.rebuild()`, on config change calls `engine.build({...options, clean: false})` |
@@ -86,7 +86,7 @@ pnpm test   # runs: node --import tsx --test test/**/*.tests.ts
 
 ## Gotchas
 
-- `bin/velite.js` imports `../dist/cli.js` — you must build before running the CLI from source
+- The package bin points to `dist/cli.js`; `tsup` injects the Node shebang during build
 - The `tsup` config injects a `require` shim banner for CJS interop in the ESM output
 - Bundling strategy intentionally follows tsup defaults: `dependencies` stay external, while runtime internals listed only in `devDependencies` are bundled into `dist/`
 - When adding runtime imports, put public API/native/heavy/override-sensitive deps in `dependencies`; put pure internal implementation tools in `devDependencies` so they are bundled

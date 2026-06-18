@@ -67,7 +67,7 @@ const posts = defineCollection({
 })
 ```
 
-Velite uses [fast-glob](https://github.com/mrmlnc/fast-glob) to find content files, so you can use any glob pattern supported by fast-glob.
+Velite uses [tinyglobby](https://github.com/SuperchupuDev/tinyglobby) to find content files, so you can use glob patterns compatible with tinyglobby.
 
 By default, Velite will ignore files and directories that start with `_` or `.`.
 

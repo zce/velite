@@ -16,7 +16,9 @@
   "license": "MIT",
   "author": "zce <w@zce.me> (https://zce.me)",
   "type": "module",
-  "bin": "./bin/velite.js",
+  "bin": {
+    "velite": "./dist/cli.js"
+  },
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -41,9 +43,6 @@
     "format": "esm",
     "platform": "node",
     "target": "node22",
-    "banner": {
-      "js": "import {createRequire as __createRequire} from 'module';const require=__createRequire(import.meta.url);"
-    },
     "dts": {
       "resolve": true
     },
@@ -70,7 +69,6 @@
     "@types/node": "^25.8.0",
     "@types/picomatch": "^4.0.2",
     "chokidar": "^5.0.0",
-    "fast-glob": "^3.3.3",
     "hast-util-raw": "^9.1.0",
     "hast-util-to-string": "^3.0.1",
     "lint-staged": "^16.2.7",
@@ -85,6 +83,7 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "simple-git-hooks": "^2.13.1",
+    "tinyglobby": "^0.2.17",
     "tsup": "^8.5.1",
     "tsx": "^4.22.0",
     "typescript": "^6.0.3",
@@ -92,7 +91,7 @@
     "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.3",
     "vfile-reporter": "^8.1.1",
-    "yaml": "^2.9.0"
+    "yaml": "^3.0.0-1"
   },
   "packageManager": "pnpm@11.1.2",
   "engines": {

@@ -1,4 +1,4 @@
-import glob from 'fast-glob'
+import { glob } from 'tinyglobby'
 
 import type { Collection } from '../collections'
 
@@ -17,8 +17,8 @@ const defaultDeps: DiscovererDeps = { glob }
  * Create a content discoverer.
  *
  * `deps.glob` allows tests to inject a deterministic glob; the default
- * implementation forwards to `fast-glob` with the same options the legacy
- * resolver used.
+ * implementation forwards to `tinyglobby` with the same file discovery
+ * semantics the legacy resolver used.
  */
 export const createDiscoverer = (deps: DiscovererDeps = defaultDeps): Discoverer => ({
   async discover(root, patterns) {

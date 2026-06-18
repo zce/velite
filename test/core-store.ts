@@ -32,4 +32,18 @@ describe('SessionStore', () => {
     strictEqual(store.get(a), 'a')
     strictEqual(store.get(b), 'b')
   })
+
+  it('caches undefined values as real values', () => {
+    let created = 0
+    const key = defineStoreKey<undefined>('undefined', () => {
+      created++
+      return undefined
+    })
+    const store = createSessionStore()
+
+    strictEqual(store.get(key), undefined)
+    strictEqual(store.get(key), undefined)
+    strictEqual(store.has(key), true)
+    strictEqual(created, 1)
+  })
 })

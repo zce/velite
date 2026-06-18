@@ -8,7 +8,7 @@ import { visit } from 'unist-util-visit'
 import { custom } from 'zod'
 
 import { assetStoreKey, rehypeCopyLinkedFiles } from '../core/assets'
-import { context } from '../core/context'
+import { internalContext } from '../core/context'
 
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
@@ -43,7 +43,7 @@ export const markdown = (options: MarkdownOptions = {}) =>
   custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
-      const { file, config, store } = context()
+      const { file, config, store } = internalContext()
       const assets = store.get(assetStoreKey)
       value = value ?? file.content
       if (value == null || value.length === 0) {

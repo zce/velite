@@ -197,4 +197,36 @@ describe('ContentResolver', () => {
       await rm(root, { recursive: true, force: true })
     }
   })
+
+  it('preserves falsy parsed results', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'velite-resolver-falsy-'))
+    try {
+      await mkdir(join(root, 'content'))
+      await writeFile(join(root, 'content', 'zero.json'), JSON.stringify({ value: 'zero' }))
+      await writeFile(join(root, 'content', 'false.json'), JSON.stringify({ value: 'false' }))
+      await writeFile(join(root, 'content', 'empty.json'), JSON.stringify({ value: 'empty' }))
+
+      const files = [join(root, 'content', 'zero.json'), join(root, 'content', 'false.json'), join(root, 'content', 'empty.json')]
+      const fakeDiscoverer: Discoverer = {
+        async discover() {
+          return files
+        }
+      }
+
+      const config = buildConfig(root, {
+        items: {
+          name: 'Item',
+          pattern: 'content/*.json',
+          schema: z.object({ value: z.string() }).transform(({ value }) => (value === 'zero' ? 0 : value === 'false' ? false : ''))
+        }
+      })
+      const session = createSession(config, {}, { logger: silentLogger })
+      const resolver = createContentResolver({ discoverer: fakeDiscoverer })
+
+      const { result } = await resolver.resolve(session)
+      deepStrictEqual(result.items, [0, false, ''])
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
 })

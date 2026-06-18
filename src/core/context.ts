@@ -7,20 +7,16 @@ import type { Config } from '../types'
 import type { VeliteFile } from './file'
 import type { SessionStore } from './store'
 
-/**
- * Context available during schema parsing.
- *
- * The shape is intentionally minimal: it carries the resolved config, the
- * current file being parsed, and a session-scoped `SessionStore` through
- * which schemas read or create their own per-build state. Nothing here is
- * specific to any one schema, so the public type stays stable as new schemas
- * are added.
- */
+/** Public context available during schema parsing. */
 export interface ParserContext {
   /** Resolved config being used. */
   readonly config: Config
   /** Current file being parsed. */
   readonly file: VeliteFile
+}
+
+/** Internal context used by built-in schemas and core parsing. */
+export interface InternalParserContext extends ParserContext {
   /** Session-scoped registry for schema-owned state. */
   readonly store: SessionStore
 }
@@ -34,10 +30,13 @@ export interface ParserContext {
 export interface ParserContextInput {
   readonly config: Config
   readonly file: VeliteFile
-  readonly store?: SessionStore
 }
 
-const als = new AsyncLocalStorage<ParserContext>()
+export interface InternalParserContextInput extends ParserContextInput {
+  readonly store: SessionStore
+}
+
+const als = new AsyncLocalStorage<InternalParserContext>()
 
 /**
  * Get the parser context for the current parse.
@@ -45,6 +44,13 @@ const als = new AsyncLocalStorage<ParserContext>()
  * @throws when called outside of a `parseWithContext()` call.
  */
 export const context = (): ParserContext => {
+  const ctx = als.getStore()
+  if (ctx) return { config: ctx.config, file: ctx.file }
+  throw new Error('Missing parser context — are you calling context() outside of a schema parse?')
+}
+
+/** Get the internal parser context, including the session store. */
+export const internalContext = (): InternalParserContext => {
   const ctx = als.getStore()
   if (ctx) return ctx
   throw new Error('Missing parser context — are you calling context() outside of a schema parse?')
@@ -56,10 +62,15 @@ export const context = (): ParserContext => {
  * promise chains scheduled during it, see this context.
  */
 export const parseWithContext = async (schema: Schema, data: unknown, input: ParserContextInput) => {
-  const ctx: ParserContext = {
+  const ctx: InternalParserContext = {
     config: input.config,
     file: input.file,
-    store: input.store ?? createSessionStore()
+    store: createSessionStore()
   }
   return als.run(ctx, () => schema.safeParseAsync(data))
+}
+
+/** Run a parse with an explicit session store supplied by core. */
+export const parseWithInternalContext = async (schema: Schema, data: unknown, input: InternalParserContextInput) => {
+  return als.run(input, () => schema.safeParseAsync(data))
 }

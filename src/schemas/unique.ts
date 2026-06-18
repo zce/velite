@@ -1,6 +1,6 @@
 import { string } from 'zod'
 
-import { context } from '../core/context'
+import { internalContext } from '../core/context'
 import { uniqueStoreKey } from '../core/unique'
 
 /**
@@ -14,7 +14,7 @@ import { uniqueStoreKey } from '../core/unique'
  */
 export const unique = (group: string = 'global') =>
   string().superRefine((value, ctx) => {
-    const { file, store } = context()
+    const { file, store } = internalContext()
     const conflict = store.get(uniqueStoreKey).register(group, value, file.path)
     if (conflict != null) {
       ctx.addIssue({ fatal: true, code: 'custom', message: `Duplicate '${value}' with '${conflict}'` })

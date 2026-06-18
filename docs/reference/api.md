@@ -124,6 +124,42 @@ interface Result {
 }
 ```
 
+## `watch`
+
+Build your project once, then watch files and rebuild on changes. Unlike `build({ watch: true })`, this API returns a watcher handle that programmatic callers can close.
+
+### Usage
+
+```ts
+import { watch } from 'velite'
+```
+
+### Signature
+
+```ts
+const watch: (options?: Options) => Promise<Watcher>
+```
+
+### Parameters
+
+#### `options`
+
+- Type: `Options`, See [Options](#options).
+
+Options for the initial build and watcher.
+
+### Returns
+
+- Type: `Promise<Watcher>`.
+
+The watcher handle.
+
+```ts
+interface Watcher {
+  close(): Promise<void>
+}
+```
+
 ## `context`
 
 Get the current parser context while Velite is parsing a schema.

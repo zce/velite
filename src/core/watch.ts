@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { resolve } from 'node:path'
 
 import { logger as defaultLogger } from './logger'
 import { matchPatterns } from './utils'
@@ -68,7 +68,7 @@ export const createWatchController = (logger: Logger = defaultLogger): WatchCont
       if (filename == null || typeof filename !== 'string') return
 
       try {
-        const fullpath = join(root, filename)
+        const fullpath = resolve(root, filename)
 
         if (configImports.includes(fullpath)) {
           logger.info('velite config changed, restarting...')

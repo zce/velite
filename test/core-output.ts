@@ -90,6 +90,7 @@ describe('OutputWriter', () => {
         writes.push(String(path))
       }) as never,
       copyFile: (async () => {}) as never,
+      access: (async () => {}) as never,
       logger: silentLogger
     })
 
@@ -125,7 +126,7 @@ describe('OutputWriter', () => {
     deepStrictEqual(writes, ['s1:/out/posts.json', 's2:/out/posts.json'])
   })
 
-  it('writeData skips null entries', async () => {
+  it('writeData writes null entries and skips only undefined entries', async () => {
     const writes: string[] = []
     const writer = createOutputWriter(createOutputState(), {
       writeFile: (async path => {
@@ -135,8 +136,8 @@ describe('OutputWriter', () => {
       logger: silentLogger
     })
 
-    await writer.writeData('/out', { a: null, b: { x: 1 } })
-    deepStrictEqual(writes, ['/out/b.json'])
+    await writer.writeData('/out', { a: null, b: undefined, c: { x: 1 } })
+    deepStrictEqual(writes, ['/out/a.json', '/out/c.json'])
   })
 
   it('writeAssets copies every record from the AssetStore', async () => {

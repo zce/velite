@@ -1,7 +1,7 @@
 import { normalize } from 'node:path'
 import { reporter } from 'vfile-reporter'
 
-import { parseWithContext } from './context'
+import { parseWithInternalContext } from './context'
 
 import type { Schema } from '../schemas'
 import type { Discoverer } from './discover'
@@ -34,7 +34,7 @@ const loadFile = async (session: BuildSession, path: string, schema: Schema): Pr
     list.map(async (data, index) => {
       const pathPrefix = isArr ? [index] : []
 
-      const parseResult = await parseWithContext(schema, data, {
+      const parseResult = await parseWithInternalContext(schema, data, {
         config: session.config,
         file,
         store: session.store
@@ -97,7 +97,7 @@ export const createContentResolver = (deps: ContentResolverDeps): ContentResolve
 
     const result = Object.fromEntries(
       entries.map(([name, files]): [string, unknown | unknown[]] => {
-        const data = files.flatMap(file => file.result).filter(Boolean) as unknown[]
+        const data = files.flatMap(file => file.result).filter(value => value !== undefined) as unknown[]
         const collection = collections[name]
         if (collection.single) {
           if (data.length === 0) throw new Error(`no data resolved for '${name}' collection`)

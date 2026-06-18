@@ -3,12 +3,6 @@ import type { PluggableList } from 'unified'
 import type { Data, VFile } from 'vfile'
 import type { Schema } from './schemas'
 
-// Public re-exports for types whose symbols originate in `src/core/` but
-// appear in the signatures of public functions exported from the package
-// entry. Re-exporting them from here lets users reference them without
-// importing internal paths.
-export type { AssetRecord, AssetStore } from './core/assets'
-
 type Promisable<T> = T | Promise<T>
 
 /**

@@ -128,6 +128,12 @@ s.string().transform(value => {
 
 Only call `ctx.addIssue()` when the current value should fail validation.
 
+## Asset Internals
+
+Velite 1.0 keeps low-level asset collection state internal. Custom schemas should use public schemas such as `s.file()` and `s.image()` for asset references, or return their own URLs directly.
+
+The internal asset store, linked-file remark/rehype plugins, and `processAsset()` are not public extension APIs. Do not import from `velite/dist/*` or `src/core/*`; those paths are implementation details and may change without a compatibility layer.
+
 ## Next.js Integration
 
 Use `@velite/plugin-next` instead of manually starting Velite from `next.config.ts`.

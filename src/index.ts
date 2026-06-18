@@ -2,8 +2,10 @@ import { createBuildEngine } from './core/engine'
 import { createWatchController } from './core/watch'
 
 import type { Options } from './core/types'
+import type { Watcher } from './core/watch'
 
 export type { Options }
+export type { Watcher }
 export type { BlurOptions, Image } from './core/assets'
 export { getImageMetadata, isRelativePath } from './core/assets'
 export { context, parseWithContext } from './core/context'
@@ -26,4 +28,17 @@ export const build = async (options: Options = {}): Promise<Record<string, unkno
     await controller.start(engine, options)
   }
   return result
+}
+
+/**
+ * Build once and keep watching for future changes.
+ *
+ * Unlike `build({ watch: true })`, this programmatic API returns a watcher
+ * handle so callers can close it when they are done.
+ */
+export const watch = async (options: Options = {}): Promise<Watcher> => {
+  const engine = createBuildEngine()
+  await engine.build({ ...options, watch: false })
+  const controller = createWatchController()
+  return await controller.start(engine, options)
 }

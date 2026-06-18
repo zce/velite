@@ -44,8 +44,7 @@ export const createSessionStore = (): SessionStore => {
 
   return {
     get<T>(key: StoreKey<T>): T {
-      const existing = values.get(key.id)
-      if (existing !== undefined) return existing as T
+      if (values.has(key.id)) return values.get(key.id) as T
       const created = key.create()
       values.set(key.id, created)
       return created

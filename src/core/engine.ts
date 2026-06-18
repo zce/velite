@@ -25,8 +25,9 @@ export interface BuildEngine {
   build(options?: Options): Promise<Record<string, unknown>>
   /**
    * Re-run a build using the engine's current resolved config. Does not
-   * reload config, does not honor `output.clean`, and does not rewrite the
-   * entry file. Output directories are still ensured to exist before writing.
+   * reload config and does not honor `output.clean`. Output directories are
+   * still ensured to exist before writing, and entry files are restored if
+   * they were deleted between rebuilds.
    */
   rebuild(): Promise<Record<string, unknown>>
   /** Last successfully resolved config, available after `build()` completes. */
@@ -161,6 +162,8 @@ export const createBuildEngine = (deps: BuildEngineDeps = buildDefaultDeps()): B
       const begin = performance.now()
       deps.logger.info('rebuilding...')
       await ensureOutputDirs(currentConfig)
+      const writer = deps.createWriter(outputState)
+      await writer.writeEntry(currentConfig.output.data, currentConfig.output.format, currentConfig.configPath, currentConfig.collections)
       const result = await runResolve(currentConfig, currentOptions)
       deps.logger.info('rebuild finished', begin)
       return result

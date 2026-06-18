@@ -97,3 +97,57 @@ test('watch reloads config when config dependency changes', async () => {
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('watch reloads config when an imported config dependency changes', async () => {
+  const { build } = await import('velite')
+  const root = await mkdtemp(join(tmpdir(), 'velite-watch-import-'))
+
+  const config = [
+    "import { defineConfig, s } from 'velite'",
+    "import { dataDir } from './settings.mjs'",
+    '',
+    'export default defineConfig({',
+    "  root: 'content',",
+    "  output: { data: dataDir, assets: 'public/static', clean: false, name: '[name].[ext]' },",
+    '  collections: {',
+    '    items: {',
+    "      name: 'Item',",
+    "      pattern: 'item.json',",
+    '      schema: s.object({ title: s.string() })',
+    '    }',
+    '  }',
+    '})',
+    ''
+  ].join('\n')
+
+  try {
+    await mkdir(join(root, 'content'))
+    await writeFile(join(root, 'content', 'item.json'), JSON.stringify({ title: 'Hello' }))
+    await writeFile(join(root, 'settings.mjs'), "export const dataDir = '.velite-a'\n")
+    await writeFile(join(root, 'velite.config.mjs'), config)
+
+    await build({ config: join(root, 'velite.config.mjs'), watch: true, logLevel: 'silent' })
+    await sleep(150)
+
+    await writeFile(join(root, 'settings.mjs'), "export const dataDir = '.velite-b'\n")
+
+    let reloaded = false
+    for (let i = 0; i < 80; i++) {
+      await sleep(150)
+      const { readdir } = await import('node:fs/promises')
+      try {
+        const entries = await readdir(root)
+        if (entries.includes('.velite-b')) {
+          reloaded = true
+          break
+        }
+      } catch {
+        continue
+      }
+    }
+
+    equal(reloaded, true, 'expected watcher to rebuild after imported config dependency change')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

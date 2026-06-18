@@ -1,4 +1,4 @@
-import { copyFile, writeFile } from 'node:fs/promises'
+import { access, copyFile, writeFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 
 import { logger as defaultLogger } from './logger'
@@ -11,8 +11,9 @@ import type { OutputState } from './output-state'
 const isProduction = process.env.NODE_ENV === 'production'
 
 export interface OutputWriterDeps {
-  writeFile: typeof writeFile
-  copyFile: typeof copyFile
+  writeFile(path: string, content: string): Promise<void>
+  copyFile(source: string, destination: string): Promise<void>
+  access?(path: string): Promise<void>
   logger: Logger
 }
 
@@ -27,8 +28,13 @@ const defaultDeps: OutputWriterDeps = { writeFile, copyFile, logger: defaultLogg
  */
 const emit = async (path: string, content: string, state: OutputState, deps: OutputWriterDeps, log?: string): Promise<void> => {
   if (state.emitted.get(path) === content) {
-    deps.logger.log(`skipped write '${path}' with same content`)
-    return
+    try {
+      await (deps.access ?? access)(path)
+      deps.logger.log(`skipped write '${path}' with same content`)
+      return
+    } catch {
+      deps.logger.log(`restoring missing '${path}' with cached content`)
+    }
   }
   await deps.writeFile(path, content)
   deps.logger.log(log ?? `wrote '${path}' with ${content.length} bytes`)
@@ -83,7 +89,7 @@ export const createOutputWriter = (state: OutputState, deps: OutputWriterDeps = 
     const logs: string[] = []
     await Promise.all(
       Object.entries(result).map(async ([name, data]) => {
-        if (data == null) return
+        if (data === undefined) return
         const target = join(dest, name + '.json')
         const content = isProduction ? JSON.stringify(data) : JSON.stringify(data, null, 2)
         const length = Array.isArray(data) ? data.length : 1

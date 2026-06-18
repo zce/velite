@@ -143,4 +143,33 @@ describe('ConfigLoader', () => {
       await rm(root, { recursive: true, force: true })
     }
   })
+
+  it('reloads changed config contents with the same loader instance', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'velite-config-reload-'))
+    const configPath = join(root, 'velite.config.mjs')
+    const source = (dataDir: string) =>
+      [
+        "import { defineConfig, s } from 'velite'",
+        'export default defineConfig({',
+        `  output: { data: '${dataDir}' },`,
+        "  collections: { items: { name: 'Item', pattern: 'item.json', schema: s.object({ title: s.string() }) } }",
+        '})'
+      ].join('\n')
+
+    try {
+      await mkdir(join(root, 'content'))
+      await writeFile(configPath, source('.velite-a'))
+
+      const loader = createConfigLoader()
+      const first = await loader.load(configPath)
+
+      await writeFile(configPath, source('.velite-b'))
+      const second = await loader.load(configPath)
+
+      strictEqual(first.output.data, join(root, '.velite-a'))
+      strictEqual(second.output.data, join(root, '.velite-b'))
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
 })

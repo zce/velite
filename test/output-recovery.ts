@@ -54,3 +54,32 @@ test('build twice with the data output directory deleted in between produces all
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('same engine rebuild restores JSON files deleted after the initial build', async () => {
+  const { createBuildEngine } = await import('../src/core/engine')
+  const root = await mkdtemp(join(tmpdir(), 'velite-emit-rebuild-recover-'))
+
+  await mkdir(join(root, 'content'))
+  await writeFile(join(root, 'content', 'item.json'), JSON.stringify({ title: 'Hello' }))
+  await writeFile(join(root, 'velite.config.mjs'), fixtureConfig)
+
+  try {
+    const dataDir = join(root, '.velite')
+    const engine = createBuildEngine()
+
+    await engine.build({ config: join(root, 'velite.config.mjs'), logLevel: 'silent' })
+    await rm(dataDir, { recursive: true, force: true })
+
+    await engine.rebuild()
+    const after = await readFile(join(dataDir, 'items.json'), 'utf8')
+    ok(after.includes('Hello'), 'rebuild must regenerate items.json after the data dir was deleted')
+
+    const indexJs = await readFile(join(dataDir, 'index.js'), 'utf8')
+    ok(indexJs.length > 0, 'rebuild must regenerate index.js after the data dir was deleted')
+
+    const indexDts = await readFile(join(dataDir, 'index.d.ts'), 'utf8')
+    ok(indexDts.length > 0, 'rebuild must regenerate index.d.ts after the data dir was deleted')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

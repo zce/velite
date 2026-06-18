@@ -9,6 +9,11 @@ test('exports zod utilities from the public entry', () => {
   equal(typeof z.string, 'function')
 })
 
+test('exports a programmatic watch API', async () => {
+  const mod = await import('../src')
+  equal(typeof mod.watch, 'function')
+})
+
 test('Schema accepts an output type parameter', () => {
   const schema: Schema<string> = z.string()
   equal(schema.parse('hello'), 'hello')
@@ -38,7 +43,7 @@ test('context schemas resolve missing object fields from the current file', asyn
   equal((result.data as any).raw, 'Hello from file')
 })
 
-test('parser context exposes generic store instead of schema-specific state', async () => {
+test('public parser context exposes only stable user-facing fields', async () => {
   const schema = z.string().transform(() => Object.keys(context()).sort())
   const result = await parseWithContext(schema, 'value', {
     config: { root: '/site/content' } as any,
@@ -46,5 +51,5 @@ test('parser context exposes generic store instead of schema-specific state', as
   })
 
   equal(result.success, true)
-  if (result.success) equal(result.data.join(','), 'config,file,store')
+  if (result.success) equal(result.data.join(','), 'config,file')
 })

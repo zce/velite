@@ -2,10 +2,10 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { string } from 'zod'
 
-import { assetStoreKey, getImageMetadata, processAsset } from '../core/assets'
-import { internalContext } from '../core/context'
+import { assetStoreKey, createAssetStore, getImageMetadata, processAsset } from '../assets'
+import { context } from '../runtime/context'
 
-import type { BlurOptions, Image } from '../core/assets'
+import type { BlurOptions, Image } from '../assets'
 
 export interface ImageOptions {
   /**
@@ -33,8 +33,8 @@ export const image = ({ absoluteRoot, blur }: ImageOptions = {}) =>
         return { src: value, ...metadata }
       }
 
-      const { file, config, store } = internalContext()
-      const assets = store.get(assetStoreKey)
+      const { file, config, store } = context()
+      const assets = store.getOrCreate(assetStoreKey, createAssetStore)
 
       // process asset as relative path
       return await processAsset(value, file.path, config.output.name, config.output.base, assets, true, blur)

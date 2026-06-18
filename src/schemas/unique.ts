@@ -1,7 +1,28 @@
 import { string } from 'zod'
 
-import { internalContext } from '../core/context'
-import { uniqueStoreKey } from '../core/unique'
+import { context } from '../runtime/context'
+
+/** Session-scoped store for `s.unique()` value tracking. */
+export interface UniqueStore {
+  register(group: string, value: string, file: string): string | undefined
+}
+
+export const createUniqueStore = (): UniqueStore => {
+  const store = new Map<string, string>()
+  const key = (group: string, value: string): string => `${group}\u0000${value}`
+
+  return {
+    register(group, value, file) {
+      const k = key(group, value)
+      const existing = store.get(k)
+      if (existing != null) return existing
+      store.set(k, file)
+      return undefined
+    }
+  }
+}
+
+const uniqueStoreKey = Symbol('velite.unique')
 
 /**
  * Generate a unique-value schema.
@@ -14,8 +35,8 @@ import { uniqueStoreKey } from '../core/unique'
  */
 export const unique = (group: string = 'global') =>
   string().superRefine((value, ctx) => {
-    const { file, store } = internalContext()
-    const conflict = store.get(uniqueStoreKey).register(group, value, file.path)
+    const { file, store } = context()
+    const conflict = store.getOrCreate(uniqueStoreKey, createUniqueStore).register(group, value, file.path)
     if (conflict != null) {
       ctx.addIssue({ fatal: true, code: 'custom', message: `Duplicate '${value}' with '${conflict}'` })
     }

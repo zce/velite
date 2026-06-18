@@ -24,48 +24,30 @@ Velite — a tool that turns Markdown / MDX, YAML, JSON into a type-safe data la
 
 ## Source layout (`src/`)
 
-| File             | Role                                                                                                                                |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`       | Public API entry and barrel, including public helpers/types plus the public `build()` facade over `core/`                           |
-| `cli.ts`         | CLI entry (`velite build` / `velite dev`)                                                                                           |
-| `config.ts`      | Public configuration model (`UserConfig`, resolved `Config`, hook/plugin config types, `defineConfig`)                              |
-| `collections.ts` | Public collection model (`Collection`, `Collections`, result helpers, `defineCollection`)                                           |
-| `loaders/`       | Built-in loaders: `json`, `yaml`, `matter` (frontmatter)                                                                            |
-| `schemas/`       | Custom Zod extensions: `file`, `image`, `markdown`, `mdx`, `slug`, `toc`, `excerpt`, `metadata`, `path`, `raw`, `isodate`, `unique` |
-| `core/`          | Internal implementation files in a flat directory; public entry may selectively re-export stable helpers/types                      |
-
-### Core internals (`src/core/`)
-
-| File              | Role                                                                                                                                                |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `engine.ts`       | `BuildEngine` — orchestrates `build()` and `rebuild()`; owns the resolved config and process-lifetime emit cache                                    |
-| `session.ts`      | `BuildSession` — per-build state (`SessionStore`, files, resolved, output, logger)                                                                  |
-| `store.ts`        | `SessionStore` — typed, session-scoped registry used by schemas and core state                                                                      |
-| `context.ts`      | Schema parsing context backed by `AsyncLocalStorage`; exposes `{ config, file, store }`                                                             |
-| `file.ts`         | `VeliteFile` — pure data object loaded by a `Loader`                                                                                                |
-| `logger.ts`       | `Logger` interface, default process-level `logger`, `createLogger`                                                                                  |
-| `utils.ts`        | Pattern matching helpers                                                                                                                            |
-| `assets.ts`       | Asset helpers/plugins plus `AssetStore` and `assetStoreKey`                                                                                         |
-| `unique.ts`       | `UniqueStore` plus `uniqueStoreKey` for `s.unique()`                                                                                                |
-| `file-cache.ts`   | `FileCache` — session-scoped loaded-file cache                                                                                                      |
-| `output-state.ts` | `OutputState` — emit cache shared within an engine, never across independent `build()` calls                                                        |
-| `output.ts`       | `OutputWriter` — writes entry/d.ts/data/assets, accepts injected `fs`/`logger`                                                                      |
-| `discover.ts`     | `Discoverer` — tinyglobby wrapper accepting injected glob fn                                                                                        |
-| `resolver.ts`     | `ContentResolver` — discover + load + parse + assemble per-collection results                                                                       |
-| `config.ts`       | `ConfigLoader` — esbuild-bundles user config into a stable temp dir; symlinks `node_modules`                                                        |
-| `watch.ts`        | `WatchController` — chokidar wrapper; on content change calls `engine.rebuild()`, on config change calls `engine.build({...options, clean: false})` |
-| `types.ts`        | Internal `Options` type                                                                                                                             |
+| File           | Role                                                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`     | Public API entry and barrel, including public helpers/types plus the public `build()` facade                                        |
+| `cli.ts`       | CLI entry (`velite build` / `velite dev`)                                                                                           |
+| `app/`         | Application orchestration: `Engine`, watch controller, and build options                                                            |
+| `config/`      | Public config types/helper plus runtime config loading/bundling                                                                     |
+| `collections/` | Public collection types/helper plus discovery, resolving, `VeliteFile`, and file cache                                              |
+| `output/`      | Public output type plus generated entry/data/assets writing and emit cache                                                          |
+| `assets/`      | Asset store, asset path processing, image metadata, and Markdown/MDX linked-file plugins                                            |
+| `runtime/`     | Schema parsing context, session store, build session, and logger                                                                    |
+| `loaders/`     | Built-in loaders: `json`, `yaml`, `matter` (frontmatter)                                                                            |
+| `schemas/`     | Custom Zod extensions: `file`, `image`, `markdown`, `mdx`, `slug`, `toc`, `excerpt`, `metadata`, `path`, `raw`, `isodate`, `unique` |
+| `utils/`       | Small shared utilities such as pattern matching                                                                                     |
 
 ## Key patterns
 
 - `s` is the extended Zod namespace (`src/schemas/index.ts:16`) — re-exports all of `zod` plus custom schemas
-- User config files (`velite.config.{js,ts,mjs,mts,cjs,cts}`) are bundled with esbuild at runtime, not imported directly (`src/core/config.ts`)
-- Config is searched up to 3 parent directories from cwd (`src/core/config.ts`)
+- User config files (`velite.config.{js,ts,mjs,mts,cjs,cts}`) are bundled with esbuild at runtime, not imported directly (`src/config/load.ts`)
+- Config is searched up to 3 parent directories from cwd (`src/config/load.ts`)
 - Default content root: `content/`, default output: `.velite/` (data) + `public/static/` (assets)
 - `defineConfig`, `defineCollection`, `defineLoader`, `defineSchema` are identity helpers for type inference only
 - The `prepare` hook can return `false` to suppress default file output
 - Tests use Node's built-in test runner (`node:test`), not Jest/Vitest
-- All build-scoped mutable state lives on `BuildSession` (`src/core/session.ts`) and its `SessionStore`; independent builds are isolated by construction
+- All build-scoped mutable state lives on `BuildSession` (`src/runtime/session.ts`) and its `SessionStore`; independent builds are isolated by construction
 
 ## Code style
 
@@ -93,7 +75,7 @@ pnpm test   # runs: node --import tsx --test test/**/*.tests.ts
 - After changing dependency groups, run `pnpm build` and check `dist/` for unexpected bare imports
 - `sharp` and `esbuild` are allowed native builds in `pnpm-workspace.yaml`
 - Config bundling uses `packages: 'external'` — user deps are not bundled into config output
-- `src/core/*` is internal; never re-export it from `src/index.ts`
+- Internal modules are exposed through `src/index.ts` only when intentionally public; do not re-export implementation folders wholesale
 
 ## Session workspace
 

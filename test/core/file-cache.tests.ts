@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 
-import { VeliteFile } from '../src/core/file'
-import { createFileCache } from '../src/core/file-cache'
+import { VeliteFile } from '../../src/core/file'
+import { createFileCache } from '../../src/core/file-cache'
 
-import type { Loader } from '../src/types'
+import type { Loader } from '../../src/loaders/types'
 
 const jsonLoader: Loader = {
   test: /\.json$/,

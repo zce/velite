@@ -28,7 +28,7 @@
   ],
   "scripts": {
     "build": "tsc && tsup",
-    "test": "node --import tsx --test test/*.ts",
+    "test": "node --import tsx --test test/**/*.tests.ts",
     "docs:dev": "cd docs && pnpm dev",
     "docs:build": "cd docs && pnpm build",
     "format": "prettier . --write"
@@ -40,7 +40,7 @@
     ],
     "format": "esm",
     "platform": "node",
-    "target": "node20",
+    "target": "node22",
     "banner": {
       "js": "import {createRequire as __createRequire} from 'module';const require=__createRequire(import.meta.url);"
     },
@@ -96,6 +96,6 @@
   },
   "packageManager": "pnpm@11.1.2",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.13.0"
   }
 }

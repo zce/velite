@@ -141,7 +141,7 @@ const compileMdx = async (source: string): Promise<string> => {
     absWorkingDir: resolve('content'),
     write: false,
     bundle: true,
-    target: 'node18',
+    target: 'node22',
     platform: 'neutral',
     format: 'esm',
     globalName: 'VELITE_MDX_COMPONENT',

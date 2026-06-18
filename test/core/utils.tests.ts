@@ -1,7 +1,7 @@
 import { strictEqual } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { matchPatterns } from '../src/core/utils'
+import { matchPatterns } from '../../src/core/utils'
 
 describe('matchPatterns function', async t => {
   it('matches single pattern', () => {

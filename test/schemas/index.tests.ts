@@ -1,16 +1,16 @@
 import { equal } from 'node:assert'
 import { test } from 'node:test'
 
-import { context, parseWithContext, s, z } from '../src'
+import { context, parseWithContext, s, z } from '../../src'
 
-import type { Schema } from '../src'
+import type { Schema } from '../../src'
 
 test('exports zod utilities from the public entry', () => {
   equal(typeof z.string, 'function')
 })
 
 test('exports a programmatic watch API', async () => {
-  const mod = await import('../src')
+  const mod = await import('../../src')
   equal(typeof mod.watch, 'function')
 })
 

@@ -1,12 +1,12 @@
 import { deepStrictEqual, ok, strictEqual } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { createAssetStore } from '../src/core/assets'
-import { createOutputWriter } from '../src/core/output'
-import { createOutputState } from '../src/core/output-state'
+import { createAssetStore } from '../../src/core/assets'
+import { createOutputWriter } from '../../src/core/output'
+import { createOutputState } from '../../src/core/output-state'
 
-import type { Logger } from '../src/core/logger'
-import type { Collections } from '../src/types'
+import type { Collections } from '../../src/collections'
+import type { Logger } from '../../src/core/logger'
 
 const silentLogger: Logger = {
   log: () => {},

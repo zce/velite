@@ -2,7 +2,7 @@ import { strictEqual } from 'node:assert'
 import { readFile } from 'node:fs/promises'
 import { describe, it } from 'node:test'
 
-import { getImageMetadata } from '../src/core/assets'
+import { getImageMetadata } from '../../src/core/assets'
 
 // path relative to cwd (repo root), like the other tests
 const image = 'examples/basic/content/posts/2024-05-08-hello-world/cover.jpg'

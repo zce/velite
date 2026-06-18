@@ -5,9 +5,40 @@ import { custom } from 'zod'
 import { assetStoreKey, remarkCopyLinkedFiles } from '../core/assets'
 import { internalContext } from '../core/context'
 
+import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root } from 'mdast'
 import type { PluggableList } from 'unified'
-import type { MdxOptions } from '../types'
+
+/**
+ * MDX compiler options
+ */
+export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Output format to generate.
+   * @default 'function-body'
+   */
+  outputFormat?: CompileOptions['outputFormat']
+  /**
+   * Minify the output code.
+   * @default true
+   */
+  minify?: boolean
+}
 
 const remarkRemoveComments = () => (tree: Root) => {
   visit(tree, ['mdxFlowExpression'], (node, index, parent) => {

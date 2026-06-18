@@ -1,6 +1,6 @@
 import glob from 'fast-glob'
 
-import type { Collection } from '../types'
+import type { Collection } from '../collections'
 
 export interface Discoverer {
   /** Glob collection patterns relative to `root`, returning absolute file paths. */

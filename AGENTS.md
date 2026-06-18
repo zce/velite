@@ -20,18 +20,19 @@ Velite — a tool that turns Markdown / MDX, YAML, JSON into a type-safe data la
 - Root package is the core library (`velite` on npm)
 - `packages/next` → `@velite/plugin-next` (Next.js integration, hand-written JS)
 - `packages/vite` → `@velite/plugin-vite` (Vite integration, hand-written JS)
-- ESM-only (`"type": "module"`), Node.js >=20.19.0
+- ESM-only (`"type": "module"`), Node.js >=22.13.0
 
 ## Source layout (`src/`)
 
-| File       | Role                                                                                                                                |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts` | Public API entry, including the public `build()` facade over `core/`                                                                |
-| `cli.ts`   | CLI entry (`velite build` / `velite dev`)                                                                                           |
-| `types.ts` | Public TypeScript interfaces (`Config`, `UserConfig`, `Collection`, `Output`, etc.) + re-exports for core-originating public types  |
-| `loaders/` | Built-in loaders: `json`, `yaml`, `matter` (frontmatter)                                                                            |
-| `schemas/` | Custom Zod extensions: `file`, `image`, `markdown`, `mdx`, `slug`, `toc`, `excerpt`, `metadata`, `path`, `raw`, `isodate`, `unique` |
-| `core/`    | Internal implementation files in a flat directory; public entry may selectively re-export stable helpers/types                      |
+| File             | Role                                                                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`       | Public API entry and barrel, including public helpers/types plus the public `build()` facade over `core/`                           |
+| `cli.ts`         | CLI entry (`velite build` / `velite dev`)                                                                                           |
+| `config.ts`      | Public configuration model (`UserConfig`, resolved `Config`, hook/plugin config types, `defineConfig`)                              |
+| `collections.ts` | Public collection model (`Collection`, `Collections`, result helpers, `defineCollection`)                                           |
+| `loaders/`       | Built-in loaders: `json`, `yaml`, `matter` (frontmatter)                                                                            |
+| `schemas/`       | Custom Zod extensions: `file`, `image`, `markdown`, `mdx`, `slug`, `toc`, `excerpt`, `metadata`, `path`, `raw`, `isodate`, `unique` |
+| `core/`          | Internal implementation files in a flat directory; public entry may selectively re-export stable helpers/types                      |
 
 ### Core internals (`src/core/`)
 
@@ -75,18 +76,21 @@ Velite — a tool that turns Markdown / MDX, YAML, JSON into a type-safe data la
 ## Testing
 
 ```bash
-pnpm test   # runs: node --import tsx --test test/*.ts
+pnpm test   # runs: node --import tsx --test test/**/*.tests.ts
 ```
 
 - Tests in `test/` use `node:test` + `node:assert`
 - Tests run against the **built** output (`dist/`), so `pnpm build` must run first
-- `test/basic.ts` builds the `examples/basic` fixture and checks output file sizes
+- `test/basic.ts` builds the `examples/basic` fixture and checks generated output content
 - Tests clean up `.velite` output dirs after running
 
 ## Gotchas
 
 - `bin/velite.js` imports `../dist/cli.js` — you must build before running the CLI from source
 - The `tsup` config injects a `require` shim banner for CJS interop in the ESM output
+- Bundling strategy intentionally follows tsup defaults: `dependencies` stay external, while runtime internals listed only in `devDependencies` are bundled into `dist/`
+- When adding runtime imports, put public API/native/heavy/override-sensitive deps in `dependencies`; put pure internal implementation tools in `devDependencies` so they are bundled
+- After changing dependency groups, run `pnpm build` and check `dist/` for unexpected bare imports
 - `sharp` and `esbuild` are allowed native builds in `pnpm-workspace.yaml`
 - Config bundling uses `packages: 'external'` — user deps are not bundled into config output
 - `src/core/*` is internal; never re-export it from `src/index.ts`

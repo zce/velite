@@ -282,7 +282,7 @@ const compileMdx = async (source: string, path: string, options: CompileOptions)
     absWorkingDir: dirname(path),
     write: false,
     bundle: true,
-    target: 'node18',
+    target: 'node22',
     platform: 'neutral',
     format: 'esm',
     globalName: 'VELITE_MDX_COMPONENT',

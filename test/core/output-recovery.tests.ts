@@ -56,7 +56,7 @@ test('build twice with the data output directory deleted in between produces all
 })
 
 test('same engine rebuild restores JSON files deleted after the initial build', async () => {
-  const { createBuildEngine } = await import('../src/core/engine')
+  const { createBuildEngine } = await import('../../src/core/engine')
   const root = await mkdtemp(join(tmpdir(), 'velite-emit-rebuild-recover-'))
 
   await mkdir(join(root, 'content'))

@@ -1,7 +1,7 @@
 import { deepStrictEqual, ok, strictEqual, throws } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { createAssetStore } from '../src/core/assets'
+import { createAssetStore } from '../../src/core/assets'
 
 describe('AssetStore', () => {
   it('adds a record on first call', () => {

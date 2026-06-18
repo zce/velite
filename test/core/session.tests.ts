@@ -1,12 +1,12 @@
 import { notStrictEqual, ok, strictEqual } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { assetStoreKey } from '../src/core/assets'
-import { createOutputState } from '../src/core/output-state'
-import { createSession } from '../src/core/session'
-import { uniqueStoreKey } from '../src/core/unique'
+import { assetStoreKey } from '../../src/core/assets'
+import { createOutputState } from '../../src/core/output-state'
+import { createSession } from '../../src/core/session'
+import { uniqueStoreKey } from '../../src/core/unique'
 
-import type { Config } from '../src/types'
+import type { Config } from '../../src/config'
 
 const stubConfig: Config = {
   configPath: '/site/velite.config.ts',

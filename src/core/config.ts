@@ -9,7 +9,7 @@ import { name as pkgName } from '../../package.json'
 import { loaders as builtinLoaders } from '../loaders'
 import { logger as defaultLogger } from './logger'
 
-import type { Config, UserConfig } from '../types'
+import type { Config, UserConfig } from '../config'
 import type { Logger } from './logger'
 
 const CONFIG_NAMES = [
@@ -128,7 +128,7 @@ export const createConfigLoader = (logger: Logger = defaultLogger): ConfigLoader
       bundle: true,
       write: true,
       format: 'esm',
-      target: 'node18',
+      target: 'node22',
       platform: 'node',
       metafile: true,
       plugins: [

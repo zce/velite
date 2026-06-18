@@ -19,7 +19,7 @@ pnpm add -D @velite/plugin-vite@latest
 
 ## Runtime Requirements
 
-Velite now targets Node.js `>=20.19.0`.
+Velite now targets Node.js `>=22.13.0`.
 
 This aligns the package with current versions of the runtime dependencies used by the build and watch pipeline. Update local development, CI, and deployment environments before upgrading.
 
@@ -200,7 +200,7 @@ Use `context()` for Velite parser metadata instead of relying on `ZodMeta`.
 
 ## Recommended Upgrade Checklist
 
-- Update Node.js to `>=20.19.0` in local development and CI.
+- Update Node.js to `>=22.13.0` in local development and CI.
 - Upgrade `velite` to `1.0.0-alpha.2`.
 - Replace `ctx.meta` access with `context()`.
 - Add `.optional()` to custom schemas that derive missing object fields from the current file.

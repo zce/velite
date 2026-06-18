@@ -4,15 +4,23 @@ import { createWatchController } from './core/watch'
 import type { Options } from './core/types'
 import type { Watcher } from './core/watch'
 
-export type { Options }
-export type { Watcher }
+export type { Collection, Collections, CollectionType, Result } from './collections'
+export type { Config, HookContext, PluginConfig, UserConfig } from './config'
 export type { BlurOptions, Image } from './core/assets'
+export type { Output } from './core/output'
+export type { Loader } from './loaders/types'
+export type { MarkdownOptions } from './schemas/markdown'
+export type { MdxOptions } from './schemas/mdx'
+export type { Options, Watcher }
+
+export { defineCollection } from './collections'
+export { defineConfig } from './config'
 export { getImageMetadata, isRelativePath } from './core/assets'
 export { context, parseWithContext } from './core/context'
 export { VeliteFile } from './core/file'
 export { createLogger, logger } from './core/logger'
+export { defineLoader } from './loaders/types'
 export * from './schemas'
-export * from './types'
 
 /**
  * Build all collections defined in the user config.

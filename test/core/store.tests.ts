@@ -1,7 +1,7 @@
 import { notStrictEqual, strictEqual } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { createSessionStore, defineStoreKey } from '../src/core/store'
+import { createSessionStore, defineStoreKey } from '../../src/core/store'
 
 describe('SessionStore', () => {
   it('creates a value once per key within one store', () => {

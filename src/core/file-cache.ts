@@ -1,4 +1,4 @@
-import type { Loader } from '../types'
+import type { Loader } from '../loaders/types'
 import type { VeliteFile } from './file'
 
 /**

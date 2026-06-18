@@ -7,7 +7,7 @@ import { VFile } from 'vfile'
 
 import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
-import type { Loader } from '../types'
+import type { Loader } from '../loaders/types'
 
 /**
  * `VeliteFile` is the in-memory representation of a content file once it has

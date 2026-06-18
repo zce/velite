@@ -1,7 +1,7 @@
 import { strictEqual } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { createUniqueStore } from '../src/core/unique'
+import { createUniqueStore } from '../../src/core/unique'
 
 describe('UniqueStore', () => {
   it('register returns undefined the first time a value is registered', () => {

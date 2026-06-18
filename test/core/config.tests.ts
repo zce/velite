@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
 import { describe, it } from 'node:test'
 
-import { createConfigLoader } from '../src/core/config'
+import { createConfigLoader } from '../../src/core/config'
 
 describe('ConfigLoader', () => {
   it('throws when no config file is found', async () => {

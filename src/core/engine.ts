@@ -9,7 +9,7 @@ import { createOutputState } from './output-state'
 import { createContentResolver } from './resolver'
 import { createSession } from './session'
 
-import type { Config } from '../types'
+import type { Config } from '../config'
 import type { ConfigLoader } from './config'
 import type { Logger } from './logger'
 import type { OutputWriter } from './output'

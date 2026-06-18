@@ -8,7 +8,7 @@ import { defineStoreKey } from './store'
 import type { Element, Root as Hast } from 'hast'
 import type { Root as Mdast, Node } from 'mdast'
 import type { VFile } from 'vfile'
-import type { Output } from '../types'
+import type { Output } from './output'
 
 /** Asset record collected during a build session. */
 export interface AssetRecord {

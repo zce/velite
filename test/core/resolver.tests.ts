@@ -4,14 +4,15 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 
-import { assetStoreKey } from '../src/core/assets'
-import { createContentResolver } from '../src/core/resolver'
-import { createSession } from '../src/core/session'
-import { s, z } from '../src/schemas'
+import { assetStoreKey } from '../../src/core/assets'
+import { createContentResolver } from '../../src/core/resolver'
+import { createSession } from '../../src/core/session'
+import { s, z } from '../../src/schemas'
 
-import type { Discoverer } from '../src/core/discover'
-import type { Logger } from '../src/core/logger'
-import type { Config, Loader } from '../src/types'
+import type { Config } from '../../src/config'
+import type { Discoverer } from '../../src/core/discover'
+import type { Logger } from '../../src/core/logger'
+import type { Loader } from '../../src/loaders/types'
 
 const silentLogger: Logger = {
   log: () => {},

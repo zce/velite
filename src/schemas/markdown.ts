@@ -13,7 +13,35 @@ import { internalContext } from '../core/context'
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
 import type { PluggableList } from 'unified'
-import type { MarkdownOptions } from '../types'
+
+/**
+ * Markdown options
+ */
+export interface MarkdownOptions {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Remark plugins.
+   */
+  remarkPlugins?: PluggableList
+  /**
+   * Rehype plugins.
+   */
+  rehypePlugins?: PluggableList
+}
 
 declare module 'hast' {
   interface Data {

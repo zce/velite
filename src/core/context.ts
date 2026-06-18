@@ -2,8 +2,8 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 
 import { createSessionStore } from './store'
 
+import type { Config } from '../config'
 import type { Schema } from '../schemas'
-import type { Config } from '../types'
 import type { VeliteFile } from './file'
 import type { SessionStore } from './store'
 

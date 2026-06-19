@@ -2,6 +2,7 @@ import { notStrictEqual, ok, strictEqual } from 'node:assert'
 import { describe, it } from 'node:test'
 
 import { assetStoreKey, createAssetStore } from '../../src/assets'
+import { createFileCache } from '../../src/collections/cache'
 import { createOutputState } from '../../src/output/state'
 import { createSession } from '../../src/runtime/session'
 
@@ -77,5 +78,32 @@ describe('BuildSession', () => {
     const b = createSession(stubConfig, {}, { output: shared })
     strictEqual(a.output, shared)
     strictEqual(b.output, shared)
+  })
+
+  it('uses injected file and resolved caches when supplied', () => {
+    const files = createFileCache(async () => {
+      throw new Error('not used')
+    })
+    const resolved = new Map()
+
+    const session = createSession(stubConfig, {}, { files, resolved })
+
+    strictEqual(session.files, files)
+    strictEqual(session.resolved, resolved)
+    ok(session.store != null)
+  })
+
+  it('injected caches do not share build stores', () => {
+    const files = createFileCache(async () => {
+      throw new Error('not used')
+    })
+    const resolved = new Map()
+    const a = createSession(stubConfig, {}, { files, resolved })
+    const b = createSession(stubConfig, {}, { files, resolved })
+    const key = Symbol('state')
+
+    a.store.set(key, { value: 1 })
+
+    strictEqual(b.store.has(key), false)
   })
 })

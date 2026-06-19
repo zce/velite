@@ -34,6 +34,10 @@ const defaultLoadFile = (path: string, loaders: VeliteLoader[]): Promise<VeliteF
 export interface CreateSessionOptions {
   /** Shared output state, e.g. across watch rebuilds. */
   output?: OutputState
+  /** Shared file cache for one engine lifetime. */
+  files?: FileCache
+  /** Shared resolved collection cache for one engine lifetime. */
+  resolved?: Map<string, VeliteFile[]>
   /** Override the session logger. Defaults to the process-level logger. */
   logger?: Logger
 }
@@ -43,6 +47,10 @@ export interface CreateSessionOptions {
  *
  * `output` may be supplied to share an emit cache across watch rebuilds. When
  * omitted, every session starts with an empty output cache.
+ *
+ * `files` and `resolved` may be supplied so a long-lived engine can share
+ * file and collection state across rebuilds. When omitted, every session
+ * starts with empty caches.
  *
  * `logger` may be supplied to redirect log output (e.g. for tests). When
  * omitted, the process-level logger is used.
@@ -54,8 +62,8 @@ export const createSession = <T extends Collections>(
 ): BuildSession<T> => ({
   config,
   options,
-  files: createFileCache(defaultLoadFile),
-  resolved: new Map(),
+  files: sessionOptions.files ?? createFileCache(defaultLoadFile),
+  resolved: sessionOptions.resolved ?? new Map(),
   store: createBuildStore(),
   output: sessionOptions.output ?? createOutputState(),
   logger: sessionOptions.logger ?? defaultLogger

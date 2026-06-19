@@ -16,6 +16,13 @@ import type { Writer } from '../output/write'
 import type { Logger } from '../runtime/logger'
 import type { BuildOptions } from './types'
 
+export type RebuildEvent = 'add' | 'change' | 'unlink'
+
+export interface RebuildChange {
+  event: RebuildEvent
+  paths: string[]
+}
+
 export interface Engine<T extends Collections = Collections> {
   /**
    * Run a full build: load config, write entry, resolve content, write data
@@ -23,12 +30,14 @@ export interface Engine<T extends Collections = Collections> {
    */
   build(options?: BuildOptions): Promise<BuildResult<T>>
   /**
-   * Re-run a build using the engine's current resolved config. Does not
-   * reload config and does not honor `output.clean`. Output directories are
-   * still ensured to exist before writing, and entry files are restored if
-   * they were deleted between rebuilds.
+   * Re-run using the current config and engine-scoped incremental state.
+   *
+   * `change` is optional so callers can request a full rebuild through the same
+   * long-lived engine. Watch mode, framework plugins, and future programmatic
+   * integrations should all use this core Engine capability instead of owning
+   * separate incremental caches.
    */
-  rebuild(): Promise<BuildResult<T>>
+  rebuild(change?: RebuildChange): Promise<BuildResult<T>>
   /** Last successfully resolved config, available after `build()` completes. */
   readonly config: ResolvedConfig<T> | undefined
 }
@@ -141,7 +150,7 @@ export const createEngine = <T extends Collections = Collections>({
       }
     },
 
-    async rebuild() {
+    async rebuild(change?: RebuildChange) {
       if (currentConfig == null) throw new Error('rebuild() called before build()')
       const begin = performance.now()
       logger.info('rebuilding...')

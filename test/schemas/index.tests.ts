@@ -16,6 +16,18 @@ test('exports a programmatic watch API', async () => {
   equal(typeof mod.watch, 'function')
 })
 
+test('public entry keeps compatibility asset and logger helpers', async () => {
+  const mod = await import('../../src')
+
+  equal(typeof mod.createLogger, 'function')
+  equal(typeof mod.logger, 'object')
+  equal(typeof mod.getImageMetadata, 'function')
+  equal(typeof mod.isRelativePath, 'function')
+  equal(typeof mod.processAsset, 'function')
+  equal(typeof mod.rehypeCopyLinkedFiles, 'function')
+  equal(typeof mod.remarkCopyLinkedFiles, 'function')
+})
+
 test('public domain modules own their models', async () => {
   const config = await import('../../src/config')
   const collections = await import('../../src/collections')

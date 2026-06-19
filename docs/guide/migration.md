@@ -191,7 +191,7 @@ export default defineConfig({
 The public entry exports Zod-related type helpers for schema typing:
 
 ```ts
-import type { infer, Schema, ZodType } from 'velite'
+import type { infer, Schema } from 'velite'
 ```
 
 Use `context()` for Velite parser metadata instead of relying on `ZodMeta`.

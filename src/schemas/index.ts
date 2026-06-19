@@ -30,7 +30,6 @@ export const s = {
 } as const
 
 export type Schema<Output = unknown, Input = unknown> = z.ZodType<Output, Input>
-export type ZodType<Output = unknown, Input = unknown> = z.ZodType<Output, Input>
 export type infer<T extends z.ZodType> = z.infer<T>
 
 /**

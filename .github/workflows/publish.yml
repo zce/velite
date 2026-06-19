@@ -38,11 +38,21 @@ jobs:
       - name: Build docs
         run: pnpm docs:build
 
+      - name: Resolve npm tag
+        run: |
+          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            echo "NPM_TAG=next" >> "$GITHUB_ENV"
+          elif node -e "process.exit(require('./package.json').version.includes('-') ? 0 : 1)"; then
+            echo "NPM_TAG=next" >> "$GITHUB_ENV"
+          else
+            echo "NPM_TAG=latest" >> "$GITHUB_ENV"
+          fi
+
       - name: Publish core package
-        run: pnpm --filter velite publish --access public --provenance --no-git-checks
+        run: pnpm --filter velite publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
 
       - name: Publish Next.js plugin
-        run: pnpm --filter @velite/plugin-next publish --access public --provenance --no-git-checks
+        run: pnpm --filter @velite/plugin-next publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
 
       - name: Publish Vite plugin
-        run: pnpm --filter @velite/plugin-vite publish --access public --provenance --no-git-checks
+        run: pnpm --filter @velite/plugin-vite publish --access public --provenance --no-git-checks --tag "$NPM_TAG"

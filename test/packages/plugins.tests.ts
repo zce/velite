@@ -29,6 +29,14 @@ test('content discovery uses tinyglobby instead of fast-glob', async () => {
   ok(pkg.devDependencies.tinyglobby)
 })
 
+test('publish workflow sends prereleases to the next npm tag', async () => {
+  const workflow = await readFile('.github/workflows/publish.yml', 'utf8')
+
+  ok(workflow.includes('NPM_TAG=next'))
+  ok(workflow.includes('NPM_TAG=latest'))
+  ok(workflow.includes('--tag "$NPM_TAG"'))
+})
+
 test('vite plugin starts a closeable velite watcher in dev server mode', async () => {
   const root = await mkdtemp(join(tmpdir(), 'velite-plugin-vite-'))
 

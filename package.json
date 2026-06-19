@@ -46,9 +46,6 @@
     "dts": {
       "resolve": true
     },
-    "noExternal": [
-      "zod"
-    ],
     "treeshake": true,
     "clean": true
   },

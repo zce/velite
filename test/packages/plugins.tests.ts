@@ -1,9 +1,18 @@
 import { deepEqual } from 'node:assert'
 import { EventEmitter } from 'node:events'
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
+
+test('plugin packages declare the repository used for npm provenance', async () => {
+  const expected = 'https://github.com/zce/velite'
+
+  for (const path of ['packages/next/package.json', 'packages/vite/package.json']) {
+    const pkg = JSON.parse(await readFile(path, 'utf8'))
+    deepEqual(pkg.repository, { type: 'git', url: expected })
+  }
+})
 
 test('vite plugin starts a closeable velite watcher in dev server mode', async () => {
   const root = await mkdtemp(join(tmpdir(), 'velite-plugin-vite-'))

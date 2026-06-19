@@ -49,10 +49,28 @@ jobs:
           fi
 
       - name: Publish core package
-        run: pnpm --filter velite publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "velite@$VERSION" version >/dev/null 2>&1; then
+            echo "velite@$VERSION is already published; skipping."
+          else
+            pnpm --filter velite publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+          fi
 
       - name: Publish Next.js plugin
-        run: pnpm --filter @velite/plugin-next publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+        run: |
+          VERSION=$(node -p "require('./packages/next/package.json').version")
+          if npm view "@velite/plugin-next@$VERSION" version >/dev/null 2>&1; then
+            echo "@velite/plugin-next@$VERSION is already published; skipping."
+          else
+            pnpm --filter @velite/plugin-next publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+          fi
 
       - name: Publish Vite plugin
-        run: pnpm --filter @velite/plugin-vite publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+        run: |
+          VERSION=$(node -p "require('./packages/vite/package.json').version")
+          if npm view "@velite/plugin-vite@$VERSION" version >/dev/null 2>&1; then
+            echo "@velite/plugin-vite@$VERSION is already published; skipping."
+          else
+            pnpm --filter @velite/plugin-vite publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+          fi

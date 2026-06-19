@@ -2,6 +2,10 @@
   "name": "@velite/plugin-vite",
   "version": "1.0.0-alpha.3",
   "description": "Vite plugin for integrating Velite",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zce/velite"
+  },
   "type": "module",
   "exports": {
     ".": {

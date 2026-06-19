@@ -1,9 +1,11 @@
-import { normalize } from 'node:path'
+import { normalize, relative } from 'node:path'
 import { reporter } from 'vfile-reporter'
 
 import { runWithContext } from '../runtime/context'
+import { matchPatterns } from '../utils/patterns'
 import { createDiscoverer } from './discover'
 
+import type { RebuildChange } from '../app/engine'
 import type { BuildSession } from '../runtime/session'
 import type { VeliteSchema } from '../schemas'
 import type { Discoverer } from './discover'
@@ -11,7 +13,7 @@ import type { VeliteFile } from './file'
 import type { BuildResult, Collections } from './index'
 
 export interface Resolver {
-  resolve<T extends Collections>(session: BuildSession<T>): Promise<ResolveResult<T>>
+  resolve<T extends Collections>(session: BuildSession<T>, change?: RebuildChange): Promise<ResolveResult<T>>
 }
 
 export interface ResolverOptions {
@@ -53,6 +55,16 @@ const loadFile = async <T extends Collections>(session: BuildSession<T>, path: s
   return file
 }
 
+const normalizePathSet = (paths: readonly string[]): Set<string> => new Set(paths.map(path => normalize(path)))
+
+const collectionAffected = (root: string, pattern: string | string[], paths: Set<string>): boolean => {
+  for (const path of paths) {
+    const rel = relative(root, path).replace(/\\/g, '/')
+    if (matchPatterns(rel, pattern)) return true
+  }
+  return false
+}
+
 /**
  * Create a content resolver.
  *
@@ -67,15 +79,24 @@ const loadFile = async <T extends Collections>(session: BuildSession<T>, path: s
  * `Writer`.
  */
 export const createResolver = ({ discoverer = createDiscoverer() }: ResolverOptions = {}): Resolver => ({
-  async resolve(session) {
+  async resolve(session, change) {
     const { config, logger } = session
     const { root, collections } = config
     const begin = performance.now()
 
     logger.log(`resolving collections from '${root}'`)
 
+    const changedPaths = change ? normalizePathSet(change.paths) : undefined
+
     const entries = await Promise.all(
       Object.entries(collections).map(async ([name, { pattern, schema }]): Promise<[string, VeliteFile[]]> => {
+        if (changedPaths !== undefined) {
+          const cached = session.resolved.get(name)
+          if (cached !== undefined && !collectionAffected(root, pattern, changedPaths)) {
+            logger.log(`skipped resolve '${name}', using previous resolved`)
+            return [name, cached]
+          }
+        }
         const collectionBegin = performance.now()
         const paths = await discoverer.discover(root, pattern)
         const files = await Promise.all(paths.map(path => loadFile(session, path, schema)))

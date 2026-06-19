@@ -199,6 +199,86 @@ describe('Resolver', () => {
     }
   })
 
+  it('reuses unaffected collection results during incremental resolve', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'velite-resolver-incremental-'))
+    try {
+      await mkdir(join(root, 'content'))
+      const postsPath = join(root, 'content', 'post.json')
+      const tagsPath = join(root, 'content', 'tag.json')
+      await writeFile(postsPath, JSON.stringify({ title: 'Post' }))
+      await writeFile(tagsPath, JSON.stringify({ title: 'Tag' }))
+
+      const discoverCalls: string[] = []
+      const fakeDiscoverer: Discoverer = {
+        async discover(_root, pattern) {
+          discoverCalls.push(String(pattern))
+          return String(pattern).includes('post') ? [postsPath] : [tagsPath]
+        }
+      }
+      const collections = {
+        posts: { name: 'Post', pattern: 'content/post.json', schema: s.object({ title: s.string() }) },
+        tags: { name: 'Tag', pattern: 'content/tag.json', schema: s.object({ title: s.string() }) }
+      }
+      const config = buildConfig(root, collections)
+      const resolver = createResolver({ discoverer: fakeDiscoverer })
+      const session = createSession(config, {}, { logger: silentLogger })
+
+      await resolver.resolve(session)
+      discoverCalls.length = 0
+
+      await writeFile(postsPath, JSON.stringify({ title: 'Changed' }))
+      session.files.delete(postsPath)
+      const { result } = await resolver.resolve(session, { event: 'change', paths: [postsPath] })
+
+      deepStrictEqual(discoverCalls, ['content/post.json'])
+      deepStrictEqual(
+        (result.posts as { title: string }[]).map(i => i.title),
+        ['Changed']
+      )
+      deepStrictEqual(
+        (result.tags as { title: string }[]).map(i => i.title),
+        ['Tag']
+      )
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('removes unlinked files from affected collection results', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'velite-resolver-unlink-'))
+    try {
+      await mkdir(join(root, 'content'))
+      const a = join(root, 'content', 'a.json')
+      const b = join(root, 'content', 'b.json')
+      await writeFile(a, JSON.stringify({ title: 'A' }))
+      await writeFile(b, JSON.stringify({ title: 'B' }))
+
+      let paths = [a, b]
+      const fakeDiscoverer: Discoverer = {
+        async discover() {
+          return paths
+        }
+      }
+      const config = buildConfig(root, {
+        items: { name: 'Item', pattern: 'content/*.json', schema: s.object({ title: s.string() }) }
+      })
+      const session = createSession(config, {}, { logger: silentLogger })
+      const resolver = createResolver({ discoverer: fakeDiscoverer })
+
+      await resolver.resolve(session)
+      paths = [a]
+      session.files.delete(b)
+      const { result } = await resolver.resolve(session, { event: 'unlink', paths: [b] })
+
+      deepStrictEqual(
+        (result.items as { title: string }[]).map(i => i.title),
+        ['A']
+      )
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   it('preserves falsy parsed results', async () => {
     const root = await mkdtemp(join(tmpdir(), 'velite-resolver-falsy-'))
     try {

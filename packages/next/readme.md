@@ -2,7 +2,7 @@
 
 A Next.js plugin for integrating Velite content processing.
 
-Requires Node.js 22.13 or newer, `velite@1.0.0-alpha.2`, and Next.js 16.
+Requires Node.js 22.13 or newer, `velite@1.0.0-alpha.3`, and Next.js 16.
 
 ## Installation
 

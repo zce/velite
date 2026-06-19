@@ -7,7 +7,7 @@ Velite 1.0 alpha modernizes the parser pipeline around Zod 4 and introduces fram
 Install the alpha release and update your package manager lockfile:
 
 ```bash
-pnpm add -D velite@1.0.0-alpha.2
+pnpm add -D velite@1.0.0-alpha.3
 ```
 
 If you use the framework plugins, install the matching package:
@@ -202,7 +202,7 @@ Use `context()` for Velite parser metadata instead of relying on `ZodMeta`.
 ## Recommended Upgrade Checklist
 
 - Update Node.js to `>=22.13.0` in local development and CI.
-- Upgrade `velite` to `1.0.0-alpha.2`.
+- Upgrade `velite` to `1.0.0-alpha.3`.
 - Replace `import { z } from 'velite'` with `import { s } from 'velite'`.
 - Replace `ctx.meta` access with `context()`.
 - Add `.optional()` to custom schemas that derive missing object fields from the current file.

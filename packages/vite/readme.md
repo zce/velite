@@ -2,7 +2,7 @@
 
 A Vite plugin for integrating Velite content processing.
 
-Requires Node.js 22.13 or newer, `velite@1.0.0-alpha.2`, and Vite 5 through Vite 8.
+Requires Node.js 22.13 or newer, `velite@1.0.0-alpha.3`, and Vite 5 through Vite 8.
 
 ## Installation
 

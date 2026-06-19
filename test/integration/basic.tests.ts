@@ -7,7 +7,7 @@ import { test } from 'node:test'
 
 test('standalone fixtures', async t => {
   // will use velite dist
-  await new Promise((res, rej) => exec('npm run build', { cwd: 'examples/basic' }, (e, s) => (e ? rej(e) : res(s))))
+  await new Promise((res, rej) => exec('node ../../dist/cli.js build', { cwd: 'examples/basic' }, (e, s) => (e ? rej(e) : res(s))))
 
   const entry = await readFile('examples/basic/.velite/index.js', 'utf8')
   ok(entry.includes("export { default as options } from './options.json'"))

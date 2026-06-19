@@ -31,6 +31,7 @@
   "scripts": {
     "build": "tsc && tsup",
     "test": "node --import tsx --test test/**/*.tests.ts",
+    "bench:incremental": "node benchmark/incremental-rebuild.mjs",
     "docs:dev": "cd docs && pnpm dev",
     "docs:build": "cd docs && pnpm build",
     "format": "prettier . --write"

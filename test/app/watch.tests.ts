@@ -195,3 +195,91 @@ test('watch config reload honors output.clean from user config', async () => {
     await rm(root, { recursive: true, force: true })
   }
 })
+
+const assetOwnerConfig = (countsLog: string) =>
+  [
+    "import { defineConfig, defineLoader, s } from 'velite'",
+    "import { appendFile } from 'node:fs/promises'",
+    '',
+    `const countsLog = ${JSON.stringify(countsLog)}`,
+    '',
+    'const countingJsonLoader = defineLoader({',
+    '  test: /\\.json$/,',
+    '  load: async file => {',
+    "    await appendFile(countsLog, file.path + '\\n')",
+    '    return { data: JSON.parse(file.toString()) }',
+    '  }',
+    '})',
+    '',
+    'export default defineConfig({',
+    "  root: 'content',",
+    "  output: { data: '.velite', assets: 'public/static', clean: false, name: '[name].[ext]' },",
+    '  loaders: [countingJsonLoader],',
+    '  collections: {',
+    '    items: {',
+    "      name: 'Item',",
+    "      pattern: 'item-*.json',",
+    '      schema: s.object({ title: s.string(), file: s.file() })',
+    '    }',
+    '  }',
+    '})',
+    ''
+  ].join('\n')
+
+const readCountsLog = async (path: string): Promise<string[]> => {
+  try {
+    const text = await readFile(path, 'utf8')
+    return text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+  } catch {
+    return []
+  }
+}
+
+const countsEndsWith = (entries: string[], suffix: string): number => entries.filter(entry => entry.endsWith(suffix)).length
+
+test('watch rebuilds only owner content when a linked asset changes', async () => {
+  const { watch } = await import('velite')
+  const root = await mkdtemp(join(tmpdir(), 'velite-watch-asset-'))
+  let watcher: Awaited<ReturnType<typeof watch>> | undefined
+
+  await mkdir(join(root, 'content'))
+  await writeFile(join(root, 'content', 'item-a.json'), JSON.stringify({ title: 'A', file: './shared.txt' }))
+  await writeFile(join(root, 'content', 'item-b.json'), JSON.stringify({ title: 'B', file: './other.txt' }))
+  await writeFile(join(root, 'content', 'shared.txt'), 'shared-v1')
+  await writeFile(join(root, 'content', 'other.txt'), 'other-v1')
+  const countsPath = join(root, 'counts.log')
+  await writeFile(countsPath, '')
+  await writeFile(join(root, 'velite.config.mjs'), assetOwnerConfig(countsPath))
+
+  try {
+    watcher = await watch({ config: join(root, 'velite.config.mjs'), logLevel: 'silent' })
+
+    let initial: string[] = []
+    for (let i = 0; i < 80; i++) {
+      await sleep(100)
+      initial = await readCountsLog(countsPath)
+      if (countsEndsWith(initial, 'item-a.json') >= 1 && countsEndsWith(initial, 'item-b.json') >= 1) break
+    }
+    equal(countsEndsWith(initial, 'item-a.json'), 1, 'initial build should load item-a.json once')
+    equal(countsEndsWith(initial, 'item-b.json'), 1, 'initial build should load item-b.json once')
+
+    await writeFile(join(root, 'content', 'shared.txt'), 'shared-v2')
+
+    let afterChange: string[] = initial
+    let owners = 0
+    for (let i = 0; i < 50; i++) {
+      await sleep(100)
+      afterChange = await readCountsLog(countsPath)
+      owners = countsEndsWith(afterChange, 'item-a.json') - countsEndsWith(initial, 'item-a.json')
+      if (owners >= 1) break
+    }
+    equal(owners, 1, 'asset change should reload item-a.json exactly once')
+    equal(countsEndsWith(afterChange, 'item-b.json') - countsEndsWith(initial, 'item-b.json'), 0, 'asset change should not reload item-b.json')
+  } finally {
+    await watcher?.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})

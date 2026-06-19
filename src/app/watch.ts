@@ -5,7 +5,7 @@ import { matchPatterns } from '../utils/patterns'
 
 import type { Collections } from '../collections'
 import type { Logger } from '../runtime/logger'
-import type { Engine } from './engine'
+import type { Engine, RebuildEvent } from './engine'
 import type { BuildOptions } from './types'
 
 export interface Watcher {
@@ -84,12 +84,24 @@ export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): 
           return
         }
 
-        if (!matchPatterns(filename, patterns)) return
+        if (matchPatterns(filename, patterns)) {
+          const rebuildEvent: RebuildEvent = event === 'add' || event === 'unlink' ? event : 'change'
+          const begin = performance.now()
+          logger.info(`changed: '${fullpath}', rebuilding...`)
+          await engine.rebuild({ event: rebuildEvent, paths: [fullpath] })
+          logger.info('rebuild finished', begin)
+          return
+        }
 
-        const begin = performance.now()
-        logger.info(`changed: '${fullpath}', rebuilding...`)
-        await engine.rebuild()
-        logger.info('rebuild finished', begin)
+        if (engine.hasAssetSource(fullpath)) {
+          const owners = engine.invalidateAssetSource(fullpath)
+          if (owners.length === 0) return
+          const begin = performance.now()
+          logger.info(`asset changed: '${fullpath}', rebuilding ${owners.length} owner(s)...`)
+          await engine.rebuild({ event: 'change', paths: owners })
+          logger.info('rebuild finished', begin)
+          return
+        }
       } catch (err) {
         logger.warn(err)
       }

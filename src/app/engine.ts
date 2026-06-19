@@ -49,6 +49,26 @@ export interface Engine<T extends Collections = Collections> {
    * separate incremental caches.
    */
   rebuild(change?: RebuildChange): Promise<BuildResult<T>>
+  /**
+   * Whether the given absolute path is currently tracked as a processed asset
+   * source (i.e. some content file has referenced it through `s.file()` /
+   * `s.image()` during a previous build).
+   *
+   * Intended for callers (the watcher, framework plugins) that detect changes
+   * to files outside any collection pattern but inside the watch root, so they
+   * can decide whether the change is relevant before issuing a rebuild.
+   */
+  hasAssetSource(path: string): boolean
+  /**
+   * Invalidate the asset-processing cache entries for `path` and drop the
+   * file-cache entries of every owner that previously referenced it. Returns
+   * the list of owner content paths so the caller can immediately schedule a
+   * targeted `rebuild({ event: 'change', paths: owners })`.
+   *
+   * Intended for callers (the watcher, framework plugins) that detect changes
+   * outside any collection pattern but to a previously-processed asset source.
+   */
+  invalidateAssetSource(path: string): string[]
   /** Last successfully resolved config, available after `build()` completes. */
   readonly config: ResolvedConfig<T> | undefined
 }
@@ -199,6 +219,16 @@ export const createEngine = <T extends Collections = Collections>({
       const result = await runResolve(currentConfig, currentOptions, change)
       logger.info('rebuild finished', begin)
       return result
+    },
+
+    hasAssetSource(path: string) {
+      return incremental.assets.hasSource(path)
+    },
+
+    invalidateAssetSource(path: string) {
+      const owners = incremental.assets.invalidateSource(path)
+      for (const owner of owners) incremental.files.delete(owner)
+      return owners
     }
   }
 }

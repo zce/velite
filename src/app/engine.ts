@@ -92,7 +92,7 @@ export const createEngine = <T extends Collections = Collections>({
   // A fresh build() with `clean: true` clears the cache implicitly because the
   // output directory is removed; otherwise content-based skipping still works.
   const outputState = createOutputState()
-  let incremental = createIncrementalState()
+  const incremental = createIncrementalState()
   const clearIncremental = () => {
     incremental.files.clear()
     incremental.resolved.clear()

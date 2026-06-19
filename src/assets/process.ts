@@ -55,7 +55,7 @@ export const processAsset = async <T extends true | undefined = undefined>(
       case 'hash':
         return fingerprint.slice(0, length)
       case 'ext':
-        return ext.slice(1, length)
+        return ext.slice(1, length == null ? undefined : length + 1)
     }
     return substring
   })

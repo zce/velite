@@ -2,7 +2,7 @@ import { build, watch } from 'velite'
 
 /**
  * Velite Vite plugin
- * @param {Omit<import('velite').Options, 'watch'>} options - Velite options
+ * @param {Omit<import('velite').BuildOptions, 'watch'>} options - Velite options
  * @returns {import('vite').Plugin} Vite plugin
  */
 export default (options = {}) => {

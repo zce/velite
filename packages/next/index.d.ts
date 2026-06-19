@@ -1,5 +1,5 @@
 import type { NextConfig } from 'next'
-import type { Options as VeliteOptions } from 'velite'
+import type { BuildOptions as VeliteOptions } from 'velite'
 
 export type Options = Omit<VeliteOptions, 'watch' | 'clean'>
 

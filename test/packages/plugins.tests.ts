@@ -14,6 +14,14 @@ test('plugin packages declare the repository used for npm provenance', async () 
   }
 })
 
+test('plugin declarations import the public BuildOptions type', async () => {
+  for (const path of ['packages/next/index.d.ts', 'packages/vite/index.d.ts', 'packages/next/index.js', 'packages/vite/index.js']) {
+    const content = await readFile(path, 'utf8')
+    deepEqual(content.includes("import('velite').Options"), false)
+    deepEqual(content.includes('import type { Options as VeliteOptions }'), false)
+  }
+})
+
 test('vite plugin starts a closeable velite watcher in dev server mode', async () => {
   const root = await mkdtemp(join(tmpdir(), 'velite-plugin-vite-'))
 

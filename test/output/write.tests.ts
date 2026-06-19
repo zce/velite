@@ -131,7 +131,7 @@ describe('Writer', () => {
     deepStrictEqual(writes, ['s1:/out/posts.json', 's2:/out/posts.json'])
   })
 
-  it('writeData writes null entries and skips only undefined entries', async () => {
+  it('writeData skips nullish entries', async () => {
     const writes: string[] = []
     const state = createOutputState()
     const writer = createWriter({
@@ -143,7 +143,7 @@ describe('Writer', () => {
     })
 
     await writer.writeData(state, '/out', { a: null, b: undefined, c: { x: 1 } })
-    deepStrictEqual(writes, ['/out/a.json', '/out/c.json'])
+    deepStrictEqual(writes, ['/out/c.json'])
   })
 
   it('writeAssets copies every record from the AssetStore', async () => {
@@ -178,7 +178,7 @@ describe('Writer', () => {
     )
   })
 
-  it('writeAssets always copies (no asset emit cache)', async () => {
+  it('writeAssets skips copies when the same asset output is already emitted', async () => {
     let copyCount = 0
     const state = createOutputState()
     const writer = createWriter({
@@ -186,6 +186,7 @@ describe('Writer', () => {
       copyFile: async () => {
         copyCount++
       },
+      access: async () => {},
       logger: silentLogger
     })
 
@@ -198,6 +199,6 @@ describe('Writer', () => {
     await writer.writeAssets(state, '/out/static', assets)
     await writer.writeAssets(state, '/out/static', assets)
 
-    strictEqual(copyCount, 2, 'asset writes always copy, even with shared output state')
+    strictEqual(copyCount, 1, 'second identical asset output should be skipped')
   })
 })

@@ -5,7 +5,6 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit"
   },
-  "explorer.fileNesting.enabled": true,
   "files.exclude": {
     "**/node_modules": true
   },

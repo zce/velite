@@ -10,12 +10,13 @@ import type { AssetStore } from './store'
 
 export type CopyLinkedFilesOptions = Omit<VeliteOutput, 'data' | 'clean'> & { assets: AssetStore }
 
+const LINKED_PROPERTY_NAMES = ['href', 'src', 'poster']
+
 /** rehype plugin to collect linked files and rewrite their urls. */
 export const rehypeCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async (tree: Hast, file: VFile) => {
   const links = new Map<string, Element[]>()
-  const linkedPropertyNames = ['href', 'src', 'poster']
   visit(tree, 'element', node => {
-    linkedPropertyNames.forEach(name => {
+    LINKED_PROPERTY_NAMES.forEach(name => {
       const value = node.properties[name]
       if (typeof value === 'string' && isRelativePath(value)) {
         const elements = links.get(value) ?? []
@@ -29,7 +30,7 @@ export const rehypeCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async 
       const publicUrl = await processAsset(url, file.path, options.name, options.base, options.assets)
       if (publicUrl == null || publicUrl === url) return
       elements.forEach(node => {
-        linkedPropertyNames.forEach(name => {
+        LINKED_PROPERTY_NAMES.forEach(name => {
           if (name in node.properties) {
             node.properties[name] = publicUrl
           }
@@ -42,7 +43,6 @@ export const rehypeCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async 
 /** remark plugin to collect linked files and rewrite their urls. */
 export const remarkCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async (tree: Mdast, file: VFile) => {
   const links = new Map<string, Node[]>()
-  const linkedPropertyNames = ['href', 'src', 'poster']
   visit(tree, ['link', 'image', 'definition'], (node: any) => {
     if (isRelativePath(node.url)) {
       const nodes = links.get(node.url) ?? []
@@ -50,11 +50,12 @@ export const remarkCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async 
       links.set(node.url, nodes)
     }
   })
-  visit(tree, 'mdxJsxFlowElement', node => {
-    node.attributes.forEach((attr: any) => {
-      if (linkedPropertyNames.includes(attr.name) && typeof attr.value === 'string' && isRelativePath(attr.value)) {
+  visit(tree, ['mdxJsxFlowElement', 'mdxJsxTextElement'], node => {
+    const element = node as any
+    element.attributes.forEach((attr: any) => {
+      if (LINKED_PROPERTY_NAMES.includes(attr.name) && typeof attr.value === 'string' && isRelativePath(attr.value)) {
         const nodes = links.get(attr.value) ?? []
-        nodes.push(node)
+        nodes.push(element)
         links.set(attr.value, nodes)
       }
     })
@@ -69,7 +70,7 @@ export const remarkCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async 
           return
         }
         node.attributes.forEach((attr: any) => {
-          linkedPropertyNames.forEach(name => {
+          LINKED_PROPERTY_NAMES.forEach(name => {
             if (attr.name === name && attr.value === url) {
               attr.value = publicUrl
             }

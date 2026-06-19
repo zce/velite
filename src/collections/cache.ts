@@ -16,6 +16,7 @@ export interface FileCache {
 
 export const createFileCache = (loadFile: (path: string, loaders: VeliteLoader[]) => Promise<VeliteFile>): FileCache => {
   const cache = new Map<string, VeliteFile>()
+  const pending = new Map<string, Promise<VeliteFile>>()
 
   return {
     get(path) {
@@ -24,15 +25,30 @@ export const createFileCache = (loadFile: (path: string, loaders: VeliteLoader[]
     async load(path, loaders) {
       const existing = cache.get(path)
       if (existing != null) return existing
-      const file = await loadFile(path, loaders)
+      const inflight = pending.get(path)
+      if (inflight != null) return inflight
+      const promise = loadFile(path, loaders)
+        .then(file => {
+          cache.set(path, file)
+          pending.delete(path)
+          return file
+        })
+        .catch(err => {
+          pending.delete(path)
+          throw err
+        })
+      pending.set(path, promise)
+      const file = await promise
       cache.set(path, file)
       return file
     },
     delete(path) {
       cache.delete(path)
+      pending.delete(path)
     },
     clear() {
       cache.clear()
+      pending.clear()
     }
   }
 }

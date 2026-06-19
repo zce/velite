@@ -38,7 +38,7 @@ const loadChokidar = async () => {
  *   - on a content change matching a collection pattern, calls
  *     `engine.rebuild()`,
  *   - on a config dependency change, closes the watcher, calls
- *     `engine.build({ ...options, clean: false })`, and re-arms a new watcher
+ *     `engine.build(options)`, and re-arms a new watcher
  *     against the freshly resolved config.
  *
  * The controller never holds a `BuildSession`; sessions are created and
@@ -79,9 +79,7 @@ export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): 
           logger.info('velite config changed, restarting...')
           handle.active = false
           await watcher.close()
-          // Config-reload path: clean: false so the engine does not nuke the
-          // existing output. writeEntry still runs because engine.build() does.
-          await engine.build({ ...options, clean: false })
+          await engine.build(options)
           handle.replacement = await armWatcher(engine, options)
           return
         }

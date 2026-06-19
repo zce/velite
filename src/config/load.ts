@@ -22,6 +22,92 @@ const CONFIG_NAMES = [
   pkgName + '.config.cts'
 ] as const
 
+const TYPE_IDENTIFIER_RE = /^[A-Za-z_$][\w$]*$/
+const RESERVED_TYPE_NAMES = new Set([
+  'abstract',
+  'any',
+  'as',
+  'asserts',
+  'async',
+  'await',
+  'boolean',
+  'break',
+  'case',
+  'catch',
+  'class',
+  'const',
+  'constructor',
+  'continue',
+  'debugger',
+  'declare',
+  'default',
+  'delete',
+  'do',
+  'else',
+  'enum',
+  'export',
+  'extends',
+  'false',
+  'finally',
+  'for',
+  'from',
+  'function',
+  'get',
+  'if',
+  'implements',
+  'import',
+  'in',
+  'infer',
+  'instanceof',
+  'interface',
+  'keyof',
+  'let',
+  'module',
+  'namespace',
+  'never',
+  'new',
+  'null',
+  'number',
+  'object',
+  'of',
+  'package',
+  'private',
+  'protected',
+  'public',
+  'readonly',
+  'require',
+  'return',
+  'satisfies',
+  'set',
+  'static',
+  'string',
+  'super',
+  'switch',
+  'symbol',
+  'this',
+  'throw',
+  'true',
+  'try',
+  'type',
+  'typeof',
+  'undefined',
+  'unique',
+  'unknown',
+  'var',
+  'void',
+  'while',
+  'with',
+  'yield'
+])
+
+const validateCollectionNames = (collections: Collections): void => {
+  Object.entries(collections).forEach(([key, collection]) => {
+    if (!TYPE_IDENTIFIER_RE.test(collection.name) || RESERVED_TYPE_NAMES.has(collection.name)) {
+      throw new Error(`collection '${key}' name '${collection.name}' must be a valid TypeScript identifier`)
+    }
+  })
+}
+
 /**
  * Recursively search up to `depth` parent directories for the first matching file.
  */
@@ -174,6 +260,7 @@ export const createConfigLoader = ({ logger = defaultLogger }: ConfigLoaderOptio
       if (loadedConfig.collections == null) {
         throw new Error(`'collections' is required in '${configPath}'`)
       }
+      validateCollectionNames(loadedConfig.collections)
 
       logger.log(`using config '${configPath}'`, begin)
 

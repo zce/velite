@@ -87,4 +87,33 @@ describe('FileCache', () => {
       await rm(root, { recursive: true, force: true })
     }
   })
+
+  it('deduplicates concurrent loads for the same path', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'velite-file-cache-concurrent-'))
+    try {
+      const path = join(root, 'data.json')
+      await writeFile(path, JSON.stringify({ ok: true }))
+
+      let calls = 0
+      let release!: () => void
+      const gate = new Promise<void>(resolve => {
+        release = resolve
+      })
+      const cache = createFileCache(async (p, loaders) => {
+        calls++
+        await gate
+        return VeliteFile.create(p, loaders)
+      })
+
+      const first = cache.load(path, [jsonLoader])
+      const second = cache.load(path, [jsonLoader])
+      release()
+
+      const [a, b] = await Promise.all([first, second])
+      strictEqual(calls, 1, 'concurrent loads should share one in-flight read')
+      strictEqual(a, b, 'concurrent loads should resolve to the same file instance')
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
 })

@@ -1,4 +1,4 @@
-import type { Options as VeliteOptions } from 'velite'
+import type { BuildOptions as VeliteOptions } from 'velite'
 import type { Plugin } from 'vite'
 
 type Options = Omit<VeliteOptions, 'watch'>

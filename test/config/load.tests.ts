@@ -172,4 +172,25 @@ describe('ConfigLoader', () => {
       await rm(root, { recursive: true, force: true })
     }
   })
+
+  it('rejects collection names that cannot be emitted as TypeScript identifiers', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'velite-config-invalid-name-'))
+    try {
+      await mkdir(join(root, 'content'))
+      await writeFile(
+        join(root, 'velite.config.mjs'),
+        [
+          "import { defineConfig, s } from 'velite'",
+          'export default defineConfig({',
+          "  collections: { posts: { name: 'Blog Post', pattern: 'item.json', schema: s.object({ title: s.string() }) } }",
+          '})'
+        ].join('\n')
+      )
+
+      const loader = createConfigLoader()
+      await rejects(loader.load(join(root, 'velite.config.mjs')), /collection 'posts' name 'Blog Post' must be a valid TypeScript identifier/)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
 })

@@ -102,7 +102,7 @@ export const createWriter = ({
     const logs: string[] = []
     await Promise.all(
       Object.entries(result).map(async ([name, data]) => {
-        if (data === undefined) return
+        if (data == null) return
         const target = join(dest, name + '.json')
         const content = isProduction ? JSON.stringify(data) : JSON.stringify(data, null, 2)
         const length = Array.isArray(data) ? data.length : 1
@@ -113,10 +113,25 @@ export const createWriter = ({
     logger.log(`output ${logs.join(', ')}`, begin)
   },
 
-  async writeAssets(_state, dest, assets) {
+  async writeAssets(state, dest, assets) {
     const begin = performance.now()
     const records = assets.list()
-    await Promise.all(records.map(record => copy(record.sourcePath, join(dest, record.outputName))))
+    await Promise.all(
+      records.map(async record => {
+        const target = join(dest, record.outputName)
+        if (state.emitted.get(target) === record.sourcePath) {
+          try {
+            await accessFile(target)
+            logger.log(`skipped copy '${target}' with same source`)
+            return
+          } catch {
+            logger.log(`restoring missing '${target}' from '${record.sourcePath}'`)
+          }
+        }
+        await copy(record.sourcePath, target)
+        state.emitted.set(target, record.sourcePath)
+      })
+    )
     logger.log(`output ${records.length} assets`, begin)
   }
 })

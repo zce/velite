@@ -4,7 +4,7 @@
 
 /**
  * Create a Next.js plugin for integrating Velite
- * @param {Omit<import('velite').Options, 'watch' | 'clean'>} pluginOptions
+ * @param {Omit<import('velite').BuildOptions, 'watch' | 'clean'>} pluginOptions
  * @returns {import('next').NextConfig} Next.js plugin
  */
 export const createNextPlugin = (pluginOptions = {}) => {

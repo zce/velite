@@ -23,6 +23,21 @@ const fixtureConfig = (assetsDir: string) =>
     ''
   ].join('\n')
 
+const cleanConfig = (includeRemoved: boolean) =>
+  [
+    "import { defineConfig, s } from 'velite'",
+    '',
+    'export default defineConfig({',
+    "  root: 'content',",
+    "  output: { data: '.velite', assets: 'public/static', clean: true, name: '[name].[ext]' },",
+    '  collections: {',
+    "    items: { name: 'Item', pattern: 'item.json', schema: s.object({ title: s.string() }) }" + (includeRemoved ? ',' : ''),
+    includeRemoved ? "    removed: { name: 'Removed', pattern: 'removed.json', schema: s.object({ title: s.string() }) }" : '',
+    '  }',
+    '})',
+    ''
+  ].join('\n')
+
 const waitForFileIncludes = async (path: string, expected: string): Promise<boolean> => {
   for (let i = 0; i < 50; i++) {
     await sleep(100)
@@ -146,6 +161,35 @@ test('watch reloads config when an imported config dependency changes', async ()
     const reloaded = await waitForEntry(root, '.velite-b')
 
     equal(reloaded, true, 'expected watcher to rebuild after imported config dependency change')
+  } finally {
+    await watcher?.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('watch config reload honors output.clean from user config', async () => {
+  const { watch } = await import('velite')
+  const root = await mkdtemp(join(tmpdir(), 'velite-watch-clean-'))
+  let watcher: Awaited<ReturnType<typeof watch>> | undefined
+
+  await mkdir(join(root, 'content'))
+  await writeFile(join(root, 'content', 'item.json'), JSON.stringify({ title: 'Hello' }))
+  await writeFile(join(root, 'content', 'removed.json'), JSON.stringify({ title: 'Stale' }))
+  await writeFile(join(root, 'velite.config.mjs'), cleanConfig(true))
+
+  try {
+    watcher = await watch({ config: join(root, 'velite.config.mjs'), logLevel: 'silent' })
+    await sleep(150)
+    ok(await waitForEntry(join(root, '.velite'), 'removed.json'), 'initial build should emit removed.json')
+
+    await writeFile(join(root, 'velite.config.mjs'), cleanConfig(false))
+
+    for (let i = 0; i < 50; i++) {
+      await sleep(100)
+      const entries = await readdir(join(root, '.velite'))
+      if (!entries.includes('removed.json')) return
+    }
+    equal(false, true, 'config reload should clean stale collection output')
   } finally {
     await watcher?.close()
     await rm(root, { recursive: true, force: true })

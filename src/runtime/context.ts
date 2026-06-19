@@ -33,7 +33,7 @@ export interface BuildContext<T extends Collections = Collections> {
  * asset processing cache. This shape is never returned from the public
  * `context()` helper and must not be exposed through the public API.
  */
-export interface InternalBuildContext<T extends Collections = Collections> extends BuildContext<T> {
+interface InternalBuildContext<T extends Collections = Collections> extends BuildContext<T> {
   readonly assetCache: AssetProcessingCache
 }
 
@@ -60,25 +60,15 @@ export const context = (): BuildContext => {
 }
 
 /**
- * Internal helper: returns the full `InternalBuildContext` (including the
- * engine-scoped asset processing cache) for callers inside the velite codebase.
- *
- * Not exported from the public entry point.
- *
- * @throws when called outside of a schema parse.
- */
-export const getInternalBuildContext = (): InternalBuildContext => {
-  const ctx = als.getStore()
-  if (ctx == null) throw new Error(MISSING)
-  return ctx
-}
-
-/**
  * Internal helper: returns the engine-scoped asset processing cache.
  *
  * @throws when called outside of a schema parse.
  */
-export const getInternalAssetCache = (): AssetProcessingCache => getInternalBuildContext().assetCache
+export const getInternalAssetCache = (): AssetProcessingCache => {
+  const ctx = als.getStore()
+  if (ctx == null) throw new Error(MISSING)
+  return ctx.assetCache
+}
 
 export const runWithContext = <T extends Collections, R>(input: BuildContextInput<T>, run: () => R): R => {
   const ctx: InternalBuildContext<T> = {

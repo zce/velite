@@ -1,6 +1,8 @@
 import { mkdir, rm } from 'node:fs/promises'
 
 import { assetStoreKey, createAssetStore } from '../assets'
+import { createFileCache } from '../collections/cache'
+import { VeliteFile } from '../collections/file'
 import { createResolver } from '../collections/resolve'
 import { createConfigLoader } from '../config/load'
 import { createOutputState } from '../output/state'
@@ -9,6 +11,7 @@ import { logger as defaultLogger } from '../runtime/logger'
 import { createSession } from '../runtime/session'
 
 import type { BuildResult, Collections } from '../collections'
+import type { FileCache } from '../collections/cache'
 import type { Resolver } from '../collections/resolve'
 import type { ResolvedConfig } from '../config'
 import type { ConfigLoader } from '../config/load'
@@ -67,6 +70,16 @@ export interface EngineOptions {
   logger?: Logger
 }
 
+interface IncrementalState {
+  files: FileCache
+  resolved: Map<string, VeliteFile[]>
+}
+
+const createIncrementalState = (): IncrementalState => ({
+  files: createFileCache((path, loaders) => VeliteFile.create(path, loaders)),
+  resolved: new Map()
+})
+
 export const createEngine = <T extends Collections = Collections>({
   loader = createConfigLoader(),
   resolver = createResolver(),
@@ -79,15 +92,23 @@ export const createEngine = <T extends Collections = Collections>({
   // A fresh build() with `clean: true` clears the cache implicitly because the
   // output directory is removed; otherwise content-based skipping still works.
   const outputState = createOutputState()
+  let incremental = createIncrementalState()
+  const clearIncremental = () => {
+    incremental.files.clear()
+    incremental.resolved.clear()
+  }
 
   const ensureOutputDirs = async (config: ResolvedConfig<T>): Promise<void> => {
     await mkdir(config.output.data, { recursive: true })
     await mkdir(config.output.assets, { recursive: true })
   }
 
-  const runResolve = async (config: ResolvedConfig<T>, options: BuildOptions): Promise<BuildResult<T>> => {
-    const session = createSession(config, options, { output: outputState, logger })
-    const { result } = await resolver.resolve(session)
+  const runResolve = async (config: ResolvedConfig<T>, options: BuildOptions, change?: RebuildChange): Promise<BuildResult<T>> => {
+    if (change != null) {
+      for (const path of change.paths) incremental.files.delete(path)
+    }
+    const session = createSession(config, options, { output: outputState, logger, files: incremental.files, resolved: incremental.resolved })
+    const { result } = await resolver.resolve(session, change)
 
     const hookContext = { config }
     let shouldOutput = true
@@ -133,6 +154,7 @@ export const createEngine = <T extends Collections = Collections>({
         })
         currentConfig = config
         currentOptions = options
+        clearIncremental()
 
         if (config.output.clean) {
           await rm(config.output.data, { recursive: true, force: true })
@@ -160,9 +182,10 @@ export const createEngine = <T extends Collections = Collections>({
       if (currentConfig == null) throw new Error('rebuild() called before build()')
       const begin = performance.now()
       logger.info('rebuilding...')
+      if (change == null) clearIncremental()
       await ensureOutputDirs(currentConfig)
       await writer.writeEntry(outputState, currentConfig.output.data, currentConfig.output.format, currentConfig.configPath, currentConfig.collections)
-      const result = await runResolve(currentConfig, currentOptions)
+      const result = await runResolve(currentConfig, currentOptions, change)
       logger.info('rebuild finished', begin)
       return result
     }

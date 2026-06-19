@@ -4,5 +4,3 @@
 # You can temporarily include the current session directory in your branch for a better DX
 # Remove this before merging, or it will cause noise in master
 # e.g. `!20260427-1200-schema-refactor`
-
-!20260617-0000-core-architecture/

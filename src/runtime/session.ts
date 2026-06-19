@@ -1,3 +1,4 @@
+import { createAssetProcessingCache } from '../assets/cache'
 import { createFileCache } from '../collections/cache'
 import { VeliteFile } from '../collections/file'
 import { createOutputState } from '../output/state'
@@ -5,6 +6,7 @@ import { createLogger, logger as defaultLogger } from './logger'
 import { createBuildStore } from './store'
 
 import type { BuildOptions } from '../app/types'
+import type { AssetProcessingCache } from '../assets/cache'
 import type { Collections } from '../collections'
 import type { FileCache } from '../collections/cache'
 import type { ResolvedConfig } from '../config'
@@ -27,6 +29,7 @@ export interface BuildSession<T extends Collections = Collections> {
   readonly store: BuildStore
   readonly output: OutputState
   readonly logger: Logger
+  readonly assetCache: AssetProcessingCache
 }
 
 const defaultLoadFile = (path: string, loaders: VeliteLoader[]): Promise<VeliteFile> => VeliteFile.create(path, loaders)
@@ -40,6 +43,8 @@ export interface CreateSessionOptions {
   resolved?: Map<string, VeliteFile[]>
   /** Override the session logger. Defaults to the process-level logger. */
   logger?: Logger
+  /** Shared asset processing cache for one engine lifetime. */
+  assetCache?: AssetProcessingCache
 }
 
 /**
@@ -66,7 +71,8 @@ export const createSession = <T extends Collections>(
   resolved: sessionOptions.resolved ?? new Map(),
   store: createBuildStore(),
   output: sessionOptions.output ?? createOutputState(),
-  logger: sessionOptions.logger ?? defaultLogger
+  logger: sessionOptions.logger ?? defaultLogger,
+  assetCache: sessionOptions.assetCache ?? createAssetProcessingCache()
 })
 
 // Re-export so engine code can construct a per-session logger when desired.

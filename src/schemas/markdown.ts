@@ -8,7 +8,7 @@ import { visit } from 'unist-util-visit'
 import { custom } from 'zod'
 
 import { assetStoreKey, createAssetStore, rehypeCopyLinkedFiles } from '../assets'
-import { context } from '../runtime/context'
+import { context, getInternalAssetCache } from '../runtime/context'
 
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
@@ -73,6 +73,7 @@ export const markdown = (options: MarkdownOptions = {}) =>
     .transform<string>(async (value, ctx) => {
       const { file, config, store } = context()
       const assets = store.getOrCreate(assetStoreKey, createAssetStore)
+      const assetCache = getInternalAssetCache()
       value = value ?? file.content
       if (value == null || value.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
@@ -90,7 +91,7 @@ export const markdown = (options: MarkdownOptions = {}) =>
 
       if (enableGfm) remarkPlugins.push(remarkGfm) // gfm: autolinks, footnotes, strikethrough, tables, tasklists
       if (removeComments) remarkPlugins.push(remarkRemoveComments) // strip html comments
-      if (copyLinkedFiles) rehypePlugins.push([rehypeCopyLinkedFiles, { ...output, assets }]) // copy linked files
+      if (copyLinkedFiles) rehypePlugins.push([rehypeCopyLinkedFiles, { ...output, assets, assetCache }]) // copy linked files
       if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins)
       if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
       if (markdown?.remarkPlugins != null) remarkPlugins.push(...markdown.remarkPlugins)

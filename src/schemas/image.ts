@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { string } from 'zod'
 
 import { assetStoreKey, createAssetStore, getImageMetadata, processAsset } from '../assets'
-import { context } from '../runtime/context'
+import { context, getInternalAssetCache } from '../runtime/context'
 
 import type { BlurOptions, VeliteImage } from '../assets'
 
@@ -35,9 +35,10 @@ export const image = ({ absoluteRoot, blur }: ImageOptions = {}) =>
 
       const { file, config, store } = context()
       const assets = store.getOrCreate(assetStoreKey, createAssetStore)
+      const cache = getInternalAssetCache()
 
       // process asset as relative path
-      return await processAsset(value, file.path, config.output.name, config.output.base, assets, true, blur)
+      return await processAsset(value, file.path, config.output.name, config.output.base, assets, true, blur, cache)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       ctx.addIssue({ fatal: true, code: 'custom', message })

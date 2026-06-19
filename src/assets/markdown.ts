@@ -6,9 +6,14 @@ import type { Element, Root as Hast } from 'hast'
 import type { Root as Mdast, Node } from 'mdast'
 import type { VFile } from 'vfile'
 import type { VeliteOutput } from '../output'
+import type { AssetProcessingCache } from './cache'
 import type { AssetStore } from './store'
 
-export type CopyLinkedFilesOptions = Omit<VeliteOutput, 'data' | 'clean'> & { assets: AssetStore }
+export type CopyLinkedFilesOptions = Omit<VeliteOutput, 'data' | 'clean'> & {
+  assets: AssetStore
+  /** Optional engine-scoped cache passed to `processAsset` to dedupe work across owners. */
+  assetCache?: AssetProcessingCache
+}
 
 const LINKED_PROPERTY_NAMES = ['href', 'src', 'poster']
 
@@ -27,7 +32,7 @@ export const rehypeCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async 
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, elements]) => {
-      const publicUrl = await processAsset(url, file.path, options.name, options.base, options.assets)
+      const publicUrl = await processAsset(url, file.path, options.name, options.base, options.assets, undefined, undefined, options.assetCache)
       if (publicUrl == null || publicUrl === url) return
       elements.forEach(node => {
         LINKED_PROPERTY_NAMES.forEach(name => {
@@ -62,7 +67,7 @@ export const remarkCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async 
   })
   await Promise.all(
     Array.from(links.entries()).map(async ([url, nodes]) => {
-      const publicUrl = await processAsset(url, file.path, options.name, options.base, options.assets)
+      const publicUrl = await processAsset(url, file.path, options.name, options.base, options.assets, undefined, undefined, options.assetCache)
       if (publicUrl == null || publicUrl === url) return
       nodes.forEach((node: any) => {
         if (node.url === url) {

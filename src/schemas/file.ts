@@ -1,7 +1,7 @@
 import { string } from 'zod'
 
 import { assetStoreKey, createAssetStore, isRelativePath, processAsset } from '../assets'
-import { context } from '../runtime/context'
+import { context, getInternalAssetCache } from '../runtime/context'
 
 export interface FileOptions {
   /**
@@ -21,7 +21,8 @@ export const file = ({ allowNonRelativePath = true }: FileOptions = {}) =>
       if (allowNonRelativePath && !isRelativePath(value)) return value
       const { file, config, store } = context()
       const assets = store.getOrCreate(assetStoreKey, createAssetStore)
-      return await processAsset(value, file.path, config.output.name, config.output.base, assets)
+      const cache = getInternalAssetCache()
+      return await processAsset(value, file.path, config.output.name, config.output.base, assets, undefined, undefined, cache)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       ctx.addIssue({ fatal: true, code: 'custom', message, continue: false })

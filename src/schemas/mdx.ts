@@ -3,7 +3,7 @@ import { visit } from 'unist-util-visit'
 import { custom } from 'zod'
 
 import { assetStoreKey, createAssetStore, remarkCopyLinkedFiles } from '../assets'
-import { context } from '../runtime/context'
+import { context, getInternalAssetCache } from '../runtime/context'
 
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root } from 'mdast'
@@ -56,6 +56,7 @@ export const mdx = (options: MdxOptions = {}) =>
     .transform<string>(async (value, ctx) => {
       const { file, config, store } = context()
       const assets = store.getOrCreate(assetStoreKey, createAssetStore)
+      const assetCache = getInternalAssetCache()
       value = value ?? file.content
       if (value == null || value.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
@@ -75,7 +76,7 @@ export const mdx = (options: MdxOptions = {}) =>
 
       if (enableGfm) remarkPlugins.push(remarkGfm)
       if (removeComments) remarkPlugins.push(remarkRemoveComments)
-      if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, { ...output, assets }])
+      if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, { ...output, assets, assetCache }])
       if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins)
       if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
       if (mdx?.remarkPlugins != null) remarkPlugins.push(...mdx.remarkPlugins)

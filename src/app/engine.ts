@@ -1,6 +1,7 @@
 import { mkdir, rm } from 'node:fs/promises'
 
 import { assetStoreKey, createAssetStore } from '../assets'
+import { createAssetProcessingCache } from '../assets/cache'
 import { createFileCache } from '../collections/cache'
 import { VeliteFile } from '../collections/file'
 import { createResolver } from '../collections/resolve'
@@ -10,6 +11,7 @@ import { createWriter } from '../output/write'
 import { logger as defaultLogger } from '../runtime/logger'
 import { createSession } from '../runtime/session'
 
+import type { AssetProcessingCache } from '../assets/cache'
 import type { BuildResult, Collections } from '../collections'
 import type { FileCache } from '../collections/cache'
 import type { Resolver } from '../collections/resolve'
@@ -73,11 +75,13 @@ export interface EngineOptions {
 interface IncrementalState {
   files: FileCache
   resolved: Map<string, VeliteFile[]>
+  assets: AssetProcessingCache
 }
 
 const createIncrementalState = (): IncrementalState => ({
   files: createFileCache((path, loaders) => VeliteFile.create(path, loaders)),
-  resolved: new Map()
+  resolved: new Map(),
+  assets: createAssetProcessingCache()
 })
 
 export const createEngine = <T extends Collections = Collections>({
@@ -96,6 +100,7 @@ export const createEngine = <T extends Collections = Collections>({
   const clearIncremental = () => {
     incremental.files.clear()
     incremental.resolved.clear()
+    incremental.assets.clear()
   }
 
   const ensureOutputDirs = async (config: ResolvedConfig<T>): Promise<void> => {
@@ -107,7 +112,13 @@ export const createEngine = <T extends Collections = Collections>({
     if (change != null) {
       for (const path of change.paths) incremental.files.delete(path)
     }
-    const session = createSession(config, options, { output: outputState, logger, files: incremental.files, resolved: incremental.resolved })
+    const session = createSession(config, options, {
+      output: outputState,
+      logger,
+      files: incremental.files,
+      resolved: incremental.resolved,
+      assetCache: incremental.assets
+    })
     const { result } = await resolver.resolve(session, change)
 
     const hookContext = { config }

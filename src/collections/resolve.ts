@@ -38,7 +38,9 @@ const loadFile = async <T extends Collections>(session: BuildSession<T>, path: s
     list.map(async (data, index) => {
       const pathPrefix = isArr ? [index] : []
 
-      const parseResult = await runWithContext({ config: session.config, file, store: session.store }, () => schema.safeParseAsync(data))
+      const parseResult = await runWithContext({ config: session.config, file, store: session.store, assetCache: session.assetCache }, () =>
+        schema.safeParseAsync(data)
+      )
 
       if (parseResult.success) return parseResult.data
 

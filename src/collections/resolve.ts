@@ -86,7 +86,7 @@ export const createResolver = ({ discoverer = createDiscoverer() }: ResolverOpti
 
     logger.log(`resolving collections from '${root}'`)
 
-    const changedPaths = change ? normalizePathSet(change.paths) : undefined
+    const changedPaths = change != null && change.paths.length > 0 ? normalizePathSet(change.paths) : undefined
 
     const entries = await Promise.all(
       Object.entries(collections).map(async ([name, { pattern, schema }]): Promise<[string, VeliteFile[]]> => {

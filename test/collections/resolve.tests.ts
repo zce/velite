@@ -279,6 +279,44 @@ describe('Resolver', () => {
     }
   })
 
+  it('treats an empty change.paths array as a full resolve', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'velite-resolver-empty-change-'))
+    try {
+      await mkdir(join(root, 'content'))
+      const itemPath = join(root, 'content', 'item.json')
+      await writeFile(itemPath, JSON.stringify({ title: 'Initial' }))
+
+      let returnedPaths = [itemPath]
+      let discoverCalls = 0
+      const fakeDiscoverer: Discoverer = {
+        async discover() {
+          discoverCalls++
+          return returnedPaths
+        }
+      }
+      const config = buildConfig(root, {
+        items: { name: 'Item', pattern: 'content/*.json', schema: s.object({ title: s.string() }) }
+      })
+      const session = createSession(config, {}, { logger: silentLogger })
+      const resolver = createResolver({ discoverer: fakeDiscoverer })
+
+      await resolver.resolve(session)
+      strictEqual(discoverCalls, 1)
+
+      await writeFile(itemPath, JSON.stringify({ title: 'Changed' }))
+      session.files.delete(itemPath)
+      const { result } = await resolver.resolve(session, { event: 'change', paths: [] })
+
+      strictEqual(discoverCalls, 2)
+      deepStrictEqual(
+        (result.items as { title: string }[]).map(i => i.title),
+        ['Changed']
+      )
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   it('preserves falsy parsed results', async () => {
     const root = await mkdtemp(join(tmpdir(), 'velite-resolver-falsy-'))
     try {

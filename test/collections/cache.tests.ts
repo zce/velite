@@ -7,9 +7,9 @@ import { describe, it } from 'node:test'
 import { createFileCache } from '../../src/collections/cache'
 import { VeliteFile } from '../../src/collections/file'
 
-import type { Loader } from '../../src/loaders/types'
+import type { VeliteLoader } from '../../src/loaders/types'
 
-const jsonLoader: Loader = {
+const jsonLoader: VeliteLoader = {
   test: /\.json$/,
   load: file => ({ data: JSON.parse(file.toString()) })
 }

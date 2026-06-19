@@ -1,14 +1,14 @@
 export type StoreKey = string | symbol
 
 /**
- * Per-session, typed registry of arbitrary state.
+ * Per-build, typed registry of arbitrary state.
  *
  * Schemas (and other consumers running inside `context()`) use this to
  * read or lazily create state that should live exactly as long as the current
- * `BuildSession`. The store keeps `ParserContext` stable: adding a new
- * stateful schema does not require changing public types.
+ * build execution. The store keeps `BuildContext` stable: adding a new stateful
+ * schema does not require changing public types.
  */
-export interface SessionStore {
+export interface BuildStore {
   /** Return the value for `key` if it has been set. */
   get<T>(key: StoreKey): T | undefined
   /** Set the value for `key`. */
@@ -19,7 +19,7 @@ export interface SessionStore {
   has(key: StoreKey): boolean
 }
 
-export const createSessionStore = (): SessionStore => {
+export const createBuildStore = (): BuildStore => {
   const values = new Map<StoreKey, unknown>()
 
   return {

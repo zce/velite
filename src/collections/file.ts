@@ -7,7 +7,8 @@ import { VFile } from 'vfile'
 
 import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
-import type { Loader } from '../loaders/types'
+import type { VeliteLoader } from '../loaders/types'
+import type { ContentFile } from '../runtime/context'
 
 /**
  * `VeliteFile` is the in-memory representation of a content file once it has
@@ -17,7 +18,7 @@ import type { Loader } from '../loaders/types'
  * the session-scoped `FileCache` (see `src/runtime/session.ts`). Use
  * `VeliteFile.create()` to read a file and run its loader.
  */
-export class VeliteFile extends VFile {
+export class VeliteFile extends VFile implements ContentFile {
   private _mdast: Root | undefined
   private _hast: Nodes | undefined
   private _plain: string | undefined
@@ -60,7 +61,7 @@ export class VeliteFile extends VFile {
    * Read `path` and run the matching loader. Throws via `vfile.fail()` when no
    * loader matches or the loader returns no data.
    */
-  static async create(path: string, loaders: Loader[]): Promise<VeliteFile> {
+  static async create(path: string, loaders: VeliteLoader[]): Promise<VeliteFile> {
     const loader = loaders.find(l => l.test.test(path))
     const file = new VeliteFile({ path })
     if (loader == null) return file.fail(`no loader found for '${path}'`)

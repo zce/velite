@@ -1,4 +1,4 @@
-import type { Schema } from '../schemas'
+import type { VeliteSchema } from '../schemas'
 
 /**
  * Collection options
@@ -33,7 +33,7 @@ export interface Collection {
    *   content: s.string() // from markdown body
    * })
    */
-  schema: Schema
+  schema: VeliteSchema
 }
 
 /**
@@ -53,7 +53,7 @@ export type CollectionType<T extends Collections, P extends keyof T> = T[P]['sin
 /**
  * All collections result
  */
-export type Result<T extends Collections> = { [P in keyof T]: CollectionType<T, P> }
+export type BuildResult<T extends Collections> = { [P in keyof T]: CollectionType<T, P> }
 
 /**
  * Define a collection (identity function for type inference)

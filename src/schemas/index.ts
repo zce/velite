@@ -29,10 +29,10 @@ export const s = {
   unique
 } as const
 
-export type Schema = z.ZodType
+export type VeliteSchema = z.ZodType
 export type infer<T extends z.ZodType> = z.infer<T>
 
 /**
  * Define a schema (identity function for type inference)
  */
-export const defineSchema = <T extends () => Schema>(fn: T): T => fn
+export const defineSchema = <T extends () => VeliteSchema>(fn: T): T => fn

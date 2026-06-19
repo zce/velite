@@ -1,7 +1,7 @@
 /**
  * Output options
  */
-export interface Output {
+export interface VeliteOutput {
   /**
    * The output directory of the data files (relative to config file).
    * @default '.velite'

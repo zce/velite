@@ -1,5 +1,5 @@
 /** Image object with metadata & blur image. */
-export interface Image {
+export interface VeliteImage {
   /** public url of the image */
   src: string
   /** image width */
@@ -34,7 +34,7 @@ export interface BlurOptions {
 }
 
 /** Read image metadata and generate a blur placeholder. */
-export const getImageMetadata = async (buffer: Buffer, blurOptions: BlurOptions = {}): Promise<Omit<Image, 'src'> | undefined> => {
+export const getImageMetadata = async (buffer: Buffer, blurOptions: BlurOptions = {}): Promise<Omit<VeliteImage, 'src'> | undefined> => {
   const { default: sharp } = await import('sharp')
   const img = sharp(buffer)
   const { width, height } = await img.metadata()

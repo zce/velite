@@ -38,7 +38,7 @@ const post = s.object({
 
 ### Replace `ctx.meta` With `context()`
 
-The parser no longer passes Velite file metadata through Zod's transform context. Use `context()` to access the current file and resolved config.
+The parser no longer passes Velite file metadata through Zod's transform context. Use `context()` to access the current file, resolved config, and build-scoped store.
 
 Before:
 
@@ -71,8 +71,9 @@ The `context()` function returns:
 
 ```ts
 {
-  config: Config
-  file: VeliteFile
+  config: ResolvedConfig
+  file: ContentFile
+  store: BuildStore
 }
 ```
 
@@ -191,7 +192,7 @@ export default defineConfig({
 The public entry exports Zod-related type helpers for schema typing:
 
 ```ts
-import type { infer, Schema } from 'velite'
+import type { infer, VeliteSchema } from 'velite'
 ```
 
 Use `context()` for Velite parser metadata instead of relying on `ZodMeta`.

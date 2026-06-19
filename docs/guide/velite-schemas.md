@@ -113,9 +113,9 @@ allow non-relative path, if true, the value will be returned directly, if false,
 
 ## `s.image(options)`
 
-`string => Image`
+`string => VeliteImage`
 
-Image path relative to the current file, like `s.file()`. Relative images are copied to `config.output.assets` and returned as [Image](#types) objects.
+Image path relative to the current file, like `s.file()`. Relative images are copied to `config.output.assets` and returned as [VeliteImage](#types) objects.
 
 ```ts
 avatar: s.image()
@@ -167,7 +167,7 @@ avatar: s.image({ blur: { width: 16, quality: 30 } })
 /**
  * Image object with metadata & blur image
  */
-interface Image {
+interface VeliteImage {
   /**
    * public url of the image
    */

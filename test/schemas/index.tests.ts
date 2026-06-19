@@ -5,7 +5,7 @@ import { test } from 'node:test'
 import { context, s } from '../../src'
 import { runWithContext } from '../../src/runtime/context'
 
-import type { Schema } from '../../src'
+import type { VeliteSchema } from '../../src'
 
 test('exports s as the public schema namespace', async () => {
   const mod = await import('../../src')
@@ -21,16 +21,18 @@ test('exports a programmatic watch API', async () => {
   equal(typeof mod.watch, 'function')
 })
 
-test('public entry keeps compatibility asset and logger helpers', async () => {
+test('public entry exposes only stable advanced helpers', async () => {
   const mod = await import('../../src')
 
-  equal(typeof mod.createLogger, 'function')
-  equal(typeof mod.logger, 'object')
   equal(typeof mod.getImageMetadata, 'function')
-  equal(typeof mod.isRelativePath, 'function')
-  equal(typeof mod.processAsset, 'function')
-  equal(typeof mod.rehypeCopyLinkedFiles, 'function')
-  equal(typeof mod.remarkCopyLinkedFiles, 'function')
+  equal('createAssetStore' in mod, false)
+  equal('createLogger' in mod, false)
+  equal('isRelativePath' in mod, false)
+  equal('logger' in mod, false)
+  equal('processAsset' in mod, false)
+  equal('rehypeCopyLinkedFiles' in mod, false)
+  equal('remarkCopyLinkedFiles' in mod, false)
+  equal('VeliteFile' in mod, false)
 })
 
 test('public domain modules own their models', async () => {
@@ -46,8 +48,8 @@ test('public domain modules own their models', async () => {
   equal(modelsDirExists, false)
 })
 
-test('Schema accepts an output type parameter', () => {
-  const schema: Schema<string> = s.string()
+test('VeliteSchema accepts an output type parameter', () => {
+  const schema: VeliteSchema<string> = s.string()
   equal(schema.parse('hello'), 'hello')
 })
 
@@ -91,33 +93,28 @@ test('public parser context exposes stable custom schema fields', async () => {
   if (result.success) equal(result.data.join(','), 'config,file,store')
 })
 
-test('public context store supports custom schema state', async () => {
-  const key = Symbol('test.schema.count')
-  const schema = s.string().transform(() => {
-    const state = context().store.getOrCreate(key, () => ({ value: 0 }))
-    state.value += 1
-    return state.value
+test('public parser context shares store state within a build session', async () => {
+  const key = Symbol('test.store')
+  const first = s.string().transform(() => {
+    const state = context().store.getOrCreate(key, () => ({ count: 0 }))
+    state.count += 1
+    return state.count
+  })
+  const second = s.string().transform(() => {
+    const state = context().store.getOrCreate(key, () => ({ count: 0 }))
+    state.count += 1
+    return state.count
   })
 
-  const first = await runWithContext(
+  const result = await runWithContext(
     {
       config: { root: '/site/content' } as any,
       file: { path: '/site/content/pages/about.mdx' } as any
     },
-    () => schema.safeParseAsync('value')
-  )
-  const second = await runWithContext(
-    {
-      config: { root: '/site/content' } as any,
-      file: { path: '/site/content/pages/about.mdx' } as any
-    },
-    () => schema.safeParseAsync('value')
+    async () => [await first.parseAsync('one'), await second.parseAsync('two')]
   )
 
-  equal(first.success, true)
-  if (first.success) equal(first.data, 1)
-  equal(second.success, true)
-  if (second.success) equal(second.data, 1)
+  equal(result.join(','), '1,2')
 })
 
 test('parser context helpers are not public entry exports', async () => {

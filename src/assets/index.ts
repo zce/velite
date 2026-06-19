@@ -1,5 +1,5 @@
 export type { AssetRecord, AssetStore } from './store'
-export type { BlurOptions, Image } from './image'
+export type { BlurOptions, VeliteImage } from './image'
 export type { CopyLinkedFilesOptions } from './markdown'
 
 export { assetStoreKey, createAssetStore } from './store'

@@ -5,7 +5,7 @@ import { runWithContext } from '../runtime/context'
 import { createDiscoverer } from './discover'
 
 import type { BuildSession } from '../runtime/session'
-import type { Schema } from '../schemas'
+import type { VeliteSchema } from '../schemas'
 import type { Discoverer } from './discover'
 import type { VeliteFile } from './file'
 
@@ -24,7 +24,7 @@ export interface ResolverOptions {
   discoverer?: Discoverer
 }
 
-const loadFile = async (session: BuildSession, path: string, schema: Schema): Promise<VeliteFile> => {
+const loadFile = async (session: BuildSession, path: string, schema: VeliteSchema): Promise<VeliteFile> => {
   const normalized = normalize(path)
   const file = await session.files.load(normalized, session.config.loaders)
 
@@ -58,7 +58,7 @@ const loadFile = async (session: BuildSession, path: string, schema: Schema): Pr
  * The resolver:
  *   - asks the discoverer for matching files in each collection,
  *   - loads each file through the session's `FileCache`,
- *   - parses records with `ParserContext`,
+ *   - parses records with `BuildContext`,
  *   - reports vfile diagnostics through `vfile-reporter`,
  *   - assembles the per-collection result respecting `single` mode.
  *

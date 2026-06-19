@@ -64,13 +64,13 @@ const posts = defineCollection({
 ```ts
 import { getImageMetadata, s } from 'velite'
 
-import type { Image } from 'velite'
+import type { VeliteImage } from 'velite'
 
 /**
  * Remote Image with metadata schema
  */
 export const remoteImage = () =>
-  s.string().transform<Image>(async (value, ctx) => {
+  s.string().transform<VeliteImage>(async (value, ctx) => {
     try {
       const response = await fetch(value)
       const blob = await response.blob()
@@ -188,7 +188,7 @@ module.exports = {
 
 class VeliteWebpackPlugin {
   static started = false
-  constructor(/** @type {import('velite').Options} */ options = {}) {
+  constructor(/** @type {import('velite').BuildOptions} */ options = {}) {
     this.options = options
   }
   apply(/** @type {import('webpack').Compiler} */ compiler) {
@@ -221,7 +221,7 @@ export default {
 
 class VeliteWebpackPlugin {
   static started = false
-  constructor(/** @type {import('velite').Options} */ options = {}) {
+  constructor(/** @type {import('velite').BuildOptions} */ options = {}) {
     this.options = options
   }
   apply(/** @type {import('webpack').Compiler} */ compiler) {
@@ -252,8 +252,6 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 import { context, s } from 'velite'
 
-import { extractHastLinkedFiles } from '../assets'
-
 export interface ExcerptOptions {
   /**
    * Excerpt separator.
@@ -271,7 +269,7 @@ export interface ExcerptOptions {
 
 export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
   s.custom<string>().transform(async (value, ctx) => {
-    const { file, config } = context()
+    const { file } = context()
     if (value == null && file.content != null) {
       value = file.content
     }
@@ -280,7 +278,6 @@ export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {
       const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
       const exHast = hastExcerpt(hast, { comment: separator, maxSearchSize: 1024 })
       const output = exHast ?? truncate(hast, { size: length, ellipsis: '…' })
-      await rehypeCopyLinkedFiles(config.output)(output, { path: file.path })
       return toHtml(output)
     } catch (err: any) {
       ctx.addIssue({ fatal: true, code: 'custom', message: err.message })

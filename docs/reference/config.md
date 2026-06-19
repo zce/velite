@@ -35,7 +35,7 @@ export default defineConfig({
 })
 ```
 
-In addition, Velite also provides a `UserConfig` type to describe the config file type.
+In addition, Velite also provides a `UserConfig` type to describe the config file type. Runtime hooks and schema contexts receive `ResolvedConfig`, which is the fully resolved build config.
 
 ```js
 /** @type {import('velite').UserConfig} */
@@ -182,7 +182,7 @@ const site = defineCollection({
 
 ### `collections[name].schema`
 
-- Type: `Schema`, See [Schema](../guide/velite-schemas.md) for more information.
+- Type: `VeliteSchema`, See [Schema](../guide/velite-schemas.md) for more information.
 
 The schema of the collection.
 
@@ -199,7 +199,7 @@ const posts = defineCollection({
 
 ## `loaders`
 
-- Type: `Loader[]`, See [Loader](types.md#loader)
+- Type: `VeliteLoader[]`, See [VeliteLoader](types.md#veliteloader)
 - Default: `[]`, built-in loaders: `'json'`, `'yaml'`, `'matter'`
 
 The file loaders. You can use it to load files that are not supported by Velite. For more information, see [Custom Loaders](../guide/custom-loader.md).
@@ -276,7 +276,7 @@ More options, see [MDX Compile Options](https://mdxjs.com/packages/mdx/#compileo
 
 ## `prepare`
 
-- Type: `(data: Result<Collections>, context: HookContext) => Promisable<void | false>`
+- Type: `(data: BuildResult<Collections>, context: HookContext) => Promisable<void | false>`
 
 Data prepare hook, executed before write to file. You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files. return false to prevent the default output to a file if you wanted.
 
@@ -299,6 +299,6 @@ export default defineConfig({
 
 ## `complete`
 
-- Type: `(data: Result<Collections>, context: HookContext) => Promisable<void>`
+- Type: `(data: BuildResult<Collections>, context: HookContext) => Promisable<void>`
 
 Build success hook, executed after the build is complete. You can do anything after the build is complete, such as print some tips or deploy the output files.

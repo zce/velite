@@ -1,12 +1,12 @@
 # Types
 
-## Image
+## VeliteImage
 
 ```ts
 /**
  * Image object with metadata & blur image
  */
-interface Image {
+interface VeliteImage {
   /**
    * public url of the image
    */
@@ -34,13 +34,13 @@ interface Image {
 }
 ```
 
-## Loader
+## VeliteLoader
 
 ```ts
 /**
  * File loader
  */
-interface Loader {
+interface VeliteLoader {
   /**
    * File test regexp
    * @example
@@ -55,78 +55,85 @@ interface Loader {
 }
 ```
 
-## VeliteFile
+## ContentFile
 
 ```ts
-class VeliteFile extends VFile {
+interface ContentFile {
   /**
-   * Get parsed records from file
+   * Absolute source file path.
    */
-  get records(): unknown
+  readonly path: string
 
   /**
-   * Get content of file
+   * Content body without frontmatter, when available.
    */
-  get content(): string | undefined
+  readonly content?: string
 
   /**
-   * Get mdast object from cache
+   * Parsed Markdown AST, when content is available.
    */
-  get mdast(): Root | undefined
+  readonly mdast?: Root
 
   /**
-   * Get hast object from cache
+   * Parsed HTML AST, when content is available.
    */
-  get hast(): Nodes | undefined
+  readonly hast?: Nodes
 
   /**
-   * Get plain text of content from cache
+   * Plain text extracted from content, when available.
    */
-  get plain(): string | undefined
-
-  /**
-   * Get loaded file object from cache
-   * @param path file path
-   * @returns loaded file object if exists
-   */
-  static get(path: string): VeliteFile | undefined
-
-  /**
-   * Create file object from file path
-   * @param path file path
-   * @param loaders file loaders
-   * @returns loaded file object
-   */
-  static async create(path: string, loaders: Loader[]): Promise<VeliteFile>
+  readonly plain?: string
 }
 ```
 
-## ParserContext
+## BuildContext
 
 ```ts
-interface ParserContext {
+interface BuildContext {
   /**
    * Resolved config being used.
    */
-  readonly config: Config
+  readonly config: ResolvedConfig
 
   /**
    * Current file being parsed.
    */
-  readonly file: VeliteFile
+  readonly file: ContentFile
+
+  /**
+   * Build-scoped shared state for advanced custom schemas and plugins.
+   */
+  readonly store: BuildStore
 }
 ```
 
-Use [`context()`](./api.md#context) inside custom schema callbacks to access `ParserContext`.
+Use [`context()`](./api.md#context) inside custom schema callbacks to access `BuildContext`.
 
-## Context
+`BuildContext` is the public schema-time view for the current build or watch rebuild. Internally Velite keeps a larger build session with caches, diagnostics, and output state, but that session is not a public extension point.
+
+## BuildStore
 
 ```ts
-type Context = {
+type StoreKey = string | symbol
+
+interface BuildStore {
+  get<T>(key: StoreKey): T | undefined
+  set<T>(key: StoreKey, value: T): void
+  getOrCreate<T>(key: StoreKey, create: () => T): T
+  has(key: StoreKey): boolean
+}
+```
+
+`BuildStore` lives for the current build or watch rebuild. Use `context().store` when a custom schema or plugin needs shared state without module-level globals.
+
+## HookContext
+
+```ts
+type HookContext = {
   /**
    * Resolved config.
    */
-  config: Config
+  config: ResolvedConfig
 }
 ```
 

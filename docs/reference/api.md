@@ -17,14 +17,14 @@ import { build } from 'velite'
 ### Signature
 
 ```ts
-const build: (options?: Options) => Promise<Result>
+const build: (options?: BuildOptions) => Promise<BuildResult>
 ```
 
 ### Parameters
 
 #### `options`
 
-- Type: `Options`, See [Options](#options).
+- Type: `BuildOptions`, See [BuildOptions](#buildoptions).
 
 Options for build.
 
@@ -73,16 +73,16 @@ If true, throws an error and terminates the process if any schema validation fai
 
 ### Returns
 
-- Type: `Promise<Result>`, See [Result](#result).
+- Type: `Promise<BuildResult>`, See [BuildResult](#buildresult).
 
 The build result.
 
 ### Types
 
-#### Options
+#### BuildOptions
 
 ```ts
-interface Options {
+interface BuildOptions {
   /**
    * Specify config file path
    * @default 'velite.config.{js,ts,mjs,mts,cjs,cts}'
@@ -111,7 +111,7 @@ interface Options {
 }
 ```
 
-#### Result
+#### BuildResult
 
 ```ts
 interface Entry {
@@ -121,7 +121,7 @@ interface Entry {
 /**
  * build result, may be one or more entries in a document file
  */
-interface Result {
+interface BuildResult {
   [name: string]: Entry | Entry[]
 }
 ```
@@ -139,14 +139,14 @@ import { watch } from 'velite'
 ### Signature
 
 ```ts
-const watch: (options?: Options) => Promise<Watcher>
+const watch: (options?: BuildOptions) => Promise<Watcher>
 ```
 
 ### Parameters
 
 #### `options`
 
-- Type: `Options`, See [Options](#options).
+- Type: `BuildOptions`, See [BuildOptions](#buildoptions).
 
 Options for the initial build and watcher.
 
@@ -164,7 +164,7 @@ interface Watcher {
 
 ## `context`
 
-Get the current parser context while Velite is parsing a schema.
+Get the current build context while Velite is parsing a schema.
 
 ### Usage
 
@@ -175,11 +175,11 @@ import { context } from 'velite'
 ### Signature
 
 ```ts
-const context: () => ParserContext
+const context: () => BuildContext
 ```
 
 ### Returns
 
-- Type: `ParserContext`, See [ParserContext](./types.md#parsercontext).
+- Type: `BuildContext`, See [BuildContext](./types.md#buildcontext).
 
-The parser context contains the resolved config and current file. Call `context()` inside schema callbacks such as `.transform()`, `.refine()`, or `.superRefine()`.
+The build context contains the resolved config, current file, and build-scoped store. Call `context()` inside schema callbacks such as `.transform()`, `.refine()`, or `.superRefine()`.

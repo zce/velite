@@ -1,4 +1,4 @@
-import type { Loader } from '../loaders/types'
+import type { VeliteLoader } from '../loaders/types'
 import type { VeliteFile } from './file'
 
 /**
@@ -9,12 +9,12 @@ import type { VeliteFile } from './file'
  */
 export interface FileCache {
   get(path: string): VeliteFile | undefined
-  load(path: string, loaders: Loader[]): Promise<VeliteFile>
+  load(path: string, loaders: VeliteLoader[]): Promise<VeliteFile>
   delete(path: string): void
   clear(): void
 }
 
-export const createFileCache = (loadFile: (path: string, loaders: Loader[]) => Promise<VeliteFile>): FileCache => {
+export const createFileCache = (loadFile: (path: string, loaders: VeliteLoader[]) => Promise<VeliteFile>): FileCache => {
   const cache = new Map<string, VeliteFile>()
 
   return {

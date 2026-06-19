@@ -8,30 +8,23 @@ describe('AssetStore', () => {
     const store = createAssetStore()
     const record = store.add({
       sourcePath: '/abs/foo.png',
-      outputName: 'foo-abc123.png',
-      publicUrl: '/static/foo-abc123.png',
-      ownerFile: '/site/posts/a.md'
+      outputName: 'foo-abc123.png'
     })
     strictEqual(record.outputName, 'foo-abc123.png')
-    deepStrictEqual([...record.ownerFiles], ['/site/posts/a.md'])
     strictEqual(store.list().length, 1)
   })
 
-  it('merges owner files for the same outputName + sourcePath', () => {
+  it('deduplicates the same outputName + sourcePath', () => {
     const store = createAssetStore()
     store.add({
       sourcePath: '/abs/foo.png',
-      outputName: 'foo-abc123.png',
-      publicUrl: '/static/foo-abc123.png',
-      ownerFile: '/site/posts/a.md'
+      outputName: 'foo-abc123.png'
     })
     const second = store.add({
       sourcePath: '/abs/foo.png',
-      outputName: 'foo-abc123.png',
-      publicUrl: '/static/foo-abc123.png',
-      ownerFile: '/site/posts/b.md'
+      outputName: 'foo-abc123.png'
     })
-    deepStrictEqual([...second.ownerFiles].sort(), ['/site/posts/a.md', '/site/posts/b.md'])
+    strictEqual(second.sourcePath, '/abs/foo.png')
     strictEqual(store.list().length, 1, 'store should still hold a single record')
   })
 
@@ -40,18 +33,14 @@ describe('AssetStore', () => {
     store.add({
       sourcePath: '/abs/cat.webp',
       outputName: 'cat-deadbe.webp',
-      publicUrl: '/static/cat-deadbe.webp',
-      ownerFile: '/site/a.md',
       fingerprint: 'deadbeef'
     })
     const merged = store.add({
       sourcePath: '/abs/dog.webp',
       outputName: 'cat-deadbe.webp',
-      publicUrl: '/static/cat-deadbe.webp',
-      ownerFile: '/site/b.md',
       fingerprint: 'deadbeef'
     })
-    deepStrictEqual([...merged.ownerFiles].sort(), ['/site/a.md', '/site/b.md'])
+    strictEqual(merged.outputName, 'cat-deadbe.webp')
   })
 
   it('rejects duplicate outputName when fingerprints differ', () => {
@@ -59,8 +48,6 @@ describe('AssetStore', () => {
     store.add({
       sourcePath: '/abs/foo.png',
       outputName: 'shared.png',
-      publicUrl: '/static/shared.png',
-      ownerFile: '/site/a.md',
       fingerprint: 'aaaa'
     })
     throws(
@@ -68,43 +55,16 @@ describe('AssetStore', () => {
         store.add({
           sourcePath: '/abs/bar.png',
           outputName: 'shared.png',
-          publicUrl: '/static/shared.png',
-          ownerFile: '/site/b.md',
           fingerprint: 'bbbb'
         }),
       /Asset name collision for 'shared\.png'/
     )
   })
 
-  it('byOwner returns only records owned by the given file', () => {
-    const store = createAssetStore()
-    store.add({
-      sourcePath: '/abs/x.png',
-      outputName: 'x-1.png',
-      publicUrl: '/static/x-1.png',
-      ownerFile: '/site/a.md'
-    })
-    store.add({
-      sourcePath: '/abs/y.png',
-      outputName: 'y-1.png',
-      publicUrl: '/static/y-1.png',
-      ownerFile: '/site/b.md'
-    })
-    store.add({
-      sourcePath: '/abs/x.png',
-      outputName: 'x-1.png',
-      publicUrl: '/static/x-1.png',
-      ownerFile: '/site/b.md'
-    })
-    strictEqual(store.byOwner('/site/a.md').length, 1)
-    strictEqual(store.byOwner('/site/b.md').length, 2)
-    strictEqual(store.byOwner('/site/c.md').length, 0)
-  })
-
   it('list reflects insertion order', () => {
     const store = createAssetStore()
-    store.add({ sourcePath: '/a', outputName: 'a', publicUrl: '/a', ownerFile: '/o' })
-    store.add({ sourcePath: '/b', outputName: 'b', publicUrl: '/b', ownerFile: '/o' })
+    store.add({ sourcePath: '/a', outputName: 'a' })
+    store.add({ sourcePath: '/b', outputName: 'b' })
     const names = store.list().map(r => r.outputName)
     deepStrictEqual(names, ['a', 'b'])
   })
@@ -113,9 +73,7 @@ describe('AssetStore', () => {
     const store = createAssetStore()
     store.add({
       sourcePath: '/abs/x.png',
-      outputName: 'x.png',
-      publicUrl: '/x.png',
-      ownerFile: '/o1'
+      outputName: 'x.png'
       // no fingerprint provided
     })
     // Same outputName, different sourcePath, with fingerprint. The store records
@@ -123,8 +81,6 @@ describe('AssetStore', () => {
     store.add({
       sourcePath: '/abs/y.png',
       outputName: 'x.png',
-      publicUrl: '/x.png',
-      ownerFile: '/o2',
       fingerprint: 'cafe'
     })
     throws(
@@ -132,8 +88,6 @@ describe('AssetStore', () => {
         store.add({
           sourcePath: '/abs/z.png',
           outputName: 'x.png',
-          publicUrl: '/x.png',
-          ownerFile: '/o3',
           fingerprint: 'beef'
         }),
       /Asset name collision/

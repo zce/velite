@@ -160,15 +160,11 @@ describe('Writer', () => {
     const assets = createAssetStore()
     assets.add({
       sourcePath: '/abs/a.png',
-      outputName: 'a-1.png',
-      publicUrl: '/static/a-1.png',
-      ownerFile: '/site/x.md'
+      outputName: 'a-1.png'
     })
     assets.add({
       sourcePath: '/abs/b.png',
-      outputName: 'b-1.png',
-      publicUrl: '/static/b-1.png',
-      ownerFile: '/site/x.md'
+      outputName: 'b-1.png'
     })
 
     await writer.writeAssets(state, '/out/static', assets)
@@ -196,9 +192,7 @@ describe('Writer', () => {
     const assets = createAssetStore()
     assets.add({
       sourcePath: '/abs/a.png',
-      outputName: 'a.png',
-      publicUrl: '/static/a.png',
-      ownerFile: '/site/x.md'
+      outputName: 'a.png'
     })
 
     await writer.writeAssets(state, '/out/static', assets)

@@ -53,13 +53,13 @@ export const title = defineSchema(() => s.string().transform(value => value.toUp
 ```ts
 import { getImageMetadata, s } from 'velite'
 
-import type { Image } from 'velite'
+import type { VeliteImage } from 'velite'
 
 /**
  * Remote Image with metadata schema
  */
 export const remoteImage = () =>
-  s.string().transform<Image>(async (value, ctx) => {
+  s.string().transform<VeliteImage>(async (value, ctx) => {
     try {
       const response = await fetch(value)
       const blob = await response.blob()
@@ -78,7 +78,7 @@ export const remoteImage = () =>
 ## Schema Context
 
 > [!TIP]
-> Custom schemas often need to read the current file or resolved config. Use `context()` to access this parser context.
+> Custom schemas often need to read the current file or resolved config. Use `context()` to access the current build context.
 
 ```ts
 import { context, defineSchema, s } from 'velite'
@@ -95,13 +95,28 @@ export const path = defineSchema(() =>
 )
 ```
 
-`context()` must be called while Velite is parsing a schema, such as inside `.transform()`, `.refine()`, or `.superRefine()`. It returns the current parser context:
+`context()` must be called while Velite is parsing a schema, such as inside `.transform()`, `.refine()`, or `.superRefine()`. It returns the current build context:
 
 ```ts
-interface ParserContext {
-  readonly config: Config
-  readonly file: VeliteFile
+interface BuildContext {
+  readonly config: ResolvedConfig
+  readonly file: ContentFile
+  readonly store: BuildStore
 }
+```
+
+`BuildStore` is an advanced API for sharing state within the current build or watch rebuild:
+
+```ts
+const key = Symbol('my-schema.state')
+
+export const counted = defineSchema(() =>
+  s.string().transform(value => {
+    const state = context().store.getOrCreate(key, () => ({ count: 0 }))
+    state.count += 1
+    return value
+  })
+)
 ```
 
 ### Error Handling in Transforms
@@ -130,6 +145,6 @@ export const safeTransform = defineSchema(() =>
 
 ### Reference
 
-- `context()` returns `{ config: Config, file: VeliteFile }`.
+- `context()` returns `{ config: ResolvedConfig, file: ContentFile, store: BuildStore }`.
 - `ctx.addIssue()` accepts `{ fatal?: boolean, code: string, message: string }`.
-- See [`VeliteFile`](../reference/types.md#velitefile) for file metadata structure.
+- See [`ContentFile`](../reference/types.md#contentfile) for file metadata structure.

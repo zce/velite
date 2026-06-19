@@ -3,7 +3,7 @@ import type { LogLevel } from '../runtime/logger'
 /**
  * Build options for `build()` and the internal engine.
  */
-export interface Options {
+export interface BuildOptions {
   /**
    * Specify config file path, relative to cwd.
    * If not specified, will try to find `velite.config.{js,ts,mjs,mts,cjs,cts}`

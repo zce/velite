@@ -4,7 +4,7 @@ import { basename, extname, resolve } from 'node:path'
 
 import { getImageMetadata } from './image'
 
-import type { BlurOptions, Image } from './image'
+import type { BlurOptions, VeliteImage } from './image'
 import type { AssetStore } from './store'
 
 // https://github.com/sindresorhus/is-absolute-url/blob/main/index.js
@@ -25,7 +25,7 @@ export const isRelativePath = (url: string): boolean => {
  * Process a referenced asset of a file.
  *
  * Records the asset on the supplied `AssetStore` (session-scoped) and returns
- * either the public URL (for `s.file()`) or an `Image` object (for `s.image()`).
+ * either the public URL (for `s.file()`) or a `VeliteImage` object (for `s.image()`).
  */
 export const processAsset = async <T extends true | undefined = undefined>(
   input: string,
@@ -35,7 +35,7 @@ export const processAsset = async <T extends true | undefined = undefined>(
   assets: AssetStore,
   isImage?: T,
   blurOptions?: BlurOptions
-): Promise<T extends true ? Image : string> => {
+): Promise<T extends true ? VeliteImage : string> => {
   const queryIdx = input.indexOf('?')
   const hashIdx = input.indexOf('#')
   const index = Math.min(queryIdx >= 0 ? queryIdx : Infinity, hashIdx >= 0 ? hashIdx : Infinity)
@@ -61,11 +61,11 @@ export const processAsset = async <T extends true | undefined = undefined>(
   })
 
   const src = baseUrl + name + suffix
-  assets.add({ sourcePath: path, outputName: name, publicUrl: src, ownerFile: from, fingerprint })
+  assets.add({ sourcePath: path, outputName: name, fingerprint })
 
-  if (isImage !== true) return src as T extends true ? Image : string
+  if (isImage !== true) return src as T extends true ? VeliteImage : string
 
   const metadata = await getImageMetadata(buffer, blurOptions)
   if (metadata == null) throw new Error(`invalid image: ${from}`)
-  return { src, ...metadata } as T extends true ? Image : string
+  return { src, ...metadata } as T extends true ? VeliteImage : string
 }

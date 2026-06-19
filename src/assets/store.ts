@@ -4,10 +4,6 @@ export interface AssetRecord {
   sourcePath: string
   /** Rendered output filename. Used as the dedup key. */
   outputName: string
-  /** Final public URL exposed in parsed content. */
-  publicUrl: string
-  /** Content files that caused this asset to be collected. */
-  ownerFiles: Set<string>
 }
 
 /**
@@ -21,9 +17,8 @@ export interface AssetRecord {
  * filename template.
  */
 export interface AssetStore {
-  add(input: { sourcePath: string; outputName: string; publicUrl: string; ownerFile: string; fingerprint?: string }): AssetRecord
+  add(input: { sourcePath: string; outputName: string; fingerprint?: string }): AssetRecord
   list(): AssetRecord[]
-  byOwner(file: string): AssetRecord[]
 }
 
 interface InternalRecord extends AssetRecord {
@@ -35,7 +30,7 @@ export const createAssetStore = (): AssetStore => {
   const records = new Map<string, InternalRecord>()
 
   return {
-    add({ sourcePath, outputName, publicUrl, ownerFile, fingerprint }) {
+    add({ sourcePath, outputName, fingerprint }) {
       const existing = records.get(outputName)
       if (existing != null) {
         if (existing.sourcePath !== sourcePath) {
@@ -52,14 +47,11 @@ export const createAssetStore = (): AssetStore => {
             existing.fingerprint = fingerprint
           }
         }
-        existing.ownerFiles.add(ownerFile)
         return existing
       }
       const record: InternalRecord = {
         sourcePath,
         outputName,
-        publicUrl,
-        ownerFiles: new Set([ownerFile]),
         fingerprint
       }
       records.set(outputName, record)
@@ -67,13 +59,6 @@ export const createAssetStore = (): AssetStore => {
     },
     list() {
       return Array.from(records.values())
-    },
-    byOwner(file) {
-      const out: AssetRecord[] = []
-      for (const r of records.values()) {
-        if (r.ownerFiles.has(file)) out.push(r)
-      }
-      return out
     }
   }
 }

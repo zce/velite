@@ -2,7 +2,8 @@
 import { parseArgs } from 'node:util'
 
 import { name, version } from '../package.json'
-import { build, logger } from './index'
+import { build } from './index'
+import { logger } from './runtime/logger'
 
 const parse: typeof parseArgs = config => {
   try {

@@ -155,13 +155,13 @@ e.g.
 import { defineCollection, s } from 'velite'
 
 import type { Route } from 'next'
-import type { Schema } from 'velite'
+import type { VeliteSchema } from 'velite'
 
 const options = defineCollection({
   // ...
   schema: s.object({
     // ...
-    link: s.string() as Schema<Route<'/posts/${string}'>>
+    link: s.string() as VeliteSchema<Route<'/posts/${string}'>>
   })
 })
 ```

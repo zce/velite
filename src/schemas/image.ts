@@ -3,9 +3,9 @@ import { join } from 'node:path'
 import { string } from 'zod'
 
 import { assetStoreKey, createAssetStore, getImageMetadata, processAsset } from '../assets'
-import { context } from '../runtime/context'
+import { internalContext } from '../runtime/context'
 
-import type { BlurOptions, Image } from '../assets'
+import type { BlurOptions, VeliteImage } from '../assets'
 
 export interface ImageOptions {
   /**
@@ -24,7 +24,7 @@ export interface ImageOptions {
  * Image schema.
  */
 export const image = ({ absoluteRoot, blur }: ImageOptions = {}) =>
-  string().transform<Image>(async (value, ctx) => {
+  string().transform<VeliteImage>(async (value, ctx) => {
     try {
       if (absoluteRoot && /^\//.test(value)) {
         const buffer = await readFile(join(absoluteRoot, value))
@@ -33,7 +33,7 @@ export const image = ({ absoluteRoot, blur }: ImageOptions = {}) =>
         return { src: value, ...metadata }
       }
 
-      const { file, config, store } = context()
+      const { file, config, store } = internalContext()
       const assets = store.getOrCreate(assetStoreKey, createAssetStore)
 
       // process asset as relative path

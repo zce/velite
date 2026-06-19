@@ -1,6 +1,6 @@
-import type { Collections, Result } from '../collections'
-import type { Loader } from '../loaders/types'
-import type { Output } from '../output'
+import type { BuildResult, Collections } from '../collections'
+import type { VeliteLoader } from '../loaders/types'
+import type { VeliteOutput } from '../output'
 import type { MarkdownOptions } from '../schemas/markdown'
 import type { MdxOptions } from '../schemas/mdx'
 
@@ -13,7 +13,7 @@ export type HookContext = {
   /**
    * Resolved config
    */
-  config: Config
+  config: ResolvedConfig
 }
 
 /**
@@ -45,7 +45,7 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
   /**
    * Output configuration
    */
-  output?: Partial<Output>
+  output?: Partial<VeliteOutput>
   /**
    * All collections
    */
@@ -54,7 +54,7 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
    * Custom file loaders, will be merged with built-in loaders (matter, yaml, json)
    * @default []
    */
-  loaders?: Loader[]
+  loaders?: VeliteLoader[]
   /**
    * Global Markdown options
    */
@@ -70,20 +70,20 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
    * return false to prevent the default output to a file if you wanted
    * @param data loaded data
    */
-  prepare?: (data: Result<T>, context: HookContext) => Promisable<void | false>
+  prepare?: (data: BuildResult<T>, context: HookContext) => Promisable<void | false>
   /**
    * Build success hook
    * @description
    * You can do anything after the build is complete, such as print some tips or deploy the output files.
    * @param data loaded data
    */
-  complete?: (data: Result<T>, context: HookContext) => Promisable<void>
+  complete?: (data: BuildResult<T>, context: HookContext) => Promisable<void>
 }
 
 /**
- * Build Config
+ * Fully resolved build config.
  */
-export interface Config extends Readonly<UserConfig> {
+export interface ResolvedConfig extends Readonly<UserConfig> {
   /**
    * Resolved config file path
    */
@@ -99,11 +99,11 @@ export interface Config extends Readonly<UserConfig> {
   /**
    * Output configuration
    */
-  readonly output: Output
+  readonly output: VeliteOutput
   /**
    * File loaders
    */
-  readonly loaders: Loader[]
+  readonly loaders: VeliteLoader[]
 }
 
 /**

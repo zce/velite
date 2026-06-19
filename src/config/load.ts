@@ -10,7 +10,7 @@ import { loaders as builtinLoaders } from '../loaders'
 import { logger as defaultLogger } from '../runtime/logger'
 
 import type { Logger } from '../runtime/logger'
-import type { Config, UserConfig } from './index'
+import type { ResolvedConfig, UserConfig } from './index'
 
 const CONFIG_NAMES = [
   pkgName + '.config.js',
@@ -49,12 +49,12 @@ export interface LoadOptions {
 
 export interface ConfigLoader {
   /**
-   * Load (or reload) the user config and return a fully resolved `Config`.
+   * Load (or reload) the user config and return a fully resolved `ResolvedConfig`.
    *
    * The same loader instance reuses its temporary bundle directory across
    * watch reloads instead of accumulating bundle files.
    */
-  load(path: string | undefined, options?: LoadOptions): Promise<Config>
+  load(path: string | undefined, options?: LoadOptions): Promise<ResolvedConfig>
 }
 
 export interface ConfigLoaderOptions {

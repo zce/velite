@@ -1,13 +1,13 @@
 import { notStrictEqual, strictEqual } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { createSessionStore } from '../../src/runtime/store'
+import { createBuildStore } from '../../src/runtime/store'
 
-describe('SessionStore', () => {
+describe('BuildStore', () => {
   it('creates a value once per key within one store', () => {
     let created = 0
     const key = Symbol('counter')
-    const store = createSessionStore()
+    const store = createBuildStore()
 
     strictEqual(store.has(key), false)
     strictEqual(store.getOrCreate(key, () => ({ value: ++created })).value, 1)
@@ -18,8 +18,8 @@ describe('SessionStore', () => {
 
   it('does not share values across stores', () => {
     const key = Symbol('object')
-    const a = createSessionStore()
-    const b = createSessionStore()
+    const a = createBuildStore()
+    const b = createBuildStore()
 
     notStrictEqual(
       a.getOrCreate(key, () => ({})),
@@ -28,7 +28,7 @@ describe('SessionStore', () => {
   })
 
   it('supports explicit set and get', () => {
-    const store = createSessionStore()
+    const store = createBuildStore()
     const key = Symbol('value')
 
     strictEqual(store.get(key), undefined)
@@ -43,7 +43,7 @@ describe('SessionStore', () => {
       created++
       return undefined
     }
-    const store = createSessionStore()
+    const store = createBuildStore()
 
     strictEqual(store.getOrCreate(key, create), undefined)
     strictEqual(store.getOrCreate(key, create), undefined)

@@ -5,10 +5,10 @@ import { isRelativePath, processAsset } from './process'
 import type { Element, Root as Hast } from 'hast'
 import type { Root as Mdast, Node } from 'mdast'
 import type { VFile } from 'vfile'
-import type { Output } from '../output'
+import type { VeliteOutput } from '../output'
 import type { AssetStore } from './store'
 
-export type CopyLinkedFilesOptions = Omit<Output, 'data' | 'clean'> & { assets: AssetStore }
+export type CopyLinkedFilesOptions = Omit<VeliteOutput, 'data' | 'clean'> & { assets: AssetStore }
 
 /** rehype plugin to collect linked files and rewrite their urls. */
 export const rehypeCopyLinkedFiles = (options: CopyLinkedFilesOptions) => async (tree: Hast, file: VFile) => {

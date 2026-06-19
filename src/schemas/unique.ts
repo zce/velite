@@ -1,6 +1,6 @@
 import { string } from 'zod'
 
-import { context } from '../runtime/context'
+import { internalContext } from '../runtime/context'
 
 /** Session-scoped store for `s.unique()` value tracking. */
 export interface UniqueStore {
@@ -35,7 +35,7 @@ const uniqueStoreKey = Symbol('velite.unique')
  */
 export const unique = (group: string = 'global') =>
   string().superRefine((value, ctx) => {
-    const { file, store } = context()
+    const { file, store } = internalContext()
     const conflict = store.getOrCreate(uniqueStoreKey, createUniqueStore).register(group, value, file.path)
     if (conflict != null) {
       ctx.addIssue({ fatal: true, code: 'custom', message: `Duplicate '${value}' with '${conflict}'` })

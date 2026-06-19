@@ -5,9 +5,9 @@ import { assetStoreKey, createAssetStore } from '../../src/assets'
 import { createOutputState } from '../../src/output/state'
 import { createSession } from '../../src/runtime/session'
 
-import type { Config } from '../../src/config'
+import type { ResolvedConfig } from '../../src/config'
 
-const stubConfig: Config = {
+const stubConfig: ResolvedConfig = {
   configPath: '/site/velite.config.ts',
   configImports: [],
   root: '/site/content',
@@ -22,7 +22,7 @@ const stubConfig: Config = {
   loaders: [],
   collections: {},
   strict: false
-} as Config
+} as ResolvedConfig
 
 describe('BuildSession', () => {
   it('createSession produces fully-initialized session state', () => {
@@ -39,7 +39,7 @@ describe('BuildSession', () => {
     const a = createSession(stubConfig, {})
     const b = createSession(stubConfig, {})
 
-    a.store.getOrCreate(assetStoreKey, createAssetStore).add({ sourcePath: '/x.png', outputName: 'x.png', publicUrl: '/x.png', ownerFile: '/o' })
+    a.store.getOrCreate(assetStoreKey, createAssetStore).add({ sourcePath: '/x.png', outputName: 'x.png' })
     strictEqual(a.store.getOrCreate(assetStoreKey, createAssetStore).list().length, 1)
     strictEqual(b.store.has(assetStoreKey), false, 'session b must not have created asset state')
     strictEqual(b.store.getOrCreate(assetStoreKey, createAssetStore).list().length, 0, 'session b must not see session a assets')

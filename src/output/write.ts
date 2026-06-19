@@ -6,7 +6,7 @@ import { logger as defaultLogger } from '../runtime/logger'
 import type { AssetStore } from '../assets'
 import type { Collections } from '../collections'
 import type { Logger } from '../runtime/logger'
-import type { Output } from './index'
+import type { VeliteOutput } from './index'
 import type { OutputState } from './state'
 
 const isProduction = process.env.NODE_ENV === 'production'
@@ -46,7 +46,7 @@ const emit = async (
 }
 
 export interface Writer {
-  writeEntry(state: OutputState, dest: string, format: Output['format'], configPath: string, collections: Collections): Promise<void>
+  writeEntry(state: OutputState, dest: string, format: VeliteOutput['format'], configPath: string, collections: Collections): Promise<void>
   writeData(state: OutputState, dest: string, result: Record<string, unknown>): Promise<void>
   writeAssets(state: OutputState, dest: string, assets: AssetStore): Promise<void>
 }

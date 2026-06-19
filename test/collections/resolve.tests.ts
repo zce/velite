@@ -10,8 +10,8 @@ import { createSession } from '../../src/runtime/session'
 import { s } from '../../src/schemas'
 
 import type { Discoverer } from '../../src/collections/discover'
-import type { Config } from '../../src/config'
-import type { Loader } from '../../src/loaders/types'
+import type { ResolvedConfig } from '../../src/config'
+import type { VeliteLoader } from '../../src/loaders/types'
 import type { Logger } from '../../src/runtime/logger'
 
 const silentLogger: Logger = {
@@ -23,12 +23,12 @@ const silentLogger: Logger = {
   set: () => {}
 }
 
-const jsonLoader: Loader = {
+const jsonLoader: VeliteLoader = {
   test: /\.json$/,
   load: file => ({ data: JSON.parse(file.toString()) })
 }
 
-const buildConfig = (root: string, collections: Config['collections'], extra: Partial<Config> = {}): Config =>
+const buildConfig = (root: string, collections: ResolvedConfig['collections'], extra: Partial<ResolvedConfig> = {}): ResolvedConfig =>
   ({
     configPath: join(root, 'velite.config.ts'),
     configImports: [],
@@ -45,7 +45,7 @@ const buildConfig = (root: string, collections: Config['collections'], extra: Pa
     strict: false,
     collections,
     ...extra
-  }) as Config
+  }) as ResolvedConfig
 
 describe('Resolver', () => {
   it('resolves a basic collection from discovered paths', async () => {

@@ -22,7 +22,7 @@ declare module 'vfile' {
 /**
  * File data loader
  */
-export interface Loader {
+export interface VeliteLoader {
   /**
    * File test regexp
    * @example /\.md$/
@@ -38,4 +38,4 @@ export interface Loader {
 /**
  * Define a loader (identity function for type inference)
  */
-export const defineLoader = <T extends Loader>(loader: T): T => loader
+export const defineLoader = <T extends VeliteLoader>(loader: T): T => loader

@@ -9,18 +9,18 @@ import { logger as defaultLogger } from '../runtime/logger'
 import { createSession } from '../runtime/session'
 
 import type { Resolver } from '../collections/resolve'
-import type { Config } from '../config'
+import type { ResolvedConfig } from '../config'
 import type { ConfigLoader } from '../config/load'
 import type { Writer } from '../output/write'
 import type { Logger } from '../runtime/logger'
-import type { Options } from './types'
+import type { BuildOptions } from './types'
 
 export interface Engine {
   /**
    * Run a full build: load config, write entry, resolve content, write data
    * and assets, and call hooks.
    */
-  build(options?: Options): Promise<Record<string, unknown>>
+  build(options?: BuildOptions): Promise<Record<string, unknown>>
   /**
    * Re-run a build using the engine's current resolved config. Does not
    * reload config and does not honor `output.clean`. Output directories are
@@ -29,7 +29,7 @@ export interface Engine {
    */
   rebuild(): Promise<Record<string, unknown>>
   /** Last successfully resolved config, available after `build()` completes. */
-  readonly config: Config | undefined
+  readonly config: ResolvedConfig | undefined
 }
 
 /**
@@ -37,7 +37,7 @@ export interface Engine {
  *
  * The engine owns:
  *   - a single `ConfigLoader` reused across reloads,
- *   - the most recently resolved `Config`,
+ *   - the most recently resolved `ResolvedConfig`,
  *   - a process-lifetime emit cache shared across rebuilds within the same
  *     watch session.
  *
@@ -57,19 +57,19 @@ export const createEngine = ({
   writer = createWriter(),
   logger = defaultLogger
 }: EngineOptions = {}): Engine => {
-  let currentConfig: Config | undefined
-  let currentOptions: Options = {}
+  let currentConfig: ResolvedConfig | undefined
+  let currentOptions: BuildOptions = {}
   // Long-lived emit cache shared across rebuilds within the same engine.
   // A fresh build() with `clean: true` clears the cache implicitly because the
   // output directory is removed; otherwise content-based skipping still works.
   const outputState = createOutputState()
 
-  const ensureOutputDirs = async (config: Config): Promise<void> => {
+  const ensureOutputDirs = async (config: ResolvedConfig): Promise<void> => {
     await mkdir(config.output.data, { recursive: true })
     await mkdir(config.output.assets, { recursive: true })
   }
 
-  const runResolve = async (config: Config, options: Options): Promise<Record<string, unknown>> => {
+  const runResolve = async (config: ResolvedConfig, options: BuildOptions): Promise<Record<string, unknown>> => {
     const session = createSession(config, options, { output: outputState, logger })
     const { result } = await resolver.resolve(session)
 
@@ -105,11 +105,12 @@ export const createEngine = ({
 
     async build(options = {}) {
       const begin = performance.now()
+
+      if (options.logLevel != null) logger.set(options.logLevel)
+
       const timer = setTimeout(() => logger.info('building...'), 1000)
 
       try {
-        if (options.logLevel != null) logger.set(options.logLevel)
-
         const config = await loader.load(options.config, {
           clean: options.clean,
           strict: options.strict

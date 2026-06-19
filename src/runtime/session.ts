@@ -2,15 +2,15 @@ import { createFileCache } from '../collections/cache'
 import { VeliteFile } from '../collections/file'
 import { createOutputState } from '../output/state'
 import { createLogger, logger as defaultLogger } from './logger'
-import { createSessionStore } from './store'
+import { createBuildStore } from './store'
 
-import type { Options } from '../app/types'
+import type { BuildOptions } from '../app/types'
 import type { FileCache } from '../collections/cache'
-import type { Config } from '../config'
-import type { Loader } from '../loaders/types'
+import type { ResolvedConfig } from '../config'
+import type { VeliteLoader } from '../loaders/types'
 import type { OutputState } from '../output/state'
 import type { Logger } from './logger'
-import type { SessionStore } from './store'
+import type { BuildStore } from './store'
 
 /**
  * All build-scoped mutable state owned by a single build.
@@ -19,16 +19,16 @@ import type { SessionStore } from './store'
  * never reused across independent builds.
  */
 export interface BuildSession {
-  readonly config: Config
-  readonly options: Options
+  readonly config: ResolvedConfig
+  readonly options: BuildOptions
   readonly files: FileCache
   readonly resolved: Map<string, VeliteFile[]>
-  readonly store: SessionStore
+  readonly store: BuildStore
   readonly output: OutputState
   readonly logger: Logger
 }
 
-const defaultLoadFile = (path: string, loaders: Loader[]): Promise<VeliteFile> => VeliteFile.create(path, loaders)
+const defaultLoadFile = (path: string, loaders: VeliteLoader[]): Promise<VeliteFile> => VeliteFile.create(path, loaders)
 
 export interface CreateSessionOptions {
   /** Shared output state, e.g. across watch rebuilds. */
@@ -46,12 +46,12 @@ export interface CreateSessionOptions {
  * `logger` may be supplied to redirect log output (e.g. for tests). When
  * omitted, the process-level logger is used.
  */
-export const createSession = (config: Config, options: Options, sessionOptions: CreateSessionOptions = {}): BuildSession => ({
+export const createSession = (config: ResolvedConfig, options: BuildOptions, sessionOptions: CreateSessionOptions = {}): BuildSession => ({
   config,
   options,
   files: createFileCache(defaultLoadFile),
   resolved: new Map(),
-  store: createSessionStore(),
+  store: createBuildStore(),
   output: sessionOptions.output ?? createOutputState(),
   logger: sessionOptions.logger ?? defaultLogger
 })

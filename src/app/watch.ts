@@ -5,14 +5,14 @@ import { matchPatterns } from '../utils/patterns'
 
 import type { Logger } from '../runtime/logger'
 import type { Engine } from './engine'
-import type { Options } from './types'
+import type { BuildOptions } from './types'
 
 export interface Watcher {
   close(): Promise<void>
 }
 
 export interface WatchController {
-  start(engine: Engine, options: Options): Promise<Watcher>
+  start(engine: Engine, options: BuildOptions): Promise<Watcher>
 }
 
 export interface WatcherOptions {
@@ -44,7 +44,7 @@ const loadChokidar = async () => {
  * discarded inside the engine on every (re)build.
  */
 export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): WatchController => {
-  const armWatcher = async (engine: Engine, options: Options): Promise<Watcher> => {
+  const armWatcher = async (engine: Engine, options: BuildOptions): Promise<Watcher> => {
     const config = engine.config
     if (config == null) {
       throw new Error('engine.config missing — call engine.build() before starting the watcher')

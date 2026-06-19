@@ -19,19 +19,19 @@ pnpm add -D @velite/plugin-vite@latest
 
 ## Runtime Requirements
 
-Velite now targets Node.js `>=20.19.0`.
+Velite now targets Node.js `>=22.13.0`.
 
 This aligns the package with current versions of the runtime dependencies used by the build and watch pipeline. Update local development, CI, and deployment environments before upgrading.
 
 ## Zod 4 Schema Semantics
 
-Velite now uses the official `zod` package directly. The `s` helper still includes Velite-specific schemas and all Zod exports, and `z` is also exported from `velite` for code that prefers the Zod namespace.
+Velite now uses the official `zod` package internally. The `s` helper is the public schema namespace and includes Velite-specific schemas plus all Zod schema helpers. Use `s` instead of importing `z` from `velite`.
 
 ```ts
-import { s, z } from 'velite'
+import { s } from 'velite'
 
 const post = s.object({
-  title: z.string(),
+  title: s.string(),
   slug: s.path()
 })
 ```
@@ -128,6 +128,12 @@ s.string().transform(value => {
 
 Only call `ctx.addIssue()` when the current value should fail validation.
 
+## Asset Internals
+
+Velite 1.0 keeps low-level asset collection state internal. Custom schemas should use public schemas such as `s.file()` and `s.image()` for asset references, or return their own URLs directly.
+
+The internal asset store, linked-file remark/rehype plugins, and `processAsset()` are not public extension APIs. Do not import from `velite/dist/*` or source internals such as `src/assets/*`; those paths are implementation details and may change without a compatibility layer.
+
 ## Next.js Integration
 
 Use `@velite/plugin-next` instead of manually starting Velite from `next.config.ts`.
@@ -182,20 +188,19 @@ export default defineConfig({
 
 ## Type Exports
 
-The public entry exports Zod-related helpers for schema typing:
+The public entry exports Zod-related type helpers for schema typing:
 
 ```ts
-import { z } from 'velite'
-
-import type { infer, Schema, ZodType } from 'velite'
+import type { infer, Schema } from 'velite'
 ```
 
 Use `context()` for Velite parser metadata instead of relying on `ZodMeta`.
 
 ## Recommended Upgrade Checklist
 
-- Update Node.js to `>=20.19.0` in local development and CI.
+- Update Node.js to `>=22.13.0` in local development and CI.
 - Upgrade `velite` to `1.0.0-alpha.2`.
+- Replace `import { z } from 'velite'` with `import { s } from 'velite'`.
 - Replace `ctx.meta` access with `context()`.
 - Add `.optional()` to custom schemas that derive missing object fields from the current file.
 - Remove `ctx.addIssue({ fatal: false, ... })` warning patterns.

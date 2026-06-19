@@ -1,9 +1,14 @@
 {
   "name": "@velite/plugin-next",
-  "version": "0.1.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "Next.js plugin for integrating Velite",
   "type": "module",
-  "exports": "./index.js",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
   "types": "./index.d.ts",
   "files": [
     "index.js",
@@ -15,8 +20,13 @@
     "content"
   ],
   "peerDependencies": {
-    "next": "^16.0.0",
+    "next": "^16.0.0"
+  },
+  "dependencies": {
     "velite": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   },
   "publishConfig": {
     "access": "public"

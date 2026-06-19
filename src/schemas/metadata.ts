@@ -1,6 +1,6 @@
 import { custom } from 'zod'
 
-import { context } from '../context'
+import { context } from '../runtime/context'
 
 // Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters
 const cjRanges = [

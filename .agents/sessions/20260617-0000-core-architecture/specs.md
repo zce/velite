@@ -41,22 +41,32 @@ Use approach B as the architecture and approach C as the internal shape:
 
 ```text
 src/
-  build.ts             public build() facade
+  index.ts             public API entry and build() facade
+  cli.ts               CLI entry
+  types.ts             public TypeScript interfaces and selected public type re-exports
+  loaders/             built-in loaders
+  schemas/             custom Zod schemas
   core/
     engine.ts          BuildEngine orchestration
     session.ts         BuildSession and state/cache lifecycle
+    store.ts           typed, session-scoped state registry
+    context.ts         parser context with { config, file, store }
+    file.ts            VeliteFile loading/data object
+    logger.ts          Logger interface and default logger
+    utils.ts           internal utilities
     config.ts          ConfigLoader and temporary config bundle lifecycle
     discover.ts        content file discovery
-    load.ts            VeliteFile loading
-    parse.ts           schema parsing with ParserContext
-    assets.ts          AssetStore and session-owned asset collection
+    assets.ts          asset helpers/plugins, AssetStore, assetStoreKey
+    unique.ts          UniqueStore and uniqueStoreKey
     output.ts          OutputWriter
     watch.ts           WatchController
 ```
 
 ### Public Facade
 
-`src/build.ts` should become a thin public facade. It receives `Options`, creates or delegates to the core engine, and returns the build result. It should not directly own caches, asset state, file discovery, parsing, output writing, or watch orchestration.
+`src/index.ts` owns the public `build()` facade. It receives `Options`, creates or delegates to the core engine, and returns the build result. It should not directly own caches, asset state, file discovery, parsing, output writing, or watch orchestration.
+
+The root `src/` directory should stay slim: public entry (`index.ts`), CLI entry (`cli.ts`), public types (`types.ts`), loaders, schemas, and the flat `core/` implementation directory. Do not introduce nested `core/` subdirectories unless there is a clear need.
 
 ### Core Modules
 
@@ -68,7 +78,7 @@ This avoids accidental public APIs such as internal cache clearing helpers.
 
 When the same `ConfigLoader` is used across watch reloads in a long-running engine, it should replace the previous temporary bundle in place rather than accumulating one bundle per reload.
 
-`core/assets.ts` should contain the session-owned `AssetStore` and asset collection logic. The current `src/assets.ts` mixes public utility helpers, metadata helpers, unified plugins, and global asset state. During migration, keep public helpers such as `isRelativePath()` and `getImageMetadata()` available from the public entry, and move only session-owned asset state/collection into core. Unified plugin factories can stay outside core if they accept an explicit `AssetStore` when constructed.
+`core/assets.ts` should contain asset helpers, plugin factories, the session-owned `AssetStore`, and `assetStoreKey`. Public helpers such as `isRelativePath()` and `getImageMetadata()` may be re-exported from `src/index.ts`, but implementation stays in core.
 
 ## Build Data Flow
 
@@ -123,7 +133,7 @@ Options
 
 ## Parser Context
 
-`ParserContext` should expose only the capabilities schema callbacks need. It should not expose the whole session.
+`ParserContext` should expose only the capabilities schema callbacks need. It should not expose the whole session and should not grow schema-specific fields.
 
 Proposed shape:
 
@@ -131,14 +141,27 @@ Proposed shape:
 type ParserContext = {
   config: Config
   file: VeliteFile
-  assets: AssetStore
-  unique: UniqueStore
+  store: SessionStore
 }
 ```
 
-Schemas such as `s.file()` and `s.image()` should collect assets through `context().assets.add(...)` rather than writing to a module-level asset map.
+`SessionStore` is a typed, session-scoped registry:
 
-Schemas such as `s.unique()` should use `context().unique` rather than a module-level unique cache. This keeps unique value state inside the current session.
+```ts
+type StoreKey<T> = {
+  readonly id: symbol
+  readonly create: () => T
+}
+
+type SessionStore = {
+  get<T>(key: StoreKey<T>): T
+  has<T>(key: StoreKey<T>): boolean
+}
+```
+
+Schemas such as `s.file()` and `s.image()` should collect assets through `context().store.get(assetStoreKey)` rather than writing to a module-level asset map or requiring `ParserContext.assets`.
+
+Schemas such as `s.unique()` should use `context().store.get(uniqueStoreKey)` rather than a module-level unique cache or requiring `ParserContext.unique`. This keeps unique value state inside the current session while keeping the parser context generic.
 
 Markdown and MDX linked-file copying currently runs inside remark/rehype plugins created by the markdown/mdx schemas. Those plugins should receive `AssetStore` explicitly when they are constructed, instead of relying on a module-level asset map. `AsyncLocalStorage` usually propagates through promise chains, but explicit injection is clearer and avoids hidden assumptions if unified internals change.
 
@@ -165,8 +188,7 @@ type BuildSession = {
   options: Options
   files: FileCache
   resolved: CollectionCache
-  assets: AssetStore
-  unique: UniqueStore
+  store: SessionStore
   output: OutputState
 }
 ```
@@ -217,7 +239,7 @@ type AssetStore = {
 
 `outputName` is the rendered output filename, such as `cover-a1b2c3d4.png`. It should be the asset output key. `sourcePath` is the original absolute file path. `publicUrl` is the final URL exposed in parsed content. `ownerFiles` records every content file that caused this asset to be collected.
 
-`AssetStore.add()` should be idempotent for the same `outputName` and `sourcePath`, merging `ownerFile` into `ownerFiles`. The same `outputName` with a different `sourcePath` should be treated as a hard error because it indicates a hash collision or an unsafe filename template.
+`AssetStore.add()` should be idempotent for the same `outputName`. The same `outputName` with a different `sourcePath` is accepted when the caller proves the source content is byte-identical (typically by passing a content fingerprint). Different content under the same `outputName` is a hard error because it indicates a hash collision or an unsafe filename template.
 
 This allows future incremental watch mode to remove assets owned by a changed file while keeping assets still owned by other files. The 1.0 implementation does not need fine-grained incremental asset updates, but it should avoid designs that make them impossible.
 
@@ -352,21 +374,22 @@ Keep or add focused tests for known architectural failure modes:
 ### Phase 1: Create Core Skeleton Without Behavior Changes
 
 - Create `src/core/`.
-- Add initial core modules listed in the layout that are needed at this stage: `session.ts`, `engine.ts`, `assets.ts`, `output.ts`, `config.ts`. Defer `discover.ts`, `load.ts`, and `parse.ts` to Phase 3, and `watch.ts` to Phase 4.
-- Keep `build.ts` as the public facade.
+- Add initial core modules listed in the layout that are needed at this stage: `session.ts`, `store.ts`, `engine.ts`, `assets.ts`, `output.ts`, `config.ts`. Defer `discover.ts`, `resolver.ts`, and `watch.ts` until their phases.
+- Keep `index.ts` as the public facade, including `build()`.
 - Move existing logic behind the facade without intentionally changing behavior.
 - Keep existing tests passing.
 - Keep `ConfigLoader` responsible for temporary config bundle paths, dependency resolution from the temp location, and stale temp symlink replacement.
 
 ### Phase 2: Move Mutable Build State Into BuildSession
 
-- Move assets into `BuildSession.assets`.
+- Move schema-owned state into `BuildSession.store`.
 - Move loaded files into `BuildSession.files`.
-- Move unique cache into `BuildSession.unique`.
+- Move asset collection behind `assetStoreKey`.
+- Move unique cache behind `uniqueStoreKey`.
 - Move resolved collections into `BuildSession.resolved`.
 - Move output state into session or watch state.
 - Replace `VeliteFile.get/create` cache ownership with `session.files.get/load`.
-- Wire session-owned `assets` and `unique` into the existing parser context as part of this phase. Do not leave an intermediate state where schemas still rely on module-level globals.
+- Wire session-owned `store` into the existing parser context as part of this phase. Do not leave an intermediate state where schemas still rely on module-level globals.
 - Remove module-level mutable build state.
 
 ### Phase 3: Split Resolver, Parser, and Output Writer
@@ -409,7 +432,7 @@ Keep or add focused tests for known architectural failure modes:
 
 - Build-related mutable state is no longer stored in module-level globals.
 - Independent builds are isolated by construction, not by manual global reset calls.
-- `AssetStore.add()` rejects two records with the same `outputName` and different `sourcePath`.
+- `AssetStore.add()` rejects two records with the same `outputName` whose source content differs.
 - `ContentResolver` can be unit-tested with fake file data and fake loaders.
 - `OutputWriter` can be unit-tested without running a full fixture project.
 - Watch config changes and content changes have regression coverage.

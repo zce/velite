@@ -2,18 +2,50 @@ import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 import { custom } from 'zod'
 
-import { remarkCopyLinkedFiles } from '../assets'
-import { context } from '../context'
+import { assetStoreKey, createAssetStore, remarkCopyLinkedFiles } from '../assets'
+import { context } from '../runtime/context'
 
+import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root } from 'mdast'
 import type { PluggableList } from 'unified'
-import type { MdxOptions } from '../types'
+
+/**
+ * MDX compiler options
+ */
+export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Output format to generate.
+   * @default 'function-body'
+   */
+  outputFormat?: CompileOptions['outputFormat']
+  /**
+   * Minify the output code.
+   * @default true
+   */
+  minify?: boolean
+}
 
 const remarkRemoveComments = () => (tree: Root) => {
-  visit(tree, ['mdxFlowExpression'], (node, index, parent: any) => {
-    if (node.value.match(/\/\*([\s\S]*?)\*\//g)) {
+  visit(tree, ['mdxFlowExpression'], (node, index, parent) => {
+    if (parent == null || index == null) return
+    if ((node as { value?: string }).value?.match(/\/\*([\s\S]*?)\*\//g)) {
       parent.children.splice(index, 1)
-      return ['skip', index] // https://unifiedjs.com/learn/recipe/remove-node/
+      return ['skip', index]
     }
   })
 }
@@ -22,7 +54,8 @@ export const mdx = (options: MdxOptions = {}) =>
   custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
-      const { file, config } = context()
+      const { file, config, store } = context()
+      const assets = store.getOrCreate(assetStoreKey, createAssetStore)
       value = value ?? file.content
       if (value == null || value.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
@@ -40,13 +73,13 @@ export const mdx = (options: MdxOptions = {}) =>
       const remarkPlugins = [] as PluggableList
       const rehypePlugins = [] as PluggableList
 
-      if (enableGfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
-      if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-      if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, output]) // copy linked files to public path and replace their urls with public urls
-      if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
-      if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
-      if (mdx?.remarkPlugins != null) remarkPlugins.push(...mdx.remarkPlugins) // apply global remark plugins
-      if (mdx?.rehypePlugins != null) rehypePlugins.push(...mdx.rehypePlugins) // apply global rehype plugins
+      if (enableGfm) remarkPlugins.push(remarkGfm)
+      if (removeComments) remarkPlugins.push(remarkRemoveComments)
+      if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, { ...output, assets }])
+      if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins)
+      if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
+      if (mdx?.remarkPlugins != null) remarkPlugins.push(...mdx.remarkPlugins)
+      if (mdx?.rehypePlugins != null) rehypePlugins.push(...mdx.rehypePlugins)
 
       const compilerOptions = { ...mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
 
@@ -66,8 +99,9 @@ export const mdx = (options: MdxOptions = {}) =>
           parse: { bare_returns: true }
         })
         return minified.code ?? code.toString()
-      } catch (err: any) {
-        ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        ctx.addIssue({ fatal: true, code: 'custom', message })
         return null as never
       }
     })

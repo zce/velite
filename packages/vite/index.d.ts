@@ -1,12 +1,7 @@
+import type { Options as VeliteOptions } from 'velite'
 import type { Plugin } from 'vite'
 
-type Options = {
-  /**
-   * Path to velite.config.ts
-   * @default 'velite.config.{js,ts}'
-   */
-  config?: string
-}
+type Options = Omit<VeliteOptions, 'watch'>
 
 /**
  * Velite Vite plugin

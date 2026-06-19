@@ -10,8 +10,8 @@ Two integration packages, both hand-written JavaScript (no build step):
 ## Key facts
 
 - **Plain JS** — no TypeScript, no build step. Ship `index.js` + `index.d.ts` directly.
-- Both import `velite` as a workspace dependency (`"velite": "workspace:*"`).
-- Both call `build()` from the core library; the Next.js plugin also supports `watch` mode.
+- Both depend on `velite` via `workspace:*`; `pnpm pack`/publish rewrites it to the matching release version.
+- Both call the core library; the Vite plugin uses `watch()` in dev and closes it with the Vite server, while production builds use `build()`.
 - `.d.ts` files are hand-written type declarations, not generated.
 - `node_modules/` inside each package is a symlink created by pnpm (for the workspace peer dep resolution) — ignore it.
 
@@ -20,4 +20,4 @@ Two integration packages, both hand-written JavaScript (no build step):
 - Keep the JS minimal and framework-version-agnostic.
 - Update `index.d.ts` in sync with any API changes to `index.js`.
 - Bump `peerDependencies` ranges when a new framework major is supported.
-- These packages have no tests of their own — verify via the root `pnpm test` (which exercises the examples).
+- Verify via the root `pnpm test`, which includes package metadata checks, Vite watcher behavior, and framework example builds.

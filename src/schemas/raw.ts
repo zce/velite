@@ -1,6 +1,6 @@
 import { custom } from 'zod'
 
-import { context } from '../context'
+import { context } from '../runtime/context'
 
 export const raw = () =>
   custom<string>(i => typeof i === 'string')

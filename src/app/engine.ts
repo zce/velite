@@ -16,11 +16,17 @@ import type { Writer } from '../output/write'
 import type { Logger } from '../runtime/logger'
 import type { BuildOptions } from './types'
 
+/**
+ * Filesystem change classification consumed by `Engine.rebuild`.
+ *
+ * Callers must pre-map platform-specific events (for example chokidar
+ * `addDir` / `unlinkDir`) to one of these values before calling rebuild.
+ */
 export type RebuildEvent = 'add' | 'change' | 'unlink'
 
 export interface RebuildChange {
-  event: RebuildEvent
-  paths: string[]
+  readonly event: RebuildEvent
+  readonly paths: readonly string[]
 }
 
 export interface Engine<T extends Collections = Collections> {

@@ -3,6 +3,7 @@ import { createWatcher } from './app/watch'
 
 import type { BuildOptions } from './app/types'
 import type { Watcher } from './app/watch'
+import type { BuildResult, Collections } from './collections'
 
 export type { BuildOptions } from './app/types'
 export type { BlurOptions, VeliteImage } from './assets'
@@ -29,10 +30,11 @@ export { defineSchema, s } from './schemas'
  * Build all collections defined in the user config.
  *
  * Each call creates a fresh build engine and (for `watch: true`) a watch
- * controller. The public return shape is preserved as `Record<string, unknown>`.
+ * controller. Pass a collections type parameter when the caller wants a typed
+ * `BuildResult`.
  */
-export const build = async (options: BuildOptions = {}): Promise<Record<string, unknown>> => {
-  const engine = createEngine()
+export const build = async <T extends Collections = Collections>(options: BuildOptions = {}): Promise<BuildResult<T>> => {
+  const engine = createEngine<T>()
   const result = await engine.build(options)
   if (options.watch === true) {
     const controller = createWatcher()
@@ -47,8 +49,8 @@ export const build = async (options: BuildOptions = {}): Promise<Record<string, 
  * Unlike `build({ watch: true })`, this programmatic API returns a watcher
  * handle so callers can close it when they are done.
  */
-export const watch = async (options: BuildOptions = {}): Promise<Watcher> => {
-  const engine = createEngine()
+export const watch = async <T extends Collections = Collections>(options: BuildOptions = {}): Promise<Watcher> => {
+  const engine = createEngine<T>()
   await engine.build({ ...options, watch: false })
   const controller = createWatcher()
   return await controller.start(engine, options)

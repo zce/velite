@@ -10,7 +10,7 @@ import { context, defineSchema, s } from 'velite'
 
 const timestamp = defineSchema(() =>
   s
-    .custom<string>(i => typeof i === 'string')
+    .string()
     .optional()
     .transform<string>(async () => {
       const { file } = context()
@@ -40,7 +40,7 @@ const execAsync = promisify(exec)
 
 const timestamp = defineSchema(() =>
   s
-    .custom<string>(i => typeof i === 'string')
+    .string()
     .optional()
     .transform<string>(async () => {
       const { file } = context()

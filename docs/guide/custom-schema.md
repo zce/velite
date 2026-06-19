@@ -119,6 +119,19 @@ export const counted = defineSchema(() =>
 )
 ```
 
+When a custom schema derives a missing object field from `context()`, make the schema optional before the transform. Zod 4 only sends missing object keys into transforms when the field schema is optional:
+
+```ts
+export const rawBody = defineSchema(() =>
+  s
+    .custom<string>(value => typeof value === 'string')
+    .optional()
+    .transform(value => value ?? context().file.content ?? '')
+)
+```
+
+Built-in file-derived schemas such as `s.path()`, `s.raw()`, `s.markdown()`, `s.mdx()`, `s.excerpt()`, `s.metadata()`, and `s.toc()` include this optional wrapper. Value-required schemas such as `s.file()`, `s.image()`, `s.slug()`, `s.unique()`, and `s.isodate()` do not.
+
 ### Error Handling in Transforms
 
 In Zod 4, schema callbacks receive a context object that provides `addIssue()` for reporting validation errors.
@@ -148,3 +161,4 @@ export const safeTransform = defineSchema(() =>
 - `context()` returns `{ config: ResolvedConfig, file: ContentFile, store: BuildStore }`.
 - `ctx.addIssue()` accepts `{ fatal?: boolean, code: string, message: string }`.
 - See [`ContentFile`](../reference/types.md#contentfile) for file metadata structure.
+- See [Lifecycle](./lifecycle.md) for build context and store lifetime details.

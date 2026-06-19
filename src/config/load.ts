@@ -9,6 +9,7 @@ import { name as pkgName } from '../../package.json'
 import { loaders as builtinLoaders } from '../loaders'
 import { logger as defaultLogger } from '../runtime/logger'
 
+import type { Collections } from '../collections'
 import type { Logger } from '../runtime/logger'
 import type { ResolvedConfig, UserConfig } from './index'
 
@@ -54,7 +55,7 @@ export interface ConfigLoader {
    * The same loader instance reuses its temporary bundle directory across
    * watch reloads instead of accumulating bundle files.
    */
-  load(path: string | undefined, options?: LoadOptions): Promise<ResolvedConfig>
+  load<T extends Collections = Collections>(path: string | undefined, options?: LoadOptions): Promise<ResolvedConfig<T>>
 }
 
 export interface ConfigLoaderOptions {
@@ -117,7 +118,7 @@ export const createConfigLoader = ({ logger = defaultLogger }: ConfigLoaderOptio
     return outdir
   }
 
-  const bundle = async (configPath: string): Promise<{ mod: UserConfig; deps: string[] }> => {
+  const bundle = async <T extends Collections>(configPath: string): Promise<{ mod: UserConfig<T>; deps: string[] }> => {
     if (!/\.(js|mjs|cjs|ts|mts|cts)$/.test(configPath)) {
       const ext = configPath.split('.').pop()
       throw new Error(`not supported config file with '${ext}' extension`)
@@ -159,7 +160,7 @@ export const createConfigLoader = ({ logger = defaultLogger }: ConfigLoaderOptio
   }
 
   return {
-    async load(path, options = {}) {
+    async load<T extends Collections = Collections>(path: string | undefined, options: LoadOptions = {}) {
       const begin = performance.now()
 
       const candidates = path != null ? [path] : CONFIG_NAMES
@@ -168,7 +169,7 @@ export const createConfigLoader = ({ logger = defaultLogger }: ConfigLoaderOptio
         throw new Error(`config file not found, create '${pkgName}.config.ts' in your project root`)
       }
 
-      const { mod: loadedConfig, deps: configImports } = await bundle(configPath)
+      const { mod: loadedConfig, deps: configImports } = await bundle<T>(configPath)
 
       if (loadedConfig.collections == null) {
         throw new Error(`'collections' is required in '${configPath}'`)

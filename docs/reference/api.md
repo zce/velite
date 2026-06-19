@@ -17,7 +17,7 @@ import { build } from 'velite'
 ### Signature
 
 ```ts
-const build: (options?: BuildOptions) => Promise<BuildResult>
+const build: <T extends Collections = Collections>(options?: BuildOptions) => Promise<BuildResult<T>>
 ```
 
 ### Parameters
@@ -73,7 +73,7 @@ If true, throws an error and terminates the process if any schema validation fai
 
 ### Returns
 
-- Type: `Promise<BuildResult>`, See [BuildResult](#buildresult).
+- Type: `Promise<BuildResult<T>>`, See [BuildResult](./types.md#buildresult).
 
 The build result.
 
@@ -111,20 +111,7 @@ interface BuildOptions {
 }
 ```
 
-#### BuildResult
-
-```ts
-interface Entry {
-  [key: string]: any
-}
-
-/**
- * build result, may be one or more entries in a document file
- */
-interface BuildResult {
-  [name: string]: Entry | Entry[]
-}
-```
+Pass a collections type parameter when you want a strongly typed programmatic build result.
 
 ## `watch`
 

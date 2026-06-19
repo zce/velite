@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { logger as defaultLogger } from '../runtime/logger'
 import { matchPatterns } from '../utils/patterns'
 
+import type { Collections } from '../collections'
 import type { Logger } from '../runtime/logger'
 import type { Engine } from './engine'
 import type { BuildOptions } from './types'
@@ -12,7 +13,7 @@ export interface Watcher {
 }
 
 export interface WatchController {
-  start(engine: Engine, options: BuildOptions): Promise<Watcher>
+  start<T extends Collections>(engine: Engine<T>, options: BuildOptions): Promise<Watcher>
 }
 
 export interface WatcherOptions {
@@ -44,7 +45,7 @@ const loadChokidar = async () => {
  * discarded inside the engine on every (re)build.
  */
 export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): WatchController => {
-  const armWatcher = async (engine: Engine, options: BuildOptions): Promise<Watcher> => {
+  const armWatcher = async <T extends Collections>(engine: Engine<T>, options: BuildOptions): Promise<Watcher> => {
     const config = engine.config
     if (config == null) {
       throw new Error('engine.config missing — call engine.build() before starting the watcher')

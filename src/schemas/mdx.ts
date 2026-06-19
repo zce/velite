@@ -3,7 +3,7 @@ import { visit } from 'unist-util-visit'
 import { custom } from 'zod'
 
 import { assetStoreKey, createAssetStore, remarkCopyLinkedFiles } from '../assets'
-import { internalContext } from '../runtime/context'
+import { context } from '../runtime/context'
 
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root } from 'mdast'
@@ -54,7 +54,7 @@ export const mdx = (options: MdxOptions = {}) =>
   custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
-      const { file, config, store } = internalContext()
+      const { file, config, store } = context()
       const assets = store.getOrCreate(assetStoreKey, createAssetStore)
       value = value ?? file.content
       if (value == null || value.length === 0) {

@@ -8,23 +8,24 @@ import type { BuildSession } from '../runtime/session'
 import type { VeliteSchema } from '../schemas'
 import type { Discoverer } from './discover'
 import type { VeliteFile } from './file'
-
-export interface ResolveResult {
-  /** Final per-collection result, ready for the prepare hook. */
-  result: Record<string, unknown>
-  /** Aggregated vfile reporter output, empty when no diagnostics. */
-  report: string
-}
+import type { BuildResult, Collections } from './index'
 
 export interface Resolver {
-  resolve(session: BuildSession): Promise<ResolveResult>
+  resolve<T extends Collections>(session: BuildSession<T>): Promise<ResolveResult<T>>
 }
 
 export interface ResolverOptions {
   discoverer?: Discoverer
 }
 
-const loadFile = async (session: BuildSession, path: string, schema: VeliteSchema): Promise<VeliteFile> => {
+export interface ResolveResult<T extends Collections = Collections> {
+  /** Final per-collection result, ready for the prepare hook. */
+  result: BuildResult<T>
+  /** Aggregated vfile reporter output, empty when no diagnostics. */
+  report: string
+}
+
+const loadFile = async <T extends Collections>(session: BuildSession<T>, path: string, schema: VeliteSchema): Promise<VeliteFile> => {
   const normalized = normalize(path)
   const file = await session.files.load(normalized, session.config.loaders)
 
@@ -105,7 +106,7 @@ export const createResolver = ({ discoverer = createDiscoverer() }: ResolverOpti
         logger.log(`resolved ${data.length} ${name}`)
         return [name, data]
       })
-    )
+    ) as BuildResult<typeof collections>
 
     logger.log(`resolved ${Object.keys(result).length} collections`, begin)
 

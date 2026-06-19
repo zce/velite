@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { string } from 'zod'
 
 import { assetStoreKey, createAssetStore, getImageMetadata, processAsset } from '../assets'
-import { internalContext } from '../runtime/context'
+import { context } from '../runtime/context'
 
 import type { BlurOptions, VeliteImage } from '../assets'
 
@@ -33,7 +33,7 @@ export const image = ({ absoluteRoot, blur }: ImageOptions = {}) =>
         return { src: value, ...metadata }
       }
 
-      const { file, config, store } = internalContext()
+      const { file, config, store } = context()
       const assets = store.getOrCreate(assetStoreKey, createAssetStore)
 
       // process asset as relative path

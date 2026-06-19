@@ -8,6 +8,7 @@ import { createWriter } from '../output/write'
 import { logger as defaultLogger } from '../runtime/logger'
 import { createSession } from '../runtime/session'
 
+import type { BuildResult, Collections } from '../collections'
 import type { Resolver } from '../collections/resolve'
 import type { ResolvedConfig } from '../config'
 import type { ConfigLoader } from '../config/load'
@@ -15,21 +16,21 @@ import type { Writer } from '../output/write'
 import type { Logger } from '../runtime/logger'
 import type { BuildOptions } from './types'
 
-export interface Engine {
+export interface Engine<T extends Collections = Collections> {
   /**
    * Run a full build: load config, write entry, resolve content, write data
    * and assets, and call hooks.
    */
-  build(options?: BuildOptions): Promise<Record<string, unknown>>
+  build(options?: BuildOptions): Promise<BuildResult<T>>
   /**
    * Re-run a build using the engine's current resolved config. Does not
    * reload config and does not honor `output.clean`. Output directories are
    * still ensured to exist before writing, and entry files are restored if
    * they were deleted between rebuilds.
    */
-  rebuild(): Promise<Record<string, unknown>>
+  rebuild(): Promise<BuildResult<T>>
   /** Last successfully resolved config, available after `build()` completes. */
-  readonly config: ResolvedConfig | undefined
+  readonly config: ResolvedConfig<T> | undefined
 }
 
 /**
@@ -51,25 +52,25 @@ export interface EngineOptions {
   logger?: Logger
 }
 
-export const createEngine = ({
+export const createEngine = <T extends Collections = Collections>({
   loader = createConfigLoader(),
   resolver = createResolver(),
   writer = createWriter(),
   logger = defaultLogger
-}: EngineOptions = {}): Engine => {
-  let currentConfig: ResolvedConfig | undefined
+}: EngineOptions = {}): Engine<T> => {
+  let currentConfig: ResolvedConfig<T> | undefined
   let currentOptions: BuildOptions = {}
   // Long-lived emit cache shared across rebuilds within the same engine.
   // A fresh build() with `clean: true` clears the cache implicitly because the
   // output directory is removed; otherwise content-based skipping still works.
   const outputState = createOutputState()
 
-  const ensureOutputDirs = async (config: ResolvedConfig): Promise<void> => {
+  const ensureOutputDirs = async (config: ResolvedConfig<T>): Promise<void> => {
     await mkdir(config.output.data, { recursive: true })
     await mkdir(config.output.assets, { recursive: true })
   }
 
-  const runResolve = async (config: ResolvedConfig, options: BuildOptions): Promise<Record<string, unknown>> => {
+  const runResolve = async (config: ResolvedConfig<T>, options: BuildOptions): Promise<BuildResult<T>> => {
     const session = createSession(config, options, { output: outputState, logger })
     const { result } = await resolver.resolve(session)
 
@@ -77,7 +78,7 @@ export const createEngine = ({
     let shouldOutput = true
     if (typeof config.prepare === 'function') {
       const begin = performance.now()
-      shouldOutput = ((await config.prepare(result as never, hookContext)) ?? true) as boolean
+      shouldOutput = ((await config.prepare(result, hookContext)) ?? true) as boolean
       logger.log(`executed 'prepare' callback got ${shouldOutput}`, begin)
     }
 
@@ -91,7 +92,7 @@ export const createEngine = ({
 
     if (typeof config.complete === 'function') {
       const begin = performance.now()
-      await config.complete(result as never, hookContext)
+      await config.complete(result, hookContext)
       logger.log(`executed 'complete' callback`, begin)
     }
 
@@ -111,7 +112,7 @@ export const createEngine = ({
       const timer = setTimeout(() => logger.info('building...'), 1000)
 
       try {
-        const config = await loader.load(options.config, {
+        const config = await loader.load<T>(options.config, {
           clean: options.clean,
           strict: options.strict
         })

@@ -16,6 +16,8 @@ import { s } from 'velite'
 
 Format date string to ISO date string.
 
+This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
+
 ```ts
 date: s.isodate()
 // case 1. valid date string
@@ -33,6 +35,8 @@ date: s.isodate()
 `string => string`
 
 Validate a string value that must be unique within a named group.
+
+This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
 ```ts
 name: s.unique('taxonomies')
@@ -55,6 +59,8 @@ name: s.unique('taxonomies')
 `string => string`
 
 Validate a slug string. It checks length, slug format, reserved values, and uniqueness within a named slug group.
+
+This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
 ```ts
 slug: s.slug('taxonomies', ['admin', 'login'])
@@ -89,6 +95,8 @@ slug: s.slug('taxonomies', ['admin', 'login'])
 
 file path relative to this file, copy file to `config.output.assets` directory and return the public url.
 
+This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
+
 ```ts
 avatar: s.file()
 // case 1. relative path
@@ -116,6 +124,8 @@ allow non-relative path, if true, the value will be returned directly, if false,
 `string => VeliteImage`
 
 Image path relative to the current file, like `s.file()`. Relative images are copied to `config.output.assets` and returned as [VeliteImage](#types) objects.
+
+This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
 ```ts
 avatar: s.image()
@@ -201,6 +211,8 @@ interface VeliteImage {
 
 parse input or document body as markdown content and return [Metadata](#types-1).
 
+When the field is missing, this schema derives metadata from the current file's plain text.
+
 currently only support `readingTime` & `wordCount`.
 
 ```ts
@@ -232,6 +244,8 @@ interface Metadata {
 
 parse input or document body as markdown content and return excerpt text.
 
+When the field is missing, this schema derives the excerpt from the current file's plain text.
+
 ```ts
 excerpt: s.excerpt()
 // document body => excerpt text
@@ -254,6 +268,8 @@ excerpt length.
 
 parse input or document body as markdown content and return html content. refer to [Markdown Support](using-markdown.md) for more information.
 
+When the field is missing, this schema compiles the current file body.
+
 ```ts
 content: s.markdown()
 // => html content
@@ -271,6 +287,8 @@ content: s.markdown()
 `string => string`
 
 parse input or document body as mdx content and return component function-body. refer to [MDX Support](using-mdx.md) for more information.
+
+When the field is missing, this schema compiles the current file body.
 
 ```ts
 code: s.mdx()
@@ -290,6 +308,8 @@ code: s.mdx()
 
 return raw document body.
 
+When the field is missing, this schema returns the current file body.
+
 ```ts
 code: s.raw()
 // => raw document body
@@ -300,6 +320,8 @@ code: s.raw()
 `string => TocEntry[] | TocTree`
 
 parse input or document body as markdown content and return the [table of contents](#types-2).
+
+When the field is missing, this schema derives the table of contents from the current file body.
 
 ```ts
 toc: s.toc()
@@ -370,6 +392,8 @@ Refer to [mdast-util-toc](https://github.com/syntax-tree/mdast-util-toc) for mor
 `=> string`
 
 get flattened path based on the file path.
+
+When the field is missing, this schema derives the value from the current file path.
 
 ```ts
 path: s.path()

@@ -1,11 +1,9 @@
-import { equal } from 'node:assert'
+import { deepEqual, equal } from 'node:assert'
 import { access } from 'node:fs/promises'
 import { test } from 'node:test'
 
 import { context, s } from '../../src'
 import { runWithContext } from '../../src/runtime/context'
-
-import type { VeliteSchema } from '../../src'
 
 test('exports s as the public schema namespace', async () => {
   const mod = await import('../../src')
@@ -49,7 +47,7 @@ test('public domain modules own their models', async () => {
 })
 
 test('VeliteSchema accepts an output type parameter', () => {
-  const schema: VeliteSchema<string> = s.string()
+  const schema = s.string()
   equal(schema.parse('hello'), 'hello')
 })
 
@@ -79,7 +77,101 @@ test('context schemas resolve missing object fields from the current file', asyn
   equal((result.data as any).raw, 'Hello from file')
 })
 
-test('public parser context exposes stable custom schema fields', async () => {
+const derivedSchemaContext = {
+  config: { root: '/site/content', markdown: {}, mdx: {}, output: { name: '[name].[ext]', base: '/static/' } } as any,
+  file: {
+    content: '# Hello\n\nWorld from file',
+    plain: 'Hello World from file',
+    path: '/site/content/posts/hello.md'
+  } as any
+}
+
+const derivedSchemaCases = [
+  {
+    name: 's.path()',
+    schema: s.path(),
+    expected: (value: unknown) => equal(value, 'posts/hello')
+  },
+  {
+    name: 's.raw()',
+    schema: s.raw(),
+    expected: (value: unknown) => equal(value, '# Hello\n\nWorld from file')
+  },
+  {
+    name: 's.markdown()',
+    schema: s.markdown({ copyLinkedFiles: false }),
+    expected: (value: unknown) => equal(String(value).trim(), '<h1>Hello</h1>\n<p>World from file</p>')
+  },
+  {
+    name: 's.mdx()',
+    schema: s.mdx({ copyLinkedFiles: false }),
+    expected: (value: unknown) => equal(typeof value, 'string')
+  },
+  {
+    name: 's.excerpt()',
+    schema: s.excerpt({ length: 5 }),
+    expected: (value: unknown) => equal(value, 'Hello')
+  },
+  {
+    name: 's.metadata()',
+    schema: s.metadata(),
+    expected: (value: unknown) => equal((value as { wordCount: number }).wordCount > 0, true)
+  },
+  {
+    name: 's.toc()',
+    schema: s.toc(),
+    expected: (value: unknown) => deepEqual(value, [{ title: 'Hello', url: '#hello', items: [] }])
+  }
+] as const
+
+for (const { name, schema, expected } of derivedSchemaCases) {
+  test(`${name} derives from the current file when the field is missing`, async () => {
+    const result = await runWithContext(derivedSchemaContext, () => s.object({ value: schema }).safeParseAsync({}))
+
+    equal(result.success, true)
+    if (result.success) expected(result.data.value)
+  })
+
+  test(`${name} rejects non-string inputs`, async () => {
+    const result = await runWithContext(derivedSchemaContext, () => s.object({ value: schema }).safeParseAsync({ value: 42 }))
+
+    equal(result.success, false)
+    if (!result.success)
+      equal(
+        result.error.issues.some(issue => issue.path.join('.') === 'value'),
+        true
+      )
+  })
+}
+
+const valueRequiredSchemaCases = [
+  { name: 's.file()', schema: s.file() },
+  { name: 's.image()', schema: s.image() },
+  { name: 's.slug()', schema: s.slug() },
+  { name: 's.unique()', schema: s.unique() },
+  { name: 's.isodate()', schema: s.isodate() }
+] as const
+
+for (const { name, schema } of valueRequiredSchemaCases) {
+  test(`${name} does not make missing fields optional`, async () => {
+    const result = await runWithContext(
+      {
+        config: { root: '/site/content' } as any,
+        file: { path: '/site/content/posts/hello.md' } as any
+      },
+      () => s.object({ value: schema }).safeParseAsync({})
+    )
+
+    equal(result.success, false)
+    if (!result.success)
+      equal(
+        result.error.issues.some(issue => issue.path.join('.') === 'value'),
+        true
+      )
+  })
+}
+
+test('public build context exposes stable custom schema fields', async () => {
   const schema = s.string().transform(() => Object.keys(context()).sort())
   const result = await runWithContext(
     {
@@ -93,7 +185,7 @@ test('public parser context exposes stable custom schema fields', async () => {
   if (result.success) equal(result.data.join(','), 'config,file,store')
 })
 
-test('public parser context shares store state within a build session', async () => {
+test('public build context shares store state within a build session', async () => {
   const key = Symbol('test.store')
   const first = s.string().transform(() => {
     const state = context().store.getOrCreate(key, () => ({ count: 0 }))
@@ -117,7 +209,7 @@ test('public parser context shares store state within a build session', async ()
   equal(result.join(','), '1,2')
 })
 
-test('parser context helpers are not public entry exports', async () => {
+test('build context helpers are not public entry exports', async () => {
   const mod = await import('../../src')
   equal('parseWithContext' in mod, false)
   equal('runWithContext' in mod, false)

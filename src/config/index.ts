@@ -9,11 +9,11 @@ type Promisable<T> = T | Promise<T>
 /**
  * Hook context
  */
-export type HookContext = {
+export type HookContext<T extends Collections = Collections> = {
   /**
    * Resolved config
    */
-  config: ResolvedConfig
+  config: ResolvedConfig<T>
 }
 
 /**
@@ -70,20 +70,20 @@ export interface UserConfig<T extends Collections = Collections> extends Partial
    * return false to prevent the default output to a file if you wanted
    * @param data loaded data
    */
-  prepare?: (data: BuildResult<T>, context: HookContext) => Promisable<void | false>
+  prepare?: (data: BuildResult<T>, context: HookContext<T>) => Promisable<void | false>
   /**
    * Build success hook
    * @description
    * You can do anything after the build is complete, such as print some tips or deploy the output files.
    * @param data loaded data
    */
-  complete?: (data: BuildResult<T>, context: HookContext) => Promisable<void>
+  complete?: (data: BuildResult<T>, context: HookContext<T>) => Promisable<void>
 }
 
 /**
  * Fully resolved build config.
  */
-export interface ResolvedConfig extends Readonly<UserConfig> {
+export interface ResolvedConfig<T extends Collections = Collections> extends Readonly<UserConfig<T>> {
   /**
    * Resolved config file path
    */

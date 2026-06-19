@@ -97,6 +97,7 @@ export default defineConfig({
         base: '/guide/',
         items: [
           { text: 'How Velite Works', link: 'how-it-works' },
+          { text: 'Lifecycle', link: 'lifecycle' },
           { text: 'Motivation', link: 'motivation' }
         ]
       },

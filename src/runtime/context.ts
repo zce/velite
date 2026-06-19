@@ -4,6 +4,7 @@ import { createBuildStore } from './store'
 
 import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
+import type { Collections } from '../collections'
 import type { ResolvedConfig } from '../config'
 import type { BuildStore } from './store'
 
@@ -16,38 +17,36 @@ export interface ContentFile {
 }
 
 /** Public context available during schema parsing. */
-export interface BuildContext {
+export interface BuildContext<T extends Collections = Collections> {
   /** Resolved config being used. */
-  readonly config: ResolvedConfig
+  readonly config: ResolvedConfig<T>
   /** Current file being parsed. */
   readonly file: ContentFile
   /** Build-scoped shared state for advanced custom schemas and plugins. */
   readonly store: BuildStore
 }
 
-interface BuildContextInput {
-  readonly config: ResolvedConfig
+interface BuildContextInput<T extends Collections = Collections> {
+  readonly config: ResolvedConfig<T>
   readonly file: ContentFile
   readonly store?: BuildStore
 }
 
-const als = new AsyncLocalStorage<BuildContext>()
+const als = new AsyncLocalStorage<BuildContext<any>>()
 
 /**
- * Get the parser context for the current parse.
+ * Get the build context for the current schema parse.
  *
- * @throws when called outside of a `runWithContext()` call.
+ * @throws when called outside of a schema parse.
  */
 export const context = (): BuildContext => {
   const ctx = als.getStore()
   if (ctx) return ctx
-  throw new Error('Missing parser context — are you calling context() outside of a schema parse?')
+  throw new Error('Missing build context — are you calling context() outside of a schema parse?')
 }
 
-export const internalContext = context
-
-export const runWithContext = <T>(input: BuildContextInput, run: () => T): T => {
-  const ctx: BuildContext = {
+export const runWithContext = <T extends Collections, R>(input: BuildContextInput<T>, run: () => R): R => {
+  const ctx: BuildContext<T> = {
     config: input.config,
     file: input.file,
     store: input.store ?? createBuildStore()

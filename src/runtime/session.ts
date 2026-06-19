@@ -5,6 +5,7 @@ import { createLogger, logger as defaultLogger } from './logger'
 import { createBuildStore } from './store'
 
 import type { BuildOptions } from '../app/types'
+import type { Collections } from '../collections'
 import type { FileCache } from '../collections/cache'
 import type { ResolvedConfig } from '../config'
 import type { VeliteLoader } from '../loaders/types'
@@ -18,8 +19,8 @@ import type { BuildStore } from './store'
  * A new session is created for every `build()` and `rebuild()`. Sessions are
  * never reused across independent builds.
  */
-export interface BuildSession {
-  readonly config: ResolvedConfig
+export interface BuildSession<T extends Collections = Collections> {
+  readonly config: ResolvedConfig<T>
   readonly options: BuildOptions
   readonly files: FileCache
   readonly resolved: Map<string, VeliteFile[]>
@@ -46,7 +47,11 @@ export interface CreateSessionOptions {
  * `logger` may be supplied to redirect log output (e.g. for tests). When
  * omitted, the process-level logger is used.
  */
-export const createSession = (config: ResolvedConfig, options: BuildOptions, sessionOptions: CreateSessionOptions = {}): BuildSession => ({
+export const createSession = <T extends Collections>(
+  config: ResolvedConfig<T>,
+  options: BuildOptions,
+  sessionOptions: CreateSessionOptions = {}
+): BuildSession<T> => ({
   config,
   options,
   files: createFileCache(defaultLoadFile),

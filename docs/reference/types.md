@@ -126,6 +126,16 @@ interface BuildStore {
 
 `BuildStore` lives for the current build or watch rebuild. Use `context().store` when a custom schema or plugin needs shared state without module-level globals.
 
+## BuildResult
+
+```ts
+type BuildResult<T extends Collections> = {
+  [P in keyof T]: CollectionType<T, P>
+}
+```
+
+`BuildResult` is the strongly typed per-collection data shape passed to `prepare` and `complete` hooks.
+
 ## HookContext
 
 ```ts

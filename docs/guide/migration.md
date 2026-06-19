@@ -77,9 +77,9 @@ The `context()` function returns:
 }
 ```
 
-### Mark Context-Derived Fields as Optional
+### Mark Custom Context-Derived Fields as Optional
 
-In Zod 4, object keys are required unless the schema is explicitly optional. If a field is usually missing from frontmatter and should be derived from the current file, add `.optional()` before `.transform()`.
+In Zod 4, object keys are required unless the schema is explicitly optional. If a custom schema field is usually missing from frontmatter and should be derived from the current file, add `.optional()` before `.transform()`.
 
 Before:
 
@@ -104,7 +104,9 @@ const posts = defineCollection({
 })
 ```
 
-Velite's built-in context-derived schemas already follow this pattern, including `s.path()`, `s.raw()`, `s.markdown()`, `s.mdx()`, `s.excerpt()`, `s.metadata()`, and `s.toc()`.
+Velite's built-in file-derived schemas already include this optional wrapper because missing fields are their normal derivation input. This includes `s.path()`, `s.raw()`, `s.markdown()`, `s.mdx()`, `s.excerpt()`, `s.metadata()`, and `s.toc()`.
+
+Value-required schemas do not include this wrapper. Use `.optional()` yourself when fields such as `s.file()`, `s.image()`, `s.slug()`, `s.unique()`, or `s.isodate()` should be optional.
 
 ### Do Not Use `addIssue()` for Warnings
 

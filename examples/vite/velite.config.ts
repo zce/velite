@@ -25,7 +25,7 @@ const execAsync = promisify(exec)
 // refer to https://velite.js.org/guide/last-modified#based-on-git-timestamp for more details
 const timestamp = () =>
   s
-    .custom<string>(i => typeof i === 'string')
+    .string()
     .optional()
     .transform<string>(async () => {
       const { stdout } = await execAsync(`git log -1 --format=%cd ${context().file.path}`)

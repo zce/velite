@@ -83,12 +83,11 @@ export const processAsset = async <T extends true | undefined = undefined>(
         if (metadata == null) throw new Error(`invalid image: ${from}`)
         return { sourcePath: path, outputName, fingerprint, publicUrl, image: metadata }
       })()
-      cache.set(key, pending)
+      cache.set(key, path, pending)
     }
     const result = await pending
     assets.add({ sourcePath: result.sourcePath, outputName: result.outputName, fingerprint: result.fingerprint })
     if (isImage !== true) return result.publicUrl as T extends true ? VeliteImage : string
-    if (result.image == null) throw new Error(`invalid image: ${from}`)
     return { src: result.publicUrl, ...result.image } as T extends true ? VeliteImage : string
   }
 

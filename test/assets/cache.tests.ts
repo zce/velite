@@ -82,3 +82,29 @@ test('processAsset legacy path (no cache) keeps original behavior', async () => 
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('cache.invalidateSource removes in-flight entries before they resolve', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'velite-asset-cache-'))
+  try {
+    const content = join(root, 'content')
+    await mkdir(content)
+    const owner = join(content, 'owner.md')
+    const asset = join(content, 'asset.txt')
+    await writeFile(owner, '')
+    await writeFile(asset, 'asset')
+
+    const cache = createAssetProcessingCache()
+    const store = createAssetStore()
+
+    const pending = processAsset('asset.txt', owner, '[name]-[hash:6].[ext]', '/static/', store, undefined, undefined, cache)
+    const owners = cache.invalidateSource(asset)
+    deepStrictEqual(owners, [owner])
+
+    await pending
+
+    equal(cache.hasSource(asset), false)
+    deepStrictEqual(cache.invalidateSource(asset), [])
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

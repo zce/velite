@@ -20,7 +20,7 @@ export interface CachedAssetProcessResult {
  */
 export interface AssetProcessingCache {
   get(key: string): Promise<CachedAssetProcessResult> | undefined
-  set(key: string, value: Promise<CachedAssetProcessResult>): void
+  set(key: string, sourcePath: string, value: Promise<CachedAssetProcessResult>): void
   recordOwner(sourcePath: string, ownerPath: string): void
   invalidateSource(sourcePath: string): string[]
   hasSource(sourcePath: string): boolean
@@ -59,20 +59,22 @@ export const createAssetProcessingCache = (): AssetProcessingCache => {
     get(key) {
       return entries.get(key)
     },
-    set(key, value) {
+    set(key, sourcePath, value) {
       entries.set(key, value)
+      const keys = sourceKeys.get(sourcePath) ?? new Set<string>()
+      keys.add(key)
+      sourceKeys.set(sourcePath, keys)
       value.then(
-        resolved => {
-          if (entries.get(key) !== value) return
-          let keys = sourceKeys.get(resolved.sourcePath)
-          if (keys == null) {
-            keys = new Set()
-            sourceKeys.set(resolved.sourcePath, keys)
-          }
-          keys.add(key)
-        },
+        () => {},
         () => {
-          if (entries.get(key) === value) entries.delete(key)
+          if (entries.get(key) === value) {
+            entries.delete(key)
+            const current = sourceKeys.get(sourcePath)
+            if (current != null) {
+              current.delete(key)
+              if (current.size === 0) sourceKeys.delete(sourcePath)
+            }
+          }
         }
       )
     },
@@ -96,7 +98,7 @@ export const createAssetProcessingCache = (): AssetProcessingCache => {
       return result
     },
     hasSource(sourcePath) {
-      return owners.has(sourcePath) || sourceKeys.has(sourcePath)
+      return owners.has(sourcePath)
     },
     clear() {
       entries.clear()

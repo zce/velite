@@ -2,13 +2,18 @@ import { equal } from 'node:assert'
 import { access } from 'node:fs/promises'
 import { test } from 'node:test'
 
-import { context, s, z } from '../../src'
+import { context, s } from '../../src'
 import { runWithContext } from '../../src/runtime/context'
 
 import type { Schema } from '../../src'
 
-test('exports zod utilities from the public entry', () => {
-  equal(typeof z.string, 'function')
+test('exports s as the public schema namespace', async () => {
+  const mod = await import('../../src')
+
+  equal('z' in mod, false)
+  equal(typeof s.string, 'function')
+  equal(typeof s.object, 'function')
+  equal(typeof s.markdown, 'function')
 })
 
 test('exports a programmatic watch API', async () => {
@@ -42,7 +47,7 @@ test('public domain modules own their models', async () => {
 })
 
 test('Schema accepts an output type parameter', () => {
-  const schema: Schema<string> = z.string()
+  const schema: Schema<string> = s.string()
   equal(schema.parse('hello'), 'hello')
 })
 
@@ -73,7 +78,7 @@ test('context schemas resolve missing object fields from the current file', asyn
 })
 
 test('public parser context exposes stable custom schema fields', async () => {
-  const schema = z.string().transform(() => Object.keys(context()).sort())
+  const schema = s.string().transform(() => Object.keys(context()).sort())
   const result = await runWithContext(
     {
       config: { root: '/site/content' } as any,
@@ -88,7 +93,7 @@ test('public parser context exposes stable custom schema fields', async () => {
 
 test('public context store supports custom schema state', async () => {
   const key = Symbol('test.schema.count')
-  const schema = z.string().transform(() => {
+  const schema = s.string().transform(() => {
     const state = context().store.getOrCreate(key, () => ({ value: 0 }))
     state.value += 1
     return state.value

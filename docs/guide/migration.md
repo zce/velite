@@ -25,13 +25,13 @@ This aligns the package with current versions of the runtime dependencies used b
 
 ## Zod 4 Schema Semantics
 
-Velite now uses the official `zod` package directly. The `s` helper still includes Velite-specific schemas and all Zod exports, and `z` is also exported from `velite` for code that prefers the Zod namespace.
+Velite now uses the official `zod` package internally. The `s` helper is the public schema namespace and includes Velite-specific schemas plus all Zod schema helpers. Use `s` instead of importing `z` from `velite`.
 
 ```ts
-import { s, z } from 'velite'
+import { s } from 'velite'
 
 const post = s.object({
-  title: z.string(),
+  title: s.string(),
   slug: s.path()
 })
 ```
@@ -188,11 +188,9 @@ export default defineConfig({
 
 ## Type Exports
 
-The public entry exports Zod-related helpers for schema typing:
+The public entry exports Zod-related type helpers for schema typing:
 
 ```ts
-import { z } from 'velite'
-
 import type { infer, Schema, ZodType } from 'velite'
 ```
 
@@ -202,6 +200,7 @@ Use `context()` for Velite parser metadata instead of relying on `ZodMeta`.
 
 - Update Node.js to `>=22.13.0` in local development and CI.
 - Upgrade `velite` to `1.0.0-alpha.2`.
+- Replace `import { z } from 'velite'` with `import { s } from 'velite'`.
 - Replace `ctx.meta` access with `context()`.
 - Add `.optional()` to custom schemas that derive missing object fields from the current file.
 - Remove `ctx.addIssue({ fatal: false, ... })` warning patterns.

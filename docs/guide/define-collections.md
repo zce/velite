@@ -86,14 +86,14 @@ const site = defineCollection({
 
 Velite uses [Zod](https://zod.dev) to validate the content items in a collection. The `schema` option is used to define the Zod schema used to validate the content items in the collection.
 
-To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of Zod's `z` object, and it supports all of the features of Zod. See [Zod's Docs](https://zod.dev) for a complete documentation on how Zod works and what features are available.
+To define schemas in Velite, import the `s` utility from `'velite'`. It includes all Zod schema helpers plus Velite-specific schemas for content projects. See [Zod's Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
 
 ```js
-import { z } from 'velite'
+import { s } from 'velite'
 
 const posts = defineCollection({
-  schema: z.object({
-    title: z.string().max(99)
+  schema: s.object({
+    title: s.string().max(99)
   })
 })
 ```
@@ -104,7 +104,7 @@ The schema is usually a `ZodObject`, validating the shape of the content item. B
 
 :::
 
-For more complex schemas, I recommend that you use [Velite extended schemas `s`](velite-schemas.md):
+For more complex schemas, use [Velite extended schemas `s`](velite-schemas.md):
 
 - `s.slug()`: validate slug format, unique in posts collection.
 - `s.isodate()`: format date string to ISO date string.

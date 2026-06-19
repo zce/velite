@@ -7,7 +7,7 @@ import { describe, it } from 'node:test'
 import { assetStoreKey } from '../../src/assets'
 import { createResolver } from '../../src/collections/resolve'
 import { createSession } from '../../src/runtime/session'
-import { s, z } from '../../src/schemas'
+import { s } from '../../src/schemas'
 
 import type { Discoverer } from '../../src/collections/discover'
 import type { Config } from '../../src/config'
@@ -65,7 +65,7 @@ describe('Resolver', () => {
         items: {
           name: 'Item',
           pattern: 'content/*.json',
-          schema: z.object({ title: z.string() })
+          schema: s.object({ title: s.string() })
         }
       }
       const config = buildConfig(root, collections)
@@ -98,7 +98,7 @@ describe('Resolver', () => {
           name: 'Options',
           single: true,
           pattern: 'content/options.json',
-          schema: z.object({ name: z.string() })
+          schema: s.object({ name: s.string() })
         }
       })
       const session = createSession(config, {}, { logger: silentLogger })
@@ -127,7 +127,7 @@ describe('Resolver', () => {
         items: {
           name: 'Item',
           pattern: 'content/*.json',
-          schema: z.object({ title: z.string() })
+          schema: s.object({ title: s.string() })
         }
       })
       const session = createSession(config, {}, { logger: silentLogger })
@@ -157,7 +157,7 @@ describe('Resolver', () => {
           items: {
             name: 'Item',
             pattern: 'content/*.json',
-            schema: z.object({ title: z.string() })
+            schema: s.object({ title: s.string() })
           }
         },
         { strict: true }
@@ -187,7 +187,7 @@ describe('Resolver', () => {
         items: {
           name: 'Item',
           pattern: 'content/*.json',
-          schema: z.object({ title: z.string(), file: s.file() })
+          schema: s.object({ title: s.string(), file: s.file() })
         }
       })
       const session = createSession(config, {}, { logger: silentLogger })
@@ -218,7 +218,7 @@ describe('Resolver', () => {
         items: {
           name: 'Item',
           pattern: 'content/*.json',
-          schema: z.object({ value: z.string() }).transform(({ value }) => (value === 'zero' ? 0 : value === 'false' ? false : ''))
+          schema: s.object({ value: s.string() }).transform(({ value }) => (value === 'zero' ? 0 : value === 'false' ? false : ''))
         }
       })
       const session = createSession(config, {}, { logger: silentLogger })

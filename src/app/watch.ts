@@ -20,16 +20,6 @@ export interface WatcherOptions {
   logger?: Logger
 }
 
-interface ChokidarLike {
-  on(event: string, handler: (event: string, filename?: string) => void): ChokidarLike
-  close(): Promise<void> | void
-}
-
-const loadChokidar = async () => {
-  const mod = await import('chokidar')
-  return mod.watch
-}
-
 /**
  * Create a watch controller bound to a build engine.
  *
@@ -51,7 +41,7 @@ export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): 
       throw new Error('engine.config missing — call engine.build() before starting the watcher')
     }
 
-    const watch = await loadChokidar()
+    const { watch } = await import('chokidar')
     const { root, collections, configImports } = config
     const patterns = Object.values(collections).flatMap(({ pattern }) => pattern)
 
@@ -61,13 +51,13 @@ export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): 
       cwd: root,
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 }
-    }) as unknown as ChokidarLike
+    })
 
     // `current` is replaced after a config reload so that the public Watcher
     // returned by `start()` always closes the most recently armed watcher.
     const handle: { active: boolean; replacement?: Watcher } = { active: true }
 
-    const onEvent = async (event: string, filename?: string): Promise<void> => {
+    watcher.on('all', async (event, filename): Promise<void> => {
       if (!handle.active) return
       if (event === 'addDir' || event === 'unlinkDir') return
       if (filename == null || typeof filename !== 'string') return
@@ -105,9 +95,7 @@ export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): 
       } catch (err) {
         logger.warn(err)
       }
-    }
-
-    watcher.on('all', onEvent)
+    })
 
     return {
       async close() {

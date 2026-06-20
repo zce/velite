@@ -32,9 +32,8 @@ const flatten = (msg: unknown): unknown => {
 /**
  * Create a logger with its own `LogLevel` state.
  *
- * Each build session may create its own logger via `createLogger()` so that
- * concurrent builds do not race on a shared module-level log level. The
- * exported `logger` is the process-level default used by the public facade.
+ * The exported `logger` is the process-level default. Core modules accept a
+ * `Logger` injection so tests can redirect output.
  */
 export const createLogger = (initialLevel: LogLevel = 'info'): Logger => {
   let current = logLevels[initialLevel]

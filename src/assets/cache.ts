@@ -19,8 +19,7 @@ export interface CachedAssetProcessResult {
  * when a source asset changes.
  */
 export interface AssetProcessingCache {
-  get(key: string): Promise<CachedAssetProcessResult> | undefined
-  set(key: string, sourcePath: string, value: Promise<CachedAssetProcessResult>): void
+  getOrCreate(key: string, sourcePath: string, factory: () => Promise<CachedAssetProcessResult>): Promise<CachedAssetProcessResult>
   recordOwner(sourcePath: string, ownerPath: string): void
   invalidateSource(sourcePath: string): string[]
   hasSource(sourcePath: string): boolean
@@ -56,10 +55,10 @@ export const createAssetProcessingCache = (): AssetProcessingCache => {
   const owners = new Map<string, Set<string>>()
 
   return {
-    get(key) {
-      return entries.get(key)
-    },
-    set(key, sourcePath, value) {
+    getOrCreate(key, sourcePath, factory) {
+      const existing = entries.get(key)
+      if (existing != null) return existing
+      const value = factory()
       entries.set(key, value)
       const keys = sourceKeys.get(sourcePath) ?? new Set<string>()
       keys.add(key)
@@ -77,6 +76,7 @@ export const createAssetProcessingCache = (): AssetProcessingCache => {
           }
         }
       )
+      return value
     },
     recordOwner(sourcePath, ownerPath) {
       let set = owners.get(sourcePath)

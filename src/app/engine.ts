@@ -9,6 +9,7 @@ import { createConfigLoader } from '../config/load'
 import { createWriter } from '../output/write'
 import { logger as defaultLogger } from '../runtime/logger'
 import { createSession } from '../runtime/session'
+import { createBuildStore } from '../runtime/store'
 
 import type { AssetProcessingCache } from '../assets/cache'
 import type { BuildResult, Collections } from '../collections'
@@ -19,6 +20,7 @@ import type { ConfigLoader } from '../config/load'
 import type { OutputState } from '../output/state'
 import type { Writer } from '../output/write'
 import type { Logger, LogLevel } from '../runtime/logger'
+import type { BuildStore } from '../runtime/store'
 
 /**
  * Build options for `build()` and the internal engine.
@@ -128,12 +130,14 @@ interface IncrementalState {
   files: FileCache
   resolved: Map<string, VeliteFile[]>
   assets: AssetProcessingCache
+  store: BuildStore
 }
 
 const createIncrementalState = (): IncrementalState => ({
   files: createFileCache((path, loaders) => VeliteFile.create(path, loaders)),
   resolved: new Map(),
-  assets: createAssetProcessingCache()
+  assets: createAssetProcessingCache(),
+  store: createBuildStore()
 })
 
 export const createEngine = <T extends Collections = Collections>({
@@ -145,11 +149,12 @@ export const createEngine = <T extends Collections = Collections>({
   let currentConfig: ResolvedConfig<T> | undefined
   let currentOptions: BuildOptions = {}
   const outputState: OutputState = { emitted: new Map() }
-  const incremental = createIncrementalState()
+  let incremental = createIncrementalState()
   const clearIncremental = () => {
     incremental.files.clear()
     incremental.resolved.clear()
     incremental.assets.clear()
+    incremental.store = createBuildStore()
   }
 
   const runResolve = async (config: ResolvedConfig<T>, options: BuildOptions, change?: RebuildChange): Promise<BuildResult<T>> => {
@@ -161,6 +166,7 @@ export const createEngine = <T extends Collections = Collections>({
       logger,
       files: incremental.files,
       resolved: incremental.resolved,
+      store: incremental.store,
       assetCache: incremental.assets
     })
     const { result } = await resolver.resolve(session, change)

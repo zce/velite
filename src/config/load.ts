@@ -102,6 +102,9 @@ const RESERVED_TYPE_NAMES = new Set([
 
 const validateCollectionNames = (collections: Collections): void => {
   Object.entries(collections).forEach(([key, collection]) => {
+    if (!TYPE_IDENTIFIER_RE.test(key) || RESERVED_TYPE_NAMES.has(key)) {
+      throw new Error(`collection key '${key}' must be a valid TypeScript identifier`)
+    }
     if (!TYPE_IDENTIFIER_RE.test(collection.name) || RESERVED_TYPE_NAMES.has(collection.name)) {
       throw new Error(`collection '${key}' name '${collection.name}' must be a valid TypeScript identifier`)
     }

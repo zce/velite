@@ -40,6 +40,8 @@ export interface CreateSessionOptions {
   files?: FileCache
   /** Shared resolved collection cache for one engine lifetime. */
   resolved?: Map<string, VeliteFile[]>
+  /** Shared build store for one engine lifetime. When omitted, a fresh store is created per session. */
+  store?: BuildStore
   /** Override the session logger. Defaults to the process-level logger. */
   logger?: Logger
   /** Shared asset processing cache for one engine lifetime. */
@@ -49,15 +51,9 @@ export interface CreateSessionOptions {
 /**
  * Create a fresh build session.
  *
- * `output` may be supplied to share an emit cache across watch rebuilds. When
- * omitted, every session starts with an empty output cache.
- *
- * `files` and `resolved` may be supplied so a long-lived engine can share
- * file and collection state across rebuilds. When omitted, every session
- * starts with empty caches.
- *
- * `logger` may be supplied to redirect log output (e.g. for tests). When
- * omitted, the process-level logger is used.
+ * `output`, `files`, `resolved`, `store`, and `assetCache` may be supplied so
+ * a long-lived engine can share state across rebuilds. When omitted, every
+ * session starts with fresh caches.
  */
 export const createSession = <T extends Collections>(
   config: ResolvedConfig<T>,
@@ -68,7 +64,7 @@ export const createSession = <T extends Collections>(
   options,
   files: sessionOptions.files ?? createFileCache(defaultLoadFile),
   resolved: sessionOptions.resolved ?? new Map(),
-  store: createBuildStore(),
+  store: sessionOptions.store ?? createBuildStore(),
   output: sessionOptions.output ?? { emitted: new Map() },
   logger: sessionOptions.logger ?? defaultLogger,
   assetCache: sessionOptions.assetCache ?? createAssetProcessingCache()

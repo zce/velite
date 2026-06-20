@@ -69,23 +69,18 @@ export const processAsset = async <T extends true | undefined = undefined>(
   if (cache != null) {
     cache.recordOwner(path, from)
     const key = createAssetProcessKey({ sourcePath: path, filename, baseUrl, suffix, isImage: isImage === true, blurOptions })
-    let pending = cache.get(key)
-    if (pending == null) {
-      pending = (async (): Promise<CachedAssetProcessResult> => {
-        const buffer = await readFile(path)
-        const fingerprint = createHash('md5').update(buffer).digest('hex')
-        const outputName = renderName(fingerprint)
-        const publicUrl = baseUrl + outputName + suffix
-        if (isImage !== true) {
-          return { sourcePath: path, outputName, fingerprint, publicUrl }
-        }
-        const metadata = await getImageMetadata(buffer, blurOptions)
-        if (metadata == null) throw new Error(`invalid image: ${from}`)
-        return { sourcePath: path, outputName, fingerprint, publicUrl, image: metadata }
-      })()
-      cache.set(key, path, pending)
-    }
-    const result = await pending
+    const result = await cache.getOrCreate(key, path, async () => {
+      const buffer = await readFile(path)
+      const fingerprint = createHash('md5').update(buffer).digest('hex')
+      const outputName = renderName(fingerprint)
+      const publicUrl = baseUrl + outputName + suffix
+      if (isImage !== true) {
+        return { sourcePath: path, outputName, fingerprint, publicUrl }
+      }
+      const metadata = await getImageMetadata(buffer, blurOptions)
+      if (metadata == null) throw new Error(`invalid image: ${from}`)
+      return { sourcePath: path, outputName, fingerprint, publicUrl, image: metadata }
+    })
     assets.add({ sourcePath: result.sourcePath, outputName: result.outputName, fingerprint: result.fingerprint })
     if (isImage !== true) return result.publicUrl as T extends true ? VeliteImage : string
     return { src: result.publicUrl, ...result.image } as T extends true ? VeliteImage : string

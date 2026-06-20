@@ -4,7 +4,7 @@ import { VeliteFile } from '../collections/file'
 import { logger as defaultLogger } from './logger'
 import { createBuildStore } from './store'
 
-import type { BuildOptions } from '../app/types'
+import type { BuildOptions } from '../app/engine'
 import type { AssetProcessingCache } from '../assets/cache'
 import type { Collections } from '../collections'
 import type { FileCache } from '../collections/cache'

@@ -5,8 +5,7 @@ import { matchPatterns } from '../utils/patterns'
 
 import type { Collections } from '../collections'
 import type { Logger } from '../runtime/logger'
-import type { Engine, RebuildEvent } from './engine'
-import type { BuildOptions } from './types'
+import type { BuildOptions, Engine, RebuildEvent } from './engine'
 
 export interface Watcher {
   close(): Promise<void>

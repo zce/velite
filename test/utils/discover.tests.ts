@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
 import { describe, it } from 'node:test'
 
-import { discover } from '../../src/collections/discover'
+import { discover } from '../../src/utils/discover'
 
 describe('discover', () => {
   it('returns absolute files matching collection patterns and ignores private files', async () => {

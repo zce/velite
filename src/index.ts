@@ -1,11 +1,11 @@
 import { createEngine } from './app/engine'
 import { createWatcher } from './app/watch'
 
-import type { BuildOptions } from './app/types'
+import type { BuildOptions } from './app/engine'
 import type { Watcher } from './app/watch'
 import type { BuildResult, Collections } from './collections'
 
-export type { BuildOptions } from './app/types'
+export type { BuildOptions } from './app/engine'
 export type { Watcher } from './app/watch'
 export type { BlurOptions, VeliteImage } from './assets'
 export type { BuildResult, Collection, Collections, CollectionType } from './collections'
@@ -22,7 +22,7 @@ export type { MdxOptions } from './schemas/mdx'
 export { getImageMetadata } from './assets'
 export { defineCollection } from './collections'
 export { defineConfig } from './config'
-export { defineLoader } from './loaders/types'
+export { defineLoader } from './loaders'
 export { context } from './runtime/context'
 export { defineSchema, s } from './schemas'
 

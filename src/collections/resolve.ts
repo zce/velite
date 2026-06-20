@@ -1,14 +1,13 @@
-import { normalize, relative } from 'node:path'
+import { normalize } from 'node:path'
 import { reporter } from 'vfile-reporter'
 
 import { runWithContext } from '../runtime/context'
-import { matchPatterns } from '../utils/patterns'
-import { discover as defaultDiscover } from './discover'
+import { discover as defaultDiscover } from '../utils/discover'
+import { collectionAffected, normalizePathSet } from '../utils/paths'
 
 import type { RebuildChange } from '../app/engine'
 import type { BuildSession } from '../runtime/session'
 import type { VeliteSchema } from '../schemas'
-import type { Discover } from './discover'
 import type { VeliteFile } from './file'
 import type { BuildResult, Collections } from './index'
 
@@ -53,16 +52,6 @@ const loadFile = async <T extends Collections>(session: BuildSession<T>, path: s
   return file
 }
 
-const normalizePathSet = (paths: readonly string[]): Set<string> => new Set(paths.map(path => normalize(path)))
-
-const collectionAffected = (root: string, pattern: string | string[], paths: Set<string>): boolean => {
-  for (const path of paths) {
-    const rel = relative(root, path).replace(/\\/g, '/')
-    if (matchPatterns(rel, pattern)) return true
-  }
-  return false
-}
-
 /**
  * Create a content resolver.
  *
@@ -76,7 +65,7 @@ const collectionAffected = (root: string, pattern: string | string[], paths: Set
  * It does not write anything to disk; output is the responsibility of
  * `Writer`.
  */
-export const createResolver = (discover: Discover = defaultDiscover): Resolver => ({
+export const createResolver = (discover: typeof defaultDiscover = defaultDiscover): Resolver => ({
   async resolve(session, change) {
     const { config, logger } = session
     const { root, collections } = config

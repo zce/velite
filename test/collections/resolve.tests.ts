@@ -9,7 +9,6 @@ import { createResolver } from '../../src/collections/resolve'
 import { createSession } from '../../src/runtime/session'
 import { s } from '../../src/schemas'
 
-import type { Discover } from '../../src/collections/discover'
 import type { ResolvedConfig } from '../../src/config'
 import type { VeliteLoader } from '../../src/loaders/types'
 import type { Logger } from '../../src/runtime/logger'
@@ -55,7 +54,7 @@ describe('Resolver', () => {
       await writeFile(join(root, 'content', 'a.json'), JSON.stringify({ title: 'A' }))
       await writeFile(join(root, 'content', 'b.json'), JSON.stringify({ title: 'B' }))
 
-      const fakeDiscover: Discover = async () => {
+      const fakeDiscover = async () => {
         return [join(root, 'content', 'a.json'), join(root, 'content', 'b.json')]
       }
 
@@ -85,7 +84,7 @@ describe('Resolver', () => {
       await mkdir(join(root, 'content'))
       await writeFile(join(root, 'content', 'options.json'), JSON.stringify({ name: 'site' }))
 
-      const fakeDiscover: Discover = async () => {
+      const fakeDiscover = async () => {
         return [join(root, 'content', 'options.json')]
       }
 
@@ -113,7 +112,7 @@ describe('Resolver', () => {
       await mkdir(join(root, 'content'))
       await writeFile(join(root, 'content', 'bad.json'), JSON.stringify({ title: 123 }))
 
-      const fakeDiscover: Discover = async () => {
+      const fakeDiscover = async () => {
         return [join(root, 'content', 'bad.json')]
       }
 
@@ -139,7 +138,7 @@ describe('Resolver', () => {
       await mkdir(join(root, 'content'))
       await writeFile(join(root, 'content', 'bad.json'), JSON.stringify({ title: 123 }))
 
-      const fakeDiscover: Discover = async () => {
+      const fakeDiscover = async () => {
         return [join(root, 'content', 'bad.json')]
       }
 
@@ -169,7 +168,7 @@ describe('Resolver', () => {
       await writeFile(join(root, 'content', 'asset.txt'), 'hello')
       await writeFile(join(root, 'content', 'item.json'), JSON.stringify({ title: 'A', file: 'asset.txt' }))
 
-      const fakeDiscover: Discover = async () => {
+      const fakeDiscover = async () => {
         return [join(root, 'content', 'item.json')]
       }
 
@@ -199,7 +198,7 @@ describe('Resolver', () => {
       await writeFile(tagsPath, JSON.stringify({ title: 'Tag' }))
 
       const discoverCalls: string[] = []
-      const fakeDiscover: Discover = async (_root, pattern) => {
+      const fakeDiscover = async (_root, pattern) => {
         discoverCalls.push(String(pattern))
         return String(pattern).includes('post') ? [postsPath] : [tagsPath]
       }
@@ -242,7 +241,7 @@ describe('Resolver', () => {
       await writeFile(b, JSON.stringify({ title: 'B' }))
 
       let paths = [a, b]
-      const fakeDiscover: Discover = async () => {
+      const fakeDiscover = async () => {
         return paths
       }
       const config = buildConfig(root, {
@@ -274,7 +273,7 @@ describe('Resolver', () => {
 
       let returnedPaths = [itemPath]
       let discoverCalls = 0
-      const fakeDiscover: Discover = async () => {
+      const fakeDiscover = async () => {
         discoverCalls++
         return returnedPaths
       }
@@ -310,7 +309,7 @@ describe('Resolver', () => {
       await writeFile(join(root, 'content', 'empty.json'), JSON.stringify({ value: 'empty' }))
 
       const files = [join(root, 'content', 'zero.json'), join(root, 'content', 'false.json'), join(root, 'content', 'empty.json')]
-      const fakeDiscover: Discover = async () => {
+      const fakeDiscover = async () => {
         return files
       }
 

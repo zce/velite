@@ -2,27 +2,28 @@
 import { parseArgs } from 'node:util'
 
 import { name, version } from '../package.json'
-import { build } from './index'
+import { build, watch } from './app/build'
 import { logger } from './runtime/logger'
 
-const parse: typeof parseArgs = config => {
+import type { LogLevel } from './runtime/logger'
+
+const parseOrExit: typeof parseArgs = config => {
   try {
     return parseArgs(config)
-  } catch (err: any) {
-    logger.error(err.message)
+  } catch (err) {
+    logger.error(err instanceof Error ? err.message : String(err))
     process.exit(1)
   }
 }
 
-const { values, positionals } = parse({
+const { values, positionals } = parseOrExit({
   allowPositionals: true,
   options: {
     config: { type: 'string', short: 'c' },
     clean: { type: 'boolean', default: false },
-    watch: { type: 'boolean', default: false },
+    strict: { type: 'boolean', short: 's', default: false },
     verbose: { type: 'boolean', default: false },
     silent: { type: 'boolean', default: false },
-    strict: { type: 'boolean', short: 's', default: false },
     debug: { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
     version: { type: 'boolean', short: 'v', default: false }
@@ -48,10 +49,9 @@ Commands:
 Options:
   -c, --config <path>  Use specified config file
   --clean              Clean output directory before build
-  --watch              Watch for changes and rebuild
+  --strict             Throw on any schema validation failure
   --verbose            Print additional information
   --silent             Silent mode (no output)
-  --strict             Throw error and terminate process if any schema validation fails
   --debug              Output full error stack trace
   -h, --help           Display this message
   -v, --version        Display version number
@@ -59,12 +59,30 @@ Options:
   process.exit(0)
 }
 
-values.watch = positionals[0] === 'dev' || values.watch
+const command = positionals[0]
+if (command != null && command !== 'dev' && command !== 'build') {
+  logger.error(`unknown command '${command}', use 'velite build' or 'velite dev'`)
+  process.exit(1)
+}
 
-const logLevel = values.silent ? 'silent' : values.verbose ? 'debug' : 'info'
+const isDev = command === 'dev'
+const logLevel: LogLevel = values.silent ? 'silent' : values.verbose ? 'debug' : 'info'
 
-build({ ...values, logLevel }).catch(err => {
-  logger.error(err.message)
+const options = {
+  config: values.config,
+  clean: values.clean,
+  strict: values.strict,
+  logLevel
+}
+
+const fail = (err: unknown): void => {
+  logger.error(err instanceof Error ? err.message : String(err))
   if (values.debug) throw err
   process.exit(1)
-})
+}
+
+if (isDev) {
+  watch(options).catch(fail)
+} else {
+  build(options).catch(fail)
+}

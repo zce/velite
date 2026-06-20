@@ -1,44 +1,25 @@
 /**
- * Output options
+ * Public output configuration.
+ *
+ * Physical output layout (single vs split) is intentionally not part of the
+ * 1.0 user-facing config; it is an internal strategy selected during output
+ * planning (split for dev/watch, single for production one-shot builds).
  */
-export interface VeliteOutput {
-  /**
-   * The output directory of the data files (relative to config file).
-   * @default '.velite'
-   */
+export interface OutputConfig {
+  /** Output directory of the data files (relative to the config file). @default '.velite' */
   data: string
-  /**
-   * The directory of the assets (relative to config file),
-   * should be served statically by the app
-   * `--clean` will automatically clear this directory
-   * @default 'public/static'
-   */
+  /** Directory of the assets (relative to the config file). @default 'public/static' */
   assets: string
-  /**
-   * The public base path of the assets
-   * @default '/static/'
-   * @example
-   * '/' -> '/image.png'
-   * '/static/' -> '/static/image.png'
-   * './static/' -> './static/image.png'
-   * 'https://cdn.example.com/' -> 'https://cdn.example.com/image.png'
-   */
-  base: '/' | `/${string}/` | `.${string}/` | `${string}:${string}/`
-  /**
-   * This option determines the name of each output asset.
-   * The asset will be written to the directory specified in the `output.assets` option.
-   * You can use `[name]`, `[hash]` and `[ext]` template strings with specify length.
-   * @default '[name]-[hash:8].[ext]'
-   */
-  name: string
-  /**
-   * Whether to clean the output directories before build
-   * @default false
-   */
-  clean: boolean
-  /**
-   * Output entry file format
-   * @default 'esm'
-   */
+  /** Public base path of the assets. @default '/static/' */
+  base: string
+  /** Output entry file format. @default 'esm' */
   format: 'esm' | 'cjs'
+  /** Whether to clean the output directories before build. @default false */
+  clean: boolean
 }
+
+export type { OutputPlan, OutputWrite, RecordInput, SplitState } from './plan'
+export { createWriter } from './write'
+export type { Writer, WriterOptions } from './write'
+export { planAssets, planEntry, planSingleCollection, planSplitCollectionEntry, planSplitOutput, planTypes } from './plan'
+export { collectionDataPath, collectionEntryPath, recordFilePath } from './layout'

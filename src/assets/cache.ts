@@ -1,4 +1,4 @@
-import type { BlurOptions, VeliteImage } from './image'
+import type { ImageData } from './image'
 
 /** Cached result of processing a single asset reference. */
 export interface CachedAssetProcessResult {
@@ -6,17 +6,16 @@ export interface CachedAssetProcessResult {
   readonly outputName: string
   readonly fingerprint: string
   readonly publicUrl: string
-  readonly image?: Omit<VeliteImage, 'src'>
+  readonly image?: Omit<ImageData, 'src'>
 }
 
 /**
  * Internal cache for `processAsset` results.
  *
- * Keyed by a stable JSON serialization of the inputs so that repeated
- * references to the same asset across owners share a single read/hash/sharp
- * pipeline. The cache also tracks which content files (owners) have referenced
- * which source paths, so that watch mode can invalidate the right entries
- * when a source asset changes.
+ * Keyed by a stable serialization of the inputs so repeated references to the
+ * same asset across owners share a single read/hash/sharp pipeline. The cache
+ * also tracks which content files (owners) referenced which source paths, so
+ * watch mode can invalidate the right entries when a source asset changes.
  */
 export interface AssetProcessingCache {
   getOrCreate(key: string, sourcePath: string, factory: () => Promise<CachedAssetProcessResult>): Promise<CachedAssetProcessResult>
@@ -33,12 +32,12 @@ export interface AssetProcessKeyInput {
   baseUrl: string
   suffix: string
   isImage: boolean
-  blurOptions?: BlurOptions
+  blurOptions?: unknown
 }
 
 /** Build a stable cache key for `processAsset` inputs. */
-export const createAssetProcessKey = (input: AssetProcessKeyInput): string => {
-  return JSON.stringify({
+export const createAssetProcessKey = (input: AssetProcessKeyInput): string =>
+  JSON.stringify({
     sourcePath: input.sourcePath,
     filename: input.filename,
     baseUrl: input.baseUrl,
@@ -46,7 +45,6 @@ export const createAssetProcessKey = (input: AssetProcessKeyInput): string => {
     isImage: input.isImage,
     blurOptions: input.blurOptions ?? null
   })
-}
 
 /** Create an in-memory asset processing cache. */
 export const createAssetProcessingCache = (): AssetProcessingCache => {

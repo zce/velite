@@ -35,7 +35,7 @@ export default defineConfig({
 })
 ```
 
-In addition, Velite also provides a `UserConfig` type to describe the config file type. Runtime hooks and schema contexts receive `ResolvedConfig`, which is the fully resolved build config.
+In addition, Velite also provides a `UserConfig` type to describe the config file type. Schema contexts receive a `ProjectInfo` view of the resolved project; the full internal resolved project is not part of the public API.
 
 ```js
 /** @type {import('velite').UserConfig} */
@@ -106,20 +106,6 @@ The directory of the assets, relative to resolved config file. This directory sh
 
 The public base path of the assets. This option is used to generate the asset URLs. It should be the same as the `base` option of the app and end with a slash.
 
-### `output.name`
-
-- Type: `string`
-- Default: `'[name]-[hash:8].[ext]'`
-
-This option determines the name of each output asset. The asset will be written to the directory specified in the `output.assets` option. You can use `[name]`, `[hash]` and `[ext]` template strings with specify length.
-
-<!-- ### `output.ignore`
-
-- Type: `string[]`
-- Default: `[]`
-
-The extensions blacklist of the assets, such as `['.md', '.yml']`, will be ignored when copy assets to output directory. -->
-
 ### `output.clean`
 
 - Type: `boolean`
@@ -140,21 +126,21 @@ The output format of the entry file.
 
 The collections definition.
 
-### `collections[name].name`
+### `collections[key].typeName`
 
 - Type: `string`
 
-The name of the collection. This is used to generate the type name for the collection.
+The generated TypeScript type name for the collection.
 
 ```js
 const posts = defineCollection({
-  name: 'Post'
+  typeName: 'Post'
 })
 ```
 
-The type name is usually a singular noun, but it can be any valid TypeScript identifier.
+The type name is usually a singular noun, but it can be any valid TypeScript identifier. The collection object key is the data export name; `typeName` is the generated type name.
 
-### `collections[name].pattern`
+### `collections[key].pattern`
 
 - Type: `string`
 
@@ -166,7 +152,7 @@ const posts = defineCollection({
 })
 ```
 
-### `collections[name].single`
+### `collections[key].single`
 
 - Type: `boolean`
 - Default: `false`
@@ -180,7 +166,7 @@ const site = defineCollection({
 })
 ```
 
-### `collections[name].schema`
+### `collections[key].schema`
 
 - Type: `VeliteSchema`, See [Schema](../guide/velite-schemas.md) for more information.
 
@@ -199,7 +185,7 @@ const posts = defineCollection({
 
 ## `loaders`
 
-- Type: `VeliteLoader[]`, See [VeliteLoader](types.md#veliteloader)
+- Type: `Loader[]`, See [Loader](types.md#loader)
 - Default: `[]`, built-in loaders: `'json'`, `'yaml'`, `'matter'`
 
 The file loaders. You can use it to load files that are not supported by Velite. For more information, see [Custom Loaders](../guide/custom-loader.md).
@@ -276,29 +262,34 @@ More options, see [MDX Compile Options](https://mdxjs.com/packages/mdx/#compileo
 
 ## `prepare`
 
-- Type: `(data: BuildResult<Collections>, context: HookContext) => Promisable<void | false>`
+- Type: `(data: BuildResult<Collections>, context: PrepareContext) => Promisable<void | false | BuildResult<Collections>>`
 
-Data prepare hook, executed before write to file. You can apply additional processing to the output data, such as modify them, add missing data, handle relationships, or write them to files. return false to prevent the default output to a file if you wanted.
+The output-oriented `prepare` hook, executed after schema validation and collection aggregation, before the default output is written. It receives the complete logical build result and may:
+
+- mutate the result in place and return `void` (the mutations are kept);
+- return a new `BuildResult` to replace the current result;
+- return `false` to skip the default data output (assets are still emitted).
+
+Partial patch return values are not supported. Adding new top-level collection keys inside `prepare` is possible but is not a type-safe 1.0 contract.
 
 ```js
 export default defineConfig({
   collections: { posts, tags },
   prepare: (data, context) => {
-    // modify data
+    // mutate the result in place
     data.posts.push({ ... })
     data.tags.push({ ... })
 
-    // context
-    const { config } = context
-    // config is resolved from `velite.config.js` with default values
+    // context.project is a stable view of the resolved project
+    const { project, diagnostics } = context
 
-    // return false to prevent the default output to a file
+    // return false to skip the default data output
   }
 })
 ```
 
-## `complete`
+::: tip
 
-- Type: `(data: BuildResult<Collections>, context: HookContext) => Promisable<void>`
+`prepare` only acts on the logical output. Physical output layout (single vs split) and file writes are decided afterwards and are not part of the public config.
 
-Build success hook, executed after the build is complete. You can do anything after the build is complete, such as print some tips or deploy the output files.
+:::

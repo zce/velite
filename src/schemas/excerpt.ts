@@ -1,31 +1,23 @@
-import { custom } from 'zod'
+import * as z from 'zod'
 
-import { context } from '../runtime/context'
+import { getContext } from './context'
 
+/** Options for the excerpt schema. */
 export interface ExcerptOptions {
-  // /**
-  //  * Excerpt separator.
-  //  * @default 'more'
-  //  * @example
-  //  * s.excerpt({ separator: 'preview' }) // split excerpt by `<!-- preview -->`
-  //  */
-  // separator?: string
-  /**
-   * Excerpt length.
-   * @default 260
-   */
+  /** Excerpt length. @default 260 */
   length?: number
 }
 
-export const excerpt = ({ length = 260 }: ExcerptOptions = {}) =>
-  custom<string>(i => typeof i === 'string')
+/** Extract a plain-text excerpt from the current content. */
+export const excerpt = ({ length = 260 }: ExcerptOptions = {}): z.ZodType<string> =>
+  z
+    .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
-      value = value ?? context().file.plain
-      if (value == null || value.length === 0) {
+      const body = value ?? getContext().file.plain
+      if (body == null || body.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
         return ''
       }
-
-      return value.slice(0, length)
+      return body.slice(0, length)
     })

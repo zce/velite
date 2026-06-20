@@ -1,41 +1,53 @@
-import type { Data, VFile } from 'vfile'
+/** A value or a promise of the value. */
+export type Promisable<T> = T | Promise<T>
 
-type Promisable<T> = T | Promise<T>
+/** A source file ready to be loaded. */
+export interface LoaderSource {
+  readonly id: string
+  readonly path: string
+  readonly content: string | Uint8Array
+}
 
-declare module 'vfile' {
-  interface DataMap {
-    /**
-     * original data loaded from file
-     */
-    data: unknown
-    /**
-     * content without frontmatter
-     */
-    content: string
-    /**
-     * content plain text
-     */
-    plain: string
-  }
+/** Context passed to a loader's `load` function. */
+export interface LoaderContext {
+  readonly source: LoaderSource
+}
+
+/** A single raw record produced by a loader. */
+export interface LoaderRecord {
+  /** Stable record key forming part of the record identity. */
+  key?: string
+  /** Raw record data, to be validated by the collection schema. */
+  data: unknown
+  /** Loader-specific metadata, not part of the stable user data model. */
+  metadata?: Record<string, unknown>
+}
+
+/** Result of loading a source. */
+export interface LoaderResult {
+  records: LoaderRecord[]
+  /** Additional source dependencies the loader read (enter the dependency graph). */
+  dependencies?: string[]
+  /** Source-level metadata. */
+  metadata?: Record<string, unknown>
 }
 
 /**
- * File data loader
+ * A loader turns a `LoaderSource` into one or more raw `LoaderRecord`s.
+ *
+ * Loaders do not perform schema validation and do not write output. They may
+ * declare additional source dependencies, which enter the dependency graph.
  */
-export interface VeliteLoader {
-  /**
-   * File test regexp
-   * @example /\.md$/
-   */
-  test: RegExp
-  /**
-   * Load file data from file.value
-   * @param file vfile
-   */
-  load: (file: VFile) => Promisable<Data>
+export interface Loader {
+  test: RegExp | ((source: LoaderSource) => boolean)
+  load(source: LoaderSource, context: LoaderContext): Promisable<LoaderResult>
 }
 
-/**
- * Define a loader (identity function for type inference)
- */
-export const defineLoader = <T extends VeliteLoader>(loader: T): T => loader
+/** Match a loader against a source path. */
+export const matchesLoader = (loader: Loader, source: LoaderSource): boolean => {
+  if (typeof loader.test === 'function') return loader.test(source)
+  return loader.test.test(source.path)
+}
+
+/** Define a loader (identity helper for type inference). */
+export const defineLoader = <T extends Loader>(loader: T): T => loader

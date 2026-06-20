@@ -1,7 +1,9 @@
-import json from './json'
-import matter from './matter'
-import yaml from './yaml'
+import { jsonLoader } from './json'
+import { matterLoader } from './matter'
+import { yamlLoader } from './yaml'
 
-export { defineLoader } from './types'
+export type { Loader, LoaderContext, LoaderRecord, LoaderResult, LoaderSource, Promisable } from './types'
+export { defineLoader, matchesLoader } from './types'
 
-export const loaders = [json, yaml, matter]
+/** Built-in loaders, applied in order after any user-supplied loaders. */
+export const builtinLoaders = [jsonLoader, yamlLoader, matterLoader]

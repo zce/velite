@@ -1,18 +1,33 @@
 import { resolve } from 'node:path'
 
+import { matchPatterns } from '../collections/discover'
+import { VeliteError } from '../core/diagnostics'
 import { logger as defaultLogger } from '../runtime/logger'
-import { matchPatterns } from '../utils/patterns'
 
-import type { Collections } from '../collections'
+import type { BuildResult, Collections } from '../collections'
+import type { Diagnostic } from '../core/diagnostics'
 import type { Logger } from '../runtime/logger'
 import type { BuildOptions, Engine, RebuildEvent } from './engine'
 
-export interface Watcher {
+/** A build event observed by the `onBuild` callback. */
+export type WatchBuildEvent<TCollections extends Collections = Collections> =
+  | { type: 'success'; result: BuildResult<TCollections>; diagnostics: readonly Diagnostic[] }
+  | { type: 'failure'; error: VeliteError; diagnostics: readonly Diagnostic[] }
+
+/** Options for `watch()`. */
+export interface WatchOptions extends BuildOptions {
+  /** Observer callback invoked after each build run (not a pipeline hook). */
+  onBuild?: (event: WatchBuildEvent) => void | Promise<void>
+}
+
+/** A closeable watch handle. */
+export interface Watcher<TCollections extends Collections = Collections> {
+  readonly closed: boolean
   close(): Promise<void>
 }
 
 export interface WatchController {
-  start<T extends Collections>(engine: Engine<T>, options: BuildOptions): Promise<Watcher>
+  start<T extends Collections>(engine: Engine, options: WatchOptions): Promise<Watcher<T>>
 }
 
 export interface WatcherOptions {
@@ -22,96 +37,167 @@ export interface WatcherOptions {
 /**
  * Create a watch controller bound to a build engine.
  *
- * The controller:
- *   - watches `engine.config.root` plus `configImports`,
- *   - on a content change matching a collection pattern, calls
- *     `engine.rebuild()`,
- *   - on a config dependency change, closes the watcher, calls
- *     `engine.build(options)`, and re-arms a new watcher
- *     against the freshly resolved config.
- *
- * The controller never holds a `BuildSession`; sessions are created and
- * discarded inside the engine on every (re)build.
+ * The controller serializes rebuilds: at most one build run executes at a time,
+ * and file events arriving during a run coalesce into a single pending rebuild.
+ * Content changes matching a collection pattern trigger an incremental rebuild;
+ * asset changes outside any pattern invalidate the referencing owners; config
+ * dependency changes trigger a safe reload (fresh session). `close()` stops
+ * accepting new events and waits for the in-flight run to finish or roll back.
  */
 export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): WatchController => {
-  const armWatcher = async <T extends Collections>(engine: Engine<T>, options: BuildOptions): Promise<Watcher> => {
-    const config = engine.config
-    if (config == null) {
-      throw new Error('engine.config missing — call engine.build() before starting the watcher')
+  const arm = async <T extends Collections>(engine: Engine, options: WatchOptions): Promise<Watcher<T>> => {
+    // initial build (sets engine.config); failures reject the watch() promise
+    const initial = await engine.build(options)
+    if (options.onBuild != null) {
+      await options.onBuild({ type: 'success', result: initial as BuildResult<T>, diagnostics: engine.diagnostics })
     }
 
+    const project = engine.config
+    if (project == null) throw new Error('engine.config missing — call engine.build() before starting the watcher')
+
     const { watch } = await import('chokidar')
-    const { root, collections, configImports } = config
-    const patterns = Object.values(collections).flatMap(({ pattern }) => pattern)
+    const root = project.root
+    let configImports = project.configImports
+    let patterns = Object.values(project.collections).flatMap(({ pattern }) => (Array.isArray(pattern) ? pattern : [pattern]))
 
-    logger.info(`watching for changes in '${root}'`)
+    /** Re-read patterns/configImports from the latest resolved project (after a reload). */
+    const refreshFromProject = (): void => {
+      const latest = engine.config
+      if (latest == null) return
+      configImports = latest.configImports
+      patterns = Object.values(latest.collections).flatMap(({ pattern }) => (Array.isArray(pattern) ? pattern : [pattern]))
+    }
 
-    const watcher = watch(['.', ...configImports], {
-      cwd: root,
-      ignoreInitial: true,
-      awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 }
-    })
+    const handle: { active: boolean; chokidar?: { close(): Promise<void> } } = { active: true }
 
-    // `current` is replaced after a config reload so that the public Watcher
-    // returned by `start()` always closes the most recently armed watcher.
-    const handle: { active: boolean; replacement?: Watcher } = { active: true }
+    // serialized rebuild queue
+    let running: Promise<void> | undefined
+    let pendingPaths = new Set<string>()
+    let pendingEvent: RebuildEvent = 'change'
+    let reloadPending = false
 
-    watcher.on('all', async (event, filename): Promise<void> => {
+    const emit = async (event: WatchBuildEvent): Promise<void> => {
+      if (options.onBuild != null) {
+        try {
+          await options.onBuild(event)
+        } catch (err) {
+          logger.warn?.(`onBuild callback failed: ${err instanceof Error ? err.message : String(err)}`)
+        }
+      }
+    }
+
+    const runReload = async (): Promise<void> => {
+      try {
+        const result = await engine.build(options)
+        await emit({ type: 'success', result, diagnostics: engine.diagnostics })
+      } catch (err) {
+        const error = err instanceof VeliteError ? err : new VeliteError(err instanceof Error ? err.message : String(err))
+        await emit({ type: 'failure', error, diagnostics: engine.diagnostics })
+      } finally {
+        // build() resolves a fresh project (and updates engine.config) whether it
+        // succeeds or fails, so the watcher must classify subsequent events
+        // against the new collection patterns regardless of the run outcome.
+        refreshFromProject()
+      }
+    }
+
+    const runRebuild = async (): Promise<void> => {
+      const paths = Array.from(pendingPaths)
+      const event = pendingEvent
+      pendingPaths = new Set()
+      try {
+        const result = await engine.rebuild({ event, paths })
+        await emit({ type: 'success', result, diagnostics: engine.diagnostics })
+      } catch (err) {
+        const error = err instanceof VeliteError ? err : new VeliteError(err instanceof Error ? err.message : String(err))
+        await emit({ type: 'failure', error, diagnostics: engine.diagnostics })
+      }
+    }
+
+    const drain = async (): Promise<void> => {
+      if (running != null) return
+      while (handle.active && (reloadPending || pendingPaths.size > 0)) {
+        if (reloadPending) {
+          reloadPending = false
+          running = runReload()
+        } else {
+          running = runRebuild()
+        }
+        try {
+          await running
+        } finally {
+          running = undefined
+        }
+      }
+    }
+
+    const enqueueContent = (event: RebuildEvent, path: string): void => {
+      if (event !== 'add') pendingEvent = event === 'unlink' ? 'unlink' : pendingEvent === 'unlink' ? 'unlink' : 'change'
+      pendingPaths.add(path)
+      void drain()
+    }
+
+    logger.info?.(`watching for changes in '${root}'`)
+
+    const watcher = watch([root, ...configImports], { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 } })
+    handle.chokidar = watcher
+
+    watcher.on('all', (event, filename) => {
       if (!handle.active) return
       if (event === 'addDir' || event === 'unlinkDir') return
       if (filename == null || typeof filename !== 'string') return
 
-      try {
-        const fullpath = resolve(root, filename)
+      const fullpath = resolve(root, filename)
+      const relative = filename.replaceAll('\\', '/')
 
+      try {
         if (configImports.includes(fullpath)) {
-          logger.info('velite config changed, restarting...')
-          handle.active = false
-          await watcher.close()
-          await engine.build(options)
-          handle.replacement = await armWatcher(engine, options)
+          logger.info?.('velite config changed, reloading...')
+          reloadPending = true
+          pendingPaths.clear()
+          void drain()
           return
         }
 
-        if (matchPatterns(filename, patterns)) {
+        if (matchPatterns(relative, patterns) || matchPatterns(fullpath, patterns, root)) {
           const rebuildEvent: RebuildEvent = event === 'add' || event === 'unlink' ? event : 'change'
-          const begin = performance.now()
-          logger.info(`changed: '${fullpath}', rebuilding...`)
-          await engine.rebuild({ event: rebuildEvent, paths: [fullpath] })
-          logger.info('rebuild finished', begin)
+          logger.info?.(`changed: '${fullpath}', rebuilding...`)
+          enqueueContent(rebuildEvent, fullpath)
           return
         }
 
         if (engine.hasAssetSource(fullpath)) {
           const owners = engine.invalidateAssetSource(fullpath)
           if (owners.length === 0) return
-          const begin = performance.now()
-          logger.info(`asset changed: '${fullpath}', rebuilding ${owners.length} owner(s)...`)
-          await engine.rebuild({ event: 'change', paths: owners })
-          logger.info('rebuild finished', begin)
-          return
+          logger.info?.(`asset changed: '${fullpath}', rebuilding ${owners.length} owner(s)...`)
+          for (const owner of owners) enqueueContent('change', owner)
         }
       } catch (err) {
-        logger.warn(err)
+        logger.warn?.(err instanceof Error ? err.message : String(err))
       }
     })
 
     return {
+      get closed() {
+        return !handle.active
+      },
       async close() {
-        if (handle.active) {
-          handle.active = false
-          await watcher.close()
+        handle.active = false
+        if (running != null) {
+          try {
+            await running
+          } catch {
+            // in-flight run rolled back
+          }
         }
-        if (handle.replacement != null) {
-          await handle.replacement.close()
-        }
+        await handle.chokidar?.close()
       }
     }
   }
 
   return {
     start(engine, options) {
-      return armWatcher(engine, options)
+      return arm(engine, options)
     }
   }
 }

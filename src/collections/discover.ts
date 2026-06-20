@@ -1,4 +1,4 @@
-import { normalize, relative } from 'node:path'
+import { relative } from 'node:path'
 import pm from 'picomatch'
 import { glob } from 'tinyglobby'
 
@@ -17,30 +17,26 @@ export const matchPatterns = (input: string, patterns: string | string[], base?:
     else normal.push(p)
   }
 
+  let rel = input
   if (base != null) {
-    input = relative(base, input).replace(/^\.[\\/]/, '')
+    rel = relative(base, input).replace(/^\.[\\/]/, '')
   }
+  rel = rel.replaceAll('\\', '/')
 
-  input = input.replaceAll('\\', '/')
-
-  return normal.some(p => pm(p)(input)) && negated.every(p => pm(p)(input))
+  return normal.some(p => pm(p)(rel)) && negated.every(p => pm(p)(rel))
 }
 
 /**
  * Glob collection patterns relative to `root`, returning absolute file paths.
+ *
+ * Files or directories starting with `_` are ignored (Velite convention for
+ * partials/drafts that should not be treated as content sources).
  */
 export const discover = (root: string, patterns: string | string[]): Promise<string[]> =>
   glob(patterns, { cwd: root, absolute: true, onlyFiles: true, ignore: ['**/_*'] })
 
-/**
- * Normalize an array of paths into a Set of normalized absolute paths.
- */
-export const normalizePathSet = (paths: readonly string[]): Set<string> => new Set(paths.map(path => normalize(path)))
-
-/**
- * Whether any path in `paths` matches the given glob `pattern` relative to `root`.
- */
-export const collectionAffected = (root: string, pattern: string | string[], paths: Set<string>): boolean => {
+/** Whether any path in `paths` matches `pattern` relative to `root`. */
+export const collectionAffected = (root: string, pattern: string | string[], paths: ReadonlySet<string>): boolean => {
   for (const path of paths) {
     const rel = relative(root, path).replace(/\\/g, '/')
     if (matchPatterns(rel, pattern)) return true

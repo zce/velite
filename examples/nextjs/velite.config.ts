@@ -33,7 +33,7 @@ const timestamp = () =>
     })
 
 const options = defineCollection({
-  name: 'Options',
+  typeName: 'Options',
   pattern: 'options/index.yml',
   single: true,
   schema: s.object({
@@ -48,7 +48,7 @@ const options = defineCollection({
 })
 
 const categories = defineCollection({
-  name: 'Category',
+  typeName: 'Category',
   pattern: 'categories/*.yml',
   schema: s
     .object({
@@ -62,7 +62,7 @@ const categories = defineCollection({
 })
 
 const tags = defineCollection({
-  name: 'Tag',
+  typeName: 'Tag',
   pattern: 'tags/index.yml',
   schema: s
     .object({
@@ -76,7 +76,7 @@ const tags = defineCollection({
 })
 
 const pages = defineCollection({
-  name: 'Page',
+  typeName: 'Page',
   pattern: 'pages/**/*.mdx',
   schema: s
     .object({
@@ -88,13 +88,13 @@ const pages = defineCollection({
 })
 
 const posts = defineCollection({
-  name: 'Post',
+  typeName: 'Post',
   pattern: 'posts/**/*.md',
   schema: s
     .object({
       title: s.string().max(99),
       slug: s.slug('post'),
-      date: s.isodate(),
+      date: s.isoDate(),
       updated: timestamp(),
       cover: s.image().optional(),
       video: s.file().optional(),
@@ -118,7 +118,6 @@ export default defineConfig({
     data: '.velite',
     assets: 'public/static',
     base: '/static/',
-    name: '[name]-[hash:6].[ext]',
     clean: true
   },
   collections: { options, categories, tags, pages, posts },

@@ -10,7 +10,7 @@ import { s } from 'velite'
 // `s` includes Zod helpers and Velite custom schemas.
 ```
 
-## `s.isodate()`
+## `s.isoDate()`
 
 `string => string`
 
@@ -19,7 +19,7 @@ Format date string to ISO date string.
 This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
 ```ts
-date: s.isodate()
+date: s.isoDate()
 // case 1. valid date string
 // '2017-01-01' => '2017-01-01T00:00:00.000Z'
 
@@ -121,9 +121,9 @@ allow non-relative path, if true, the value will be returned directly, if false,
 
 ## `s.image(options)`
 
-`string => VeliteImage`
+`string => ImageData`
 
-Image path relative to the current file, like `s.file()`. Relative images are copied to `config.output.assets` and returned as [VeliteImage](#types) objects.
+Image path relative to the current file, like `s.file()`. Relative images are copied to `config.output.assets` and returned as [ImageData](#types) objects.
 
 This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
@@ -177,7 +177,7 @@ avatar: s.image({ blur: { width: 16, quality: 30 } })
 /**
  * Image object with metadata & blur image
  */
-interface VeliteImage {
+interface ImageData {
   /**
    * public url of the image
    */

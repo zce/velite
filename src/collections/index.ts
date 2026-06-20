@@ -1,61 +1,33 @@
-import type { VeliteSchema } from '../schemas'
+import type { InferSchema, VeliteSchema } from '../schemas'
 
 /**
- * Collection options
+ * A content collection: a matching rule, an output shape and a schema.
  */
-export interface Collection {
-  /**
-   * Collection name (singular), for types generation
-   * @example
-   * 'Post'
-   */
-  name: string
-  /**
-   * Collection glob pattern, based on `root`
-   * @example
-   * 'posts/*.md'
-   * ['posts/*.md', '!posts/index.md']
-   */
+export interface Collection<TSchema extends VeliteSchema = VeliteSchema> {
+  /** Generated TypeScript type name, e.g. `Post`. */
+  typeName: string
+  /** Glob pattern(s) relative to the content root, supporting `!negation`. */
   pattern: string | string[]
-  /**
-   * Whether the schema is single
-   * @default false
-   */
+  /** Whether the collection result is a single record instead of an array. */
   single?: boolean
-  /**
-   * Collection schema
-   * @see {@link https://zod.dev}
-   * @example
-   * s.object({
-   *   title: s.string(), // from frontmatter
-   *   description: s.string().optional(), // from frontmatter
-   *   excerpt: s.string() // from markdown body,
-   *   content: s.string() // from markdown body
-   * })
-   */
-  schema: VeliteSchema
+  /** Schema validating and transforming each record. */
+  schema: TSchema
 }
 
-/**
- * All collections
- */
+/** All collections keyed by their data export name. */
 export interface Collections {
-  [name: string]: Collection
+  [collectionKey: string]: Collection
 }
 
-/**
- * Collection Type
- */
-export type CollectionType<T extends Collections, P extends keyof T> = T[P]['single'] extends true
-  ? T[P]['schema']['_output']
-  : Array<T[P]['schema']['_output']>
+/** The result type of a single collection. */
+export type CollectionResult<TCollection extends Collection> = TCollection['single'] extends true
+  ? InferSchema<TCollection['schema']>
+  : Array<InferSchema<TCollection['schema']>>
 
-/**
- * All collections result
- */
-export type BuildResult<T extends Collections> = { [P in keyof T]: CollectionType<T, P> }
+/** The full build result: each collection key mapped to its result. */
+export type BuildResult<TCollections extends Collections = Collections> = {
+  [K in keyof TCollections]: CollectionResult<TCollections[K]>
+}
 
-/**
- * Define a collection (identity function for type inference)
- */
+/** Define a collection (identity helper for type inference). */
 export const defineCollection = <T extends Collection>(collection: T): T => collection

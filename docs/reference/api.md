@@ -41,22 +41,6 @@ Specify the config file path.
 
 Clean output directories before build.
 
-#### `options.watch`
-
-- Type: `boolean`
-- Default: `false`
-
-Watch files and rebuild on changes.
-
-For programmatic watch mode, prefer [`watch()`](#watch) so you can close the returned watcher handle. `build({ watch: true })` preserves the historical build facade behavior and still returns only the initial build result.
-
-<!-- #### `options.production`
-
-- Type: `boolean`
-- Default: `false`
-
-Whether to build in production mode. -->
-
 #### `options.logLevel`
 
 - Type: `'debug' | 'info' | 'warn' | 'error' | 'silent'`
@@ -71,11 +55,30 @@ Log level.
 
 If true, throws an error and terminates the process if any schema validation fails. Otherwise, a warning is logged but the process does not terminate.
 
+#### `options.cwd`
+
+- Type: `string`
+- Default: `process.cwd()`
+
+Working directory for embedded calls and config discovery.
+
+#### `options.logger`
+
+- Type: `Logger`
+
+Inject a custom logger (framework integrations / tests). Diagnostics remain the structured error model.
+
+#### `options.signal`
+
+- Type: `AbortSignal`
+
+Abort the in-flight build run. An aborted run never commits candidate state.
+
 ### Returns
 
 - Type: `Promise<BuildResult<T>>`, See [BuildResult](./types.md#buildresult).
 
-The build result.
+The build result. On failure the promise rejects with a [`VeliteError`](#veliteerror) carrying the structured diagnostics.
 
 ### Types
 
@@ -83,31 +86,20 @@ The build result.
 
 ```ts
 interface BuildOptions {
-  /**
-   * Specify config file path
-   * @default 'velite.config.{js,ts,mjs,mts,cjs,cts}'
-   */
+  /** Config file path (relative to cwd). Auto-discovered when omitted. */
   config?: string
-  /**
-   * Clean output directories before build
-   * @default false
-   */
+  /** Clean output directories before build. @default false */
   clean?: boolean
-  /**
-   * Watch files and rebuild on changes
-   * @default false
-   */
-  watch?: boolean
-  /**
-   * Log level
-   * @default 'info'
-   */
-  logLevel?: LogLevel
-  /**
-   * If true, throws error and terminates process if any schema validation fails.
-   * @default false
-   */
+  /** Throw on any schema validation failure. @default false */
   strict?: boolean
+  /** Log level. @default 'info' */
+  logLevel?: LogLevel
+  /** Working directory for embedded calls. @default process.cwd() */
+  cwd?: string
+  /** Inject a custom logger. */
+  logger?: Logger
+  /** Abort the in-flight build run. */
+  signal?: AbortSignal
 }
 ```
 
@@ -115,7 +107,7 @@ Pass a collections type parameter when you want a strongly typed programmatic bu
 
 ## `watch`
 
-Build your project once, then watch files and rebuild on changes. Unlike `build({ watch: true })`, this API returns a watcher handle that programmatic callers can close.
+Build your project once, then watch files and rebuild on changes. Returns a watcher handle that programmatic callers can close. Watch failures do not auto-close the watcher.
 
 ### Usage
 
@@ -126,32 +118,41 @@ import { watch } from 'velite'
 ### Signature
 
 ```ts
-const watch: (options?: BuildOptions) => Promise<Watcher>
+const watch: <TCollections extends Collections = Collections>(options?: WatchOptions) => Promise<Watcher<TCollections>>
 ```
 
 ### Parameters
 
 #### `options`
 
-- Type: `BuildOptions`, See [BuildOptions](#buildoptions).
+- Type: `WatchOptions`, extends [BuildOptions](#buildoptions).
 
 Options for the initial build and watcher.
 
+#### `options.onBuild`
+
+- Type: `(event: WatchBuildEvent) => void | Promise<void>`
+
+Observer callback invoked after each build run (initial and rebuilds). This is an integration-friendly observer, not a pipeline hook.
+
 ### Returns
 
-- Type: `Promise<Watcher>`.
+- Type: `Promise<Watcher<TCollections>>`.
 
 The watcher handle.
 
 ```ts
-interface Watcher {
+interface Watcher<TCollections extends Collections = Collections> {
+  readonly closed: boolean
   close(): Promise<void>
 }
 ```
 
+`close()` stops accepting new file events and waits for the in-flight build run to finish or roll back before returning.
+
 ## `context`
 
-Get the current build context while Velite is parsing a schema.
+Get the current schema context while Velite is parsing a schema.
 
 ### Usage
 
@@ -162,11 +163,23 @@ import { context } from 'velite'
 ### Signature
 
 ```ts
-const context: () => BuildContext
+const context: () => SchemaContext
 ```
 
 ### Returns
 
-- Type: `BuildContext`, See [BuildContext](./types.md#buildcontext).
+- Type: `SchemaContext`, See [SchemaContext](./types.md#schemacontext).
 
-The build context contains the resolved config, current file, and build-scoped store. Call `context()` inside schema callbacks such as `.transform()`, `.refine()`, or `.superRefine()`.
+The schema context contains the project info, current file, current record, and session-scoped store. Call `context()` inside schema callbacks such as `.transform()`, `.refine()`, or `.superRefine()`.
+
+## `VeliteError`
+
+The error type thrown by `build()` / `watch()` when a build run fails.
+
+```ts
+class VeliteError extends Error {
+  readonly diagnostics: Diagnostic[]
+}
+```
+
+Programmatic callers can use `instanceof VeliteError` and read `error.diagnostics`.

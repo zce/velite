@@ -5,41 +5,26 @@ import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
-import { custom } from 'zod'
+import * as z from 'zod'
 
-import { assetStoreKey, createAssetStore, rehypeCopyLinkedFiles } from '../assets'
-import { context, getInternalAssetCache } from '../runtime/context'
+import { rehypeCopyLinkedFiles } from '../assets/markdown'
+import { getContext } from './context'
 
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
 import type { PluggableList } from 'unified'
 
-/**
- * Markdown options
- */
+/** Markdown rendering options. */
 export interface MarkdownOptions {
-  /**
-   * Enable GitHub Flavored Markdown (GFM).
-   * @default true
-   */
+  /** Enable GitHub Flavored Markdown. @default true */
   gfm?: boolean
-  /**
-   * Remove html comments.
-   * @default true
-   */
+  /** Remove html comments. @default true */
   removeComments?: boolean
-  /**
-   * Copy linked files to public path and replace their urls with public urls.
-   * @default true
-   */
+  /** Copy linked files to the asset output and rewrite their urls. @default true */
   copyLinkedFiles?: boolean
-  /**
-   * Remark plugins.
-   */
+  /** Remark plugins. */
   remarkPlugins?: PluggableList
-  /**
-   * Rehype plugins.
-   */
+  /** Rehype plugins. */
   rehypePlugins?: PluggableList
 }
 
@@ -53,7 +38,7 @@ const remarkRemoveComments = () => (tree: Mdast) => {
   visit(tree, 'html', (node, index, parent) => {
     if (node.value.match(/<!--([\s\S]*?)-->/g)) {
       parent!.children.splice(index!, 1)
-      return ['skip', index] // https://unifiedjs.com/learn/recipe/remove-node/
+      return ['skip', index]
     }
   })
 }
@@ -67,50 +52,50 @@ const rehypeMetaString = () => (tree: Hast) => {
   })
 }
 
-export const markdown = (options: MarkdownOptions = {}) =>
-  custom<string>(i => typeof i === 'string')
+/** Render the current content body to HTML. */
+export const markdown = (options: MarkdownOptions = {}): z.ZodType<string> =>
+  z
+    .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
-      const { file, config, store } = context()
-      const assets = store.getOrCreate(assetStoreKey, createAssetStore)
-      const assetCache = getInternalAssetCache()
-      value = value ?? file.content
-      if (value == null || value.length === 0) {
+      const { file, project, assetStore, assetCache } = getContext()
+      const body = value ?? file.content
+      if (body == null || body.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
         return ''
       }
 
-      const { markdown, output } = config
+      const globalMarkdown = project.markdown
+      const enableGfm = options.gfm ?? globalMarkdown?.gfm ?? true
+      const removeComments = options.removeComments ?? globalMarkdown?.removeComments ?? true
+      const copyLinkedFiles = options.copyLinkedFiles ?? globalMarkdown?.copyLinkedFiles ?? true
 
-      const enableGfm = options.gfm ?? markdown?.gfm ?? true
-      const removeComments = options.removeComments ?? markdown?.removeComments ?? true
-      const copyLinkedFiles = options.copyLinkedFiles ?? markdown?.copyLinkedFiles ?? true
+      const remarkPlugins: PluggableList = []
+      const rehypePlugins: PluggableList = []
 
-      const remarkPlugins = [] as PluggableList
-      const rehypePlugins = [] as PluggableList
-
-      if (enableGfm) remarkPlugins.push(remarkGfm) // gfm: autolinks, footnotes, strikethrough, tables, tasklists
-      if (removeComments) remarkPlugins.push(remarkRemoveComments) // strip html comments
-      if (copyLinkedFiles) rehypePlugins.push([rehypeCopyLinkedFiles, { ...output, assets, assetCache }]) // copy linked files
+      if (enableGfm) remarkPlugins.push(remarkGfm)
+      if (removeComments) remarkPlugins.push(remarkRemoveComments)
+      if (copyLinkedFiles) {
+        rehypePlugins.push([rehypeCopyLinkedFiles, { filename: project.output.name, baseUrl: project.output.base, assets: assetStore, cache: assetCache }])
+      }
       if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins)
       if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
-      if (markdown?.remarkPlugins != null) remarkPlugins.push(...markdown.remarkPlugins)
-      if (markdown?.rehypePlugins != null) rehypePlugins.push(...markdown.rehypePlugins)
+      if (globalMarkdown?.remarkPlugins != null) remarkPlugins.push(...globalMarkdown.remarkPlugins)
+      if (globalMarkdown?.rehypePlugins != null) rehypePlugins.push(...globalMarkdown.rehypePlugins)
 
       try {
         const html = await unified()
           .use(remarkParse)
           .use(remarkPlugins)
           .use(remarkRehype, { allowDangerousHtml: true })
-          .use(rehypeMetaString) // preserve `data.meta` in `properties.metastring` for highlighters
+          .use(rehypeMetaString)
           .use(rehypeRaw)
           .use(rehypePlugins)
           .use(rehypeStringify)
-          .process({ value, path: file.path })
-        return html.toString()
+          .process({ value: body, path: file.path })
+        return String(html)
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err)
-        ctx.addIssue({ fatal: true, code: 'custom', message })
+        ctx.addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
         return null as never
       }
     })

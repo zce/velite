@@ -1,10 +1,18 @@
-import { custom } from 'zod'
+import * as z from 'zod'
 
-import { context } from '../runtime/context'
+import { getContext } from './context'
 
-// Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters
-const cjRanges = [
-  [11904, 11930], // Han
+/** Document metadata: reading time and word count. */
+export interface Metadata {
+  /** Reading time in minutes. */
+  readingTime: number
+  /** Word count. */
+  wordCount: number
+}
+
+// Unicode ranges for Han (Chinese) and Hiragana/Katakana (Japanese) characters.
+const cjRanges: ReadonlyArray<readonly [number, number]> = [
+  [11904, 11930],
   [11931, 12020],
   [12032, 12246],
   [12293, 12294],
@@ -21,11 +29,11 @@ const cjRanges = [
   [178208, 183970],
   [183984, 191457],
   [194560, 195102],
-  [12353, 12439], // Hiragana
+  [12353, 12439],
   [12445, 12448],
   [110593, 110879],
   [127488, 127489],
-  [12449, 12539], // Katakana
+  [12449, 12539],
   [12541, 12544],
   [12784, 12800],
   [13008, 13055],
@@ -35,64 +43,36 @@ const cjRanges = [
   [110592, 110593]
 ]
 
-const isCjChar = (char: string) => {
+const isCjChar = (char: string): boolean => {
   const charCode = char.codePointAt(0) ?? 0
   return cjRanges.some(([from, to]) => charCode >= from && charCode < to)
 }
 
-const wordLength = (str: string) => {
-  // or: https://github.com/lodash/lodash/blob/main/src/words.ts
-  const reWord = /['\u2019]?([a-zA-Z]+(?:['\u2019]?[a-zA-Z]+)*)/g
+const wordLength = (str: string): number => {
+  const reWord = /['’]?([a-zA-Z]+(?:['’]?[a-zA-Z]+)*)/g
   const words = str.match(reWord) || []
   return words.length
 }
 
-/**
- * Document metadata.
- */
-export interface Metadata {
-  /**
-   * Reading time in minutes.
-   */
-  readingTime: number
-  /**
-   * Word count.
-   */
-  wordCount: number
-}
-
-export const metadata = () =>
-  custom<string>(i => typeof i === 'string')
+/** Compute reading-time metadata from the current content. */
+export const metadata = (): z.ZodType<Metadata> =>
+  z
+    .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<Metadata>(async (value, ctx) => {
-      value = value ?? context().file.plain
-      if (value == null || value.length === 0) {
+      const body = value ?? getContext().file.plain
+      if (body == null || body.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
         return { readingTime: 0, wordCount: 0 }
       }
-
-      // https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby-transformer-remark/src/utils/time-to-read.js
       const avgWPM = 265
-
-      const latinChars = []
-      const cjChars = []
-
-      for (const char of value) {
-        if (isCjChar(char)) {
-          cjChars.push(char)
-        } else {
-          latinChars.push(char)
-        }
+      const latinChars: string[] = []
+      const cjChars: string[] = []
+      for (const char of body) {
+        if (isCjChar(char)) cjChars.push(char)
+        else latinChars.push(char)
       }
-
-      // Multiply non-latin character string length by 0.56, because
-      // on average one word consists of 2 characters in both Chinese and Japanese
       const wordCount = wordLength(latinChars.join('')) + cjChars.length * 0.56
-
       const time = Math.round(wordCount / avgWPM)
-
-      return {
-        readingTime: time === 0 ? 1 : time,
-        wordCount: wordCount
-      }
+      return { readingTime: time === 0 ? 1 : time, wordCount }
     })

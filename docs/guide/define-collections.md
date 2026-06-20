@@ -50,7 +50,7 @@ The name of the collection. This is used to generate the type name for the colle
 
 ```js
 const posts = defineCollection({
-  name: 'Post'
+  typeName: 'Post'
 })
 ```
 
@@ -107,7 +107,7 @@ The schema is usually a `ZodObject`, validating the shape of the content item. B
 For more complex schemas, use [Velite extended schemas `s`](velite-schemas.md):
 
 - `s.slug()`: validate slug format, unique in posts collection.
-- `s.isodate()`: format date string to ISO date string.
+- `s.isoDate()`: format date string to ISO date string.
 - `s.unique()`: validate unique value in collection.
 - `s.image()`: input image relpath, output image object with blurImage.
 - `s.file()`: input file relpath, output file public path.
@@ -124,7 +124,7 @@ import { s } from 'velite'
 const posts = defineCollection({
   schema: s.object({
     slug: s.slug('posts'),
-    date: s.isodate(),
+    date: s.isoDate(),
     cover: s.image(),
     video: s.file().optional(),
     metadata: s.metadata(),
@@ -172,7 +172,7 @@ const posts = defineCollection({
         ...data,
         // computed fields
         path: file.path, // or parse to filename based slug
-        basename: file.basename
+        basename: file.path.split(/[\\/]/).pop()
       }
     })
 })

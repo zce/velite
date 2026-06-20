@@ -4,64 +4,52 @@ export interface AssetRecord {
   sourcePath: string
   /** Rendered output filename. Used as the dedup key. */
   outputName: string
+  /** Content fingerprint (md5 of source bytes) when known. */
+  fingerprint?: string
 }
 
 /**
  * Session-owned store for asset collection.
  *
- * `add()` is idempotent for the same `outputName`. The same `outputName` with
- * a different `sourcePath` is accepted as long as the caller asserts the
- * content is identical (typically by passing a content `fingerprint`, e.g.
- * an md5 of the source bytes). When the caller provides fingerprints and they
- * disagree, `add()` throws to surface a real hash collision or an unsafe
- * filename template.
+ * `add()` is idempotent for the same `outputName`. The same `outputName` with a
+ * different `sourcePath` is accepted when the caller proves the content is
+ * identical (same fingerprint); otherwise it throws to surface a real name
+ * collision that the user should fix via the filename template.
  */
 export interface AssetStore {
   add(input: { sourcePath: string; outputName: string; fingerprint?: string }): AssetRecord
   list(): AssetRecord[]
-}
-
-interface InternalRecord extends AssetRecord {
-  fingerprint?: string
+  clear(): void
 }
 
 /** Create a new asset store backed by an in-memory map. */
 export const createAssetStore = (): AssetStore => {
-  const records = new Map<string, InternalRecord>()
+  const records = new Map<string, AssetRecord>()
 
   return {
     add({ sourcePath, outputName, fingerprint }) {
       const existing = records.get(outputName)
       if (existing != null) {
         if (existing.sourcePath !== sourcePath) {
-          // Different source path is fine when the caller proves the content
-          // is identical (same md5 / same hash). Without a fingerprint, we
-          // assume the template embeds enough entropy (typically `[hash]`).
           if (fingerprint != null && existing.fingerprint != null && fingerprint !== existing.fingerprint) {
             throw new Error(
               `Asset name collision for '${outputName}': '${existing.sourcePath}' and '${sourcePath}' have different content. ` +
                 'Adjust the output filename template (for example include [hash:8]).'
             )
           }
-          if (fingerprint != null && existing.fingerprint == null) {
-            existing.fingerprint = fingerprint
-          }
+          if (fingerprint != null && existing.fingerprint == null) existing.fingerprint = fingerprint
         }
         return existing
       }
-      const record: InternalRecord = {
-        sourcePath,
-        outputName,
-        fingerprint
-      }
+      const record: AssetRecord = { sourcePath, outputName, fingerprint }
       records.set(outputName, record)
       return record
     },
     list() {
       return Array.from(records.values())
+    },
+    clear() {
+      records.clear()
     }
   }
 }
-
-/** Store key used by asset-producing schemas. */
-export const assetStoreKey = Symbol('velite.assets')

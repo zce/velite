@@ -47,7 +47,7 @@ import { defineConfig, s } from 'velite'
 export default defineConfig({
   collections: {
     posts: {
-      name: 'Post',
+      typeName: 'Post',
       pattern: 'posts/*.mdx',
       schema: s.object({
         title: s.string(),
@@ -359,7 +359,7 @@ import { mdxBundle } from './mdx'
 export default defineConfig({
   collections: {
     posts: {
-      name: 'Post',
+      typeName: 'Post',
       pattern: 'posts/*.mdx',
       schema: s.object({
         title: s.string(),

@@ -1,31 +1,37 @@
-import { string } from 'zod'
+import * as z from 'zod'
 
-import { assetStoreKey, createAssetStore, isRelativePath, processAsset } from '../assets'
-import { context, getInternalAssetCache } from '../runtime/context'
+import { isRelativePath, processAsset } from '../assets/process'
+import { getContext } from './context'
 
+/** Options for the file schema. */
 export interface FileOptions {
   /**
-   * allow non-relative path, if true, the value will be returned directly,
-   * if false, the value will be processed as a relative path
+   * Allow non-relative paths. When `true` (default), absolute/external values
+   * are returned unchanged; relative values are copied into the asset output.
    * @default true
    */
   allowNonRelativePath?: boolean
 }
 
-/**
- * A file path relative to this file.
- */
-export const file = ({ allowNonRelativePath = true }: FileOptions = {}) =>
-  string().transform<string>(async (value, ctx) => {
+/** A file path relative to the current file, copied into the asset output. */
+export const file = ({ allowNonRelativePath = true }: FileOptions = {}): z.ZodType<string> =>
+  z.string().transform<string>(async (value, ctx) => {
     try {
       if (allowNonRelativePath && !isRelativePath(value)) return value
-      const { file, config, store } = context()
-      const assets = store.getOrCreate(assetStoreKey, createAssetStore)
-      const cache = getInternalAssetCache()
-      return await processAsset(value, file.path, config.output.name, config.output.base, assets, undefined, undefined, cache)
+      const { file, project, assetStore, assetCache, record, collectEffect } = getContext()
+      const result = await processAsset({
+        input: value,
+        from: file.path,
+        filename: project.output.name,
+        baseUrl: project.output.base,
+        assets: assetStore,
+        cache: assetCache
+      })
+      collectEffect({ type: 'asset', owner: record.id, assetPath: result.sourcePath, publicUrl: result.publicUrl, isImage: false })
+      return result.publicUrl
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      ctx.addIssue({ fatal: true, code: 'custom', message, continue: false })
+      ctx.addIssue({ fatal: true, code: 'custom', message })
       return null as never
     }
   })

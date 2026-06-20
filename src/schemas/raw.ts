@@ -1,10 +1,10 @@
-import { custom } from 'zod'
+import * as z from 'zod'
 
-import { context } from '../runtime/context'
+import { getContext } from './context'
 
-export const raw = () =>
-  custom<string>(i => typeof i === 'string')
+/** Return the raw content body of the current file. */
+export const raw = (): z.ZodType<string> =>
+  z
+    .custom<string>(i => typeof i === 'string')
     .optional()
-    .transform<string>(value => {
-      return value ?? context().file.content ?? ''
-    })
+    .transform<string>(value => value ?? getContext().file.content ?? '')

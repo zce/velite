@@ -3,7 +3,7 @@ import * as z from 'zod'
 import { excerpt } from './excerpt'
 import { file } from './file'
 import { image } from './image'
-import { isodate } from './isodate'
+import { isoDate } from './isodate'
 import { markdown } from './markdown'
 import { mdx } from './mdx'
 import { metadata } from './metadata'
@@ -13,12 +13,16 @@ import { slug } from './slug'
 import { toc } from './toc'
 import { unique } from './unique'
 
+/**
+ * `s` is the Velite schema namespace: all of Zod plus Velite's built-in
+ * content schemas.
+ */
 export const s = {
   ...z,
   excerpt,
   file,
   image,
-  isodate,
+  isoDate,
   markdown,
   mdx,
   metadata,
@@ -29,10 +33,8 @@ export const s = {
   unique
 } as const
 
-export type VeliteSchema = z.ZodType
-export type infer<T extends z.ZodType> = z.infer<T>
+/** A Velite schema is a Zod type. */
+export type VeliteSchema<Output = unknown, Input = unknown> = z.ZodType<Output, Input>
 
-/**
- * Define a schema (identity function for type inference)
- */
-export const defineSchema = <T extends () => VeliteSchema>(fn: T): T => fn
+/** Infer the output type of a Velite schema. */
+export type InferSchema<TSchema extends VeliteSchema> = z.infer<TSchema>

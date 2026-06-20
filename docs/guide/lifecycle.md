@@ -21,13 +21,13 @@ const sourcePath = s
   .transform(value => value ?? context().file.path)
 ```
 
-`context()` returns the current `BuildContext`:
+`context()` returns the current `SchemaContext`:
 
 ```ts
-interface BuildContext {
-  readonly config: ResolvedConfig
+interface SchemaContext {
+  readonly project: ProjectInfo
   readonly file: ContentFile
-  readonly store: BuildStore
+  readonly store: SessionStore
 }
 ```
 
@@ -47,10 +47,10 @@ const counted = s.string().transform(value => {
 })
 ```
 
-Use `BuildStore` for custom schemas or plugins that need build-scoped registries, deduplication, or cross-field coordination.
+Use `SessionStore` for custom schemas or plugins that need build-scoped registries, deduplication, or cross-field coordination.
 
 ## Internal Sessions
 
 Velite internally creates a build session for each build or rebuild. The session owns mutable execution state such as file caches, resolved files, output state, diagnostics, logger injection, and the build store.
 
-`BuildSession` is intentionally internal. Public code should use `context()` and the public `BuildContext` shape instead of importing session internals.
+`BuildSession` is intentionally internal. Public code should use `context()` and the public `SchemaContext` shape instead of importing session internals.

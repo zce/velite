@@ -1,57 +1,37 @@
-import { createEngine } from './app/engine'
-import { createWatcher } from './app/watch'
+// Public API entry.
+//
+// The root barrel is intentionally small: it exposes the product concepts
+// (build, watch, config, collection, loader, schema, context) and the
+// integration types. Internal pipeline objects (dependency graph, cache
+// registry, pipeline stages, output committer, schema effects) are deliberately
+// not exported.
 
-import type { BuildOptions } from './app/engine'
-import type { Watcher } from './app/watch'
-import type { BuildResult, Collections } from './collections'
-
-export type { BuildOptions } from './app/engine'
-export type { Watcher } from './app/watch'
-export type { BlurOptions, VeliteImage } from './assets'
-export type { BuildResult, Collection, Collections, CollectionType } from './collections'
-export type { HookContext, PluginConfig, ResolvedConfig, UserConfig } from './config'
-export type { VeliteLoader } from './loaders/types'
-export type { VeliteOutput } from './output'
-export type { BuildContext, ContentFile } from './runtime/context'
-export type { LogLevel } from './runtime/logger'
-export type { BuildStore, StoreKey } from './runtime/store'
-export type { infer, VeliteSchema } from './schemas'
-export type { MarkdownOptions } from './schemas/markdown'
-export type { MdxOptions } from './schemas/mdx'
-
-export { getImageMetadata } from './assets'
+export { build, watch } from './app/build'
 export { defineCollection } from './collections'
 export { defineConfig } from './config'
 export { defineLoader } from './loaders'
-export { context } from './runtime/context'
-export { defineSchema, s } from './schemas'
+export { context } from './schemas/context'
+export { s } from './schemas'
+export { VeliteError } from './core/diagnostics'
 
-/**
- * Build all collections defined in the user config.
- *
- * Each call creates a fresh build engine and (for `watch: true`) a watch
- * controller. Pass a collections type parameter when the caller wants a typed
- * `BuildResult`.
- */
-export const build = async <T extends Collections = Collections>(options: BuildOptions = {}): Promise<BuildResult<T>> => {
-  const engine = createEngine<T>()
-  const result = await engine.build(options)
-  if (options.watch === true) {
-    const controller = createWatcher()
-    await controller.start(engine, options)
-  }
-  return result
-}
-
-/**
- * Build once and keep watching for future changes.
- *
- * Unlike `build({ watch: true })`, this programmatic API returns a watcher
- * handle so callers can close it when they are done.
- */
-export const watch = async <T extends Collections = Collections>(options: BuildOptions = {}): Promise<Watcher> => {
-  const engine = createEngine<T>()
-  await engine.build({ ...options, watch: false })
-  const controller = createWatcher()
-  return await controller.start(engine, options)
-}
+// Public type surface.
+export type { BuildOptions } from './app/engine'
+export type { BuildResult } from './collections'
+export type { WatchOptions, Watcher, WatchBuildEvent } from './app/watch'
+export type { UserConfig, PrepareHook, PrepareContext } from './config'
+export type { OutputConfig } from './output'
+export type { LogLevel, Logger } from './runtime/logger'
+export type { Collection, Collections, CollectionResult } from './collections'
+export type { Loader, LoaderSource, LoaderContext, LoaderResult, LoaderRecord } from './loaders/types'
+export type { VeliteSchema, InferSchema } from './schemas'
+export type { SchemaContext, ProjectInfo, ContentFile, ContentRecord } from './schemas/context'
+export type { SessionStore } from './core/session'
+export type { Diagnostic, DiagnosticSeverity, DiagnosticStage } from './core/diagnostics'
+export type { FileOptions } from './schemas/file'
+export type { ImageOptions, ImageData, ImageBlurOptions } from './assets/image'
+export type { MarkdownOptions } from './schemas/markdown'
+export type { MdxOptions } from './schemas/mdx'
+export type { TocOptions, TocEntry, TocTree } from './schemas/toc'
+export type { ExcerptOptions } from './schemas/excerpt'
+export type { PathOptions } from './schemas/path'
+export type { Metadata } from './schemas/metadata'

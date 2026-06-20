@@ -43,37 +43,35 @@ The parser no longer passes Velite file metadata through Zod's transform context
 Before:
 
 ```ts
-import { defineSchema, s } from 'velite'
+import { s } from 'velite'
 
-export const sourcePath = defineSchema(() =>
+export const sourcePath = () =>
   s.custom<string>().transform((value, { meta }) => {
     return value ?? meta.path
   })
-)
 ```
 
 After:
 
 ```ts
-import { context, defineSchema, s } from 'velite'
+import { context, s } from 'velite'
 
-export const sourcePath = defineSchema(() =>
+export const sourcePath = () =>
   s
     .custom<string>(value => typeof value === 'string')
     .optional()
     .transform(value => {
       return value ?? context().file.path
     })
-)
 ```
 
 The `context()` function returns:
 
 ```ts
 {
-  config: ResolvedConfig
+  project: ProjectInfo
   file: ContentFile
-  store: BuildStore
+  store: SessionStore
 }
 ```
 
@@ -106,7 +104,7 @@ const posts = defineCollection({
 
 Velite's built-in file-derived schemas already include this optional wrapper because missing fields are their normal derivation input. This includes `s.path()`, `s.raw()`, `s.markdown()`, `s.mdx()`, `s.excerpt()`, `s.metadata()`, and `s.toc()`.
 
-Value-required schemas do not include this wrapper. Use `.optional()` yourself when fields such as `s.file()`, `s.image()`, `s.slug()`, `s.unique()`, or `s.isodate()` should be optional.
+Value-required schemas do not include this wrapper. Use `.optional()` yourself when fields such as `s.file()`, `s.image()`, `s.slug()`, `s.unique()`, or `s.isoDate()` should be optional.
 
 ### Do Not Use `addIssue()` for Warnings
 

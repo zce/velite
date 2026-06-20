@@ -1,69 +1,81 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { normalize } from 'node:path'
 
-import { assetStoreKey, createAssetStore } from '../assets'
-import { createAssetProcessingCache } from '../assets/cache'
-import { createFileCache } from '../collections/cache'
-import { VeliteFile } from '../collections/file'
-import { createResolver } from '../collections/resolve'
+import { createAssetStore } from '../assets/store'
+import { collectionAffected, discover as defaultDiscover } from '../collections/discover'
+import { createContentFile } from '../collections/file'
 import { createConfigLoader } from '../config/load'
+import { createDiagnostic, hasFatalDiagnostic, VeliteError } from '../core/diagnostics'
+import { createRecordId, createSourceId } from '../core/ids'
+import { applyPrepare, runBuild } from '../core/pipeline'
+import { createSession } from '../core/session'
+import { planEntry, planSingleCollection, planSplitCollectionEntry, planSplitOutput, planTypes } from '../output/plan'
 import { createWriter } from '../output/write'
-import { logger as defaultLogger } from '../runtime/logger'
-import { createSession } from '../runtime/session'
-import { createBuildStore } from '../runtime/store'
-import { uniqueStoreKey } from '../schemas/unique'
+import { createLogger, logger as defaultLogger } from '../runtime/logger'
+import { runWithContext } from '../schemas/context'
 
-import type { AssetProcessingCache } from '../assets/cache'
-import type { BuildResult, Collections } from '../collections'
-import type { FileCache } from '../collections/cache'
-import type { Resolver } from '../collections/resolve'
-import type { ResolvedConfig } from '../config'
-import type { ConfigLoader } from '../config/load'
-import type { OutputState } from '../output/state'
+import type { AssetStore } from '../assets/store'
+import type { BuildResult, Collection, Collections } from '../collections'
+import type { ConfigLoader, LoadOptions } from '../config/load'
+import type { Diagnostic } from '../core/diagnostics'
+import type { GraphEdge } from '../core/graph'
+import type { BuildRunResult } from '../core/pipeline'
+import type { Project } from '../core/project'
+import type { Session } from '../core/session'
+import type { OutputWrite, RecordInput } from '../output/plan'
 import type { Writer } from '../output/write'
 import type { Logger, LogLevel } from '../runtime/logger'
-import type { BuildStore } from '../runtime/store'
-import type { UniqueStore } from '../schemas/unique'
+import type { AssetReferenceEffect, Effect, SourceDependencyEffect } from '../schemas/effects'
 
-/**
- * Build options for `build()` and the internal engine.
- */
+/** Build options for `build()` / `watch()`. */
 export interface BuildOptions {
-  /**
-   * Specify config file path, relative to cwd.
-   * If not specified, will try to find `velite.config.{js,ts,mjs,mts,cjs,cts}`
-   * in cwd or parent directories.
-   */
+  /** Config file path (relative to cwd). Auto-discovered when omitted. */
   config?: string
-  /**
-   * Clean output directories before build.
-   * @default false
-   */
+  /** Clean output directories before build. @default false */
   clean?: boolean
-  /**
-   * Watch files and rebuild on changes.
-   * @default false
-   */
-  watch?: boolean
-  /**
-   * Log level.
-   * @default 'info'
-   */
-  logLevel?: LogLevel
-  /**
-   * If true, throws an error and terminates the process when any schema
-   * validation fails.
-   * @default false
-   */
+  /** Throw on any schema validation failure. @default false */
   strict?: boolean
+  /** Log level. @default 'info' */
+  logLevel?: LogLevel
+  /** Inject a custom logger (framework integrations / tests). */
+  logger?: Logger
+  /** Working directory for embedded calls. @default process.cwd() */
+  cwd?: string
+  /** Abort the in-flight build run. Aborted runs never commit state. */
+  signal?: AbortSignal
+}
+
+/** A parsed record ready for aggregation and output planning. */
+interface ParsedRecord {
+  readonly id: string
+  readonly data: unknown
+  readonly sourceId: string
+}
+
+export interface EngineOptions {
+  loader?: ConfigLoader
+  writer?: Writer
+  logger?: Logger
+  discover?: typeof defaultDiscover
 }
 
 /**
- * Filesystem change classification consumed by `Engine.rebuild`.
+ * Build engine: orchestrates config → session → execute → commit.
  *
- * Callers must pre-map platform-specific events (for example chokidar
- * `addDir` / `unlinkDir`) to one of these values before calling rebuild.
+ * The engine owns the config loader, the current project/session, and the
+ * engine-scoped parsed-records cache reused across watch rebuilds. It does not
+ * hold hidden business state beyond these explicit containers.
  */
+export interface Engine {
+  build(options?: BuildOptions): Promise<BuildResult>
+  rebuild(change?: RebuildChange): Promise<BuildResult>
+  readonly config: Project | undefined
+  /** Diagnostics from the most recent build run. */
+  readonly diagnostics: readonly Diagnostic[]
+  hasAssetSource(path: string): boolean
+  invalidateAssetSource(path: string): string[]
+}
+
 export type RebuildEvent = 'add' | 'change' | 'unlink'
 
 export interface RebuildChange {
@@ -71,203 +83,464 @@ export interface RebuildChange {
   readonly paths: readonly string[]
 }
 
-export interface Engine<T extends Collections = Collections> {
-  /**
-   * Run a full build: load config, write entry, resolve content, write data
-   * and assets, and call hooks.
-   */
-  build(options?: BuildOptions): Promise<BuildResult<T>>
-  /**
-   * Re-run using the current config and engine-scoped incremental state.
-   *
-   * `change` is optional so callers can request a full rebuild through the same
-   * long-lived engine. Watch mode, framework plugins, and future programmatic
-   * integrations should all use this core Engine capability instead of owning
-   * separate incremental caches.
-   */
-  rebuild(change?: RebuildChange): Promise<BuildResult<T>>
-  /**
-   * Whether the given absolute path is currently tracked as a processed asset
-   * source (i.e. some content file has referenced it through `s.file()` /
-   * `s.image()` during a previous build).
-   *
-   * Intended for callers (the watcher, framework plugins) that detect changes
-   * to files outside any collection pattern but inside the watch root, so they
-   * can decide whether the change is relevant before issuing a rebuild.
-   */
-  hasAssetSource(path: string): boolean
-  /**
-   * Invalidate the asset-processing cache entries for `path` and drop the
-   * file-cache entries of every owner that previously referenced it. Returns
-   * the list of owner content paths so the caller can immediately schedule a
-   * targeted `rebuild({ event: 'change', paths: owners })`.
-   *
-   * Intended for callers (the watcher, framework plugins) that detect changes
-   * outside any collection pattern but to a previously-processed asset source.
-   */
-  invalidateAssetSource(path: string): string[]
-  /** Last successfully resolved config, available after `build()` completes. */
-  readonly config: ResolvedConfig<T> | undefined
+interface ParsedCache {
+  // collectionKey -> parsed records (ordered)
+  records: Map<string, ParsedRecord[]>
+  // collectionKey -> discovered absolute source paths
+  sources: Map<string, string[]>
 }
 
-/**
- * Create a build engine.
- *
- * The engine owns:
- *   - a single `ConfigLoader` reused across reloads,
- *   - the most recently resolved `ResolvedConfig`,
- *   - a process-lifetime emit cache shared across rebuilds within the same
- *     watch session.
- *
- * It does not own a `BuildSession`; each `build()` and `rebuild()` creates a
- * fresh session that lives only for the duration of the call.
- */
-export interface EngineOptions {
-  loader?: ConfigLoader
-  resolver?: Resolver
-  writer?: Writer
-  logger?: Logger
-}
+const createParsedCache = (): ParsedCache => ({ records: new Map(), sources: new Map() })
 
-interface IncrementalState {
-  files: FileCache
-  resolved: Map<string, VeliteFile[]>
-  assets: AssetProcessingCache
-  store: BuildStore
-}
+export const createEngine = (options: EngineOptions = {}): Engine => {
+  const configLoader = options.loader ?? createConfigLoader({ logger: options.logger ?? defaultLogger })
+  const discover = options.discover ?? defaultDiscover
+  let writer: Writer = options.writer ?? createWriter({ logger: options.logger ?? defaultLogger })
+  let logger: Logger & { set?(level: LogLevel): void } = (options.logger as Logger & { set?(level: LogLevel): void }) ?? createLogger('info')
 
-const createIncrementalState = (): IncrementalState => ({
-  files: createFileCache((path, loaders) => VeliteFile.create(path, loaders)),
-  resolved: new Map(),
-  assets: createAssetProcessingCache(),
-  store: createBuildStore()
-})
-
-export const createEngine = <T extends Collections = Collections>({
-  loader = createConfigLoader(),
-  resolver = createResolver(),
-  writer = createWriter(),
-  logger = defaultLogger
-}: EngineOptions = {}): Engine<T> => {
-  let currentConfig: ResolvedConfig<T> | undefined
+  let currentProject: Project | undefined
   let currentOptions: BuildOptions = {}
-  const outputState: OutputState = { emitted: new Map() }
-  let incremental = createIncrementalState()
-  const clearIncremental = () => {
-    incremental.files.clear()
-    incremental.resolved.clear()
-    incremental.assets.clear()
-    incremental.store = createBuildStore()
+  let currentSession: Session | undefined
+  let parsed = createParsedCache()
+  const outputState = { emitted: new Map<string, string>() }
+
+  const resolveLogger = (opts: BuildOptions): Logger => {
+    if (opts.logger != null) return opts.logger
+    return logger
   }
 
-  const runResolve = async (config: ResolvedConfig<T>, options: BuildOptions, change?: RebuildChange): Promise<BuildResult<T>> => {
-    if (change != null) {
-      const uniqueStore = incremental.store.get<UniqueStore>(uniqueStoreKey)
-      for (const path of change.paths) {
-        const normalized = normalize(path)
-        incremental.files.delete(normalized)
-        uniqueStore?.invalidate(normalized)
+  const parseCollection = async (
+    project: Project,
+    collectionKey: string,
+    collection: Collection,
+    log: Logger,
+    files: Session['files'],
+    assetStore: AssetStore,
+    assetCache: Session['assetCache'],
+    store: Session['store'],
+    collectEffect: (e: Effect) => void
+  ): Promise<{ records: ParsedRecord[]; diagnostics: Diagnostic[]; sourcePaths: string[] }> => {
+    const paths = await discover(project.root, collection.pattern)
+    const records: ParsedRecord[] = []
+    const diagnostics: Diagnostic[] = []
+
+    for (const path of paths) {
+      const sourceId = createSourceId(path, project.root)
+      let loaded
+      try {
+        loaded = await files.load(path, project.loaders, sourceId)
+      } catch (err) {
+        diagnostics.push(
+          createDiagnostic({
+            severity: 'error',
+            code: 'loader.failed',
+            message: err instanceof Error ? err.message : String(err),
+            file: path,
+            collection: collectionKey,
+            stage: 'load'
+          })
+        )
+        continue
+      }
+
+      for (const dependency of loaded.dependencies) {
+        collectEffect({ type: 'dependency', owner: sourceId, sourceId: createSourceId(dependency, project.root) })
+      }
+
+      const isMulti = loaded.records.length > 1
+      for (let index = 0; index < loaded.records.length; index++) {
+        const raw = loaded.records[index]
+        const recordKey = raw.key ?? (isMulti ? String(index) : undefined)
+        const recordId = createRecordId(sourceId, recordKey)
+        const file = createContentFile(sourceId, path, raw.content)
+
+        let parseResult
+        try {
+          parseResult = await runWithContext(
+            { project, file, record: { id: recordId, key: recordKey, index }, store, assetCache, assetStore, collectEffect },
+            () => collection.schema.safeParseAsync(raw.data)
+          )
+        } catch (err) {
+          // Defensive catch: Zod's safeParseAsync should swallow transform
+          // errors, but if an unexpected throw escapes (e.g. a non-Zod error
+          // in a custom schema's .transform), report it as a schema diagnostic
+          // rather than crashing the entire build run.
+          diagnostics.push(
+            createDiagnostic({
+              severity: 'error',
+              code: 'schema.exception',
+              message: err instanceof Error ? err.message : String(err),
+              file: path,
+              collection: collectionKey,
+              recordId,
+              stage: 'schema',
+              cause: err
+            })
+          )
+          continue
+        }
+
+        if (parseResult.success) {
+          records.push({ id: recordId, data: parseResult.data, sourceId })
+          continue
+        }
+
+        for (const issue of parseResult.error.issues) {
+          diagnostics.push(
+            createDiagnostic({
+              severity: 'error',
+              code: 'schema.invalid',
+              message: issue.message ?? 'Validation error',
+              file: path,
+              collection: collectionKey,
+              recordId,
+              path: issue.path as Array<string | number> | undefined,
+              stage: 'schema'
+            })
+          )
+        }
       }
     }
-    const session = createSession(config, options, {
-      output: outputState,
-      logger,
-      files: incremental.files,
-      resolved: incremental.resolved,
-      store: incremental.store,
-      assetCache: incremental.assets
-    })
-    const { result } = await resolver.resolve(session, change)
 
-    const hookContext = { config }
-    let shouldOutput = true
-    if (typeof config.prepare === 'function') {
-      const begin = performance.now()
-      shouldOutput = ((await config.prepare(result, hookContext)) ?? true) as boolean
-      logger.log(`executed 'prepare' callback got ${shouldOutput}`, begin)
+    log.debug?.(`parsed ${records.length} records for '${collectionKey}'`)
+    return { records, diagnostics, sourcePaths: paths }
+  }
+
+  const aggregateResult = (project: Project, parsedCache: ParsedCache, diagnostics: Diagnostic[]): BuildResult => {
+    const result: Record<string, unknown> = {}
+    for (const [key, collection] of Object.entries(project.collections)) {
+      const records = parsedCache.records.get(key) ?? []
+      const data = records.map(r => r.data)
+      if (collection.single) {
+        if (data.length === 0) {
+          diagnostics.push(
+            createDiagnostic({
+              severity: 'error',
+              code: 'collection.empty',
+              message: `no records resolved for single collection '${key}'`,
+              collection: key,
+              stage: 'schema'
+            })
+          )
+          result[key] = undefined
+        } else {
+          if (data.length > 1) {
+            diagnostics.push(
+              createDiagnostic({
+                severity: 'warning',
+                code: 'collection.multiple',
+                message: `resolved ${data.length} records for single collection '${key}', using the first`,
+                collection: key,
+                stage: 'schema'
+              })
+            )
+          }
+          result[key] = data[0]
+        }
+      } else {
+        result[key] = data
+      }
+    }
+    return result as BuildResult
+  }
+
+  const buildGraphEdges = (
+    project: Project,
+    parsedCache: ParsedCache,
+    assetEffects: readonly { owner: string; assetPath: string }[],
+    dependencyEffects: readonly { owner: string; sourceId: string }[]
+  ): GraphEdge[] => {
+    const edges: GraphEdge[] = []
+    const configNode = 'config'
+    for (const key of Object.keys(project.collections)) {
+      edges.push({ from: configNode, to: `collection:${key}`, reason: 'config-affects-collection' })
+      const collectionNode = `collection:${key}`
+      const records = parsedCache.records.get(key) ?? []
+      for (const record of records) {
+        const sourceNode = `source:${record.sourceId}`
+        const recordNode = `record:${record.id}`
+        edges.push({ from: collectionNode, to: sourceNode, reason: 'collection-matches-source' })
+        edges.push({ from: sourceNode, to: recordNode, reason: 'source-produces-record' })
+        edges.push({ from: recordNode, to: `output:${key}/${record.id}`, reason: 'record-produces-output' })
+      }
+    }
+    for (const asset of assetEffects) {
+      edges.push({ from: `record:${asset.owner}`, to: `asset:${asset.assetPath}`, reason: 'record-references-asset' })
+    }
+    for (const dep of dependencyEffects) {
+      edges.push({ from: `source:${dep.sourceId}`, to: `source:${dep.owner}`, reason: 'loader-depends-on-source' })
+    }
+    return edges
+  }
+
+  const planWrites = (project: Project, parsedCache: ParsedCache, result: BuildResult, split: boolean): OutputWrite[] => {
+    const writes: OutputWrite[] = []
+    const collections = project.collections
+    for (const key of Object.keys(collections)) {
+      const collection = collections[key]
+      const records = parsedCache.records.get(key) ?? []
+      // The record file content must reflect the (possibly prepare-mutated or
+      // replaced) logical result, not the raw pre-prepare parsed data. Align by
+      // index against the parsed record ids so stable physical paths are kept.
+      const collectionValue = result[key]
+      const dataArray: unknown[] = collection.single
+        ? collectionValue == null
+          ? []
+          : [collectionValue]
+        : Array.isArray(collectionValue)
+          ? collectionValue
+          : []
+      if (split) {
+        const recordInputs: RecordInput[] = records.map((record, index) => ({
+          id: record.id,
+          data: index < dataArray.length ? dataArray[index] : record.data
+        }))
+        const splitResult = planSplitOutput(key, recordInputs)
+        writes.push(...splitResult.writes)
+        writes.push(
+          planSplitCollectionEntry(
+            key,
+            collection,
+            splitResult.writes.map(w => w.path)
+          )
+        )
+      } else {
+        writes.push(planSingleCollection(key, collectionValue))
+      }
+    }
+    writes.push(planEntry(collections, project.output.format, split))
+    writes.push(planTypes(collections, project.configPath, project.output.data))
+    return writes
+  }
+
+  const execute = async (
+    session: Session,
+    project: Project,
+    options: BuildOptions,
+    change: RebuildChange | undefined,
+    split: boolean,
+    log: Logger
+  ): Promise<BuildRunResult> => {
+    const collectedEffects: Effect[] = []
+    const assetStore = createAssetStore()
+    const diagnostics: Diagnostic[] = []
+    // Read fresh on each check so a signal aborted mid-run is observed; wrapped
+    // in a closure so the type checker does not narrow it across statements.
+    const aborted = () => options.signal?.aborted === true
+
+    // An aborted run never commits: if the caller already signalled abort, fail
+    // immediately without touching any candidate state.
+    if (aborted()) {
+      return { status: 'failure', diagnostics: [createDiagnostic({ severity: 'error', code: 'aborted', message: 'build aborted', stage: 'output' })] }
     }
 
-    if (shouldOutput) {
-      await writer.writeData(session.output, config.output.data, result)
-    } else {
-      logger.warn(`prevent output by 'prepare' callback`)
+    const affectedKeys =
+      change == null
+        ? Object.keys(project.collections)
+        : Object.keys(project.collections).filter(key =>
+            collectionAffected(project.root, project.collections[key].pattern, new Set(change.paths.map(normalize)))
+          )
+
+    // capture old record ids of affected collections (for effect patch removal)
+    const affectedOwners: string[] = []
+    if (change != null) {
+      for (const key of affectedKeys) {
+        const old = parsed.records.get(key) ?? []
+        for (const r of old) affectedOwners.push(r.id)
+      }
     }
 
-    await writer.writeAssets(session.output, config.output.assets, session.store.getOrCreate(assetStoreKey, createAssetStore))
-
-    if (typeof config.complete === 'function') {
-      const begin = performance.now()
-      await config.complete(result, hookContext)
-      logger.log(`executed 'complete' callback`, begin)
+    for (const key of affectedKeys) {
+      // allow a long-running build to be cancelled mid-parse; an abort here
+      // throws and is turned into a failed (non-committing) run by runBuild.
+      if (aborted()) throw new Error('build aborted')
+      const collection = project.collections[key]
+      const {
+        records,
+        diagnostics: collectionDiagnostics,
+        sourcePaths
+      } = await parseCollection(project, key, collection, log, session.files, assetStore, session.assetCache, session.store, e => collectedEffects.push(e))
+      diagnostics.push(...collectionDiagnostics)
+      parsed.records.set(key, records)
+      parsed.sources.set(key, sourcePaths)
     }
 
-    return result
+    // Re-check abort before committing any candidate state — the signal may
+    // have been triggered during an async parseCollection call.
+    if (aborted()) throw new Error('build aborted')
+
+    // candidate effect index: drop affected owners' old effects, apply new ones
+    const candidateIndex = session.effectIndex.patch(affectedOwners, collectedEffects)
+
+    // validate unique effects collected this run against the full candidate index
+    for (const effect of collectedEffects) {
+      if (effect.type !== 'unique') continue
+      const conflict = candidateIndex.findUniqueConflict(effect.group, effect.value, effect.owner)
+      if (conflict != null) {
+        diagnostics.push(
+          createDiagnostic({
+            severity: 'error',
+            code: 'unique.duplicate',
+            message: `Duplicate value '${effect.value}' in group '${effect.group}' conflicts with '${conflict}'`,
+            recordId: effect.owner,
+            stage: 'schema'
+          })
+        )
+      }
+    }
+
+    const result = aggregateResult(project, parsed, diagnostics)
+
+    // asset reference effects -> graph edges
+    const assetEffects = collectedEffects.filter((e): e is AssetReferenceEffect => e.type === 'asset').map(e => ({ owner: e.owner, assetPath: e.assetPath }))
+    const dependencyEffects = collectedEffects
+      .filter((e): e is SourceDependencyEffect => e.type === 'dependency')
+      .map(e => ({ owner: e.owner, sourceId: e.sourceId }))
+    const graphEdges = buildGraphEdges(project, parsed, assetEffects, dependencyEffects)
+
+    const strict = options.strict ?? project.strict ?? false
+    const fatal = hasFatalDiagnostic(diagnostics) || (strict && diagnostics.some(d => d.severity === 'error'))
+    if (fatal) {
+      return { status: 'failure', diagnostics, effects: candidateIndex, graphEdges, records: new Map(), assets: [] }
+    }
+
+    if (aborted()) throw new Error('build aborted')
+
+    // prepare hook
+    const projectInfo = { root: project.root, configPath: project.configPath, collections: project.collections }
+    const prepared = await applyPrepare(result, project.prepare, projectInfo, diagnostics)
+    const finalResult = prepared.result
+
+    if (aborted()) throw new Error('build aborted')
+
+    // output plan + write
+    const writes = planWrites(project, parsed, finalResult, split)
+    if (prepared.action === 'continue') {
+      await writer.writeData(session.output, project.output.data, { writes })
+    }
+    const assetRecords = assetStore.list()
+    await writer.writeAssets(
+      session.output,
+      project.output.assets,
+      assetRecords.map(a => ({ path: a.outputName, sourcePath: a.sourcePath }))
+    )
+
+    const recordsMap = new Map<string, readonly string[]>()
+    for (const [key, recs] of parsed.records)
+      recordsMap.set(
+        key,
+        recs.map(r => r.id)
+      )
+
+    return {
+      status: 'success',
+      result: finalResult,
+      diagnostics,
+      effects: candidateIndex,
+      graphEdges,
+      records: recordsMap,
+      assets: assetRecords.map(a => a.sourcePath)
+    }
+  }
+
+  const runOnce = async (project: Project, options: BuildOptions, change: RebuildChange | undefined, split: boolean, log: Logger): Promise<BuildResult> => {
+    if (currentSession == null) throw new Error('session missing')
+    const runResult = await runBuild(currentSession, { execute: () => execute(currentSession!, project, options, change, split, log) })
+    if (runResult.status === 'failure' || runResult.result == null) {
+      throw new VeliteError('Build failed', [...runResult.diagnostics])
+    }
+    return runResult.result
   }
 
   return {
     get config() {
-      return currentConfig
+      return currentProject
+    },
+
+    get diagnostics() {
+      return currentSession?.diagnostics ?? []
     },
 
     async build(options = {}) {
-      const begin = performance.now()
-
-      if (options.logLevel != null) logger.set(options.logLevel)
-
-      const timer = setTimeout(() => logger.info('building...'), 1000)
-
-      try {
-        const config = await loader.load<T>(options.config, {
-          clean: options.clean,
-          strict: options.strict
-        })
-        currentConfig = config
-        currentOptions = options
-        clearIncremental()
-
-        if (config.output.clean) {
-          await rm(config.output.data, { recursive: true, force: true })
-          logger.log(`cleaned data output dir '${config.output.data}'`)
-          await rm(config.output.assets, { recursive: true, force: true })
-          logger.log(`cleaned assets output dir '${config.output.assets}'`)
-          outputState.emitted.clear()
-        }
-
-        await mkdir(config.output.data, { recursive: true })
-        await mkdir(config.output.assets, { recursive: true })
-
-        await writer.writeEntry(outputState, config.output.data, config.output.format, config.configPath, config.collections)
-
-        logger.log('initialized', begin)
-        const result = await runResolve(config, options)
-        logger.info('build finished', begin)
-        return result
-      } finally {
-        clearTimeout(timer)
+      const log = resolveLogger(options)
+      if (options.logLevel != null && typeof (logger as { set?: (l: LogLevel) => void }).set === 'function') {
+        ;(logger as { set: (l: LogLevel) => void }).set(options.logLevel)
       }
+
+      const loadOpts: LoadOptions = { clean: options.clean, strict: options.strict, cwd: options.cwd }
+      const project = await configLoader.load(options.config, loadOpts)
+      const configChanged =
+        currentProject != null &&
+        (currentProject.configPath !== project.configPath ||
+          currentProject.output.data !== project.output.data ||
+          currentProject.output.assets !== project.output.assets ||
+          currentProject.output.base !== project.output.base ||
+          currentProject.output.format !== project.output.format)
+
+      // `build()` is always a full build: a fresh session with reset incremental
+      // state. This is what makes config reloads safe — the previous session's
+      // file cache, asset cache, store, effect index and graph are all dropped so
+      // no stale state leaks into the new project. (Incremental rebuilds reuse
+      // session caches via `rebuild()`, not `build()`.)
+      currentSession = createSession({ project, logger: log, output: outputState })
+      parsed = createParsedCache()
+      currentProject = project
+      currentOptions = options
+
+      if (configChanged) {
+        // a different config can change output paths; drop the emit cache so
+        // stale outputs from the previous project are not treated as current.
+        outputState.emitted.clear()
+      }
+
+      if (project.output.clean) {
+        await rm(project.output.data, { recursive: true, force: true })
+        await rm(project.output.assets, { recursive: true, force: true })
+        outputState.emitted.clear()
+      }
+      await mkdir(project.output.data, { recursive: true })
+      await mkdir(project.output.assets, { recursive: true })
+
+      log.info?.('building...')
+      const result = await runOnce(project, options, undefined, false, log)
+      log.info?.('build finished')
+      return result
     },
 
-    async rebuild(change?: RebuildChange) {
-      if (currentConfig == null) throw new Error('rebuild() called before build()')
-      const begin = performance.now()
-      logger.info('rebuilding...')
-      if (change == null) clearIncremental()
-      await mkdir(currentConfig.output.data, { recursive: true })
-      await mkdir(currentConfig.output.assets, { recursive: true })
-      await writer.writeEntry(outputState, currentConfig.output.data, currentConfig.output.format, currentConfig.configPath, currentConfig.collections)
-      const result = await runResolve(currentConfig, currentOptions, change)
-      logger.info('rebuild finished', begin)
+    async rebuild(change) {
+      if (currentProject == null || currentSession == null) throw new Error('rebuild() called before build()')
+      const log = resolveLogger(currentOptions)
+      const project = currentProject
+
+      if (change == null) {
+        // full rebuild through the long-lived engine: reset incremental state
+        parsed = createParsedCache()
+        currentSession.files.clear()
+        currentSession.assetCache.clear()
+      } else {
+        for (const path of change.paths) currentSession.files.delete(normalize(path))
+      }
+
+      await mkdir(project.output.data, { recursive: true })
+      await mkdir(project.output.assets, { recursive: true })
+
+      log.info?.('rebuilding...')
+      const result = await runOnce(project, currentOptions, change, true, log)
+      log.info?.('rebuild finished')
       return result
     },
 
     hasAssetSource(path: string) {
-      return incremental.assets.hasSource(path)
+      return currentSession?.assetCache.hasSource(path) ?? false
     },
 
     invalidateAssetSource(path: string) {
-      const owners = incremental.assets.invalidateSource(path)
-      for (const owner of owners) incremental.files.delete(owner)
+      if (currentSession == null) return []
+      const owners = currentSession.assetCache.invalidateSource(path)
+      for (const owner of owners) currentSession.files.delete(normalize(owner))
       return owners
     }
   }
 }
+
+export { createConfigLoader }

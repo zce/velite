@@ -3,71 +3,105 @@ import { raw } from 'hast-util-raw'
 import { toString } from 'hast-util-to-string'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
-import { VFile } from 'vfile'
+
+import { matchesLoader } from '../loaders/types'
 
 import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
-import type { VeliteLoader } from '../loaders/types'
-import type { ContentFile } from '../runtime/context'
+import type { Loader } from '../loaders/types'
+import type { InternalFile } from '../schemas/context'
+
+/** A raw record produced by a loader, with its body content attached. */
+export interface LoadedRecord {
+  /** Stable record key forming part of the record identity. */
+  key?: string
+  /** Raw record data awaiting schema validation. */
+  data: unknown
+  /** Body content (e.g. Markdown body after frontmatter stripping). */
+  content?: string
+  /** Loader-specific metadata. */
+  metadata?: Record<string, unknown>
+}
+
+/** A fully loaded source file ready for schema validation. */
+export interface LoadedFile {
+  /** Absolute source path. */
+  path: string
+  /** Stable source id (project-relative, POSIX). */
+  id: string
+  /** Raw records produced by the loader. */
+  records: LoadedRecord[]
+  /** Additional source dependencies declared by the loader. */
+  dependencies: string[]
+  /** Source-level metadata. */
+  metadata?: Record<string, unknown>
+}
+
+const toStringContent = (content: string | Uint8Array): string => (typeof content === 'string' ? content : Buffer.from(content).toString('utf8'))
 
 /**
- * `VeliteFile` is the in-memory representation of a content file once it has
- * been read from disk and passed through a loader.
+ * Read `path` and run the first matching loader.
  *
- * It is a pure data object: it does not own a cache. File caching belongs to
- * the session-scoped `FileCache` (see `src/runtime/session.ts`). Use
- * `VeliteFile.create()` to read a file and run its loader.
+ * @throws when no loader matches the path or the loader returns no records.
  */
-export class VeliteFile extends VFile implements ContentFile {
-  private _mdast: Root | undefined
-  private _hast: Nodes | undefined
-  private _plain: string | undefined
+export const loadFile = async (path: string, loaders: readonly Loader[], sourceId: string): Promise<LoadedFile> => {
+  const buffer = await readFile(path)
+  const source = { id: sourceId, path, content: buffer }
+  const loader = loaders.find(l => matchesLoader(l, source))
+  if (loader == null) throw new Error(`no loader found for '${path}'`)
 
-  /** Get parsed records from file. */
-  get records(): unknown {
-    return this.data.data
-  }
+  const result = await loader.load(source, { source })
+  const records = result.records.map(record => ({
+    key: record.key,
+    data: record.data,
+    content: typeof record.metadata?.content === 'string' ? record.metadata.content : undefined,
+    metadata: record.metadata
+  }))
+  if (records.length === 0) throw new Error(`no records loaded from '${path}'`)
 
-  /** Get content of file. */
-  get content(): string | undefined {
-    return this.data.content
-  }
-
-  /** Get mdast object from cache. */
-  get mdast(): Root | undefined {
-    if (this._mdast != null) return this._mdast
-    if (this.content == null) return undefined
-    this._mdast = Object.freeze(fromMarkdown(this.content))
-    return this._mdast
-  }
-
-  /** Get hast object from cache. */
-  get hast(): Nodes | undefined {
-    if (this._hast != null) return this._hast
-    if (this.mdast == null) return undefined
-    this._hast = Object.freeze(raw(toHast(this.mdast, { allowDangerousHtml: true })))
-    return this._hast
-  }
-
-  /** Get plain text of content from cache. */
-  get plain(): string | undefined {
-    if (this._plain != null) return this._plain
-    if (this.hast == null) return undefined
-    this._plain = toString(this.hast)
-    return this._plain
-  }
-
-  /**
-   * Read `path` and run the matching loader. Throws via `vfile.fail()` when no
-   * loader matches or the loader returns no data.
-   */
-  static async create(path: string, loaders: VeliteLoader[]): Promise<VeliteFile> {
-    const loader = loaders.find(l => l.test.test(path))
-    const file = new VeliteFile({ path })
-    if (loader == null) return file.fail(`no loader found for '${path}'`)
-    file.value = await readFile(path)
-    file.data = await loader.load(file)
-    if (file.data?.data == null) return file.fail(`no data loaded from '${path}'`)
-    return file
-  }
+  return { path, id: sourceId, records, dependencies: result.dependencies ?? [], metadata: result.metadata }
 }
+
+/**
+ * Create a schema-context content file with lazily-parsed AST.
+ *
+ * `mdast`, `hast` and `plain` are derived on first access from `content` and
+ * cached. Built-in schemas access them via the internal schema context.
+ */
+export const createContentFile = (id: string, path: string, content?: string): InternalFile => {
+  let mdastCache: Root | undefined
+  let hastCache: Nodes | undefined
+  let plainCache: string | undefined
+
+  const file: InternalFile = {
+    id,
+    path,
+    content,
+    get mdast(): Root | undefined {
+      if (mdastCache != null) return mdastCache
+      if (content == null) return undefined
+      mdastCache = Object.freeze(fromMarkdown(content))
+      return mdastCache
+    },
+    get hast(): Nodes | undefined {
+      if (hastCache != null) return hastCache
+      const mdast = this.mdast
+      if (mdast == null) return undefined
+      hastCache = Object.freeze(raw(toHast(mdast, { allowDangerousHtml: true })))
+      return hastCache
+    },
+    get plain(): string | undefined {
+      if (plainCache != null) return plainCache
+      const hast = this.hast
+      if (hast == null) return undefined
+      plainCache = toString(hast)
+      return plainCache
+    }
+  }
+  return file
+}
+
+/** Convenience: read raw file text (used by the watcher for change detection). */
+export const readRawText = (path: string): Promise<string> => readFile(path, 'utf8')
+
+export { toStringContent }

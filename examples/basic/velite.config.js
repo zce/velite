@@ -37,12 +37,11 @@ export default defineConfig({
     data: '.velite',
     assets: 'public/static',
     base: '/static/',
-    name: '[name]-[hash:6].[ext]',
     clean: true
   },
   collections: {
     options: {
-      name: 'Options',
+      typeName: 'Options',
       pattern: 'options/index.yml',
       single: true,
       schema: s.object({
@@ -56,7 +55,7 @@ export default defineConfig({
       })
     },
     categories: {
-      name: 'Category',
+      typeName: 'Category',
       pattern: 'categories/*.yml',
       schema: s
         .object({
@@ -69,7 +68,7 @@ export default defineConfig({
         .transform(data => ({ ...data, permalink: `/${data.slug}` }))
     },
     tags: {
-      name: 'Tag',
+      typeName: 'Tag',
       pattern: 'tags/index.yml',
       schema: s
         .object({
@@ -82,7 +81,7 @@ export default defineConfig({
         .transform(data => ({ ...data, permalink: `/${data.slug}` }))
     },
     pages: {
-      name: 'Page',
+      typeName: 'Page',
       pattern: ['pages/**/*.mdx', '!pages/ignored/**'],
       schema: s
         .object({
@@ -91,16 +90,16 @@ export default defineConfig({
           body: s.mdx(),
           raw: s.raw()
         })
-        .transform(data => ({ ...data, permalink: `/${data.slug}`, basename: context().file.basename }))
+        .transform(data => ({ ...data, permalink: `/${data.slug}`, basename: context().file.path.split(/[\\/]/).pop() }))
     },
     posts: {
-      name: 'Post',
+      typeName: 'Post',
       pattern: 'posts/**/*.md',
       schema: s
         .object({
           title: s.string().max(99),
           slug: s.path(),
-          date: s.isodate(),
+          date: s.isoDate(),
           updated: timestamp(),
           cover: s.image().optional(),
           video: s.file().optional(),

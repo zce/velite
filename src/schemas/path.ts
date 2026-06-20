@@ -1,37 +1,28 @@
 import { relative } from 'node:path'
-import { custom } from 'zod'
+import * as z from 'zod'
 
-import { context } from '../runtime/context'
+import { getContext } from './context'
 
-/**
- * Options for flattened path
- * extraction
- */
+/** Options for the flattened path schema. */
 export interface PathOptions {
   /**
-   * removes `index` from the path
-   * for subfolders
-   *
+   * Remove a trailing `/index` segment from the flattened path.
    * @default true
    */
   removeIndex?: boolean
 }
 
 /**
- * Flattened path
- * @param options - options for the path flattening
- *
- * @returns flattened path based on the file path
+ * Flattened path schema derived from the current file's project-relative path.
  */
-export const path = (options?: PathOptions) =>
-  custom<string>(i => typeof i === 'string')
+export const path = (options?: PathOptions): z.ZodType<string> =>
+  z
+    .custom<string>(i => typeof i === 'string')
     .optional()
-    .transform<string>(async () => {
-      const { config, file } = context()
-
-      const flattened = relative(config.root, file.path)
-        .replace(/\.[^.]+$/, '')
-        .replace(/\\/g, '/')
-
+    .transform<string>(() => {
+      const { project, file } = getContext()
+      const flattened = relativePosix(project.root, file.path).replace(/\.[^.]+$/, '')
       return options?.removeIndex === false ? flattened : flattened.replace(/\/index$/, '')
     })
+
+const relativePosix = (from: string, to: string): string => relative(from, to).replaceAll('\\', '/')

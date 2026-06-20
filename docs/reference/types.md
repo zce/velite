@@ -1,153 +1,172 @@
 # Types
 
-## VeliteImage
+## ImageData
 
 ```ts
 /**
- * Image object with metadata & blur image
+ * Image object with metadata & blur placeholder
  */
-interface VeliteImage {
-  /**
-   * public url of the image
-   */
+interface ImageData {
+  /** public url of the image */
   src: string
-  /**
-   * image width
-   */
+  /** image width */
   width: number
-  /**
-   * image height
-   */
+  /** image height */
   height: number
-  /**
-   * blurDataURL of the image
-   */
+  /** blur placeholder data url */
   blurDataURL: string
-  /**
-   * blur image width
-   */
+  /** blur image width */
   blurWidth: number
-  /**
-   * blur image height
-   */
+  /** blur image height */
   blurHeight: number
 }
 ```
 
-## VeliteLoader
+## Loader
 
 ```ts
 /**
- * File loader
+ * A loader turns a source file into one or more raw records.
  */
-interface VeliteLoader {
-  /**
-   * File test regexp
-   * @example
-   * /\.md$/
-   */
-  test: RegExp
-  /**
-   * Load file data from file.value
-   * @param file vfile
-   */
-  load: (file: VFile) => Promisable<Data>
+interface Loader {
+  /** File test regexp or predicate. @example /\.md$/ */
+  test: RegExp | ((source: LoaderSource) => boolean)
+  /** Load raw records from a source. */
+  load: (source: LoaderSource, context: LoaderContext) => Promisable<LoaderResult>
 }
 ```
+
+See [Custom Loaders](../guide/custom-loader.md) for the full `LoaderSource`, `LoaderContext`, `LoaderResult` and `LoaderRecord` shapes.
 
 ## ContentFile
 
 ```ts
 interface ContentFile {
-  /**
-   * Absolute source file path.
-   */
+  /** Stable source id (project-relative, POSIX). */
+  readonly id: string
+  /** Absolute source file path. */
   readonly path: string
-
-  /**
-   * Content body without frontmatter, when available.
-   */
+  /** Raw text content (e.g. Markdown/MDX body), when available. */
   readonly content?: string
-
-  /**
-   * Parsed Markdown AST, when content is available.
-   */
-  readonly mdast?: Root
-
-  /**
-   * Parsed HTML AST, when content is available.
-   */
-  readonly hast?: Nodes
-
-  /**
-   * Plain text extracted from content, when available.
-   */
+  /** Plain text extracted from content, when available. */
   readonly plain?: string
 }
 ```
 
-## BuildContext
+AST fields are intentionally not part of the stable 1.0 contract; derive anything else you need from `path`.
+
+## ContentRecord
 
 ```ts
-interface BuildContext {
-  /**
-   * Resolved config being used.
-   */
-  readonly config: ResolvedConfig
+interface ContentRecord {
+  /** Stable record id (`sourceId#key`). */
+  readonly id: string
+  /** Loader-provided record key, when available. */
+  readonly key?: string
+  /** Record index within its source. */
+  readonly index: number
+}
+```
 
-  /**
-   * Current file being parsed.
-   */
+## ProjectInfo
+
+```ts
+interface ProjectInfo {
+  /** Content root directory. */
+  readonly root: string
+  /** Resolved config file path. */
+  readonly configPath: string
+  /** Resolved collections. */
+  readonly collections: Collections
+}
+```
+
+## SchemaContext
+
+```ts
+interface SchemaContext {
+  /** Stable view of the resolved project. */
+  readonly project: ProjectInfo
+  /** Current file being parsed. */
   readonly file: ContentFile
-
-  /**
-   * Build-scoped shared state for advanced custom schemas and plugins.
-   */
-  readonly store: BuildStore
+  /** Current record being parsed. */
+  readonly record: ContentRecord
+  /** Session-scoped store for advanced custom schemas. */
+  readonly store: SessionStore
 }
 ```
 
-Use [`context()`](./api.md#context) inside custom schema callbacks to access `BuildContext`.
+Use [`context()`](./api.md#context) inside custom schema callbacks to access `SchemaContext`.
 
-`BuildContext` is the public schema-time view for the current build or watch rebuild. Internally Velite keeps a larger build session with caches, diagnostics, and output state, but that session is not a public extension point.
+`SchemaContext` is the public schema-time view for the current build or watch rebuild. Internally Velite keeps a larger build session with the dependency graph, caches, diagnostics, schema effects and output state, but that session is not a public extension point.
 
-## BuildStore
+## SessionStore
 
 ```ts
-type StoreKey = string | symbol
-
-interface BuildStore {
-  get<T>(key: StoreKey): T | undefined
-  set<T>(key: StoreKey, value: T): void
-  getOrCreate<T>(key: StoreKey, create: () => T): T
-  has(key: StoreKey): boolean
+interface SessionStore {
+  get<T>(key: string | symbol): T | undefined
+  has(key: string | symbol): boolean
+  getOrCreate<T>(key: string | symbol, create: () => T): T
 }
 ```
 
-`BuildStore` lives for the current build or watch rebuild. Use `context().store` when a custom schema or plugin needs shared state without module-level globals.
+`SessionStore` belongs to the current build session: it is shared across rebuilds inside a watch session, destroyed at the end of a one-shot build, and reset on config reload. There is deliberately no `set()` — built-in cross-file schemas use the internal schema-effects model so concurrent validation stays deterministic. Use `context().store` when a custom schema needs lazily-initialized shared state.
+
+## VeliteSchema
+
+```ts
+type VeliteSchema<Output = unknown, Input = unknown> = z.ZodType<Output, Input>
+```
+
+## InferSchema
+
+```ts
+type InferSchema<TSchema extends VeliteSchema> = z.infer<TSchema>
+```
+
+Infer the output type of a Velite schema. Use `InferSchema` (not lowercase `infer`, which clashes with the TypeScript keyword).
+
+## Collection
+
+```ts
+interface Collection<TSchema extends VeliteSchema = VeliteSchema> {
+  /** Generated TypeScript type name. */
+  typeName: string
+  /** Glob pattern(s) relative to `root`, supporting `!negation`. */
+  pattern: string | string[]
+  /** Whether the result is a single record instead of an array. */
+  single?: boolean
+  /** Schema validating and transforming each record. */
+  schema: TSchema
+}
+```
 
 ## BuildResult
 
 ```ts
-type BuildResult<T extends Collections> = {
-  [P in keyof T]: CollectionType<T, P>
+type CollectionResult<TCollection extends Collection> = TCollection['single'] extends true
+  ? InferSchema<TCollection['schema']>
+  : Array<InferSchema<TCollection['schema']>>
+
+type BuildResult<TCollections extends Collections> = {
+  [K in keyof TCollections]: CollectionResult<TCollections[K]>
 }
 ```
 
-`BuildResult` is the strongly typed per-collection data shape passed to `prepare` and `complete` hooks.
+`BuildResult` is the strongly typed per-collection data shape passed to the `prepare` hook.
 
-## HookContext
+## PrepareContext
 
 ```ts
-type HookContext = {
-  /**
-   * Resolved config.
-   */
-  config: ResolvedConfig
+interface PrepareContext {
+  /** Stable view of the resolved project. */
+  readonly project: ProjectInfo
+  /** Diagnostics from the build run. */
+  readonly diagnostics: readonly Diagnostic[]
 }
 ```
 
-Hook callbacks such as `prepare` and `complete` receive this context type.
+The `prepare` hook receives this context. There are no other lifecycle hooks in 1.0.
 
 ## MarkdownOptions
 
@@ -156,28 +175,15 @@ Hook callbacks such as `prepare` and `complete` receive this context type.
  * Markdown options
  */
 interface MarkdownOptions {
-  /**
-   * Enable GitHub Flavored Markdown (GFM).
-   * @default true
-   */
+  /** Enable GitHub Flavored Markdown (GFM). @default true */
   gfm?: boolean
-  /**
-   * Remove html comments.
-   * @default true
-   */
+  /** Remove html comments. @default true */
   removeComments?: boolean
-  /**
-   * Copy linked files to public path and replace their urls with public urls.
-   * @default true
-   */
+  /** Copy linked files to public path and replace their urls with public urls. @default true */
   copyLinkedFiles?: boolean
-  /**
-   * Remark plugins.
-   */
+  /** Remark plugins. */
   remarkPlugins?: PluggableList
-  /**
-   * Rehype plugins.
-   */
+  /** Rehype plugins. */
   rehypePlugins?: PluggableList
 }
 ```
@@ -191,30 +197,15 @@ Refer to [Unified](https://unifiedjs.com/explore/package/unified/#pluggablelist)
  * MDX compiler options
  */
 export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
-  /**
-   * Enable GitHub Flavored Markdown (GFM).
-   * @default true
-   */
+  /** Enable GitHub Flavored Markdown (GFM). @default true */
   gfm?: boolean
-  /**
-   * Remove html comments.
-   * @default true
-   */
+  /** Remove html comments. @default true */
   removeComments?: boolean
-  /**
-   * Copy linked files to public path and replace their urls with public urls.
-   * @default true
-   */
+  /** Copy linked files to public path and replace their urls with public urls. @default true */
   copyLinkedFiles?: boolean
-  /**
-   * Output format to generate.
-   * @default 'function-body'
-   */
+  /** Output format to generate. @default 'function-body' */
   outputFormat?: CompileOptions['outputFormat']
-  /**
-   * Minify the output code.
-   * @default true
-   */
+  /** Minify the output code. @default true */
   minify?: boolean
 }
 ```

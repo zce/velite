@@ -2,7 +2,7 @@ import { build, watch } from 'velite'
 
 /**
  * Velite Vite plugin
- * @param {Omit<import('velite').BuildOptions, 'watch'>} options - Velite options
+ * @param {import('velite').BuildOptions} options - Velite options
  * @returns {import('vite').Plugin} Vite plugin
  */
 export default (options = {}) => {
@@ -28,7 +28,7 @@ export default (options = {}) => {
       if (started) return
 
       // Run build in production
-      await build({ ...options, watch: false })
+      await build(options)
     }
   }
 }

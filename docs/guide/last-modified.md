@@ -12,9 +12,9 @@ Create a timestamp schema based on file stat.
 
 ```ts
 import { stat } from 'fs/promises'
-import { context, defineSchema, s } from 'velite'
+import { context, s } from 'velite'
 
-const timestamp = defineSchema(() =>
+const timestamp = () =>
   s
     .string()
     .optional()
@@ -23,7 +23,6 @@ const timestamp = defineSchema(() =>
       const stats = await stat(file.path)
       return stats.mtime.toISOString()
     })
-)
 ```
 
 Use it in your schema
@@ -43,11 +42,11 @@ const posts = defineCollection({
 ```ts
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { context, defineSchema, s } from 'velite'
+import { context, s } from 'velite'
 
 const execAsync = promisify(exec)
 
-const timestamp = defineSchema(() =>
+const timestamp = () =>
   s
     .string()
     .optional()
@@ -56,7 +55,6 @@ const timestamp = defineSchema(() =>
       const { stdout } = await execAsync(`git log -1 --format=%cd ${file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
-)
 ```
 
 Use it in your schema

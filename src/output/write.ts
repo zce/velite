@@ -1,120 +1,111 @@
-import { access, copyFile, writeFile } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { access, copyFile, mkdir, rm, writeFile } from 'node:fs/promises'
+import { dirname, join, relative } from 'node:path'
 
-import { logger as defaultLogger } from '../runtime/logger'
-
-import type { AssetStore } from '../assets'
-import type { Collections } from '../collections'
+import type { OutputState } from '../core/session'
 import type { Logger } from '../runtime/logger'
-import type { VeliteOutput } from './index'
-import type { OutputState } from './state'
-
-const isProduction = process.env.NODE_ENV === 'production'
+import type { OutputPlan } from './plan'
 
 export interface Writer {
-  writeEntry(state: OutputState, dest: string, format: VeliteOutput['format'], configPath: string, collections: Collections): Promise<void>
-  writeData(state: OutputState, dest: string, result: Record<string, unknown>): Promise<void>
-  writeAssets(state: OutputState, dest: string, assets: AssetStore): Promise<void>
+  writeData(state: OutputState, dataDir: string, plan: Pick<OutputPlan, 'writes'>): Promise<void>
+  writeAssets(state: OutputState, assetsDir: string, assets: ReadonlyArray<{ path: string; sourcePath: string }>): Promise<void>
 }
 
 export interface WriterOptions {
   writeFile?: (path: string, content: string) => Promise<void>
   copyFile?: (source: string, destination: string) => Promise<void>
   access?: (path: string) => Promise<void>
+  rm?: (path: string) => Promise<void>
+  mkdir?: (path: string) => Promise<void>
   logger?: Logger
 }
 
 /**
- * Create an output writer service.
+ * Create an output writer.
+ *
+ * The writer is the sole output side-effect boundary: it writes data/type/entry
+ * files and copies assets, skips unchanged writes, and deletes stale outputs
+ * that are no longer part of the plan.
  */
-export const createWriter = ({
-  writeFile: write = writeFile,
-  copyFile: copy = copyFile,
-  access: accessFile = access,
-  logger = defaultLogger
-}: WriterOptions = {}): Writer => {
-  const emit = async (path: string, content: string, state: OutputState, log?: string): Promise<void> => {
-    if (state.emitted.get(path) === content) {
+export const createWriter = (options: WriterOptions = {}): Writer => {
+  const write = options.writeFile ?? writeFile
+  const copy = options.copyFile ?? copyFile
+  const accessFile = options.access ?? access
+  const remove = options.rm ?? ((p: string) => rm(p, { recursive: true, force: true }))
+  const mkdirp = options.mkdir ?? ((p: string) => mkdir(p, { recursive: true }))
+  const logger = options.logger
+
+  const emit = async (target: string, content: string, state: OutputState, kind: string): Promise<void> => {
+    if (state.emitted.get(target) === content) {
       try {
-        await accessFile(path)
-        logger.log(`skipped write '${path}' with same content`)
+        await accessFile(target)
+        logger?.debug?.(`skipped write '${target}' with same content`)
         return
       } catch {
-        logger.log(`restoring missing '${path}' with cached content`)
+        logger?.debug?.(`restoring missing '${target}'`)
       }
     }
-    await write(path, content)
-    logger.log(log ?? `wrote '${path}' with ${content.length} bytes`)
-    state.emitted.set(path, content)
+    await mkdirp(dirname(target))
+    await write(target, content)
+    state.emitted.set(target, content)
+    logger?.debug?.(`wrote ${kind} '${target}'`)
   }
 
   return {
-    async writeEntry(state, dest, format, configPath, collections) {
-      const begin = performance.now()
-
-      const configModPath = relative(dest, configPath).replace(/\\/g, '/')
-
-      const entry: string[] = []
-      const dts: string[] = [`import type __vc from '${configModPath}'\n`]
-      dts.push('type Collections = typeof __vc.collections\n')
-
-      Object.entries(collections).forEach(([name, collection]) => {
-        if (format === 'cjs') {
-          entry.push(`exports.${name} = require('./${name}.json')`)
-        } else {
-          entry.push(`export { default as ${name} } from './${name}.json' with { type: 'json' }`)
+    async writeData(state, dataDir, plan) {
+      const intended = new Set<string>()
+      for (const w of plan.writes) {
+        const target = join(dataDir, w.path)
+        intended.add(target)
+        await emit(target, w.content, state, w.kind)
+      }
+      // sweep stale data outputs no longer in the plan
+      for (const target of Array.from(state.emitted.keys())) {
+        if (intended.has(target)) continue
+        const rel = relative(dataDir, target)
+        if (rel.startsWith('..') || rel === '') continue
+        try {
+          await remove(target)
+          state.emitted.delete(target)
+        } catch (err) {
+          // Only remove from the emitted map when the file is actually gone
+          // (ENOENT) or was successfully deleted. On EPERM/EBUSY/etc. keep
+          // the entry so the next build retries the deletion.
+          if ((err as NodeJS.ErrnoException).code === 'ENOENT') state.emitted.delete(target)
         }
-        dts.push(`export type ${collection.name} = Collections['${name}']['schema']['_output']`)
-        dts.push(`export declare const ${name}: ${collection.name + (collection.single ? '' : '[]')}\n`)
-      })
-
-      const banner = '// This file is generated by Velite\n\n'
-
-      const entryFile = join(dest, 'index.js')
-      await emit(entryFile, banner + entry.join('\n'), state, `created entry file in '${entryFile}'`)
-
-      const dtsFile = join(dest, 'index.d.ts')
-      await emit(dtsFile, banner + dts.join('\n'), state, `created entry dts file in '${dtsFile}'`)
-
-      logger.log(`output entry file in '${dest}'`, begin)
+      }
     },
 
-    async writeData(state, dest, result) {
-      const begin = performance.now()
-      const logs: string[] = []
-      await Promise.all(
-        Object.entries(result).map(async ([name, data]) => {
-          if (data == null) return
-          const target = join(dest, name + '.json')
-          const content = isProduction ? JSON.stringify(data) : JSON.stringify(data, null, 2)
-          const length = Array.isArray(data) ? data.length : 1
-          await emit(target, content, state, `wrote '${target}' with ${length} ${name}`)
-          logs.push(`${length} ${name}`)
-        })
-      )
-      logger.log(`output ${logs.join(', ')}`, begin)
-    },
-
-    async writeAssets(state, dest, assets) {
-      const begin = performance.now()
-      const records = assets.list()
-      await Promise.all(
-        records.map(async record => {
-          const target = join(dest, record.outputName)
-          if (state.emitted.get(target) === record.sourcePath) {
-            try {
-              await accessFile(target)
-              logger.log(`skipped copy '${target}' with same source`)
-              return
-            } catch {
-              logger.log(`restoring missing '${target}' from '${record.sourcePath}'`)
-            }
+    async writeAssets(state, assetsDir, assets) {
+      const intended = new Set<string>()
+      for (const asset of assets) {
+        const target = join(assetsDir, asset.path)
+        intended.add(target)
+        if (state.emitted.get(target) === asset.sourcePath) {
+          try {
+            await accessFile(target)
+            logger?.debug?.(`skipped copy '${target}'`)
+            continue
+          } catch {
+            logger?.debug?.(`restoring missing asset '${target}'`)
           }
-          await copy(record.sourcePath, target)
-          state.emitted.set(target, record.sourcePath)
-        })
-      )
-      logger.log(`output ${records.length} assets`, begin)
+        }
+        await mkdirp(dirname(target))
+        await copy(asset.sourcePath, target)
+        state.emitted.set(target, asset.sourcePath)
+        logger?.debug?.(`copied asset '${target}'`)
+      }
+      // sweep stale assets no longer referenced
+      for (const target of Array.from(state.emitted.keys())) {
+        if (intended.has(target)) continue
+        const rel = relative(assetsDir, target)
+        if (rel.startsWith('..') || rel === '') continue
+        try {
+          await remove(target)
+          state.emitted.delete(target)
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code === 'ENOENT') state.emitted.delete(target)
+        }
+      }
     }
   }
 }

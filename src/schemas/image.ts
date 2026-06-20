@@ -1,44 +1,38 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { string } from 'zod'
+import * as z from 'zod'
 
-import { assetStoreKey, createAssetStore, getImageMetadata, processAsset } from '../assets'
-import { context, getInternalAssetCache } from '../runtime/context'
+import { processAsset } from '../assets/process'
+import { getContext } from './context'
 
-import type { BlurOptions, VeliteImage } from '../assets'
+import type { ImageBlurOptions, ImageData, ImageOptions } from '../assets/image'
 
-export interface ImageOptions {
-  /**
-   * root path for absolute path, if provided, the value will be processed as an absolute path
-   * @default undefined
-   */
-  absoluteRoot?: string
-  /**
-   * blur placeholder options (width / height / quality)
-   * @default undefined
-   */
-  blur?: BlurOptions
-}
+export type { ImageBlurOptions, ImageData, ImageOptions }
 
-/**
- * Image schema.
- */
-export const image = ({ absoluteRoot, blur }: ImageOptions = {}) =>
-  string().transform<VeliteImage>(async (value, ctx) => {
+/** Image schema. Resolves a content-relative image into `ImageData`. */
+export const image = ({ absoluteRoot, blur }: ImageOptions = {}): z.ZodType<ImageData> =>
+  z.string().transform<ImageData>(async (value, ctx) => {
     try {
-      if (absoluteRoot && /^\//.test(value)) {
+      if (absoluteRoot != null && /^\//.test(value)) {
+        const { getImageMetadata } = await import('../assets/image')
         const buffer = await readFile(join(absoluteRoot, value))
         const metadata = await getImageMetadata(buffer, blur)
         if (metadata == null) throw new Error(`Failed to get image metadata: ${value}`)
         return { src: value, ...metadata }
       }
-
-      const { file, config, store } = context()
-      const assets = store.getOrCreate(assetStoreKey, createAssetStore)
-      const cache = getInternalAssetCache()
-
-      // process asset as relative path
-      return await processAsset(value, file.path, config.output.name, config.output.base, assets, true, blur, cache)
+      const { file, project, assetStore, assetCache, record, collectEffect } = getContext()
+      const result = await processAsset({
+        input: value,
+        from: file.path,
+        filename: project.output.name,
+        baseUrl: project.output.base,
+        assets: assetStore,
+        cache: assetCache,
+        isImage: true,
+        blur
+      })
+      collectEffect({ type: 'asset', owner: record.id, assetPath: result.sourcePath, publicUrl: result.publicUrl, isImage: true })
+      return { src: result.publicUrl, ...(result.image as Omit<ImageData, 'src'>) }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       ctx.addIssue({ fatal: true, code: 'custom', message })

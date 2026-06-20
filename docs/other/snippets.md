@@ -6,9 +6,9 @@
 
 ```ts
 import { stat } from 'fs/promises'
-import { context, defineSchema, s } from 'velite'
+import { context, s } from 'velite'
 
-const timestamp = defineSchema(() =>
+const timestamp = () =>
   s
     .string()
     .optional()
@@ -34,11 +34,11 @@ const posts = defineCollection({
 ```ts
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { context, defineSchema, s } from 'velite'
+import { context, s } from 'velite'
 
 const execAsync = promisify(exec)
 
-const timestamp = defineSchema(() =>
+const timestamp = () =>
   s
     .string()
     .optional()
@@ -64,13 +64,13 @@ const posts = defineCollection({
 ```ts
 import { getImageMetadata, s } from 'velite'
 
-import type { VeliteImage } from 'velite'
+import type { ImageData } from 'velite'
 
 /**
  * Remote Image with metadata schema
  */
 export const remoteImage = () =>
-  s.string().transform<VeliteImage>(async (value, ctx) => {
+  s.string().transform<ImageData>(async (value, ctx) => {
     try {
       const response = await fetch(value)
       const blob = await response.blob()

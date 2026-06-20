@@ -6,7 +6,6 @@ import { createFileCache } from '../collections/cache'
 import { VeliteFile } from '../collections/file'
 import { createResolver } from '../collections/resolve'
 import { createConfigLoader } from '../config/load'
-import { createOutputState } from '../output/state'
 import { createWriter } from '../output/write'
 import { logger as defaultLogger } from '../runtime/logger'
 import { createSession } from '../runtime/session'
@@ -17,6 +16,7 @@ import type { FileCache } from '../collections/cache'
 import type { Resolver } from '../collections/resolve'
 import type { ResolvedConfig } from '../config'
 import type { ConfigLoader } from '../config/load'
+import type { OutputState } from '../output/state'
 import type { Writer } from '../output/write'
 import type { Logger } from '../runtime/logger'
 import type { BuildOptions } from './types'
@@ -112,20 +112,12 @@ export const createEngine = <T extends Collections = Collections>({
 }: EngineOptions = {}): Engine<T> => {
   let currentConfig: ResolvedConfig<T> | undefined
   let currentOptions: BuildOptions = {}
-  // Long-lived emit cache shared across rebuilds within the same engine.
-  // A fresh build() with `clean: true` clears the cache implicitly because the
-  // output directory is removed; otherwise content-based skipping still works.
-  const outputState = createOutputState()
+  const outputState: OutputState = { emitted: new Map() }
   const incremental = createIncrementalState()
   const clearIncremental = () => {
     incremental.files.clear()
     incremental.resolved.clear()
     incremental.assets.clear()
-  }
-
-  const ensureOutputDirs = async (config: ResolvedConfig<T>): Promise<void> => {
-    await mkdir(config.output.data, { recursive: true })
-    await mkdir(config.output.assets, { recursive: true })
   }
 
   const runResolve = async (config: ResolvedConfig<T>, options: BuildOptions, change?: RebuildChange): Promise<BuildResult<T>> => {
@@ -192,11 +184,11 @@ export const createEngine = <T extends Collections = Collections>({
           logger.log(`cleaned data output dir '${config.output.data}'`)
           await rm(config.output.assets, { recursive: true, force: true })
           logger.log(`cleaned assets output dir '${config.output.assets}'`)
-          // After clean, drop the emit cache so the next write actually writes.
           outputState.emitted.clear()
         }
 
-        await ensureOutputDirs(config)
+        await mkdir(config.output.data, { recursive: true })
+        await mkdir(config.output.assets, { recursive: true })
 
         await writer.writeEntry(outputState, config.output.data, config.output.format, config.configPath, config.collections)
 
@@ -214,7 +206,8 @@ export const createEngine = <T extends Collections = Collections>({
       const begin = performance.now()
       logger.info('rebuilding...')
       if (change == null) clearIncremental()
-      await ensureOutputDirs(currentConfig)
+      await mkdir(currentConfig.output.data, { recursive: true })
+      await mkdir(currentConfig.output.assets, { recursive: true })
       await writer.writeEntry(outputState, currentConfig.output.data, currentConfig.output.format, currentConfig.configPath, currentConfig.collections)
       const result = await runResolve(currentConfig, currentOptions, change)
       logger.info('rebuild finished', begin)

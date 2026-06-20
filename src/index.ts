@@ -6,6 +6,7 @@ import type { Watcher } from './app/watch'
 import type { BuildResult, Collections } from './collections'
 
 export type { BuildOptions } from './app/types'
+export type { Watcher } from './app/watch'
 export type { BlurOptions, VeliteImage } from './assets'
 export type { BuildResult, Collection, Collections, CollectionType } from './collections'
 export type { HookContext, PluginConfig, ResolvedConfig, UserConfig } from './config'
@@ -17,7 +18,6 @@ export type { BuildStore, StoreKey } from './runtime/store'
 export type { infer, VeliteSchema } from './schemas'
 export type { MarkdownOptions } from './schemas/markdown'
 export type { MdxOptions } from './schemas/mdx'
-export type { Watcher }
 
 export { getImageMetadata } from './assets'
 export { defineCollection } from './collections'

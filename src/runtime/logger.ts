@@ -12,8 +12,7 @@ const logLevels: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error:
 /**
  * Structural logger interface used by core modules.
  *
- * Both the process-level facade `logger` and per-build session loggers
- * implement this shape, so core code never has to know which it is using.
+ * Core code accepts a `Logger` injection so tests can redirect output.
  */
 export interface Logger {
   log(msg: unknown, begin?: number): void
@@ -29,37 +28,27 @@ const flatten = (msg: unknown): unknown => {
   return msg.replaceAll(process.cwd() + sep, '').replace(/\\/g, '/')
 }
 
-/**
- * Create a logger with its own `LogLevel` state.
- *
- * The exported `logger` is the process-level default. Core modules accept a
- * `Logger` injection so tests can redirect output.
- */
-export const createLogger = (initialLevel: LogLevel = 'info'): Logger => {
-  let current = logLevels[initialLevel]
+let currentLevel = logLevels.info
 
-  const print = (type: LogType, msg: unknown, begin?: number): void => {
-    if (current > logLevels[type]) return
-    const time = begin != null ? `in ${(performance.now() - begin).toFixed(2)}ms` : ''
-    const method = type === 'debug' ? 'log' : type
-    console[method](`\x1B[${colors[type]}m${identifier}\x1B[0m`, flatten(msg), time)
-  }
-
-  return {
-    log: (msg, begin) => print('debug', msg, begin),
-    info: (msg, begin) => print('info', msg, begin),
-    warn: (msg, begin) => print('warn', msg, begin),
-    error: (msg, begin) => print('error', msg, begin),
-    clear: () => console.clear(),
-    set: level => {
-      current = logLevels[level]
-    }
-  }
+const print = (type: LogType, msg: unknown, begin?: number): void => {
+  if (currentLevel > logLevels[type]) return
+  const time = begin != null ? `in ${(performance.now() - begin).toFixed(2)}ms` : ''
+  const method = type === 'debug' ? 'log' : type
+  console[method](`\x1B[${colors[type]}m${identifier}\x1B[0m`, flatten(msg), time)
 }
 
 /**
- * Default process-level logger, kept for backwards compatibility with
- * existing public consumers and for the legacy `logger.set(level)` call site
- * in the build facade. New core code should accept a `Logger` injection.
+ * Default process-level logger.
+ *
+ * Core modules accept a `Logger` injection so tests can redirect output.
  */
-export const logger: Logger = createLogger()
+export const logger: Logger = {
+  log: (msg, begin) => print('debug', msg, begin),
+  info: (msg, begin) => print('info', msg, begin),
+  warn: (msg, begin) => print('warn', msg, begin),
+  error: (msg, begin) => print('error', msg, begin),
+  clear: () => console.clear(),
+  set: level => {
+    currentLevel = logLevels[level]
+  }
+}

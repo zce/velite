@@ -3,21 +3,17 @@ import { reporter } from 'vfile-reporter'
 
 import { runWithContext } from '../runtime/context'
 import { matchPatterns } from '../utils/patterns'
-import { createDiscoverer } from './discover'
+import { discover as defaultDiscover } from './discover'
 
 import type { RebuildChange } from '../app/engine'
 import type { BuildSession } from '../runtime/session'
 import type { VeliteSchema } from '../schemas'
-import type { Discoverer } from './discover'
+import type { Discover } from './discover'
 import type { VeliteFile } from './file'
 import type { BuildResult, Collections } from './index'
 
 export interface Resolver {
   resolve<T extends Collections>(session: BuildSession<T>, change?: RebuildChange): Promise<ResolveResult<T>>
-}
-
-export interface ResolverOptions {
-  discoverer?: Discoverer
 }
 
 export interface ResolveResult<T extends Collections = Collections> {
@@ -80,7 +76,7 @@ const collectionAffected = (root: string, pattern: string | string[], paths: Set
  * It does not write anything to disk; output is the responsibility of
  * `Writer`.
  */
-export const createResolver = ({ discoverer = createDiscoverer() }: ResolverOptions = {}): Resolver => ({
+export const createResolver = (discover: Discover = defaultDiscover): Resolver => ({
   async resolve(session, change) {
     const { config, logger } = session
     const { root, collections } = config
@@ -100,7 +96,7 @@ export const createResolver = ({ discoverer = createDiscoverer() }: ResolverOpti
           }
         }
         const collectionBegin = performance.now()
-        const paths = await discoverer.discover(root, pattern)
+        const paths = await discover(root, pattern)
         const files = await Promise.all(paths.map(path => loadFile(session, path, schema)))
         logger.log(`resolve ${paths.length} files matching '${pattern}'`, collectionBegin)
         session.resolved.set(name, files)

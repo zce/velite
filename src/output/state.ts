@@ -10,5 +10,3 @@ export interface OutputState {
   /** Map from output path to the most recently emitted content. */
   emitted: Map<string, string>
 }
-
-export const createOutputState = (): OutputState => ({ emitted: new Map() })

@@ -1,7 +1,6 @@
 import { createAssetProcessingCache } from '../assets/cache'
 import { createFileCache } from '../collections/cache'
 import { VeliteFile } from '../collections/file'
-import { createOutputState } from '../output/state'
 import { logger as defaultLogger } from './logger'
 import { createBuildStore } from './store'
 
@@ -70,7 +69,7 @@ export const createSession = <T extends Collections>(
   files: sessionOptions.files ?? createFileCache(defaultLoadFile),
   resolved: sessionOptions.resolved ?? new Map(),
   store: createBuildStore(),
-  output: sessionOptions.output ?? createOutputState(),
+  output: sessionOptions.output ?? { emitted: new Map() },
   logger: sessionOptions.logger ?? defaultLogger,
   assetCache: sessionOptions.assetCache ?? createAssetProcessingCache()
 })

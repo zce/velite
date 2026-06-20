@@ -2,8 +2,7 @@ import { normalize } from 'node:path'
 import { reporter } from 'vfile-reporter'
 
 import { runWithContext } from '../runtime/context'
-import { discover as defaultDiscover } from '../utils/discover'
-import { collectionAffected, normalizePathSet } from '../utils/paths'
+import { collectionAffected, discover as defaultDiscover, normalizePathSet } from '../utils/patterns'
 
 import type { RebuildChange } from '../app/engine'
 import type { BuildSession } from '../runtime/session'
@@ -33,9 +32,7 @@ const loadFile = async <T extends Collections>(session: BuildSession<T>, path: s
     list.map(async (data, index) => {
       const pathPrefix = isArr ? [index] : []
 
-      const parseResult = await runWithContext({ config: session.config, file, store: session.store, assetCache: session.assetCache }, () =>
-        schema.safeParseAsync(data)
-      )
+      const parseResult = await runWithContext({ ...session, file }, () => schema.safeParseAsync(data))
 
       if (parseResult.success) return parseResult.data
 

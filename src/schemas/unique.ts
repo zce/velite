@@ -5,10 +5,12 @@ import { context } from '../runtime/context'
 /** Session-scoped store for `s.unique()` value tracking. */
 export interface UniqueStore {
   register(group: string, value: string, file: string): string | undefined
+  invalidate(file: string): void
 }
 
 export const createUniqueStore = (): UniqueStore => {
   const store = new Map<string, string>()
+  const fileKeys = new Map<string, Set<string>>()
   const key = (group: string, value: string): string => `${group}\u0000${value}`
 
   return {
@@ -17,12 +19,24 @@ export const createUniqueStore = (): UniqueStore => {
       const existing = store.get(k)
       if (existing != null) return existing
       store.set(k, file)
+      let keys = fileKeys.get(file)
+      if (keys == null) {
+        keys = new Set()
+        fileKeys.set(file, keys)
+      }
+      keys.add(k)
       return undefined
+    },
+    invalidate(file) {
+      const keys = fileKeys.get(file)
+      if (keys == null) return
+      for (const k of keys) store.delete(k)
+      fileKeys.delete(file)
     }
   }
 }
 
-const uniqueStoreKey = Symbol('velite.unique')
+export const uniqueStoreKey = Symbol('velite.unique')
 
 /**
  * Generate a unique-value schema.

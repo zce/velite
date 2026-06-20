@@ -2,11 +2,13 @@ import { normalize } from 'node:path'
 import { reporter } from 'vfile-reporter'
 
 import { runWithContext } from '../runtime/context'
+import { uniqueStoreKey } from '../schemas/unique'
 import { collectionAffected, discover as defaultDiscover, normalizePathSet } from '../utils/patterns'
 
 import type { RebuildChange } from '../app/engine'
 import type { BuildSession } from '../runtime/session'
 import type { VeliteSchema } from '../schemas'
+import type { UniqueStore } from '../schemas/unique'
 import type { VeliteFile } from './file'
 import type { BuildResult, Collections } from './index'
 
@@ -23,6 +25,7 @@ export interface ResolveResult<T extends Collections = Collections> {
 
 const loadFile = async <T extends Collections>(session: BuildSession<T>, path: string, schema: VeliteSchema): Promise<VeliteFile> => {
   const normalized = normalize(path)
+  session.store.get<UniqueStore>(uniqueStoreKey)?.invalidate(normalized)
   const file = await session.files.load(normalized, session.config.loaders)
 
   const isArr = Array.isArray(file.records)

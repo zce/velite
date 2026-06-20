@@ -1,4 +1,5 @@
 import { mkdir, rm } from 'node:fs/promises'
+import { normalize } from 'node:path'
 
 import { assetStoreKey, createAssetStore } from '../assets'
 import { createAssetProcessingCache } from '../assets/cache'
@@ -10,6 +11,7 @@ import { createWriter } from '../output/write'
 import { logger as defaultLogger } from '../runtime/logger'
 import { createSession } from '../runtime/session'
 import { createBuildStore } from '../runtime/store'
+import { uniqueStoreKey } from '../schemas/unique'
 
 import type { AssetProcessingCache } from '../assets/cache'
 import type { BuildResult, Collections } from '../collections'
@@ -21,6 +23,7 @@ import type { OutputState } from '../output/state'
 import type { Writer } from '../output/write'
 import type { Logger, LogLevel } from '../runtime/logger'
 import type { BuildStore } from '../runtime/store'
+import type { UniqueStore } from '../schemas/unique'
 
 /**
  * Build options for `build()` and the internal engine.
@@ -159,7 +162,12 @@ export const createEngine = <T extends Collections = Collections>({
 
   const runResolve = async (config: ResolvedConfig<T>, options: BuildOptions, change?: RebuildChange): Promise<BuildResult<T>> => {
     if (change != null) {
-      for (const path of change.paths) incremental.files.delete(path)
+      const uniqueStore = incremental.store.get<UniqueStore>(uniqueStoreKey)
+      for (const path of change.paths) {
+        const normalized = normalize(path)
+        incremental.files.delete(normalized)
+        uniqueStore?.invalidate(normalized)
+      }
     }
     const session = createSession(config, options, {
       output: outputState,

@@ -112,4 +112,57 @@ describe('engine incremental rebuild', () => {
       await rm(root, { recursive: true, force: true })
     }
   })
+
+  it('clears stale unique values for changed files before incremental rebuilds', async () => {
+    const { createEngine } = await import('../../src/app/engine')
+    const { loaders } = await import('../../src/loaders')
+    const { s } = await import('../../src/schemas')
+    const root = await mkdtemp(join(tmpdir(), 'velite-engine-unique-incremental-'))
+
+    try {
+      const contentDir = join(root, 'content')
+      await mkdir(contentDir, { recursive: true })
+
+      const aPath = join(contentDir, 'a.json')
+      const bPath = join(contentDir, 'b.json')
+      await writeFile(aPath, JSON.stringify({ slug: 'hello' }))
+      await writeFile(bPath, JSON.stringify({ slug: 'world' }))
+
+      const configPath = join(root, 'velite.config.mjs')
+      const engine = createEngine({
+        logger: silentLogger,
+        loader: {
+          async load() {
+            return {
+              configPath,
+              configImports: [],
+              root: contentDir,
+              strict: true,
+              output: { data: join(root, '.velite'), assets: join(root, 'public/static'), clean: false, format: 'esm', name: '[name].[ext]', base: '/static/' },
+              loaders,
+              collections: {
+                posts: {
+                  name: 'Post',
+                  pattern: '*.json',
+                  schema: s.object({ slug: s.string().and(s.unique('slug')) })
+                }
+              }
+            }
+          }
+        }
+      })
+
+      await engine.build({ logLevel: 'silent' })
+
+      await writeFile(aPath, JSON.stringify({ slug: 'hello-v2' }))
+      await engine.rebuild({ event: 'change', paths: [aPath] })
+
+      await writeFile(bPath, JSON.stringify({ slug: 'hello' }))
+      const result = await engine.rebuild({ event: 'change', paths: [bPath] })
+
+      deepStrictEqual(result.posts.map(post => post.slug).sort(), ['hello', 'hello-v2'])
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
 })

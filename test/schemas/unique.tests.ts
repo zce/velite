@@ -34,4 +34,15 @@ describe('UniqueStore', () => {
     strictEqual(a.register('g', 'v', '/x'), undefined)
     strictEqual(b.register('g', 'v', '/y'), undefined, 'a fresh store should not see another store values')
   })
+
+  it('invalidate removes values owned by one file without clearing other files', () => {
+    const store = createUniqueStore()
+    store.register('g', 'a', '/a.md')
+    store.register('g', 'b', '/b.md')
+
+    store.invalidate('/a.md')
+
+    strictEqual(store.register('g', 'a', '/c.md'), undefined)
+    strictEqual(store.register('g', 'b', '/c.md'), '/b.md')
+  })
 })

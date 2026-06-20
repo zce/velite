@@ -17,14 +17,14 @@ import { build } from 'velite'
 ### Signature
 
 ```ts
-const build: (options?: Options) => Promise<Result>
+const build: <T extends Collections = Collections>(options?: BuildOptions) => Promise<BuildResult<T>>
 ```
 
 ### Parameters
 
 #### `options`
 
-- Type: `Options`, See [Options](#options).
+- Type: `BuildOptions`, See [BuildOptions](#buildoptions).
 
 Options for build.
 
@@ -47,6 +47,8 @@ Clean output directories before build.
 - Default: `false`
 
 Watch files and rebuild on changes.
+
+For programmatic watch mode, prefer [`watch()`](#watch) so you can close the returned watcher handle. `build({ watch: true })` preserves the historical build facade behavior and still returns only the initial build result.
 
 <!-- #### `options.production`
 
@@ -71,16 +73,16 @@ If true, throws an error and terminates the process if any schema validation fai
 
 ### Returns
 
-- Type: `Promise<Result>`, See [Result](#result).
+- Type: `Promise<BuildResult<T>>`, See [BuildResult](./types.md#buildresult).
 
 The build result.
 
 ### Types
 
-#### Options
+#### BuildOptions
 
 ```ts
-interface Options {
+interface BuildOptions {
   /**
    * Specify config file path
    * @default 'velite.config.{js,ts,mjs,mts,cjs,cts}'
@@ -101,43 +103,55 @@ interface Options {
    * @default 'info'
    */
   logLevel?: LogLevel
+  /**
+   * If true, throws error and terminates process if any schema validation fails.
+   * @default false
+   */
+  strict?: boolean
 }
 ```
 
-#### Result
+Pass a collections type parameter when you want a strongly typed programmatic build result.
+
+## `watch`
+
+Build your project once, then watch files and rebuild on changes. Unlike `build({ watch: true })`, this API returns a watcher handle that programmatic callers can close.
+
+### Usage
 
 ```ts
-interface Entry {
-  [key: string]: any
-}
-
-/**
- * build result, may be one or more entries in a document file
- */
-interface Result {
-  [name: string]: Entry | Entry[]
-}
+import { watch } from 'velite'
 ```
-
-## `outputFile`
 
 ### Signature
 
 ```ts
-const outputFile: async <T extends string | undefined>(ref: T, fromPath: string) => Promise<T>
+const watch: (options?: BuildOptions) => Promise<Watcher>
 ```
 
-## `outputImage`
+### Parameters
 
-### Signature
+#### `options`
+
+- Type: `BuildOptions`, See [BuildOptions](#buildoptions).
+
+Options for the initial build and watcher.
+
+### Returns
+
+- Type: `Promise<Watcher>`.
+
+The watcher handle.
 
 ```ts
-const outputImage: async <T extends string | undefined>(ref: T, fromPath: string) => Promise<Image | T>
+interface Watcher {
+  close(): Promise<void>
+}
 ```
 
 ## `context`
 
-Get the current parser context while Velite is parsing a schema.
+Get the current build context while Velite is parsing a schema.
 
 ### Usage
 
@@ -148,17 +162,11 @@ import { context } from 'velite'
 ### Signature
 
 ```ts
-const context: () => ParserContext
+const context: () => BuildContext
 ```
 
 ### Returns
 
-- Type: `ParserContext`, See [ParserContext](./types.md#parsercontext).
+- Type: `BuildContext`, See [BuildContext](./types.md#buildcontext).
 
-The parser context contains the resolved config and current file. Call `context()` inside schema callbacks such as `.transform()`, `.refine()`, or `.superRefine()`.
-
-## `cache`
-
-Deprecated internal implementation detail. Do not use it in user code.
-
-...
+The build context contains the resolved config, current file, and build-scoped store. Call `context()` inside schema callbacks such as `.transform()`, `.refine()`, or `.superRefine()`.

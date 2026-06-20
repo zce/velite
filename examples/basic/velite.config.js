@@ -2,9 +2,9 @@
 
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
-import { defineConfig, s } from 'velite'
+import { context, defineConfig, s } from 'velite'
 
-const slugify = input =>
+const slugify = (/** @type {string} */ input) =>
   input
     .toLowerCase()
     .replace(/\s+/g, '-')
@@ -24,12 +24,10 @@ const meta = s
 const execAsync = promisify(exec)
 const timestamp = () =>
   s
-    .custom(i => i === undefined || typeof i === 'string')
-    .transform(async (value, { meta, addIssue }) => {
-      if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
-      }
-      const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
+    .custom(i => typeof i === 'string')
+    .optional()
+    .transform(async () => {
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${context().file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
 
@@ -52,7 +50,7 @@ export default defineConfig({
         title: s.string().max(99),
         description: s.string().max(999).optional(),
         keywords: s.array(s.string()),
-        author: s.object({ name: s.string(), email: s.string().email(), url: s.string().url() }),
+        author: s.object({ name: s.string(), email: s.email(), url: s.url() }),
         links: s.array(s.object({ text: s.string(), link: s.string(), type: s.enum(['navigation', 'footer', 'copyright']) })),
         socials: s.array(s.object({ name: s.string(), icon, link: s.string().optional(), image: s.image().optional() }))
       })
@@ -63,7 +61,7 @@ export default defineConfig({
       schema: s
         .object({
           name: s.unique('categories'),
-          slug: s.slug('global'),
+          slug: s.slug(),
           cover: s.image().optional(),
           description: s.string().max(999).optional(),
           count
@@ -76,7 +74,7 @@ export default defineConfig({
       schema: s
         .object({
           name: s.string().max(20),
-          slug: s.slug('global'),
+          slug: s.slug(),
           cover: s.image().optional(),
           description: s.string().max(999).optional(),
           count
@@ -89,11 +87,11 @@ export default defineConfig({
       schema: s
         .object({
           title: s.string().max(99),
-          slug: s.slug('global'),
+          slug: s.slug(),
           body: s.mdx(),
           raw: s.raw()
         })
-        .transform((data, { meta }) => ({ ...data, permalink: `/${data.slug}`, basename: meta.basename }))
+        .transform(data => ({ ...data, permalink: `/${data.slug}`, basename: context().file.basename }))
     },
     posts: {
       name: 'Post',

@@ -1,9 +1,12 @@
-import { isRelativePath, processAsset } from '../assets'
-import { string } from './zod'
+import { string } from 'zod'
+
+import { assetStoreKey, createAssetStore, isRelativePath, processAsset } from '../assets'
+import { context, getInternalAssetCache } from '../runtime/context'
 
 export interface FileOptions {
   /**
-   * allow non-relative path, if true, the value will be returned directly, if false, the value will be processed as a relative path
+   * allow non-relative path, if true, the value will be returned directly,
+   * if false, the value will be processed as a relative path
    * @default true
    */
   allowNonRelativePath?: boolean
@@ -13,14 +16,16 @@ export interface FileOptions {
  * A file path relative to this file.
  */
 export const file = ({ allowNonRelativePath = true }: FileOptions = {}) =>
-  string().transform<string>(async (value, { meta, addIssue }) => {
+  string().transform<string>(async (value, ctx) => {
     try {
       if (allowNonRelativePath && !isRelativePath(value)) return value
-      const { output } = meta.config
-      return await processAsset(value, meta.path, output.name, output.base)
+      const { file, config, store } = context()
+      const assets = store.getOrCreate(assetStoreKey, createAssetStore)
+      const cache = getInternalAssetCache()
+      return await processAsset(value, file.path, config.output.name, config.output.base, assets, undefined, undefined, cache)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      addIssue({ fatal: true, code: 'custom', message })
+      ctx.addIssue({ fatal: true, code: 'custom', message, continue: false })
       return null as never
     }
   })

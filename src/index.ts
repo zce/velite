@@ -1,8 +1,57 @@
-export * from './assets'
-export * from './build'
-export { context } from './context'
-export type { ParserContext } from './context'
-export * from './file'
-export * from './logger'
-export * from './schemas'
-export * from './types'
+import { createEngine } from './app/engine'
+import { createWatcher } from './app/watch'
+
+import type { BuildOptions } from './app/engine'
+import type { Watcher } from './app/watch'
+import type { BuildResult, Collections } from './collections'
+
+export type { BuildOptions } from './app/engine'
+export type { Watcher } from './app/watch'
+export type { BlurOptions, VeliteImage } from './assets'
+export type { BuildResult, Collection, Collections, CollectionType } from './collections'
+export type { HookContext, PluginConfig, ResolvedConfig, UserConfig } from './config'
+export type { VeliteLoader } from './loaders/types'
+export type { VeliteOutput } from './output'
+export type { BuildContext, ContentFile } from './runtime/context'
+export type { LogLevel } from './runtime/logger'
+export type { BuildStore, StoreKey } from './runtime/store'
+export type { infer, VeliteSchema } from './schemas'
+export type { MarkdownOptions } from './schemas/markdown'
+export type { MdxOptions } from './schemas/mdx'
+
+export { getImageMetadata } from './assets'
+export { defineCollection } from './collections'
+export { defineConfig } from './config'
+export { defineLoader } from './loaders'
+export { context } from './runtime/context'
+export { defineSchema, s } from './schemas'
+
+/**
+ * Build all collections defined in the user config.
+ *
+ * Each call creates a fresh build engine and (for `watch: true`) a watch
+ * controller. Pass a collections type parameter when the caller wants a typed
+ * `BuildResult`.
+ */
+export const build = async <T extends Collections = Collections>(options: BuildOptions = {}): Promise<BuildResult<T>> => {
+  const engine = createEngine<T>()
+  const result = await engine.build(options)
+  if (options.watch === true) {
+    const controller = createWatcher()
+    await controller.start(engine, options)
+  }
+  return result
+}
+
+/**
+ * Build once and keep watching for future changes.
+ *
+ * Unlike `build({ watch: true })`, this programmatic API returns a watcher
+ * handle so callers can close it when they are done.
+ */
+export const watch = async <T extends Collections = Collections>(options: BuildOptions = {}): Promise<Watcher> => {
+  const engine = createEngine<T>()
+  await engine.build({ ...options, watch: false })
+  const controller = createWatcher()
+  return await controller.start(engine, options)
+}

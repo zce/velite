@@ -1,72 +1,57 @@
-import { string } from './zod'
+import { string } from 'zod'
 
-import type { Config } from '../types'
+import { context } from '../runtime/context'
 
-/**
- * Internal cache for tracking unique values across schema parsing
- */
-class UniqueCache {
-  private key(group: string, value: string): string {
-    return `schemas:unique:${group}:${value}`
-  }
+/** Session-scoped store for `s.unique()` value tracking. */
+export interface UniqueStore {
+  register(group: string, value: string, file: string): string | undefined
+  invalidate(file: string): void
+}
 
-  /**
-   * Register a value in a group
-   * @param config resolved config
-   * @param group unique group name
-   * @param value the value to register
-   * @param path file path where the value was found
-   */
-  set(config: Config, group: string, value: string, path: string): void {
-    config.cache.set(this.key(group, value), path)
-  }
+export const createUniqueStore = (): UniqueStore => {
+  const store = new Map<string, string>()
+  const fileKeys = new Map<string, Set<string>>()
+  const key = (group: string, value: string): string => `${group}\u0000${value}`
 
-  /**
-   * Check if a value exists in a group
-   * @param config resolved config
-   * @param group unique group name
-   * @param value the value to check
-   * @returns file path where the value was first registered, or undefined
-   */
-  get(config: Config, group: string, value: string): string | undefined {
-    return config.cache.get(this.key(group, value))
-  }
-
-  /**
-   * Reset the cache
-   * @param config resolved config
-   * @param path if provided, only clear entries from this file path; otherwise clear all
-   */
-  reset(config: Config, path?: string): void {
-    if (path == null) {
-      for (const key of config.cache.keys()) {
-        if (key.startsWith('schemas:unique:')) config.cache.delete(key)
+  return {
+    register(group, value, file) {
+      const k = key(group, value)
+      const existing = store.get(k)
+      if (existing != null) return existing
+      store.set(k, file)
+      let keys = fileKeys.get(file)
+      if (keys == null) {
+        keys = new Set()
+        fileKeys.set(file, keys)
       }
-      return
-    }
-
-    for (const [key, value] of config.cache.entries()) {
-      if (key.startsWith('schemas:unique:') && value === path) config.cache.delete(key)
+      keys.add(k)
+      return undefined
+    },
+    invalidate(file) {
+      const keys = fileKeys.get(file)
+      if (keys == null) return
+      for (const k of keys) store.delete(k)
+      fileKeys.delete(file)
     }
   }
 }
 
-/**
- * Shared unique cache instance
- */
-export const uniqueCache = new UniqueCache()
+export const uniqueStoreKey = Symbol('velite.unique')
 
 /**
- * Generate a unique schema
- * @param group unique group name
- * @returns unique schema
+ * Generate a unique-value schema.
+ *
+ * Validates that `value` has not been registered with the same `group` in the
+ * current build session. The session-scoped `UniqueStore` guarantees that
+ * independent builds never see each other's values.
+ *
+ * @param group unique group namespace (default `'global'`).
  */
 export const unique = (group: string = 'global') =>
-  string().superRefine((value, { meta, addIssue }) => {
-    const conflict = uniqueCache.get(meta.config, group, value)
-    if (conflict) {
-      addIssue({ fatal: true, code: 'custom', message: `duplicate value '${value}' in '${meta.path}' (conflicts with '${conflict}')` })
-    } else {
-      uniqueCache.set(meta.config, group, value, meta.path)
+  string().superRefine((value, ctx) => {
+    const { file, store } = context()
+    const conflict = store.getOrCreate(uniqueStoreKey, createUniqueStore).register(group, value, file.path)
+    if (conflict != null) {
+      ctx.addIssue({ fatal: true, code: 'custom', message: `Duplicate '${value}' with '${conflict}'` })
     }
   })

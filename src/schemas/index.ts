@@ -1,3 +1,5 @@
+import * as z from 'zod'
+
 import { excerpt } from './excerpt'
 import { file } from './file'
 import { image } from './image'
@@ -10,24 +12,27 @@ import { raw } from './raw'
 import { slug } from './slug'
 import { toc } from './toc'
 import { unique } from './unique'
-import * as z from './zod'
 
 export const s = {
   ...z,
-  isodate,
-  unique,
-  slug,
+  excerpt,
   file,
   image,
-  metadata,
-  excerpt,
+  isodate,
   markdown,
   mdx,
+  metadata,
   path,
   raw,
-  toc
-}
+  slug,
+  toc,
+  unique
+} as const
 
-export { z } // keep z for backward compatibility
+export type VeliteSchema = z.ZodType
+export type infer<T extends z.ZodType> = z.infer<T>
 
-export type { Schema, ZodType, ZodMeta, infer } from './zod'
+/**
+ * Define a schema (identity function for type inference)
+ */
+export const defineSchema = <T extends () => VeliteSchema>(fn: T): T => fn

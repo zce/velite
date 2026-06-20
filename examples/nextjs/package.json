@@ -10,20 +10,21 @@
     "content": "velite --clean"
   },
   "dependencies": {
-    "@tailwindcss/postcss": "^4.1.12",
-    "@tailwindcss/typography": "^0.5.16",
-    "@types/node": "^24.3.0",
-    "@types/react": "19.2.7",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^25.8.0",
+    "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "next": "16.0.7",
+    "@velite/plugin-next": "workspace:*",
+    "next": "16.2.6",
     "next-themes": "^0.4.6",
-    "postcss": "^8.5.6",
-    "react": "19.2.1",
-    "react-dom": "19.2.1",
-    "rehype-pretty-code": "^0.14.1",
-    "shiki": "^3.11.0",
-    "tailwindcss": "^4.1.12",
-    "typescript": "^5.9.2",
+    "postcss": "^8.5.14",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "rehype-pretty-code": "^0.14.3",
+    "shiki": "^4.0.2",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
     "velite": "workspace:*"
   }
 }

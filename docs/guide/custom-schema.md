@@ -53,13 +53,13 @@ export const title = defineSchema(() => s.string().transform(value => value.toUp
 ```ts
 import { getImageMetadata, s } from 'velite'
 
-import type { Image } from 'velite'
+import type { VeliteImage } from 'velite'
 
 /**
  * Remote Image with metadata schema
  */
 export const remoteImage = () =>
-  s.string().transform<Image>(async (value, { addIssue }) => {
+  s.string().transform<VeliteImage>(async (value, ctx) => {
     try {
       const response = await fetch(value)
       const blob = await response.blob()
@@ -69,7 +69,7 @@ export const remoteImage = () =>
       return { src: value, ...metadata }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      addIssue({ fatal: true, code: 'custom', message })
+      ctx.addIssue({ fatal: true, code: 'custom', message })
       return null as never
     }
   })
@@ -78,44 +78,87 @@ export const remoteImage = () =>
 ## Schema Context
 
 > [!TIP]
-> Custom schemas often need to read the current file or resolved config. For new schemas, use `context()` to access this parser context.
+> Custom schemas often need to read the current file or resolved config. Use `context()` to access the current build context.
 
 ```ts
 import { context, defineSchema, s } from 'velite'
 
 // convert a nonexistent field
 export const path = defineSchema(() =>
-  s.custom<string | undefined>().transform(value => {
-    if (value != null) return value
-    return context().file.path
+  s
+    .string()
+    .optional()
+    .transform(value => {
+      if (value != null) return value
+      return context().file.path
+    })
+)
+```
+
+`context()` must be called while Velite is parsing a schema, such as inside `.transform()`, `.refine()`, or `.superRefine()`. It returns the current build context:
+
+```ts
+interface BuildContext {
+  readonly config: ResolvedConfig
+  readonly file: ContentFile
+  readonly store: BuildStore
+}
+```
+
+`BuildStore` is an advanced API for sharing state within the current build or watch rebuild:
+
+```ts
+const key = Symbol('my-schema.state')
+
+export const counted = defineSchema(() =>
+  s.string().transform(value => {
+    const state = context().store.getOrCreate(key, () => ({ count: 0 }))
+    state.count += 1
+    return value
   })
 )
 ```
 
-`context()` must be called while Velite is parsing a schema, such as inside `.transform()`, `.refine()`, or `.superRefine()`. It returns the current parser context:
+When a custom schema derives a missing object field from `context()`, make the schema optional before the transform. Zod 4 only sends missing object keys into transforms when the field schema is optional:
 
 ```ts
-interface ParserContext {
-  readonly config: Config
-  readonly file: VeliteFile
-}
+export const rawBody = defineSchema(() =>
+  s
+    .custom<string>(value => typeof value === 'string')
+    .optional()
+    .transform(value => value ?? context().file.content ?? '')
+)
 ```
 
-The previous schema callback `meta` value is still supported for compatibility:
+Built-in file-derived schemas such as `s.path()`, `s.raw()`, `s.markdown()`, `s.mdx()`, `s.excerpt()`, `s.metadata()`, and `s.toc()` include this optional wrapper. Value-required schemas such as `s.file()`, `s.image()`, `s.slug()`, `s.unique()`, and `s.isodate()` do not.
+
+### Error Handling in Transforms
+
+In Zod 4, schema callbacks receive a context object that provides `addIssue()` for reporting validation errors.
 
 ```ts
 import { defineSchema, s } from 'velite'
 
-export const path = defineSchema(() =>
-  s.custom<string | undefined>().transform((value, { meta }) => {
-    if (value != null) return value
-    return meta.path
+export const safeTransform = defineSchema(() =>
+  s.string().transform(async (value, ctx) => {
+    try {
+      const result = await processValue(value)
+      return result
+    } catch (err) {
+      ctx.addIssue({
+        fatal: true,
+        code: 'custom',
+        message: err instanceof Error ? err.message : String(err)
+      })
+      return null as never
+    }
   })
 )
 ```
 
-Prefer `context()` for new custom schemas. It keeps file/config access explicit and avoids relying on Velite's extended Zod callback metadata.
-
 ### Reference
 
-The type of `context().file` is [`VeliteFile`](../reference/types.md#velitefile). The type of the compatibility `meta` value is `ZodMeta`, which extends `VeliteFile`.
+- `context()` returns `{ config: ResolvedConfig, file: ContentFile, store: BuildStore }`.
+- `ctx.addIssue()` accepts `{ fatal?: boolean, code: string, message: string }`.
+- See [`ContentFile`](../reference/types.md#contentfile) for file metadata structure.
+- See [Lifecycle](./lifecycle.md) for build context and store lifetime details.

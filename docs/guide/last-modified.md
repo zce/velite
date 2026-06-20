@@ -16,13 +16,11 @@ import { context, defineSchema, s } from 'velite'
 
 const timestamp = defineSchema(() =>
   s
-    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { addIssue }) => {
-      if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the file modified timestamp' })
-      }
-
-      const stats = await stat(context().file.path)
+    .string()
+    .optional()
+    .transform<string>(async () => {
+      const { file } = context()
+      const stats = await stat(file.path)
       return stats.mtime.toISOString()
     })
 )
@@ -51,12 +49,11 @@ const execAsync = promisify(exec)
 
 const timestamp = defineSchema(() =>
   s
-    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { addIssue }) => {
-      if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
-      }
-      const { stdout } = await execAsync(`git log -1 --format=%cd ${context().file.path}`)
+    .string()
+    .optional()
+    .transform<string>(async () => {
+      const { file } = context()
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
 )

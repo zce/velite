@@ -282,7 +282,7 @@ const compileMdx = async (source: string, path: string, options: CompileOptions)
     absWorkingDir: dirname(path),
     write: false,
     bundle: true,
-    target: 'node18',
+    target: 'node22',
     platform: 'neutral',
     format: 'esm',
     globalName: 'VELITE_MDX_COMPONENT',
@@ -313,20 +313,17 @@ const compileMdx = async (source: string, path: string, options: CompileOptions)
 }
 
 export const mdxBundle = (options: MdxOptions = {}) =>
-  s.custom<string>().transform<string>(async (value, { addIssue }) => {
-    const { config, file } = context()
-    const { path, content } = file
-
-    value = value ?? content
+  s.custom<string>().transform<string>(async (value, ctx) => {
+    const { file, config } = context()
+    value = value ?? file.content
     if (value == null) {
-      addIssue({ fatal: true, code: 'custom', message: 'The content is empty' })
+      ctx.addIssue({ fatal: true, code: 'custom', message: 'The content is empty' })
       return null as never
     }
 
     const enableGfm = options.gfm ?? config.mdx?.gfm ?? true
     const enableMinify = options.minify ?? config.mdx?.minify ?? true
     const removeComments = options.removeComments ?? config.mdx?.removeComments ?? true
-    const copyLinkedFiles = options.copyLinkedFiles ?? config.mdx?.copyLinkedFiles ?? true
     const outputFormat = options.outputFormat ?? config.mdx?.outputFormat ?? 'function-body'
 
     const remarkPlugins = [] as PluggableList
@@ -334,7 +331,6 @@ export const mdxBundle = (options: MdxOptions = {}) =>
 
     if (enableGfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
     if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-    if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, config.output]) // copy linked files to public path and replace their urls with public urls
     if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
     if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
     if (config.mdx?.remarkPlugins != null) remarkPlugins.push(...config.mdx.remarkPlugins) // apply global remark plugins
@@ -343,13 +339,15 @@ export const mdxBundle = (options: MdxOptions = {}) =>
     const compilerOptions = { ...config.mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
 
     try {
-      return await compileMdx(value, path, compilerOptions)
+      return await compileMdx(value, file.path, compilerOptions)
     } catch (err: any) {
-      addIssue({ fatal: true, code: 'custom', message: err.message })
+      ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
       return null as never
     }
   })
 ```
+
+This example does not copy relative assets referenced from MDX. Use the built-in `s.mdx()` schema if you need Velite-managed linked-file copying, or add your own public remark/rehype plugin that returns URLs managed by your application.
 
 Then, you can use the custom schema in your `velite.config.js`:
 

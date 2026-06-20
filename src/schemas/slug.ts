@@ -1,8 +1,9 @@
+import { string } from 'zod'
+
 import { unique } from './unique'
-import { string } from './zod'
 
 /**
- * Generate a slug schema
+ * Generate a slug schema.
  * @param group unique group name, used to create a unique set of slugs
  * @param reserved reserved slugs, will be rejected
  * @returns slug schema

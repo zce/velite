@@ -1,28 +1,76 @@
 name: Publish
 
 on:
-  push:
-    tags:
-      - v*
+  release:
+    types: [published]
+  workflow_dispatch:
 
 permissions:
-  id-token: write  # Required for OIDC
   contents: read
+  id-token: write
 
 jobs:
   publish:
-    # prevents this action from running on forks
-    if: github.repository == 'zce/velite'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
-          node-version: lts/*
-          registry-url: https://registry.npmjs.org/
-          package-manager-cache: false  # never use caching in release builds
-      - run: pnpm install
-      - run: pnpm build
-      - run: pnpm test
-      - run: pnpm publish --no-git-checks
+          node-version: 22.13.0
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build docs
+        run: pnpm docs:build
+
+      - name: Resolve npm tag
+        run: |
+          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            echo "NPM_TAG=next" >> "$GITHUB_ENV"
+          elif node -e "process.exit(require('./package.json').version.includes('-') ? 0 : 1)"; then
+            echo "NPM_TAG=next" >> "$GITHUB_ENV"
+          else
+            echo "NPM_TAG=latest" >> "$GITHUB_ENV"
+          fi
+
+      - name: Publish core package
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "velite@$VERSION" version >/dev/null 2>&1; then
+            echo "velite@$VERSION is already published; skipping."
+          else
+            pnpm --filter velite publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+          fi
+
+      - name: Publish Next.js plugin
+        run: |
+          VERSION=$(node -p "require('./packages/next/package.json').version")
+          if npm view "@velite/plugin-next@$VERSION" version >/dev/null 2>&1; then
+            echo "@velite/plugin-next@$VERSION is already published; skipping."
+          else
+            pnpm --filter @velite/plugin-next publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+          fi
+
+      - name: Publish Vite plugin
+        run: |
+          VERSION=$(node -p "require('./packages/vite/package.json').version")
+          if npm view "@velite/plugin-vite@$VERSION" version >/dev/null 2>&1; then
+            echo "@velite/plugin-vite@$VERSION is already published; skipping."
+          else
+            pnpm --filter @velite/plugin-vite publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+          fi

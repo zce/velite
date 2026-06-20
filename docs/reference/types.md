@@ -1,12 +1,12 @@
 # Types
 
-## Image
+## VeliteImage
 
 ```ts
 /**
  * Image object with metadata & blur image
  */
-interface Image {
+interface VeliteImage {
   /**
    * public url of the image
    */
@@ -34,20 +34,13 @@ interface Image {
 }
 ```
 
-## Loader
+## VeliteLoader
 
 ```ts
 /**
  * File loader
  */
-interface Loader {
-  /**
-   * Loader name
-   * @description
-   * The same name will overwrite the built-in loader,
-   * built-in loaders: 'json', 'yaml', 'matter'
-   */
-  name: string
+interface VeliteLoader {
   /**
    * File test regexp
    * @example
@@ -55,104 +48,106 @@ interface Loader {
    */
   test: RegExp
   /**
-   * Load file content
+   * Load file data from file.value
    * @param file vfile
-   * @returns entry or entries
    */
-  load: (file: VFile) => Promisable<Entry | Entry[]>
+  load: (file: VFile) => Promisable<Data>
 }
 ```
 
-## VeliteFile
+## ContentFile
 
 ```ts
-interface ZodMeta extends VeliteFile {}
-
-class VeliteFile extends VFile {
+interface ContentFile {
   /**
-   * Get parsed records from file
+   * Absolute source file path.
    */
-  get records(): unknown
+  readonly path: string
 
   /**
-   * Get content of file
+   * Content body without frontmatter, when available.
    */
-  get content(): string | undefined
+  readonly content?: string
 
   /**
-   * Get mdast object from cache
+   * Parsed Markdown AST, when content is available.
    */
-  get mdast(): Root | undefined
+  readonly mdast?: Root
 
   /**
-   * Get hast object from cache
+   * Parsed HTML AST, when content is available.
    */
-  get hast(): Nodes | undefined
+  readonly hast?: Nodes
 
   /**
-   * Get plain text of content from cache
+   * Plain text extracted from content, when available.
    */
-  get plain(): string | undefined
-
-  /**
-   * Get meta object from cache
-   * @param path file path
-   * @returns resolved meta object if exists
-   */
-  static get(path: string): VeliteFile | undefined
-
-  /**
-   * Create meta object from file path
-   * @param options meta options
-   * @returns resolved meta object
-   */
-  static async create({ path, config }: { path: string; config: Config }): Promise<VeliteFile>
+  readonly plain?: string
 }
 ```
 
-## ParserContext
+## BuildContext
 
 ```ts
-interface ParserContext {
+interface BuildContext {
   /**
    * Resolved config being used.
    */
-  readonly config: Config
+  readonly config: ResolvedConfig
 
   /**
    * Current file being parsed.
    */
-  readonly file: VeliteFile
+  readonly file: ContentFile
+
+  /**
+   * Build-scoped shared state for advanced custom schemas and plugins.
+   */
+  readonly store: BuildStore
 }
 ```
 
-Use [`context()`](./api.md#context) inside custom schema callbacks to access `ParserContext`.
+Use [`context()`](./api.md#context) inside custom schema callbacks to access `BuildContext`.
 
-## Context
+`BuildContext` is the public schema-time view for the current build or watch rebuild. Internally Velite keeps a larger build session with caches, diagnostics, and output state, but that session is not a public extension point.
+
+## BuildStore
 
 ```ts
-type Context = {
+type StoreKey = string | symbol
+
+interface BuildStore {
+  get<T>(key: StoreKey): T | undefined
+  set<T>(key: StoreKey, value: T): void
+  getOrCreate<T>(key: StoreKey, create: () => T): T
+  has(key: StoreKey): boolean
+}
+```
+
+`BuildStore` lives for the current build or watch rebuild. Use `context().store` when a custom schema or plugin needs shared state without module-level globals.
+
+## BuildResult
+
+```ts
+type BuildResult<T extends Collections> = {
+  [P in keyof T]: CollectionType<T, P>
+}
+```
+
+`BuildResult` is the strongly typed per-collection data shape passed to `prepare` and `complete` hooks.
+
+## HookContext
+
+```ts
+type HookContext = {
   /**
    * Resolved config.
    */
-  config: Config
+  config: ResolvedConfig
 }
 ```
 
 Hook callbacks such as `prepare` and `complete` receive this context type.
-
-## Config Cache
-
-```ts
-interface Config {
-  /**
-   * @deprecated Internal cache is managed by Velite. This field will be removed in 1.0.
-   */
-  readonly cache: Map<string, any>
-}
-```
-
-`Config.cache` is kept for compatibility in 0.x. Do not use it in user code.
 
 ## MarkdownOptions
 
@@ -216,6 +211,11 @@ export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
    * @default 'function-body'
    */
   outputFormat?: CompileOptions['outputFormat']
+  /**
+   * Minify the output code.
+   * @default true
+   */
+  minify?: boolean
 }
 ```
 

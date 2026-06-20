@@ -1,7 +1,7 @@
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 import rehypePrettyCode from 'rehype-pretty-code'
-import { defineCollection, defineConfig, s } from 'velite'
+import { context, defineCollection, defineConfig, s } from 'velite'
 
 const slugify = (input: string) =>
   input
@@ -25,12 +25,10 @@ const execAsync = promisify(exec)
 // refer to https://velite.js.org/guide/last-modified#based-on-git-timestamp for more details
 const timestamp = () =>
   s
-    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { meta, addIssue }) => {
-      if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
-      }
-      const { stdout } = await execAsync(`git log -1 --format=%cd ${meta.path}`)
+    .string()
+    .optional()
+    .transform<string>(async () => {
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${context().file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
 
@@ -43,7 +41,7 @@ const options = defineCollection({
     title: s.string().max(99),
     description: s.string().max(999).optional(),
     keywords: s.array(s.string()),
-    author: s.object({ name: s.string(), email: s.string().email(), url: s.string().url() }),
+    author: s.object({ name: s.string(), email: s.email(), url: s.url() }),
     links: s.array(s.object({ text: s.string(), link: s.string(), type: s.enum(['navigation', 'footer', 'copyright']) })),
     socials: s.array(s.object({ name: s.string(), icon, link: s.string().optional(), image: s.image().optional() }))
   })

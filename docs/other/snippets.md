@@ -10,13 +10,11 @@ import { context, defineSchema, s } from 'velite'
 
 const timestamp = defineSchema(() =>
   s
-    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { addIssue }) => {
-      if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the file modified timestamp' })
-      }
-
-      const stats = await stat(context().file.path)
+    .string()
+    .optional()
+    .transform<string>(async () => {
+      const { file } = context()
+      const stats = await stat(file.path)
       return stats.mtime.toISOString()
     })
 )
@@ -42,12 +40,11 @@ const execAsync = promisify(exec)
 
 const timestamp = defineSchema(() =>
   s
-    .custom<string | undefined>(i => i === undefined || typeof i === 'string')
-    .transform<string>(async (value, { addIssue }) => {
-      if (value != null) {
-        addIssue({ fatal: false, code: 'custom', message: '`s.timestamp()` schema will resolve the value from `git log -1 --format=%cd`' })
-      }
-      const { stdout } = await execAsync(`git log -1 --format=%cd ${context().file.path}`)
+    .string()
+    .optional()
+    .transform<string>(async () => {
+      const { file } = context()
+      const { stdout } = await execAsync(`git log -1 --format=%cd ${file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
 )
@@ -67,13 +64,13 @@ const posts = defineCollection({
 ```ts
 import { getImageMetadata, s } from 'velite'
 
-import type { Image } from 'velite'
+import type { VeliteImage } from 'velite'
 
 /**
  * Remote Image with metadata schema
  */
 export const remoteImage = () =>
-  s.string().transform<Image>(async (value, { addIssue }) => {
+  s.string().transform<VeliteImage>(async (value, ctx) => {
     try {
       const response = await fetch(value)
       const blob = await response.blob()
@@ -83,7 +80,7 @@ export const remoteImage = () =>
       return { src: value, ...metadata }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      addIssue({ fatal: true, code: 'custom', message })
+      ctx.addIssue({ fatal: true, code: 'custom', message })
       return null as never
     }
   })
@@ -144,7 +141,7 @@ const compileMdx = async (source: string): Promise<string> => {
     absWorkingDir: resolve('content'),
     write: false,
     bundle: true,
-    target: 'node18',
+    target: 'node22',
     platform: 'neutral',
     format: 'esm',
     globalName: 'VELITE_MDX_COMPONENT',
@@ -191,7 +188,7 @@ module.exports = {
 
 class VeliteWebpackPlugin {
   static started = false
-  constructor(/** @type {import('velite').Options} */ options = {}) {
+  constructor(/** @type {import('velite').BuildOptions} */ options = {}) {
     this.options = options
   }
   apply(/** @type {import('webpack').Compiler} */ compiler) {
@@ -224,7 +221,7 @@ export default {
 
 class VeliteWebpackPlugin {
   static started = false
-  constructor(/** @type {import('velite').Options} */ options = {}) {
+  constructor(/** @type {import('velite').BuildOptions} */ options = {}) {
     this.options = options
   }
   apply(/** @type {import('webpack').Compiler} */ compiler) {
@@ -255,8 +252,6 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 import { context, s } from 'velite'
 
-import { extractHastLinkedFiles } from '../assets'
-
 export interface ExcerptOptions {
   /**
    * Excerpt separator.
@@ -273,22 +268,19 @@ export interface ExcerptOptions {
 }
 
 export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
-  s.custom<string>().transform(async (value, { addIssue }) => {
-    const { config, file } = context()
-    const { path, content } = file
-
-    if (value == null && content != null) {
-      value = content
+  s.custom<string>().transform(async (value, ctx) => {
+    const { file } = context()
+    if (value == null && file.content != null) {
+      value = file.content
     }
     try {
       const mdast = fromMarkdown(value)
       const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
       const exHast = hastExcerpt(hast, { comment: separator, maxSearchSize: 1024 })
       const output = exHast ?? truncate(hast, { size: length, ellipsis: '…' })
-      await rehypeCopyLinkedFiles(config.output)(output, { path })
       return toHtml(output)
     } catch (err: any) {
-      addIssue({ fatal: true, code: 'custom', message: err.message })
+      ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
       return value
     }
   })

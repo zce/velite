@@ -2,6 +2,8 @@
 
 A Vite plugin for integrating Velite content processing.
 
+Requires Node.js 22.13 or newer, `velite@1.0.0-alpha.3`, and Vite 5 through Vite 8.
+
 ## Installation
 
 ```bash
@@ -27,7 +29,8 @@ export default defineConfig({
 
 ## Options
 
-- `config`: Path to velite.config.ts file (default: 'velite.config.ts')
+- Accepts Velite options except `watch`; the plugin starts watch mode for the Vite dev server and runs a one-off build for production builds.
+- `config`: Path to the Velite config file.
 
 ## License
 

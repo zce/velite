@@ -67,7 +67,7 @@ const posts = defineCollection({
 })
 ```
 
-Velite uses [fast-glob](https://github.com/mrmlnc/fast-glob) to find content files, so you can use any glob pattern supported by fast-glob.
+Velite uses [tinyglobby](https://github.com/SuperchupuDev/tinyglobby) to find content files, so you can use glob patterns compatible with tinyglobby.
 
 By default, Velite will ignore files and directories that start with `_` or `.`.
 
@@ -86,14 +86,14 @@ const site = defineCollection({
 
 Velite uses [Zod](https://zod.dev) to validate the content items in a collection. The `schema` option is used to define the Zod schema used to validate the content items in the collection.
 
-To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of Zod's `z` object, and it supports all of the features of Zod. See [Zod's Docs](https://zod.dev) for a complete documentation on how Zod works and what features are available.
+To define schemas in Velite, import the `s` utility from `'velite'`. It includes all Zod schema helpers plus Velite-specific schemas for content projects. See [Zod's Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
 
 ```js
-import { z } from 'velite'
+import { s } from 'velite'
 
 const posts = defineCollection({
-  schema: z.object({
-    title: z.string().max(99)
+  schema: s.object({
+    title: s.string().max(99)
   })
 })
 ```
@@ -104,7 +104,7 @@ The schema is usually a `ZodObject`, validating the shape of the content item. B
 
 :::
 
-For more complex schemas, I recommend that you use [Velite extended schemas `s`](velite-schemas.md):
+For more complex schemas, use [Velite extended schemas `s`](velite-schemas.md):
 
 - `s.slug()`: validate slug format, unique in posts collection.
 - `s.isodate()`: format date string to ISO date string.
@@ -159,36 +159,52 @@ const posts = defineCollection({
 Use `context()` when a transform needs to read the current file or resolved config. This is useful for adding computed fields to the content items in a collection.
 
 ```js
-import { context } from 'velite'
+import { context, s } from 'velite'
 
 const posts = defineCollection({
   schema: s
     .object({
       // fields
     })
-    .transform(data => ({
-      ...data,
-      // computed fields
-      path: context().file.path // or parse to filename based slug
-    }))
+    .transform(data => {
+      const { file } = context()
+      return {
+        ...data,
+        // computed fields
+        path: file.path, // or parse to filename based slug
+        basename: file.basename
+      }
+    })
 })
 ```
 
-The schema callback `meta` value is still supported for compatibility. For new custom schemas, prefer `context()`. For more information, see [Custom Schema](custom-schema.md).
+For more information about accessing file context, see [Custom Schema](custom-schema.md).
 
 ## Content Body
 
-Velite's built-in loader keeps content's raw body and plain text body on the current file context.
+Velite's built-in loader keeps content's raw body in `file.content`, and the plain text body in `file.plain`.
 
-To add them as a field, you can use a custom schema.
+To add them as a field, you can use a custom schema with the `context()` function.
 
 ```js
-import { context } from 'velite'
+import { context, s } from 'velite'
 
 const posts = defineCollection({
   schema: s.object({
-    content: s.custom().transform(() => context().file.content),
-    plain: s.custom().transform(() => context().file.plain)
+    content: s
+      .string()
+      .optional()
+      .transform(() => {
+        const { file } = context()
+        return file.content
+      }),
+    plain: s
+      .string()
+      .optional()
+      .transform(() => {
+        const { file } = context()
+        return file.plain
+      })
   })
 })
 ```

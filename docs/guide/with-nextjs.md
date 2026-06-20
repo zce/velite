@@ -152,14 +152,16 @@ In this case, you can specify a more specific type for the relevant schema to ma
 e.g.
 
 ```ts
+import { defineCollection, s } from 'velite'
+
 import type { Route } from 'next'
-import type { Schema } from 'velite'
+import type { VeliteSchema } from 'velite'
 
 const options = defineCollection({
   // ...
   schema: s.object({
     // ...
-    link: z.string() as Schema<Route<'/posts/${string}'>>
+    link: s.string() as VeliteSchema<Route<'/posts/${string}'>>
   })
 })
 ```

@@ -1,69 +1,108 @@
 import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
+import { custom } from 'zod'
 
-import { remarkCopyLinkedFiles } from '../assets'
-import { custom } from './zod'
+import { assetStoreKey, createAssetStore, remarkCopyLinkedFiles } from '../assets'
+import { context, getInternalAssetCache } from '../runtime/context'
 
+import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root } from 'mdast'
 import type { PluggableList } from 'unified'
-import type { MdxOptions } from '../types'
+
+/**
+ * MDX compiler options
+ */
+export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
+  /**
+   * Enable GitHub Flavored Markdown (GFM).
+   * @default true
+   */
+  gfm?: boolean
+  /**
+   * Remove html comments.
+   * @default true
+   */
+  removeComments?: boolean
+  /**
+   * Copy linked files to public path and replace their urls with public urls.
+   * @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Output format to generate.
+   * @default 'function-body'
+   */
+  outputFormat?: CompileOptions['outputFormat']
+  /**
+   * Minify the output code.
+   * @default true
+   */
+  minify?: boolean
+}
 
 const remarkRemoveComments = () => (tree: Root) => {
-  visit(tree, ['mdxFlowExpression'], (node, index, parent: any) => {
-    if (node.value.match(/\/\*([\s\S]*?)\*\//g)) {
+  visit(tree, ['mdxFlowExpression'], (node, index, parent) => {
+    if (parent == null || index == null) return
+    if ((node as { value?: string }).value?.match(/\/\*([\s\S]*?)\*\//g)) {
       parent.children.splice(index, 1)
-      return ['skip', index] // https://unifiedjs.com/learn/recipe/remove-node/
+      return ['skip', index]
     }
   })
 }
 
 export const mdx = (options: MdxOptions = {}) =>
-  custom<string | undefined>(i => i === undefined || typeof i === 'string').transform<string>(async (value, { meta, addIssue }) => {
-    value = value ?? meta.content
-    if (value == null || value.length === 0) {
-      addIssue({ code: 'custom', message: 'The content is empty' })
-      return ''
-    }
+  custom<string>(i => typeof i === 'string')
+    .optional()
+    .transform<string>(async (value, ctx) => {
+      const { file, config, store } = context()
+      const assets = store.getOrCreate(assetStoreKey, createAssetStore)
+      const assetCache = getInternalAssetCache()
+      value = value ?? file.content
+      if (value == null || value.length === 0) {
+        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        return ''
+      }
 
-    const { mdx, output } = meta.config
+      const { mdx, output } = config
 
-    const enableGfm = options.gfm ?? mdx?.gfm ?? true
-    const enableMinify = options.minify ?? mdx?.minify ?? true
-    const removeComments = options.removeComments ?? mdx?.removeComments ?? true
-    const copyLinkedFiles = options.copyLinkedFiles ?? mdx?.copyLinkedFiles ?? true
-    const outputFormat = options.outputFormat ?? mdx?.outputFormat ?? 'function-body'
+      const enableGfm = options.gfm ?? mdx?.gfm ?? true
+      const enableMinify = options.minify ?? mdx?.minify ?? true
+      const removeComments = options.removeComments ?? mdx?.removeComments ?? true
+      const copyLinkedFiles = options.copyLinkedFiles ?? mdx?.copyLinkedFiles ?? true
+      const outputFormat = options.outputFormat ?? mdx?.outputFormat ?? 'function-body'
 
-    const remarkPlugins = [] as PluggableList
-    const rehypePlugins = [] as PluggableList
+      const remarkPlugins = [] as PluggableList
+      const rehypePlugins = [] as PluggableList
 
-    if (enableGfm) remarkPlugins.push(remarkGfm) // support gfm (autolink literals, footnotes, strikethrough, tables, tasklists).
-    if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
-    if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, output]) // copy linked files to public path and replace their urls with public urls
-    if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
-    if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
-    if (mdx?.remarkPlugins != null) remarkPlugins.push(...mdx.remarkPlugins) // apply global remark plugins
-    if (mdx?.rehypePlugins != null) rehypePlugins.push(...mdx.rehypePlugins) // apply global rehype plugins
+      if (enableGfm) remarkPlugins.push(remarkGfm)
+      if (removeComments) remarkPlugins.push(remarkRemoveComments)
+      if (copyLinkedFiles) remarkPlugins.push([remarkCopyLinkedFiles, { ...output, assets, assetCache }])
+      if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins)
+      if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
+      if (mdx?.remarkPlugins != null) remarkPlugins.push(...mdx.remarkPlugins)
+      if (mdx?.rehypePlugins != null) rehypePlugins.push(...mdx.rehypePlugins)
 
-    const compilerOptions = { ...mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
+      const compilerOptions = { ...mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
 
-    const { compile } = await import('@mdx-js/mdx')
+      const { compile } = await import('@mdx-js/mdx')
 
-    try {
-      const code = await compile({ value, path: meta.path }, compilerOptions)
+      try {
+        const code = await compile({ value, path: file.path }, compilerOptions)
 
-      if (!enableMinify) return code.toString()
+        if (!enableMinify) return code.toString()
 
-      const { minify } = await import('terser')
-      const minified = await minify(code.toString(), {
-        module: true,
-        compress: true,
-        keep_classnames: true,
-        mangle: { keep_fnames: true },
-        parse: { bare_returns: true }
-      })
-      return minified.code ?? code.toString()
-    } catch (err: any) {
-      addIssue({ fatal: true, code: 'custom', message: err.message })
-      return null as never
-    }
-  })
+        const { minify } = await import('terser')
+        const minified = await minify(code.toString(), {
+          module: true,
+          compress: true,
+          keep_classnames: true,
+          mangle: { keep_fnames: true },
+          parse: { bare_returns: true }
+        })
+        return minified.code ?? code.toString()
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        ctx.addIssue({ fatal: true, code: 'custom', message })
+        return null as never
+      }
+    })

@@ -1,30 +1,34 @@
-import { build } from 'velite'
+import { build, watch } from 'velite'
 
 /**
  * Velite Vite plugin
- * @param {Object} options - Options
- * @param {string} options.config - Path to velite.config.ts
+ * @param {Omit<import('velite').BuildOptions, 'watch'>} options - Velite options
  * @returns {import('vite').Plugin} Vite plugin
  */
 export default (options = {}) => {
   let started = false
+  let watcher
 
   return {
     name: '@velite/plugin-vite',
 
-    configureServer: async () => {
+    configureServer: async server => {
       if (started) return
       started = true
 
       // Start watch mode in dev
-      await build({ config: options.config, watch: true })
+      watcher = await watch(options)
+      server.httpServer?.once('close', () => {
+        void watcher?.close()
+        watcher = undefined
+      })
     },
 
     buildStart: async () => {
       if (started) return
 
       // Run build in production
-      await build({ config: options.config, watch: false })
+      await build({ ...options, watch: false })
     }
   }
 }

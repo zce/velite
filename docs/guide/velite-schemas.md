@@ -1,22 +1,13 @@
 # Velite Schemas
 
-To use Zod in Velite, import the `z` utility from `'velite'`. This is a re-export of the Zod library, and it supports all of the features of Zod.
+To use Zod in Velite, import the `s` utility from `'velite'`. It includes all Zod schema helpers plus Velite-specific schemas for content projects.
 
 See [Zod's Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
 
 ```js
-import { z } from 'velite'
-
-// `z` is re-export of Zod
-```
-
-In addition, Velite has extended Zod schemas, added some commonly used features when building content models, you can import `s` from `'velite'` to use these extended schemas.
-
-```js
 import { s } from 'velite'
 
-// `s` is extended from Zod with some custom schemas,
-// `s` also includes all members of zod, so you can use `s` as `z`
+// `s` includes Zod helpers and Velite custom schemas.
 ```
 
 ## `s.isodate()`
@@ -24,6 +15,8 @@ import { s } from 'velite'
 `string => string`
 
 Format date string to ISO date string.
+
+This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
 ```ts
 date: s.isodate()
@@ -43,13 +36,15 @@ date: s.isodate()
 
 Validate a string value that must be unique within a named group.
 
+This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
+
 ```ts
 name: s.unique('taxonomies')
 // case 1. unique value
 // 'foo' => 'foo'
 
-// case 2. non-unique value in the 'taxonomies' group
-// 'foo' => issue "duplicate value 'foo' ..."
+// case 2. non-unique value (in all unique by 'taxonomies')
+// 'foo' => issue 'Duplicate 'foo' with '/path/to/existing/file.yml''
 ```
 
 ### Parameters
@@ -64,6 +59,8 @@ name: s.unique('taxonomies')
 `string => string`
 
 Validate a slug string. It checks length, slug format, reserved values, and uniqueness within a named slug group.
+
+This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
 ```ts
 slug: s.slug('taxonomies', ['admin', 'login'])
@@ -98,6 +95,8 @@ slug: s.slug('taxonomies', ['admin', 'login'])
 
 file path relative to this file, copy file to `config.output.assets` directory and return the public url.
 
+This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
+
 ```ts
 avatar: s.file()
 // case 1. relative path
@@ -122,9 +121,11 @@ allow non-relative path, if true, the value will be returned directly, if false,
 
 ## `s.image(options)`
 
-`string => Image`
+`string => VeliteImage`
 
-image path relative to this file, like `s.file()`, copy file to `config.output.assets` directory and return the [Image](#types) (image object with meta data).
+Image path relative to the current file, like `s.file()`. Relative images are copied to `config.output.assets` and returned as [VeliteImage](#types) objects.
+
+This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
 ```ts
 avatar: s.image()
@@ -141,7 +142,7 @@ avatar: s.image()
 // case 2. non-exists file
 // 'not-exists.png' => issue 'File not exists'
 
-// case 3. absolute path or full url (if allowed)
+// case 3. absolute path or full URL
 // '/icon.png' => { src: '/icon.png', width: 0, height: 0, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
 // 'https://zce.me/logo.png' => { src: 'https://zce.me/logo.png', width: 0, height: 0, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
 ```
@@ -176,7 +177,7 @@ avatar: s.image({ blur: { width: 16, quality: 30 } })
 /**
  * Image object with metadata & blur image
  */
-interface Image {
+interface VeliteImage {
   /**
    * public url of the image
    */
@@ -210,6 +211,8 @@ interface Image {
 
 parse input or document body as markdown content and return [Metadata](#types-1).
 
+When the field is missing, this schema derives metadata from the current file's plain text.
+
 currently only support `readingTime` & `wordCount`.
 
 ```ts
@@ -241,6 +244,8 @@ interface Metadata {
 
 parse input or document body as markdown content and return excerpt text.
 
+When the field is missing, this schema derives the excerpt from the current file's plain text.
+
 ```ts
 excerpt: s.excerpt()
 // document body => excerpt text
@@ -263,6 +268,8 @@ excerpt length.
 
 parse input or document body as markdown content and return html content. refer to [Markdown Support](using-markdown.md) for more information.
 
+When the field is missing, this schema compiles the current file body.
+
 ```ts
 content: s.markdown()
 // => html content
@@ -280,6 +287,8 @@ content: s.markdown()
 `string => string`
 
 parse input or document body as mdx content and return component function-body. refer to [MDX Support](using-mdx.md) for more information.
+
+When the field is missing, this schema compiles the current file body.
 
 ```ts
 code: s.mdx()
@@ -299,6 +308,8 @@ code: s.mdx()
 
 return raw document body.
 
+When the field is missing, this schema returns the current file body.
+
 ```ts
 code: s.raw()
 // => raw document body
@@ -309,6 +320,8 @@ code: s.raw()
 `string => TocEntry[] | TocTree`
 
 parse input or document body as markdown content and return the [table of contents](#types-2).
+
+When the field is missing, this schema derives the table of contents from the current file body.
 
 ```ts
 toc: s.toc()
@@ -380,6 +393,8 @@ Refer to [mdast-util-toc](https://github.com/syntax-tree/mdast-util-toc) for mor
 
 get flattened path based on the file path.
 
+When the field is missing, this schema derives the value from the current file path.
+
 ```ts
 path: s.path()
 // => flattened path, e.g. 'posts/2021-01-01-hello-world'
@@ -403,7 +418,7 @@ Removes `index` from the path.
 In addition, all Zod's built-in schemas can be used normally, such as:
 
 ```ts
-title: s.string().mix(3).max(100)
+title: s.string().min(3).max(100)
 description: s.string().optional()
 featured: s.boolean().default(false)
 ```

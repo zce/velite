@@ -52,6 +52,7 @@ export default defineConfig({
         items: [
           { text: 'Introduction', link: 'introduction' },
           { text: 'Quick Start', link: 'quick-start' },
+          { text: 'Migration to 1.0 Alpha', link: 'migration' },
           { text: 'Define Collections', link: 'define-collections' },
           { text: 'Using Collections', link: 'using-collections' },
           { text: 'Velite Schemas', link: 'velite-schemas' }
@@ -96,6 +97,7 @@ export default defineConfig({
         base: '/guide/',
         items: [
           { text: 'How Velite Works', link: 'how-it-works' },
+          { text: 'Lifecycle', link: 'lifecycle' },
           { text: 'Motivation', link: 'motivation' }
         ]
       },

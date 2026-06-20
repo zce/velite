@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
 import { describe, it } from 'node:test'
 
-import { createDiscoverer } from '../../src/collections/discover'
+import { discover } from '../../src/collections/discover'
 
-describe('Discoverer', () => {
+describe('discover', () => {
   it('returns absolute files matching collection patterns and ignores private files', async () => {
     const root = await mkdtemp(join(tmpdir(), 'velite-discover-'))
 
@@ -18,7 +18,7 @@ describe('Discoverer', () => {
       await writeFile(join(root, 'posts', 'private', 'hidden.md'), '')
       await writeFile(join(root, 'posts', '_draft.md'), '')
 
-      const paths = await createDiscoverer().discover(root, ['posts/**/*.md', '!posts/private/**'])
+      const paths = await discover(root, ['posts/**/*.md', '!posts/private/**'])
 
       ok(paths.every(path => isAbsolute(path)))
       deepEqual(paths.sort(), [join(root, 'posts', 'a.md'), join(root, 'posts', 'nested', 'b.md')].sort())

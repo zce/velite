@@ -2,10 +2,10 @@ import { deepStrictEqual, ok, strictEqual } from 'node:assert'
 import { describe, it } from 'node:test'
 
 import { createAssetStore } from '../../src/assets'
-import { createOutputState } from '../../src/output/state'
 import { createWriter } from '../../src/output/write'
 
 import type { Collections } from '../../src/collections'
+import type { OutputState } from '../../src/output/state'
 import type { Logger } from '../../src/runtime/logger'
 
 const silentLogger: Logger = {
@@ -28,7 +28,7 @@ describe('Writer', () => {
 
   it('writeEntry produces ESM entry and matching d.ts', async () => {
     const writes: Array<[string, string]> = []
-    const state = createOutputState()
+    const state: OutputState = { emitted: new Map() }
     const writer = createWriter({
       writeFile: async (path, content) => {
         writes.push([String(path), String(content)])
@@ -52,7 +52,7 @@ describe('Writer', () => {
 
   it('writeEntry uses CJS exports when format is cjs', async () => {
     const writes: Array<[string, string]> = []
-    const state = createOutputState()
+    const state: OutputState = { emitted: new Map() }
     const writer = createWriter({
       writeFile: async (path, content) => {
         writes.push([String(path), String(content)])
@@ -68,7 +68,7 @@ describe('Writer', () => {
 
   it('writeData writes one JSON file per collection result', async () => {
     const writes: Array<[string, string]> = []
-    const state = createOutputState()
+    const state: OutputState = { emitted: new Map() }
     const writer = createWriter({
       writeFile: async (path, content) => {
         writes.push([String(path), String(content)])
@@ -89,7 +89,7 @@ describe('Writer', () => {
 
   it('writeData skips writes when content matches the emit cache', async () => {
     const writes: string[] = []
-    const state = createOutputState()
+    const state: OutputState = { emitted: new Map() }
     const writer = createWriter({
       writeFile: async path => {
         writes.push(String(path))
@@ -106,7 +106,7 @@ describe('Writer', () => {
 
   it('writeData emits when a new build session starts with an empty state', async () => {
     const writes: string[] = []
-    const state1 = createOutputState()
+    const state1: OutputState = { emitted: new Map() }
     const writer1 = createWriter({
       writeFile: async path => {
         writes.push(`s1:${path}`)
@@ -118,7 +118,7 @@ describe('Writer', () => {
 
     // Fresh session = fresh emit state, so the write must happen even though
     // the content is identical to a previous build.
-    const state2 = createOutputState()
+    const state2: OutputState = { emitted: new Map() }
     const writer2 = createWriter({
       writeFile: async path => {
         writes.push(`s2:${path}`)
@@ -133,7 +133,7 @@ describe('Writer', () => {
 
   it('writeData skips nullish entries', async () => {
     const writes: string[] = []
-    const state = createOutputState()
+    const state: OutputState = { emitted: new Map() }
     const writer = createWriter({
       writeFile: async path => {
         writes.push(String(path))
@@ -148,7 +148,7 @@ describe('Writer', () => {
 
   it('writeAssets copies every record from the AssetStore', async () => {
     const copies: Array<[string, string]> = []
-    const state = createOutputState()
+    const state: OutputState = { emitted: new Map() }
     const writer = createWriter({
       writeFile: noopWrite,
       copyFile: async (src, dst) => {
@@ -180,7 +180,7 @@ describe('Writer', () => {
 
   it('writeAssets skips copies when the same asset output is already emitted', async () => {
     let copyCount = 0
-    const state = createOutputState()
+    const state: OutputState = { emitted: new Map() }
     const writer = createWriter({
       writeFile: noopWrite,
       copyFile: async () => {

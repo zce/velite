@@ -3,10 +3,10 @@ import { describe, it } from 'node:test'
 
 import { assetStoreKey, createAssetStore } from '../../src/assets'
 import { createFileCache } from '../../src/collections/cache'
-import { createOutputState } from '../../src/output/state'
 import { createSession } from '../../src/runtime/session'
 
 import type { ResolvedConfig } from '../../src/config'
+import type { OutputState } from '../../src/output/state'
 
 const stubConfig: ResolvedConfig = {
   configPath: '/site/velite.config.ts',
@@ -73,7 +73,7 @@ describe('BuildSession', () => {
   })
 
   it('shared output state is reused when supplied', () => {
-    const shared = createOutputState()
+    const shared: OutputState = { emitted: new Map() }
     const a = createSession(stubConfig, {}, { output: shared })
     const b = createSession(stubConfig, {}, { output: shared })
     strictEqual(a.output, shared)

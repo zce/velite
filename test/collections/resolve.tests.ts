@@ -9,7 +9,7 @@ import { createResolver } from '../../src/collections/resolve'
 import { createSession } from '../../src/runtime/session'
 import { s } from '../../src/schemas'
 
-import type { Discoverer } from '../../src/collections/discover'
+import type { Discover } from '../../src/collections/discover'
 import type { ResolvedConfig } from '../../src/config'
 import type { VeliteLoader } from '../../src/loaders/types'
 import type { Logger } from '../../src/runtime/logger'
@@ -55,10 +55,8 @@ describe('Resolver', () => {
       await writeFile(join(root, 'content', 'a.json'), JSON.stringify({ title: 'A' }))
       await writeFile(join(root, 'content', 'b.json'), JSON.stringify({ title: 'B' }))
 
-      const fakeDiscoverer: Discoverer = {
-        async discover() {
-          return [join(root, 'content', 'a.json'), join(root, 'content', 'b.json')]
-        }
+      const fakeDiscover: Discover = async () => {
+        return [join(root, 'content', 'a.json'), join(root, 'content', 'b.json')]
       }
 
       const collections = {
@@ -70,7 +68,7 @@ describe('Resolver', () => {
       }
       const config = buildConfig(root, collections)
       const session = createSession(config, {}, { logger: silentLogger })
-      const resolver = createResolver({ discoverer: fakeDiscoverer })
+      const resolver = createResolver(fakeDiscover)
 
       const { result } = await resolver.resolve(session)
       const items = result.items as { title: string }[]
@@ -87,10 +85,8 @@ describe('Resolver', () => {
       await mkdir(join(root, 'content'))
       await writeFile(join(root, 'content', 'options.json'), JSON.stringify({ name: 'site' }))
 
-      const fakeDiscoverer: Discoverer = {
-        async discover() {
-          return [join(root, 'content', 'options.json')]
-        }
+      const fakeDiscover: Discover = async () => {
+        return [join(root, 'content', 'options.json')]
       }
 
       const config = buildConfig(root, {
@@ -102,7 +98,7 @@ describe('Resolver', () => {
         }
       })
       const session = createSession(config, {}, { logger: silentLogger })
-      const resolver = createResolver({ discoverer: fakeDiscoverer })
+      const resolver = createResolver(fakeDiscover)
 
       const { result } = await resolver.resolve(session)
       deepStrictEqual(result.options, { name: 'site' })
@@ -117,10 +113,8 @@ describe('Resolver', () => {
       await mkdir(join(root, 'content'))
       await writeFile(join(root, 'content', 'bad.json'), JSON.stringify({ title: 123 }))
 
-      const fakeDiscoverer: Discoverer = {
-        async discover() {
-          return [join(root, 'content', 'bad.json')]
-        }
+      const fakeDiscover: Discover = async () => {
+        return [join(root, 'content', 'bad.json')]
       }
 
       const config = buildConfig(root, {
@@ -131,7 +125,7 @@ describe('Resolver', () => {
         }
       })
       const session = createSession(config, {}, { logger: silentLogger })
-      const resolver = createResolver({ discoverer: fakeDiscoverer })
+      const resolver = createResolver(fakeDiscover)
       const { report } = await resolver.resolve(session)
       ok(report.length > 0, 'expected validation report when input is invalid')
     } finally {
@@ -145,10 +139,8 @@ describe('Resolver', () => {
       await mkdir(join(root, 'content'))
       await writeFile(join(root, 'content', 'bad.json'), JSON.stringify({ title: 123 }))
 
-      const fakeDiscoverer: Discoverer = {
-        async discover() {
-          return [join(root, 'content', 'bad.json')]
-        }
+      const fakeDiscover: Discover = async () => {
+        return [join(root, 'content', 'bad.json')]
       }
 
       const config = buildConfig(
@@ -163,7 +155,7 @@ describe('Resolver', () => {
         { strict: true }
       )
       const session = createSession(config, {}, { logger: silentLogger })
-      const resolver = createResolver({ discoverer: fakeDiscoverer })
+      const resolver = createResolver(fakeDiscover)
       await rejects(resolver.resolve(session), /Schema validation failed/)
     } finally {
       await rm(root, { recursive: true, force: true })
@@ -177,10 +169,8 @@ describe('Resolver', () => {
       await writeFile(join(root, 'content', 'asset.txt'), 'hello')
       await writeFile(join(root, 'content', 'item.json'), JSON.stringify({ title: 'A', file: 'asset.txt' }))
 
-      const fakeDiscoverer: Discoverer = {
-        async discover() {
-          return [join(root, 'content', 'item.json')]
-        }
+      const fakeDiscover: Discover = async () => {
+        return [join(root, 'content', 'item.json')]
       }
 
       const config = buildConfig(root, {
@@ -191,7 +181,7 @@ describe('Resolver', () => {
         }
       })
       const session = createSession(config, {}, { logger: silentLogger })
-      const resolver = createResolver({ discoverer: fakeDiscoverer })
+      const resolver = createResolver(fakeDiscover)
       await resolver.resolve(session)
       strictEqual(session.store.get(assetStoreKey)?.list().length, 1, 'exactly one asset should be collected')
     } finally {
@@ -209,18 +199,16 @@ describe('Resolver', () => {
       await writeFile(tagsPath, JSON.stringify({ title: 'Tag' }))
 
       const discoverCalls: string[] = []
-      const fakeDiscoverer: Discoverer = {
-        async discover(_root, pattern) {
-          discoverCalls.push(String(pattern))
-          return String(pattern).includes('post') ? [postsPath] : [tagsPath]
-        }
+      const fakeDiscover: Discover = async (_root, pattern) => {
+        discoverCalls.push(String(pattern))
+        return String(pattern).includes('post') ? [postsPath] : [tagsPath]
       }
       const collections = {
         posts: { name: 'Post', pattern: 'content/post.json', schema: s.object({ title: s.string() }) },
         tags: { name: 'Tag', pattern: 'content/tag.json', schema: s.object({ title: s.string() }) }
       }
       const config = buildConfig(root, collections)
-      const resolver = createResolver({ discoverer: fakeDiscoverer })
+      const resolver = createResolver(fakeDiscover)
       const session = createSession(config, {}, { logger: silentLogger })
 
       await resolver.resolve(session)
@@ -254,16 +242,14 @@ describe('Resolver', () => {
       await writeFile(b, JSON.stringify({ title: 'B' }))
 
       let paths = [a, b]
-      const fakeDiscoverer: Discoverer = {
-        async discover() {
-          return paths
-        }
+      const fakeDiscover: Discover = async () => {
+        return paths
       }
       const config = buildConfig(root, {
         items: { name: 'Item', pattern: 'content/*.json', schema: s.object({ title: s.string() }) }
       })
       const session = createSession(config, {}, { logger: silentLogger })
-      const resolver = createResolver({ discoverer: fakeDiscoverer })
+      const resolver = createResolver(fakeDiscover)
 
       await resolver.resolve(session)
       paths = [a]
@@ -288,17 +274,15 @@ describe('Resolver', () => {
 
       let returnedPaths = [itemPath]
       let discoverCalls = 0
-      const fakeDiscoverer: Discoverer = {
-        async discover() {
-          discoverCalls++
-          return returnedPaths
-        }
+      const fakeDiscover: Discover = async () => {
+        discoverCalls++
+        return returnedPaths
       }
       const config = buildConfig(root, {
         items: { name: 'Item', pattern: 'content/*.json', schema: s.object({ title: s.string() }) }
       })
       const session = createSession(config, {}, { logger: silentLogger })
-      const resolver = createResolver({ discoverer: fakeDiscoverer })
+      const resolver = createResolver(fakeDiscover)
 
       await resolver.resolve(session)
       strictEqual(discoverCalls, 1)
@@ -326,10 +310,8 @@ describe('Resolver', () => {
       await writeFile(join(root, 'content', 'empty.json'), JSON.stringify({ value: 'empty' }))
 
       const files = [join(root, 'content', 'zero.json'), join(root, 'content', 'false.json'), join(root, 'content', 'empty.json')]
-      const fakeDiscoverer: Discoverer = {
-        async discover() {
-          return files
-        }
+      const fakeDiscover: Discover = async () => {
+        return files
       }
 
       const config = buildConfig(root, {
@@ -340,7 +322,7 @@ describe('Resolver', () => {
         }
       })
       const session = createSession(config, {}, { logger: silentLogger })
-      const resolver = createResolver({ discoverer: fakeDiscoverer })
+      const resolver = createResolver(fakeDiscover)
 
       const { result } = await resolver.resolve(session)
       deepStrictEqual(result.items, [0, false, ''])

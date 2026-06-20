@@ -2,7 +2,7 @@ import { createAssetProcessingCache } from '../assets/cache'
 import { createFileCache } from '../collections/cache'
 import { VeliteFile } from '../collections/file'
 import { createOutputState } from '../output/state'
-import { createLogger, logger as defaultLogger } from './logger'
+import { logger as defaultLogger } from './logger'
 import { createBuildStore } from './store'
 
 import type { BuildOptions } from '../app/types'
@@ -74,6 +74,3 @@ export const createSession = <T extends Collections>(
   logger: sessionOptions.logger ?? defaultLogger,
   assetCache: sessionOptions.assetCache ?? createAssetProcessingCache()
 })
-
-// Re-export so engine code can construct a per-session logger when desired.
-export { createLogger }

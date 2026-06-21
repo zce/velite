@@ -5,6 +5,7 @@ import { isVeliteError } from '../../src/core/diagnostic'
 import { context, createContentFile, runWithContext } from '../../src/core/schema/context'
 import { s } from '../../src/core/schema/s'
 
+import type { AssetResult } from '../../src/core/pipeline/asset'
 import type { ContentFile, ProjectInfo } from '../../src/core/schema/context'
 import type { Schema } from '../../src/core/schema/s'
 
@@ -17,8 +18,21 @@ const project: ProjectInfo = {
 
 const file = (content: string, path = '/proj/content/posts/hello.md'): ContentFile => createContentFile('posts/hello.md', path, content)
 
+// A stand-in asset closure for unit tests that don't exercise the asset pipeline.
+const stubAsset = async (assetKey: string): Promise<AssetResult> => ({
+  publicUrl: `/static/${assetKey}`,
+  width: 0,
+  height: 0,
+  format: '',
+  blurDataURL: '',
+  blurWidth: 0,
+  blurHeight: 0
+})
+
 const parseWith = async (schema: Schema, content: string, input: unknown = undefined) =>
-  runWithContext({ project, file: file(content), record: { id: 'posts/hello.md#', index: 0 }, collectEffect: () => {} }, () => schema.safeParseAsync(input))
+  runWithContext({ project, file: file(content), record: { id: 'posts/hello.md#', index: 0 }, collectEffect: () => {}, asset: stubAsset }, () =>
+    schema.safeParseAsync(input)
+  )
 
 test('context(): throws a VeliteError (internal) outside runWithContext', () => {
   assert.throws(
@@ -78,7 +92,8 @@ test('s.path(): removes a trailing /index segment by default', async () => {
       project,
       file: createContentFile('posts/index.md', '/proj/content/posts/index.md', 'body'),
       record: { id: 'posts/index.md#', index: 0 },
-      collectEffect: () => {}
+      collectEffect: () => {},
+      asset: stubAsset
     },
     () => s.path().safeParseAsync(undefined)
   )
@@ -92,7 +107,8 @@ test('s.path(): keeps /index when removeIndex is false', async () => {
       project,
       file: createContentFile('posts/index.md', '/proj/content/posts/index.md', 'body'),
       record: { id: 'posts/index.md#', index: 0 },
-      collectEffect: () => {}
+      collectEffect: () => {},
+      asset: stubAsset
     },
     () => s.path({ removeIndex: false }).safeParseAsync(undefined)
   )

@@ -1,14 +1,9 @@
 import { ok } from 'node:assert'
 import { readdir, readFile } from 'node:fs/promises'
-import { basename, join, relative } from 'node:path'
+import { join, relative } from 'node:path'
 import { test } from 'node:test'
 
 const CORE_DIR = new URL('../src/core/', import.meta.url).pathname
-
-// Legacy old-architecture top-level files still present (frozen) until the final
-// cleanup milestone deletes them. They predate the runtime-agnostic rule and
-// import node:path; excluded from the scan until removed.
-const LEGACY = new Set(['cache.ts', 'graph.ts', 'session.ts', 'errors.ts', 'ids.ts', 'project.ts', 'snapshot.ts', 'store.ts'])
 
 // Imports the core is NEVER allowed to take: runtime-specific or native.
 // Allowed core deps: picomatch, zod, unified, @mdx-js/mdx, yaml (pure data/string).
@@ -34,8 +29,8 @@ const collectTsFiles = async (dir: string): Promise<string[]> => {
 // Matches `import ... from 'spec'` and bare `import 'spec'` (static imports only).
 const IMPORT_RE = /^\s*import(?:\s+[^'"]+)?\s*(?:from\s*)?['"]([^'"]+)['"]/gm
 
-test('runtime-neutral: core (excluding legacy) imports no node: builtins or native/host-only deps', async () => {
-  const files = (await collectTsFiles(CORE_DIR)).filter(file => !LEGACY.has(basename(file)))
+test('runtime-neutral: core imports no node: builtins or native/host-only deps', async () => {
+  const files = await collectTsFiles(CORE_DIR)
   ok(files.length > 0, 'core should contain runtime-agnostic ts files')
 
   const violations: string[] = []

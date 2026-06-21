@@ -22,6 +22,12 @@ export interface UserConfig {
   output?: {
     /** Directory for generated data, relative to the project (default '.velite'). */
     data?: string
+    /** Directory for generated assets, relative to the project (default 'public/static'). */
+    assets?: string
+    /** Public base url for assets (default '/static/'). */
+    base?: string
+    /** Asset sub-directory name within the asset dir (default 'static'). */
+    name?: string
   }
   /** Collections keyed by name (the name is also the output data key). */
   collections: Record<string, CollectionDef>
@@ -38,7 +44,9 @@ export interface ResolvedCollection {
 export interface ResolvedConfig {
   /** Absolute, posix content root. */
   root: string
-  output: { data: string }
+  /** Absolute path to the config file (empty when synthetic). */
+  configPath: string
+  output: { data: string; assets: string; base: string; name: string }
   collections: ResolvedCollection[]
 }
 
@@ -51,11 +59,17 @@ export const defineCollection = <S extends Schema>(def: CollectionDef<S>): Colle
 const toArray = (value: string | string[] | undefined): string[] => (value === undefined ? [] : Array.isArray(value) ? value : [value])
 
 /** Resolve a user config into absolute paths and a normalized shape (pure). */
-export const resolveConfig = (config: UserConfig, options: { cwd: string; path: Path }): ResolvedConfig => {
+export const resolveConfig = (config: UserConfig, options: { cwd: string; path: Path; configPath?: string }): ResolvedConfig => {
   const { cwd, path } = options
   return {
     root: path.join(cwd, config.root ?? '.'),
-    output: { data: path.join(cwd, config.output?.data ?? '.velite') },
+    configPath: options.configPath ?? '',
+    output: {
+      data: path.join(cwd, config.output?.data ?? '.velite'),
+      assets: path.join(cwd, config.output?.assets ?? 'public/static'),
+      base: config.output?.base ?? '/static/',
+      name: config.output?.name ?? 'static'
+    },
     collections: Object.entries(config.collections).map(([name, def]) => ({
       name,
       include: toArray(def.pattern),

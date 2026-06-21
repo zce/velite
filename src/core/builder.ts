@@ -61,7 +61,7 @@ const loadSession = async (host: Host, options: CreateBuilderOptions): Promise<S
   const loaded = await host.config.load(options.configPath)
   const issues = validateConfig(loaded.config)
   if (issues.length > 0) throw new ConfigError(issues)
-  const config = resolveConfig(loaded.config as never, { cwd: options.cwd, path: host.path })
+  const config = resolveConfig(loaded.config as never, { cwd: options.cwd, path: host.path, configPath: options.configPath })
   const engine = createEngine()
   const pipeline = createPipeline(config, createLoaderRegistry(options.loaders ?? []))
   const context = createRunContext(engine, pipeline, config, host)

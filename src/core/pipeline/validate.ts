@@ -7,6 +7,7 @@ import type { Derivation } from '../engine'
 import type { Entry } from '../model'
 import type { ProjectCollectionInfo, ProjectInfo } from '../schema/context'
 import type { Effect } from '../schema/effects'
+import type { AssetResult } from './asset'
 import type { Loaded, Validated, ValidateKey } from './types'
 
 /** Build the read-only project snapshot exposed to schemas from the resolved config. */
@@ -25,19 +26,30 @@ const buildProjectInfo = (config: ResolvedConfig): ProjectInfo => {
  * Each record is parsed inside a schema context (`runWithContext`) so built-in
  * content schemas (`s.markdown()`, `s.raw()`, ...) can read the current file's
  * body and project via `context()`. Schema effects are accumulated per record
- * via `collectEffect`; they are consumed by the effect-index derivation in M6.
+ * via `collectEffect` and returned alongside the entries; the driver consumes
+ * asset-reference effects to drive the two-pass asset flow.
+ *
+ * The `asset(assetKey)` closure demands the asset derivation through the engine
+ * context, recording the dependency so a later `engine.set('asset:'+key, ...)`
+ * invalidates this source's memo (and everything downstream).
  */
-export const createValidateDerivation = (config: ResolvedConfig, load: Derivation<string, Loaded>): Derivation<ValidateKey, Validated> => ({
+export const createValidateDerivation = (
+  config: ResolvedConfig,
+  load: Derivation<string, Loaded>,
+  asset: Derivation<string, AssetResult>
+): Derivation<ValidateKey, Validated> => ({
   name: 'validate',
   async compute(context, { collection, path }) {
     const loaded = await context.get(load, path)
     const col = config.collections.find(c => c.name === collection)
     const entries: Entry[] = []
+    const effects: Effect[] = []
     const diagnostics = [...loaded.diagnostics]
-    if (col === undefined) return { entries, diagnostics }
+    if (col === undefined) return { entries, effects, diagnostics }
 
     const project = buildProjectInfo(config)
     const absPath = posix.join(config.root, path)
+    const demandAsset = (assetKey: string): Promise<AssetResult> => context.get(asset, assetKey)
 
     for (let index = 0; index < loaded.entries.length; index++) {
       const raw = loaded.entries[index]!
@@ -45,11 +57,10 @@ export const createValidateDerivation = (config: ResolvedConfig, load: Derivatio
       const file = createContentFile(raw.source, absPath, body)
       const key = raw.key === '' ? undefined : typeof raw.key === 'number' ? String(raw.key) : raw.key
       const record = { id: raw.id, ...(key != null ? { key } : {}), index }
-      // Per-record effect accumulator. Collected by schemas via collectEffect;
-      // wired into the effect-index derivation in M6.
-      const effects: Effect[] = []
 
-      const parsed = await runWithContext({ project, file, record, collectEffect: e => effects.push(e) }, () => col.schema.safeParseAsync(raw.data))
+      const parsed = await runWithContext({ project, file, record, collectEffect: e => effects.push(e), asset: demandAsset }, () =>
+        col.schema.safeParseAsync(raw.data)
+      )
 
       if (parsed.success) {
         entries.push({ id: raw.id, source: path, data: parsed.data })
@@ -66,6 +77,6 @@ export const createValidateDerivation = (config: ResolvedConfig, load: Derivatio
         }
       }
     }
-    return { entries, diagnostics }
+    return { entries, effects, diagnostics }
   }
 })

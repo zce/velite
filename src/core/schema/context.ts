@@ -7,8 +7,9 @@
 // state for the record currently being parsed.
 //
 // Adapted from the pre-refactor `src/schemas/context.ts` for the new arch:
-// - asset fields (`store`, `assetCache`, `assetStore`, `asset()`) are dropped
-//   for M4 — asset wiring lands in M5;
+// - the asset capability is a single `asset(assetKey)` closure (M5): it demands
+//   the engine's asset derivation, returning a memoized `AssetResult`. The
+//   closure is built by the validate derivation, which has engine access;
 // - `collectEffect` is kept (effects are accumulated in M4, fully wired in M6);
 // - `ProjectInfo` is a read-only snapshot built from `ResolvedConfig` by the
 //   validate derivation (no import of `ResolvedConfig` here, to avoid a cycle:
@@ -26,6 +27,7 @@ import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
 import type { MarkdownOptions } from '../content/markdown'
 import type { MdxOptions } from '../content/mdx'
+import type { AssetResult } from '../pipeline/asset'
 import type { Effect } from './effects'
 
 /**
@@ -92,6 +94,13 @@ export interface SchemaContext {
   readonly record: ContentRecord
   /** Declare a schema effect (unique registration, asset reference, etc.). */
   readonly collectEffect: (effect: Effect) => void
+  /**
+   * Resolve an asset by its key (project-root-relative source path). Demands the
+   * engine's asset derivation, returning a memoized {@link AssetResult}. The
+   * returned `publicUrl` is always available (derivable from the key); image
+   * metadata is zero until the driver feeds the asset's bytes in pass 2.
+   */
+  readonly asset: (assetKey: string) => Promise<AssetResult>
 }
 
 export interface RunWithContextInput {
@@ -99,6 +108,7 @@ export interface RunWithContextInput {
   readonly file: ContentFile
   readonly record: ContentRecord
   readonly collectEffect: (effect: Effect) => void
+  readonly asset: (assetKey: string) => Promise<AssetResult>
 }
 
 const als = new AsyncLocalStorage<SchemaContext>()
@@ -122,7 +132,8 @@ export const runWithContext = <R>(input: RunWithContextInput, run: () => R): R =
     project: input.project,
     file: input.file,
     record: input.record,
-    collectEffect: input.collectEffect
+    collectEffect: input.collectEffect,
+    asset: input.asset
   }
   return als.run(ctx, run)
 }

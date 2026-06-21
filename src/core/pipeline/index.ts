@@ -1,4 +1,5 @@
 import { createMatcher } from '../util/glob'
+import { createAssetDerivation } from './asset'
 import { createCollectDerivation } from './collect'
 import { createSourcesDerivation } from './discover'
 import { createEmitDerivation } from './emit'
@@ -7,9 +8,11 @@ import { createValidateDerivation } from './validate'
 
 import type { ResolvedConfig } from '../config'
 import type { Derivation } from '../engine'
+import type { Host } from '../host'
 import type { LoaderRegistry } from '../loader'
 import type { Source } from '../model'
 import type { Matcher } from '../util/glob'
+import type { AssetResult } from './asset'
 import type { Collected, Emitted, Loaded, Validated, ValidateKey } from './types'
 
 export interface Pipeline {
@@ -18,6 +21,8 @@ export interface Pipeline {
   validate: Derivation<ValidateKey, Validated>
   collect: Derivation<string, Collected>
   emit: Derivation<null, Emitted>
+  /** Per-asset derivation: assetKey → public url + image metadata. */
+  asset: Derivation<string, AssetResult>
 }
 
 /**
@@ -25,16 +30,19 @@ export interface Pipeline {
  * loader registry. Config/schemas are captured here (not engine inputs): a
  * config change creates a fresh builder/engine epoch, so they never need hashing.
  */
-export const createPipeline = (config: ResolvedConfig, loaders: LoaderRegistry): Pipeline => {
+export const createPipeline = (config: ResolvedConfig, loaders: LoaderRegistry, host: Host): Pipeline => {
   const matchers = new Map<string, Matcher>(config.collections.map(c => [c.name, createMatcher(c.include, c.exclude)]))
   const sources = createSourcesDerivation(config, matchers)
   const load = createLoadDerivation(loaders)
-  const validate = createValidateDerivation(config, load)
+  const asset = createAssetDerivation(config, host)
+  const validate = createValidateDerivation(config, load, asset)
   const collect = createCollectDerivation(config, sources, validate)
   const emit = createEmitDerivation(config, collect)
-  return { sources, load, validate, collect, emit }
+  return { sources, load, validate, collect, emit, asset }
 }
 
 export { TREE, fileInput } from './inputs'
+export { assetInput, assetKeyOf, publicUrlOf, renderAssetName } from './asset'
 export type { TreeFile } from './inputs'
+export type { AssetResult } from './asset'
 export type { Pipeline as PipelineDerivations }

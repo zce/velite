@@ -2,6 +2,7 @@ import { access } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 
 import { name as pkgName } from '../../package.json'
+import { fail } from '../core/errors'
 
 const CONFIG_NAMES = [
   `${pkgName}.config.js`,
@@ -37,11 +38,11 @@ const findConfig = async (cwd: string = process.cwd(), depth = 3): Promise<strin
 export const resolveConfigPath = async (path: string | undefined, cwd: string = process.cwd()): Promise<string> => {
   const resolved = path != null ? resolve(cwd, path) : await findConfig(cwd)
   if (resolved == null) {
-    throw new Error(`config file not found, create '${pkgName}.config.ts' in your project root`)
+    fail('config', { message: `config file not found, create '${pkgName}.config.ts' in your project root`, context: { searched: cwd } })
   }
   if (!/\.(js|mjs|cjs|ts|mts|cts)$/.test(resolved)) {
     const ext = resolved.split('.').pop()
-    throw new Error(`not supported config file with '${ext}' extension`)
+    fail('config', { message: `not supported config file with '${ext}' extension`, context: { ext, path: resolved } })
   }
   return resolved
 }

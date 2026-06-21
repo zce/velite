@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { basename, extname, resolve } from 'node:path'
 
+import { fail } from '../core/errors'
 import { createAssetProcessKey } from './cache'
 import { getImageMetadata, hashBytes } from './image'
 
@@ -72,7 +73,7 @@ const readAndProcess = async (path: string, input: ProcessAssetInput): Promise<P
   const result: ProcessAssetResult = { sourcePath: path, outputName, publicUrl, fingerprint }
   if (input.isImage === true) {
     const metadata = await getImageMetadata(buffer, input.blur)
-    if (metadata == null) throw new Error(`invalid image: ${input.from}`)
+    if (metadata == null) fail('asset', { message: `invalid image: ${input.from}`, context: { from: input.from } })
     return { ...result, image: metadata }
   }
   return result

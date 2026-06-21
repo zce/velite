@@ -4,6 +4,7 @@ import { toString } from 'hast-util-to-string'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 
+import { fail } from '../core/errors'
 import { matchesLoader } from '../loaders/types'
 
 import type { Nodes } from 'hast'
@@ -46,7 +47,7 @@ export const loadFile = async (path: string, loaders: readonly Loader[], sourceI
   const buffer = await readFile(path)
   const source = { id: sourceId, path, content: buffer }
   const loader = loaders.find(l => matchesLoader(l, source))
-  if (loader == null) throw new Error(`no loader found for '${path}'`)
+  if (loader == null) fail('load', { message: `no loader found for '${path}'`, context: { path } })
 
   const result = await loader.load(source, { source })
   const records = result.records.map(record => ({
@@ -55,7 +56,7 @@ export const loadFile = async (path: string, loaders: readonly Loader[], sourceI
     content: typeof record.metadata?.content === 'string' ? record.metadata.content : undefined,
     metadata: record.metadata
   }))
-  if (records.length === 0) throw new Error(`no records loaded from '${path}'`)
+  if (records.length === 0) fail('load', { message: `no records loaded from '${path}'`, context: { path } })
 
   return { path, id: sourceId, records, dependencies: result.dependencies ?? [], metadata: result.metadata }
 }

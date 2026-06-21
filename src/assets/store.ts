@@ -1,3 +1,5 @@
+import { fail } from '../core/errors'
+
 /** Asset record collected during a build session. */
 export interface AssetRecord {
   /** Absolute source path of the original asset. */
@@ -32,10 +34,12 @@ export const createAssetStore = (): AssetStore => {
       if (existing != null) {
         if (existing.sourcePath !== sourcePath) {
           if (fingerprint != null && existing.fingerprint != null && fingerprint !== existing.fingerprint) {
-            throw new Error(
-              `Asset name collision for '${outputName}': '${existing.sourcePath}' and '${sourcePath}' have different content. ` +
-                'Adjust the output filename template (for example include [hash:8]).'
-            )
+            fail('asset', {
+              message:
+                `Asset name collision for '${outputName}': '${existing.sourcePath}' and '${sourcePath}' have different content. ` +
+                'Adjust the output filename template (for example include [hash:8]).',
+              context: { outputName, existingSourcePath: existing.sourcePath, sourcePath }
+            })
           }
           if (fingerprint != null && existing.fingerprint == null) existing.fingerprint = fingerprint
         }

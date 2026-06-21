@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 
+import { fail } from '../core/errors'
+
 import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
 import type { AssetProcessingCache } from '../assets/cache'
@@ -93,7 +95,7 @@ const MISSING = 'Missing schema context — are you calling context() outside of
  */
 export const context = (): SchemaContext => {
   const ctx = als.getStore()
-  if (ctx == null) throw new Error(MISSING)
+  if (ctx == null) fail('internal', MISSING)
   return ctx
 }
 

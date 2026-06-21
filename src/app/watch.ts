@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 
 import { matchPatterns } from '../collections/discover'
-import { VeliteError } from '../core/errors'
+import { fail, VeliteError } from '../core/errors'
 import { logger as defaultLogger } from '../runtime/logger'
 
 import type { BuildResult, Collections } from '../collections'
@@ -53,7 +53,7 @@ export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): 
     }
 
     const project = engine.config
-    if (project == null) throw new Error('engine.config missing — call engine.build() before starting the watcher')
+    if (project == null) fail('internal', 'engine.config missing — call engine.build() before starting the watcher')
 
     const { watch } = await import('chokidar')
     const root = project.root

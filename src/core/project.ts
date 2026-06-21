@@ -1,6 +1,7 @@
 import { dirname, resolve } from 'node:path'
 
 import { builtinLoaders } from '../loaders'
+import { fail } from './errors'
 
 import type { Collections } from '../collections'
 import type { OutputConfig, PrepareHook, UserConfig } from '../config'
@@ -135,10 +136,13 @@ const RESERVED_TYPE_NAMES = new Set<string>([
 const validateCollections = (collections: Collections): void => {
   for (const [key, collection] of Object.entries(collections)) {
     if (!TYPE_IDENTIFIER_RE.test(key) || RESERVED_TYPE_NAMES.has(key)) {
-      throw new Error(`collection key '${key}' must be a valid TypeScript identifier`)
+      fail('config', { message: `collection key '${key}' must be a valid TypeScript identifier`, context: { key } })
     }
     if (!TYPE_IDENTIFIER_RE.test(collection.typeName) || RESERVED_TYPE_NAMES.has(collection.typeName)) {
-      throw new Error(`collection '${key}' typeName '${collection.typeName}' must be a valid TypeScript identifier`)
+      fail('config', {
+        message: `collection '${key}' typeName '${collection.typeName}' must be a valid TypeScript identifier`,
+        context: { key, typeName: collection.typeName }
+      })
     }
   }
 }
@@ -160,7 +164,7 @@ export const resolveProject = <T extends Collections = Collections>(loaded: Load
   const { config, path: configPath, dependencies } = loaded
 
   if (config.collections == null) {
-    throw new Error(`'collections' is required in '${configPath}'`)
+    fail('config', { message: `'collections' is required in '${configPath}'`, context: { configPath } })
   }
   validateCollections(config.collections)
 

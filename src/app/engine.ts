@@ -4,7 +4,7 @@ import { normalize } from 'node:path'
 import { createAssetStore } from '../assets/store'
 import { collectionAffected } from '../collections/discover'
 import { defaultConfigLoader } from '../config'
-import { codeFromDiagnostics, createDiagnostic, hasFatalDiagnostic, VeliteError } from '../core/errors'
+import { codeFromDiagnostics, createDiagnostic, fail, hasFatalDiagnostic, VeliteError } from '../core/errors'
 import { buildGraphEdges } from '../core/graph'
 import { aggregateResult, applyPrepare, createParsedCache, parseCollection, runBuild, throwIfAborted } from '../core/pipeline'
 import { resolveProject } from '../core/project'
@@ -227,7 +227,7 @@ export const createEngine = (options: EngineOptions = {}): Engine => {
   }
 
   const runOnce = async (project: Project, options: BuildOptions, change: RebuildChange | undefined, split: boolean, log: Logger): Promise<BuildResult> => {
-    if (currentSession == null) throw new Error('session missing')
+    if (currentSession == null) fail('internal', 'session missing')
     const runResult = await runBuild(currentSession, { execute: () => execute(currentSession!, project, options, change, split, log) })
     if (runResult.status === 'failure' || runResult.result == null) {
       throw new VeliteError(codeFromDiagnostics(runResult.diagnostics), { message: 'Build failed', diagnostics: [...runResult.diagnostics] })
@@ -292,7 +292,7 @@ export const createEngine = (options: EngineOptions = {}): Engine => {
     },
 
     async rebuild(change) {
-      if (currentProject == null || currentSession == null) throw new Error('rebuild() called before build()')
+      if (currentProject == null || currentSession == null) fail('internal', 'rebuild() called before build()')
       const log = resolveLogger(currentOptions)
       const project = currentProject
 

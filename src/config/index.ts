@@ -2,12 +2,11 @@ import { resolveConfigPath } from './discover'
 import { loadConfig } from './load'
 
 import type { BuildResult, Collections } from '../collections'
-import type { Diagnostic } from '../core/diagnostics'
+import type { Diagnostic } from '../core/errors'
 import type { Loader, Promisable } from '../loaders/types'
 import type { OutputConfig } from '../output'
 import type { MarkdownOptions } from '../schemas/markdown'
 import type { MdxOptions } from '../schemas/mdx'
-
 import type { LoadedConfig } from './load'
 
 export type { OutputConfig } from '../output'

@@ -1,5 +1,5 @@
 import type { BuildResult, Collections } from '../collections'
-import type { Diagnostic } from './diagnostics'
+import type { Diagnostic } from './errors'
 
 /**
  * A successful build snapshot.

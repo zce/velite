@@ -1,11 +1,11 @@
 import { resolve } from 'node:path'
 
 import { matchPatterns } from '../collections/discover'
-import { VeliteError } from '../core/diagnostics'
+import { VeliteError } from '../core/errors'
 import { logger as defaultLogger } from '../runtime/logger'
 
 import type { BuildResult, Collections } from '../collections'
-import type { Diagnostic } from '../core/diagnostics'
+import type { Diagnostic } from '../core/errors'
 import type { Logger } from '../runtime/logger'
 import type { BuildOptions, Engine, RebuildEvent } from './engine'
 

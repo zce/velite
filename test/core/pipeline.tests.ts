@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { runBuild } from '../../src/core/pipeline'
 import { createSession } from '../../src/core/session'
 
-import type { Diagnostic } from '../../src/core/diagnostics'
+import type { Diagnostic } from '../../src/core/errors'
 
 test('failed build run does not replace last successful snapshot', async () => {
   const session = createSession()

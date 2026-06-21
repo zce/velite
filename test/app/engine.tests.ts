@@ -5,15 +5,14 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 
 import { createEngine } from '../../src/app/engine'
-import { VeliteError } from '../../src/core/diagnostics'
-import { builtinLoaders } from '../../src/loaders'
+import { VeliteError } from '../../src/core/errors'
 import { resolveProject } from '../../src/core/project'
+import { builtinLoaders } from '../../src/loaders'
 import { createWriter } from '../../src/output/write'
 import { s } from '../../src/schemas'
 
-import type { ConfigLoader } from '../../src/config'
 import type { Collections } from '../../src/collections'
-import type { UserConfig } from '../../src/config'
+import type { ConfigLoader, UserConfig } from '../../src/config'
 import type { Project } from '../../src/core/project'
 import type { Logger } from '../../src/runtime/logger'
 
@@ -58,7 +57,13 @@ const makeLoader = (project: Project): ConfigLoader => ({
       root: project.root,
       collections: project.collections,
       loaders: project.loaders as UserConfig['loaders'],
-      output: { data: project.output.data, assets: project.output.assets, base: project.output.base, format: project.output.format, clean: project.output.clean },
+      output: {
+        data: project.output.data,
+        assets: project.output.assets,
+        base: project.output.base,
+        format: project.output.format,
+        clean: project.output.clean
+      },
       strict: project.strict,
       markdown: project.markdown,
       mdx: project.mdx,

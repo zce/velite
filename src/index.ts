@@ -11,7 +11,7 @@ export { defineConfig } from './config'
 export { defineLoader } from './loaders'
 export { context } from './schemas/context'
 export { s } from './schemas'
-export { VeliteError } from './core/diagnostics'
+export { VeliteError } from './core/errors'
 
 // Public type surface.
 export type { BuildOptions } from './app/engine'
@@ -28,7 +28,7 @@ export type { Effect, UniqueEffect, AssetReferenceEffect, SourceDependencyEffect
 export type { AssetProcessingCache } from './assets/cache'
 export type { AssetStore, AssetRecord } from './assets/store'
 export type { SessionStore } from './core/session'
-export type { Diagnostic, DiagnosticSeverity, DiagnosticStage } from './core/diagnostics'
+export type { Diagnostic, DiagnosticSeverity, DiagnosticStage } from './core/errors'
 export type { FileOptions } from './schemas/file'
 export type { ImageOptions, ImageData, ImageBlurOptions } from './assets/image'
 export type { MarkdownOptions } from './schemas/markdown'

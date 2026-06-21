@@ -17,7 +17,7 @@ import type { AssetResult } from '../../src/core/pipeline/asset'
 const config: ResolvedConfig = {
   root: '/proj/content',
   configPath: '',
-  output: { data: '/proj/.velite', assets: '/proj/public/static', base: '/static/', name: 'static' },
+  output: { data: '/proj/.velite', assets: '/proj/public/static', base: '/static/', name: 'static', format: 'esm' },
   collections: []
 }
 

@@ -35,6 +35,23 @@ test('resolveConfig normalizes collection pattern/exclude/single/schema', () => 
   assert.strictEqual(c.schema, cfg.collections.posts!.schema)
 })
 
+test('resolveConfig defaults typeName to the collection key and format to esm', () => {
+  const cfg = defineConfig({ collections: { posts: { pattern: '*.md', schema: s.string() } } })
+  const resolved = resolveConfig(cfg, { cwd: '/proj', path: posix })
+  assert.equal(resolved.collections[0]!.typeName, 'posts')
+  assert.equal(resolved.output.format, 'esm')
+})
+
+test('resolveConfig honors an explicit typeName and format', () => {
+  const cfg = defineConfig({
+    output: { format: 'cjs' },
+    collections: { posts: { pattern: '*.md', typeName: 'Post', schema: s.string() } }
+  })
+  const resolved = resolveConfig(cfg, { cwd: '/proj', path: posix })
+  assert.equal(resolved.collections[0]!.typeName, 'Post')
+  assert.equal(resolved.output.format, 'cjs')
+})
+
 test('resolveConfig defaults single to false and exclude to empty', () => {
   const cfg = defineConfig({ collections: { a: { pattern: 'a/*.json', schema: s.unknown() } } })
   const resolved = resolveConfig(cfg, { cwd: '/', path: posix })

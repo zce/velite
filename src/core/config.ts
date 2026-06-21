@@ -13,6 +13,8 @@ export interface CollectionDef<S extends Schema = Schema> {
   exclude?: string | string[]
   /** Single-item output (one entry) instead of a list. */
   single?: boolean
+  /** Generated TypeScript type name (defaults to the collection key). */
+  typeName?: string
   /** Per-entry schema. */
   schema: S
 }
@@ -55,6 +57,8 @@ export interface UserConfig {
     base?: string
     /** Asset sub-directory name within the asset dir (default 'static'). */
     name?: string
+    /** Output entry file format (default 'esm'). */
+    format?: 'esm' | 'cjs'
   }
   /** Collections keyed by name (the name is also the output data key). */
   collections: Record<string, CollectionDef>
@@ -67,6 +71,8 @@ export interface ResolvedCollection {
   include: string[]
   exclude: string[]
   single: boolean
+  /** Resolved type name (user value or the collection key). */
+  typeName: string
   schema: Schema
 }
 
@@ -75,7 +81,7 @@ export interface ResolvedConfig {
   root: string
   /** Absolute path to the config file (empty when synthetic). */
   configPath: string
-  output: { data: string; assets: string; base: string; name: string }
+  output: { data: string; assets: string; base: string; name: string; format: 'esm' | 'cjs' }
   collections: ResolvedCollection[]
   /** Carried through from UserConfig; applied by the driver. */
   prepare?: PrepareHook
@@ -99,13 +105,15 @@ export const resolveConfig = (config: UserConfig, options: { cwd: string; path: 
       data: path.join(cwd, config.output?.data ?? '.velite'),
       assets: path.join(cwd, config.output?.assets ?? 'public/static'),
       base: config.output?.base ?? '/static/',
-      name: config.output?.name ?? 'static'
+      name: config.output?.name ?? 'static',
+      format: config.output?.format ?? 'esm'
     },
     collections: Object.entries(config.collections).map(([name, def]) => ({
       name,
       include: toArray(def.pattern),
       exclude: toArray(def.exclude),
       single: def.single ?? false,
+      typeName: def.typeName ?? name,
       schema: def.schema
     })),
     prepare: config.prepare

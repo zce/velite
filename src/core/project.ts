@@ -2,9 +2,9 @@ import { dirname, resolve } from 'node:path'
 
 import { builtinLoaders } from '../loaders'
 
-import type { LoadedConfig } from '../config/load'
-import type { UserConfig, OutputConfig, PrepareHook } from '../config'
 import type { Collections } from '../collections'
+import type { OutputConfig, PrepareHook, UserConfig } from '../config'
+import type { LoadedConfig } from '../config/load'
 import type { Loader } from '../loaders/types'
 import type { MarkdownOptions } from '../schemas/markdown'
 import type { MdxOptions } from '../schemas/mdx'
@@ -56,12 +56,80 @@ const DEFAULT_ASSET_NAME = '[name]-[hash:8].[ext]'
 
 const TYPE_IDENTIFIER_RE = /^[A-Za-z_$][\w$]*$/
 const RESERVED_TYPE_NAMES = new Set<string>([
-  'abstract', 'any', 'as', 'asserts', 'async', 'await', 'boolean', 'break', 'case', 'catch', 'class', 'const', 'constructor',
-  'continue', 'debugger', 'declare', 'default', 'delete', 'do', 'else', 'enum', 'export', 'extends', 'false', 'finally', 'for',
-  'from', 'function', 'get', 'if', 'implements', 'import', 'in', 'infer', 'instanceof', 'interface', 'keyof', 'let', 'module',
-  'namespace', 'never', 'new', 'null', 'number', 'object', 'of', 'package', 'private', 'protected', 'public', 'readonly',
-  'require', 'return', 'satisfies', 'set', 'static', 'string', 'super', 'switch', 'symbol', 'this', 'throw', 'true', 'try',
-  'type', 'typeof', 'undefined', 'unique', 'unknown', 'var', 'void', 'while', 'with', 'yield'
+  'abstract',
+  'any',
+  'as',
+  'asserts',
+  'async',
+  'await',
+  'boolean',
+  'break',
+  'case',
+  'catch',
+  'class',
+  'const',
+  'constructor',
+  'continue',
+  'debugger',
+  'declare',
+  'default',
+  'delete',
+  'do',
+  'else',
+  'enum',
+  'export',
+  'extends',
+  'false',
+  'finally',
+  'for',
+  'from',
+  'function',
+  'get',
+  'if',
+  'implements',
+  'import',
+  'in',
+  'infer',
+  'instanceof',
+  'interface',
+  'keyof',
+  'let',
+  'module',
+  'namespace',
+  'never',
+  'new',
+  'null',
+  'number',
+  'object',
+  'of',
+  'package',
+  'private',
+  'protected',
+  'public',
+  'readonly',
+  'require',
+  'return',
+  'satisfies',
+  'set',
+  'static',
+  'string',
+  'super',
+  'switch',
+  'symbol',
+  'this',
+  'throw',
+  'true',
+  'try',
+  'type',
+  'typeof',
+  'undefined',
+  'unique',
+  'unknown',
+  'var',
+  'void',
+  'while',
+  'with',
+  'yield'
 ])
 
 const validateCollections = (collections: Collections): void => {

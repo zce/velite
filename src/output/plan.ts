@@ -148,13 +148,7 @@ export const planWrites = (
     // replaced) logical result, not the raw pre-prepare parsed data. Align by
     // index against the parsed record ids so stable physical paths are kept.
     const collectionValue = result[key]
-    const dataArray: unknown[] = collection.single
-      ? collectionValue == null
-        ? []
-        : [collectionValue]
-      : Array.isArray(collectionValue)
-        ? collectionValue
-        : []
+    const dataArray: unknown[] = collection.single ? (collectionValue == null ? [] : [collectionValue]) : Array.isArray(collectionValue) ? collectionValue : []
     if (split) {
       const recordInputs: RecordInput[] = records.map((record, index) => ({
         id: record.id,
@@ -162,7 +156,13 @@ export const planWrites = (
       }))
       const splitResult = planSplitOutput(key, recordInputs)
       writes.push(...splitResult.writes)
-      writes.push(planSplitCollectionEntry(key, collection, splitResult.writes.map(w => w.path)))
+      writes.push(
+        planSplitCollectionEntry(
+          key,
+          collection,
+          splitResult.writes.map(w => w.path)
+        )
+      )
     } else {
       writes.push(planSingleCollection(key, collectionValue))
     }

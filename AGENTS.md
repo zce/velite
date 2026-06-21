@@ -24,18 +24,18 @@ Velite — a tool that turns Markdown / MDX, YAML, JSON into a type-safe data la
 
 ## Source layout (`src/`)
 
-| File           | Role                                                                                                                                |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`     | Public API entry and barrel, including public helpers/types plus the public `build()` facade                                        |
-| `cli.ts`       | CLI entry (`velite build` / `velite dev`)                                                                                           |
-| `app/`         | Application orchestration: `Engine`, watch controller, and build options                                                            |
-| `core/`        | Core models: `diagnostics`, `ids`, `session`, `graph`, `cache`, `snapshot`, `project`, `pipeline`                                   |
-| `config/`      | Public config types/helper plus runtime config loading (via jiti)                                                                   |
-| `collections/` | Public collection types/helper plus discovery, file loading, and file cache                                                         |
-| `output/`      | Public output type plus output planning (single/split layout), writing, and emit cache                                              |
-| `assets/`      | Asset store, asset path processing, image metadata, and Markdown/MDX linked-file plugins                                            |
-| `runtime/`     | Logger                                                                                                                              |
-| `loaders/`     | Built-in loaders: `json`, `yaml`, `matter` (frontmatter)                                                                            |
+| File           | Role                                                                                                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`     | Public API entry and barrel, including public helpers/types plus the public `build()` facade                                                                                 |
+| `cli.ts`       | CLI entry (`velite build` / `velite dev`)                                                                                                                                    |
+| `app/`         | Application orchestration: `Engine`, watch controller, and build options                                                                                                     |
+| `core/`        | Core models: `diagnostics`, `ids`, `session`, `graph`, `cache`, `snapshot`, `project`, `pipeline`                                                                            |
+| `config/`      | Public config types/helper plus runtime config loading (via jiti)                                                                                                            |
+| `collections/` | Public collection types/helper plus discovery, file loading, and file cache                                                                                                  |
+| `output/`      | Public output type plus output planning (single/split layout), writing, and emit cache                                                                                       |
+| `assets/`      | Asset store, asset path processing, image metadata, and Markdown/MDX linked-file plugins                                                                                     |
+| `runtime/`     | Logger                                                                                                                                                                       |
+| `loaders/`     | Built-in loaders: `json`, `yaml`, `matter` (frontmatter)                                                                                                                     |
 | `schemas/`     | Schema namespace (`s`), context, effects, and built-in schemas: `file`, `image`, `markdown`, `mdx`, `slug`, `toc`, `excerpt`, `metadata`, `path`, `raw`, `isoDate`, `unique` |
 
 ## Key patterns

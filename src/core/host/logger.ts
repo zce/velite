@@ -1,14 +1,17 @@
+import type { Diagnostic } from '../diagnostic'
+
 /**
  * Leveled progress logger for the imperative shell (driver/scheduler/builder/
  * cli). The core never calls a logger directly — only the shell does.
  *
- * M1 defines the leveled surface only. The `report(diagnostics)` method and
- * the `Diagnostic` type it carries are added in M2 when the diagnostic model
- * is unified.
+ * `report` is the presentation sink for structured diagnostics: the pure core
+ * produces Diagnostic values; the shell-injected logger decides how to show
+ * them. The leveled methods are for operational progress (build started, etc.).
  */
 export interface Logger {
   debug?(message: string): void
   info?(message: string): void
   warn?(message: string): void
   error?(message: string): void
+  report?(diagnostics: Diagnostic[]): void
 }

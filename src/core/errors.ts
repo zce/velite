@@ -99,3 +99,43 @@ export class VeliteError<T = unknown> extends Error {
  * because the pipeline cannot produce a trustworthy result when they occur.
  */
 export const hasFatalDiagnostic = (diagnostics: readonly Diagnostic[]): boolean => diagnostics.some(d => d.severity === 'error' && d.stage !== 'schema')
+
+/** Throw a {@link VeliteError}. Never returns. */
+export function fail(code: VeliteErrorCode, message?: string): never
+export function fail<T = unknown>(code: VeliteErrorCode, options?: VeliteErrorOptions<T>): never
+export function fail(code: VeliteErrorCode, options?: string | VeliteErrorOptions): never {
+  throw new VeliteError(code, typeof options === 'string' ? { message: options } : options)
+}
+
+/**
+ * Assert `condition` is truthy, otherwise throw a {@link VeliteError} via
+ * {@link fail}. Acts as an `asserts condition` type guard.
+ */
+export function assert(condition: unknown, code: VeliteErrorCode, message?: string): asserts condition
+export function assert<T = unknown>(condition: unknown, code: VeliteErrorCode, options?: VeliteErrorOptions<T>): asserts condition
+export function assert(condition: unknown, throwError: () => never): asserts condition
+export function assert(condition: unknown, error: VeliteErrorCode | (() => never), options?: string | VeliteErrorOptions): asserts condition {
+  if (!condition) {
+    if (typeof error === 'string') fail(error, options as VeliteErrorOptions)
+    else error()
+  }
+}
+
+/** Flatten any thrown value to a stable string for logging. */
+export const flattenError = (error: unknown): string => {
+  if (isVeliteError(error)) return error.code
+  if (isError(error)) return error.message
+  if (typeof error === 'string') return error
+  if (typeof error === 'object' && error != null) return JSON.stringify(error)
+  return 'unknown'
+}
+
+/** Whether `error` is an `Error` (instanceof or structural name+message). */
+export const isError = (error: unknown): error is Error => error instanceof Error || (error instanceof Object && 'name' in error && 'message' in error)
+
+/** Whether `error` is a {@link VeliteError} (instanceof or structural code+message). */
+export const isVeliteError = (error: unknown): error is VeliteError =>
+  error instanceof VeliteError || (error instanceof Object && 'code' in error && 'message' in error)
+
+/** Register a `code → default message` map. Identity helper for type inference. */
+export const defineErrorMap = (map: { [code in VeliteErrorCode]?: string }): { [code in VeliteErrorCode]?: string } => map

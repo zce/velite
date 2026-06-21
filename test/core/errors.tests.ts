@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { VeliteError } from '../../src/core/errors'
+import { fail, flattenError, isError, isVeliteError, assert as veliteAssert, VeliteError } from '../../src/core/errors'
 
 test('VeliteError carries code, context, cause, diagnostics', () => {
   const err = new VeliteError<{ path: string }>('load', {
@@ -50,4 +50,60 @@ test('VeliteError is a real Error (instanceof, stack captured)', () => {
   assert.ok(err instanceof Error)
   assert.ok(err instanceof VeliteError)
   assert.ok(typeof err.stack === 'string')
+})
+
+test('fail throws a VeliteError with the given code', () => {
+  assert.throws(
+    () => fail('internal', 'session missing'),
+    (err: unknown) => err instanceof VeliteError && err.code === 'internal' && err.message === 'session missing'
+  )
+})
+
+test('fail accepts an options object', () => {
+  assert.throws(
+    () => fail('load', { message: 'no loader', context: { path: '/x' } }),
+    (err: unknown) => err instanceof VeliteError && (err as VeliteError).context?.path === '/x'
+  )
+})
+
+test('assert passes through when condition is truthy', () => {
+  const value = 'x'
+  veliteAssert(value, 'internal', 'should not throw')
+  // reaching here means no throw
+})
+
+test('assert throws when condition is falsy', () => {
+  assert.throws(() => veliteAssert(false, 'internal', 'bad'), VeliteError)
+})
+
+test('assert narrows the type (asserts condition)', () => {
+  const maybe: string | undefined = 'present'
+  veliteAssert(maybe != null, 'internal', 'missing')
+  // after assert, maybe is string — this line type-checks only if narrowing works
+  const len: number = maybe.length
+  assert.equal(len, 7)
+})
+
+test('assert accepts a throw thunk overload', () => {
+  assert.throws(
+    () => veliteAssert(false, () => fail('config', 'from thunk')),
+    (e: unknown) => e instanceof VeliteError && (e as VeliteError).code === 'config'
+  )
+})
+
+test('flattenError normalizes each input shape', () => {
+  assert.equal(flattenError(new VeliteError('internal', 'x')), 'internal')
+  assert.equal(flattenError(new Error('plain')), 'plain')
+  assert.equal(flattenError('a string'), 'a string')
+  assert.equal(flattenError({ a: 1 }), '{"a":1}')
+  assert.equal(flattenError(42), 'unknown')
+  assert.equal(flattenError(null), 'unknown')
+})
+
+test('isError and isVeliteError are structural-safe', () => {
+  assert.equal(isError(new Error('x')), true)
+  assert.equal(isError(new VeliteError('internal')), true)
+  assert.equal(isError('nope'), false)
+  assert.equal(isVeliteError(new VeliteError('internal')), true)
+  assert.equal(isVeliteError(new Error('plain')), false)
 })

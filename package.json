@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build": "tsc && tsdown",
-    "test": "node --import jiti/register --test test/**/*.tests.ts",
+    "test": "node --import jiti/register --test 'test/**/*.tests.ts'",
     "docs:dev": "cd docs && pnpm dev",
     "docs:build": "cd docs && pnpm build",
     "format": "prettier . --write"

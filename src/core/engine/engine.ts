@@ -68,7 +68,7 @@ interface Entry {
   lastUsed: Revision
 }
 
-const KEY_SEPARATOR = ' '
+const KEY_SEPARATOR = '\0'
 
 const defaultKey = (key: unknown): string => (typeof key === 'string' ? key : (JSON.stringify(key) ?? 'undefined'))
 

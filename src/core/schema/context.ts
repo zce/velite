@@ -14,7 +14,7 @@
 //   validate derivation (no import of `ResolvedConfig` here, to avoid a cycle:
 //   config -> schema/s -> builtins -> context).
 
-import { AsyncLocalStorage } from 'async_hooks'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { raw as hastRaw } from 'hast-util-raw'
 import { toString } from 'hast-util-to-string'
 import { fromMarkdown } from 'mdast-util-from-markdown'

@@ -230,7 +230,7 @@ export const createEngine = (options: EngineOptions = {}): Engine => {
     if (currentSession == null) throw new Error('session missing')
     const runResult = await runBuild(currentSession, { execute: () => execute(currentSession!, project, options, change, split, log) })
     if (runResult.status === 'failure' || runResult.result == null) {
-      throw new VeliteError('Build failed', [...runResult.diagnostics])
+      throw new VeliteError('output', { message: 'Build failed', diagnostics: [...runResult.diagnostics] })
     }
     return runResult.result
   }

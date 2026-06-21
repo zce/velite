@@ -44,7 +44,7 @@ test('schema namespace exposes built-in content schemas', () => {
 })
 
 test('VeliteError is a real Error subclass', () => {
-  const error = new mod.VeliteError('boom', [])
+  const error = new mod.VeliteError('internal', { message: 'boom' })
   ok(error instanceof Error)
   ok(error instanceof mod.VeliteError)
   equal(error.message, 'boom')

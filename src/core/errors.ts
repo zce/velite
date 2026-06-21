@@ -37,18 +37,56 @@ export const createDiagnostic = (input: Omit<Diagnostic, 'severity'> & { severit
   cause: input.cause
 })
 
+/** Error codes aligned with pipeline stages plus `internal` (invariant violations) and `unknown`. */
+export type VeliteErrorCode = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch' | 'internal' | 'unknown' | (string & {}) // custom escape hatch
+
+/** Options for constructing a {@link VeliteError}. */
+export type VeliteErrorOptions<T = unknown> = {
+  message?: string
+  context?: T
+  cause?: unknown
+  diagnostics?: Diagnostic[]
+}
+
 /**
- * Error type thrown by `build()` / `watch()` when a build run fails.
+ * Error type thrown by `build()` / `watch()` on build failure and by internal
+ * `fail()` / `assert()` calls for invariant violations.
  *
- * Carries the structured diagnostics so programmatic callers can inspect them
- * via `instanceof VeliteError` and `error.diagnostics`.
+ * Carries a typed `code` (aligned with pipeline stages), optional `context`,
+ * the standard `cause`, and — when representing a build failure — the
+ * structured `diagnostics` that triggered it. Programmatic callers inspect via
+ * `instanceof VeliteError`, `error.code`, and `error.diagnostics`.
  */
-export class VeliteError extends Error {
-  readonly diagnostics: Diagnostic[]
-  constructor(message: string, diagnostics: Diagnostic[] = []) {
-    super(message)
-    this.name = 'VeliteError'
-    this.diagnostics = diagnostics
+export class VeliteError<T = unknown> extends Error {
+  public readonly name = 'VeliteError'
+  public readonly code: VeliteErrorCode
+  public readonly context?: T
+  public readonly diagnostics: Diagnostic[]
+
+  constructor(code: VeliteErrorCode, options?: VeliteErrorOptions<T>) {
+    super(options?.message, options)
+    this.code = code
+    this.context = options?.context
+    this.diagnostics = options?.diagnostics ?? []
+    Error.captureStackTrace?.(this, this.constructor)
+    Object.setPrototypeOf(this, new.target.prototype)
+  }
+
+  toString(): string {
+    const context = this.context ? ` ${JSON.stringify(this.context)}` : ''
+    const cause = this.cause ? ` ${this.cause}` : ''
+    return `${this.name}(${this.code}): ${this.message}${context}${cause}`
+  }
+
+  toJSON(): { name: string; code: VeliteErrorCode; message: string; context: unknown; cause: unknown; diagnostics: Diagnostic[] } {
+    return {
+      name: this.name,
+      code: this.code,
+      message: this.message,
+      context: this.context,
+      cause: this.cause,
+      diagnostics: this.diagnostics
+    }
   }
 }
 

@@ -91,7 +91,7 @@ export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): 
         const result = await engine.build(options)
         await emit({ type: 'success', result, diagnostics: engine.diagnostics })
       } catch (err) {
-        const error = err instanceof VeliteError ? err : new VeliteError(err instanceof Error ? err.message : String(err))
+        const error = err instanceof VeliteError ? err : new VeliteError('internal', { message: err instanceof Error ? err.message : String(err) })
         await emit({ type: 'failure', error, diagnostics: engine.diagnostics })
       } finally {
         // build() resolves a fresh project (and updates engine.config) whether it
@@ -109,7 +109,7 @@ export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): 
         const result = await engine.rebuild({ event, paths })
         await emit({ type: 'success', result, diagnostics: engine.diagnostics })
       } catch (err) {
-        const error = err instanceof VeliteError ? err : new VeliteError(err instanceof Error ? err.message : String(err))
+        const error = err instanceof VeliteError ? err : new VeliteError('internal', { message: err instanceof Error ? err.message : String(err) })
         await emit({ type: 'failure', error, diagnostics: engine.diagnostics })
       }
     }

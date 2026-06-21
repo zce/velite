@@ -174,12 +174,21 @@ The schema context contains the project info, current file, current record, and 
 
 ## `VeliteError`
 
-The error type thrown by `build()` / `watch()` when a build run fails.
+The error type thrown by `build()` / `watch()` when a build run fails, and by internal `fail()` / `assert()` calls for invariant violations.
 
 ```ts
-class VeliteError extends Error {
+type VeliteErrorCode = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch' | 'internal' | 'unknown' | (string & {})
+
+class VeliteError<T = unknown> extends Error {
+  readonly code: VeliteErrorCode
+  readonly context?: T
   readonly diagnostics: Diagnostic[]
+  constructor(code: VeliteErrorCode, options?: { message?: string; context?: T; cause?: unknown; diagnostics?: Diagnostic[] })
+  toString(): string
+  toJSON(): object
 }
 ```
 
-Programmatic callers can use `instanceof VeliteError` and read `error.diagnostics`.
+The `code` aligns with pipeline stages (`DiagnosticStage`) plus `internal` (invariant violations) and `unknown` (fallback). Programmatic callers can use `instanceof VeliteError`, read `error.code`, and read `error.diagnostics` (populated when the error represents a build failure).
+
+> **Breaking change:** the constructor signature changed from `new VeliteError(message, diagnostics)` to `new VeliteError(code, options)`.

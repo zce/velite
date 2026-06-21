@@ -140,12 +140,9 @@ export const flattenError = (error: unknown): string => {
   return 'unknown'
 }
 
-/** Whether `error` is an `Error` (instanceof or structural name+message). */
-export const isError = (error: unknown): error is Error => error instanceof Error || (error instanceof Object && 'name' in error && 'message' in error)
+/** Whether `error` is an `Error`. */
+export const isError = (error: unknown): error is Error => error instanceof Error
 
-/** Whether `error` is a {@link VeliteError} (instanceof or structural code+message). */
+/** Whether `error` is a {@link VeliteError} (instanceof, or an `Error` named `VeliteError` carrying a `code`). */
 export const isVeliteError = (error: unknown): error is VeliteError =>
-  error instanceof VeliteError || (error instanceof Object && 'code' in error && 'message' in error)
-
-/** Register a `code → default message` map. Identity helper for type inference. */
-export const defineErrorMap = (map: { [code in VeliteErrorCode]?: string }): { [code in VeliteErrorCode]?: string } => map
+  error instanceof VeliteError || (error instanceof Error && 'code' in error && error.name === 'VeliteError')

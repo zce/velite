@@ -108,6 +108,13 @@ test('isError and isVeliteError are structural-safe', () => {
   assert.equal(isVeliteError(new Error('plain')), false)
 })
 
+test('isVeliteError rejects Node-style system errors (code + message but not VeliteError)', () => {
+  const sysErr = Object.assign(new Error('not found'), { code: 'ENOENT' })
+  assert.equal(isVeliteError(sysErr), false)
+  // and flattenError on it returns the message, not 'ENOENT'
+  assert.equal(flattenError(sysErr), 'not found')
+})
+
 test('codeFromDiagnostics returns the fatal stage', () => {
   const diags = [
     createDiagnostic({ severity: 'warning', code: 'w', message: 'w', stage: 'schema' }),

@@ -44,7 +44,6 @@ assert(loader != null, () => fail('load', { message: '...', context: { path } })
 - `flattenError(error)` — normalize any thrown value to a string for logging (`VeliteError` → code, `Error` → message, object → JSON, fallback `'unknown'`).
 - `isError` / `isVeliteError` — structural checks robust across bundle/realms.
 - `codeFromDiagnostics(diagnostics)` — derive the thrown build-failure `code` from the first fatal diagnostic's `stage`.
-- `defineErrorMap(map)` — register `code → default message` for fallback messaging.
 
 ## Decision tree
 

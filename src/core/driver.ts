@@ -3,8 +3,9 @@ import { codeFromDiagnostics, diagnostic, hasFatalDiagnostic, VeliteError } from
 import { emptyManifest } from './output/manifest'
 import { writeOutput } from './output/writer'
 import { assetInput, assetKeyOf, fileInput, TREE } from './pipeline'
+import { createPool } from './util/pool'
 
-import type { ResolvedConfig } from './config'
+import type { PrepareContext, ResolvedConfig } from './config'
 import type { Diagnostic } from './diagnostic'
 import type { Engine } from './engine'
 import type { Host } from './host'
@@ -55,14 +56,21 @@ export const refreshTree = async (context: RunContext): Promise<TreeFile[]> => {
 export const readSources = async (context: RunContext): Promise<void> => {
   const { engine, pipeline, config, host } = context
   const seen = new Set<string>()
+  const pool = createPool(8)
+  const tasks: Promise<void>[] = []
   for (const col of config.collections) {
     const sources = await engine.get(pipeline.sources, col.name)
     for (const source of sources) {
       if (seen.has(source.path)) continue
       seen.add(source.path)
-      engine.set(fileInput(source.path), await host.fs.read(source.absPath))
+      tasks.push(
+        pool.run(async () => {
+          engine.set(fileInput(source.path), await host.fs.read(source.absPath))
+        })
+      )
     }
   }
+  await pool.drain()
 }
 
 /**
@@ -87,7 +95,7 @@ const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
 
   // Collect unique asset references (by assetKey) and feed their bytes.
   const assetBytes = new Map<string, Uint8Array>()
-  const assetDiagnostics: Diagnostic[] = []
+  const assetReadDiagnostics: Diagnostic[] = []
   const seenKeys = new Set<string>()
   for (const effect of emitted.effects) {
     if (effect.type !== 'asset') continue
@@ -99,7 +107,7 @@ const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
       assetBytes.set(assetKey, bytes)
       engine.set(assetInput(assetKey), bytes)
     } catch (err) {
-      assetDiagnostics.push(
+      assetReadDiagnostics.push(
         diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${effect.assetPath}`, {
           stage: 'asset',
           file: effect.assetPath,
@@ -116,6 +124,31 @@ const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
     emitted = await engine.get(pipeline.emit, null)
   }
 
+  // Diagnostics known before the prepare hook: schema/unique (from emit) + asset
+  // read failures. Asset *write* failures happen during the copy below.
+  let diagnostics = [...emitted.diagnostics, ...assetReadDiagnostics]
+
+  // Apply the user-facing `prepare` hook between emit and any writes. The hook
+  // may mutate/replace the logical output + diagnostics, or return `false` to
+  // suppress all output (data + assets). Runs before the asset copy so `false`
+  // genuinely writes nothing.
+  let output: LogicalOutput = emitted.output
+  if (config.prepare !== undefined) {
+    const prepareContext: PrepareContext = {
+      project: { root: config.root, configPath: config.configPath, collections: config.collections },
+      diagnostics
+    }
+    const prepared = await config.prepare({ output, diagnostics }, prepareContext)
+    if (prepared === false) {
+      host.logger?.report?.(diagnostics)
+      return { output, diagnostics, written: [] }
+    }
+    if (prepared !== undefined) {
+      output = prepared.output
+      diagnostics = prepared.diagnostics
+    }
+  }
+
   // Copy referenced asset files into the assets output directory. Done before
   // the fatal gate so a write failure (full disk, permissions) surfaces as a
   // structured ASSET_FAILED diagnostic instead of a raw fs error — matching the
@@ -124,6 +157,7 @@ const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
   // Only assets successfully read are written.
   const written: string[] = []
   const writtenAssets = new Set<string>()
+  const assetWriteDiagnostics: Diagnostic[] = []
   for (const effect of emitted.effects) {
     if (effect.type !== 'asset') continue
     const assetKey = assetKeyOf(effect.assetPath, config.root)
@@ -137,7 +171,7 @@ const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
       await host.fs.write(dest, bytes)
       written.push(dest)
     } catch (err) {
-      assetDiagnostics.push(
+      assetWriteDiagnostics.push(
         diagnostic('error', 'ASSET_FAILED', `failed to write asset: ${dest}`, {
           stage: 'asset',
           file: effect.assetPath,
@@ -147,16 +181,16 @@ const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
     }
   }
 
-  const diagnostics = [...emitted.diagnostics, ...assetDiagnostics]
-  host.logger?.report?.(diagnostics)
+  const finalDiagnostics = [...diagnostics, ...assetWriteDiagnostics]
+  host.logger?.report?.(finalDiagnostics)
   // Fatal (non-schema) errors make the output untrustworthy: report and throw,
   // skipping the write. Schema-level errors are non-fatal and returned in the result.
-  if (hasFatalDiagnostic(diagnostics)) {
-    throw new VeliteError(codeFromDiagnostics(diagnostics), { diagnostics })
+  if (hasFatalDiagnostic(finalDiagnostics)) {
+    throw new VeliteError(codeFromDiagnostics(finalDiagnostics), { diagnostics: finalDiagnostics })
   }
 
   const { written: dataWritten, manifest } = await writeOutput(
-    emitted.output,
+    output,
     {
       fs: host.fs,
       path: host.path,
@@ -167,7 +201,7 @@ const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
   context.manifest = manifest
   written.push(...dataWritten)
 
-  return { output: emitted.output, diagnostics, written }
+  return { output, diagnostics: finalDiagnostics, written }
 }
 
 /** Execute one full build run: I/O in, pure pipeline, I/O out. */

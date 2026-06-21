@@ -66,5 +66,8 @@ export type {
   Logger,
   Entry,
   CollectionResult,
-  LogicalOutput
+  LogicalOutput,
+  PrepareHook,
+  PrepareContext,
+  PrepareResult
 } from './core'

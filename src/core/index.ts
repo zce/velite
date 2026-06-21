@@ -7,7 +7,7 @@ export { mergeEvents } from './scheduler'
 export type { Scheduler } from './scheduler'
 
 export { defineConfig, defineCollection } from './config'
-export type { UserConfig, CollectionDef, ResolvedConfig } from './config'
+export type { UserConfig, CollectionDef, ResolvedConfig, PrepareHook, PrepareContext, PrepareResult } from './config'
 
 export { s } from './schema'
 export type { SchemaNamespace, Schema, Infer } from './schema'

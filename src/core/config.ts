@@ -2,6 +2,7 @@ import { diagnostic } from './diagnostic'
 
 import type { Diagnostic } from './diagnostic'
 import type { Path } from './host/path'
+import type { LogicalOutput } from './output/logical'
 import type { Schema } from './schema/s'
 
 /** A collection definition as written by the user. */
@@ -14,6 +15,32 @@ export interface CollectionDef<S extends Schema = Schema> {
   single?: boolean
   /** Per-entry schema. */
   schema: S
+}
+
+/** Result of the `prepare` hook: continue, skip output, or replace the result. */
+export type PrepareResult = void | false | { output: LogicalOutput; diagnostics: Diagnostic[] }
+
+/** A `T | Promise<T>` helper (kept local to avoid importing the old loaders). */
+type Promisable<T> = T | Promise<T>
+
+/**
+ * The output-oriented `prepare` hook.
+ *
+ * Receives the complete logical build result (`{output, diagnostics}`) and may
+ * mutate it in place (returning `void`), replace it (returning a new
+ * `{output, diagnostics}`), or skip default output (returning `false`). Partial
+ * patch returns are not supported.
+ */
+export type PrepareHook = (result: { output: LogicalOutput; diagnostics: Diagnostic[] }, context: PrepareContext) => Promisable<PrepareResult>
+
+/** Context passed to the `prepare` hook. */
+export interface PrepareContext {
+  readonly project: {
+    readonly root: string
+    readonly configPath: string
+    readonly collections: readonly ResolvedCollection[]
+  }
+  readonly diagnostics: readonly Diagnostic[]
 }
 
 export interface UserConfig {
@@ -31,6 +58,8 @@ export interface UserConfig {
   }
   /** Collections keyed by name (the name is also the output data key). */
   collections: Record<string, CollectionDef>
+  /** Output-oriented result-processing hook, applied between emit and write. */
+  prepare?: PrepareHook
 }
 
 export interface ResolvedCollection {
@@ -48,6 +77,8 @@ export interface ResolvedConfig {
   configPath: string
   output: { data: string; assets: string; base: string; name: string }
   collections: ResolvedCollection[]
+  /** Carried through from UserConfig; applied by the driver. */
+  prepare?: PrepareHook
 }
 
 /** Identity helper for type inference and editor support. No runtime effect. */
@@ -76,7 +107,8 @@ export const resolveConfig = (config: UserConfig, options: { cwd: string; path: 
       exclude: toArray(def.exclude),
       single: def.single ?? false,
       schema: def.schema
-    }))
+    })),
+    prepare: config.prepare
   }
 }
 

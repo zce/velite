@@ -276,3 +276,16 @@ export const path = (options?: PathSchemaOptions): Schema<string> =>
       const flattened = posix.relative(project.root, file.path).replace(/\.[^.]+$/, '')
       return options?.removeIndex === false ? flattened : flattened.replace(/\/index$/, '')
     })
+
+// ---------------------------------------------------------------------------
+// Asset schemas — file / image
+//
+// Resolve content-relative references through the engine's asset derivation
+// (two-pass: placeholder url first, content-hashed url + probed metadata once
+// the driver feeds the bytes). Emit `AssetReferenceEffect`s the driver consumes.
+// ---------------------------------------------------------------------------
+
+export { file } from './file'
+export type { FileSchemaOptions } from './file'
+export { image } from './image'
+export type { ImageData, ImageSchemaOptions } from './image'

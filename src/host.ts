@@ -1,6 +1,7 @@
 import { jitiConfigLoader } from './config-loader'
 import { posix } from './core/util/path'
 import { nodeFileSystem } from './fs'
+import { sharpImageProcessor } from './image'
 import { consoleLogger } from './logger'
 import { createChokidarWatcher } from './watcher'
 
@@ -11,6 +12,7 @@ export const nodeHost: Host = {
   fs: nodeFileSystem,
   config: jitiConfigLoader,
   logger: consoleLogger,
+  image: sharpImageProcessor,
   path: posix,
   watch: paths => createChokidarWatcher(paths)
 }

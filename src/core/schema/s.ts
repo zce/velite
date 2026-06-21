@@ -10,7 +10,8 @@ import * as builtins from './builtins'
  * Content builtins (`markdown` / `mdx` / `toc` / `excerpt` / `raw` / `metadata`
  * / `path`) read the current file's body via the schema context (`context()`),
  * which the validate derivation wires via `runWithContext` for each record parse.
- * Asset-coupled builtins (`file` / `image` / `slug` / `unique`) arrive in M5/M6.
+ * Asset builtins (`file` / `image`) resolve content-relative references through
+ * the engine's asset derivation (M5); `slug` / `unique` arrive in M6.
  */
 export const s = {
   string: z.string,
@@ -32,7 +33,9 @@ export const s = {
   excerpt: builtins.excerpt,
   raw: builtins.raw,
   metadata: builtins.metadata,
-  path: builtins.path
+  path: builtins.path,
+  file: builtins.file,
+  image: builtins.image
 }
 
 export type SchemaNamespace = typeof s

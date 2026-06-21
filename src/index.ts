@@ -22,6 +22,8 @@ export interface BuildEntryOptions {
   cwd?: string
   /** Config path relative to cwd (default: auto-detect velite.config.*). */
   config?: string
+  /** Output layout (default: `single` in production, `split` otherwise). */
+  layout?: 'split' | 'single'
 }
 
 /** Create a durable Node builder. Advanced/stateful entry; also the DI seam. */
@@ -32,9 +34,10 @@ export const builder = (options: BuildEntryOptions = {}): Builder => {
 
 /** One-shot build with the default Node host. */
 export const build = async (options: BuildEntryOptions = {}): Promise<BuildResult> => {
+  const layout = options.layout ?? (process.env.NODE_ENV === 'production' ? 'single' : 'split')
   const instance = builder(options)
   try {
-    return await instance.build()
+    return await instance.build({ layout })
   } finally {
     instance.dispose()
   }

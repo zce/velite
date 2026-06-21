@@ -33,13 +33,6 @@ export interface BuildResult {
 
 export type ApplyResult = 'config-reload' | 'content' | 'none'
 
-/**
- * Default physical output layout: `single` for one-shot production builds,
- * `split` (per-record files) otherwise (dev/watch). Overridable via
- * `BuildOptions.layout`.
- */
-export const defaultLayout = (): 'split' | 'single' => (process.env.NODE_ENV === 'production' ? 'single' : 'split')
-
 const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
 
 /** Walk the content root and feed the tree snapshot as an engine input. */
@@ -206,7 +199,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
       configPath: config.configPath,
       collections: config.collections,
       format: config.output.format,
-      pretty: process.env.NODE_ENV !== 'production'
+      pretty: layout === 'split'
     },
     context.manifest
   )
@@ -217,14 +210,14 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
 }
 
 /** Execute one full build run: I/O in, pure pipeline, I/O out. */
-export const runBuild = async (context: RunContext, layout: 'split' | 'single' = defaultLayout()): Promise<BuildResult> => {
+export const runBuild = async (context: RunContext, layout: 'split' | 'single' = 'split'): Promise<BuildResult> => {
   await refreshTree(context)
   await readSources(context)
   return emitAndWrite(context, layout)
 }
 
 /** Re-emit after inputs were patched (incremental). Skips full tree walk and bulk read. */
-export const runIncremental = async (context: RunContext, layout: 'split' | 'single' = defaultLayout()): Promise<BuildResult> => emitAndWrite(context, layout)
+export const runIncremental = async (context: RunContext, layout: 'split' | 'single' = 'split'): Promise<BuildResult> => emitAndWrite(context, layout)
 
 /**
  * Apply file events to engine inputs. Returns whether a config reload, content

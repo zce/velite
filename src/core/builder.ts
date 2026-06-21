@@ -1,6 +1,6 @@
 import { resolveConfig, validateConfig } from './config'
 import { type Diagnostic } from './diagnostic'
-import { applyChanges, createRunContext, defaultLayout, runBuild, runIncremental } from './driver'
+import { applyChanges, createRunContext, runBuild, runIncremental } from './driver'
 import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
 import { createPipeline } from './pipeline'
@@ -78,6 +78,10 @@ export const createBuilder = (host: Host, options: CreateBuilderOptions): Builde
   let session: Session | undefined
   let scheduler: Scheduler | undefined
   let unsubscribe: (() => void) | undefined
+  // Active output layout — sticky from the first build() so incremental/watch
+  // rebuilds stay consistent. Core never reads process.env; the root entry
+  // (src/index.ts) decides the env-based default and passes it via BuildOptions.
+  let activeLayout: 'split' | 'single' = 'split'
 
   const init = async (): Promise<Session> => {
     if (session !== undefined) return session
@@ -92,7 +96,8 @@ export const createBuilder = (host: Host, options: CreateBuilderOptions): Builde
 
   const build = async (buildOptions?: BuildOptions): Promise<BuildResult> => {
     const current = await init()
-    return runBuild(current.context, buildOptions?.layout ?? defaultLayout())
+    if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
+    return runBuild(current.context, activeLayout)
   }
 
   const apply = async (events: FileEvent[]): Promise<BuildResult | undefined> => {
@@ -103,9 +108,9 @@ export const createBuilder = (host: Host, options: CreateBuilderOptions): Builde
     })
     if (result === 'config-reload') {
       session = await reload()
-      return runBuild(session.context, defaultLayout())
+      return runBuild(session.context, activeLayout)
     }
-    if (result === 'content') return runIncremental(current.context, defaultLayout())
+    if (result === 'content') return runIncremental(current.context, activeLayout)
     return undefined
   }
 

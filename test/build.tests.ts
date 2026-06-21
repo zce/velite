@@ -82,3 +82,52 @@ test('build: fatal (non-schema) errors throw VeliteError and skip output', async
   // output dir untouched on fatal
   await rejects(readJson(fs, posix.join(DATA_DIR, 'misc.json')))
 })
+
+test('build: markdown collection renders body to html via s.markdown()', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: {
+      posts: { pattern: 'posts/*.md', schema: s.object({ title: s.string(), body: s.markdown() }) }
+    }
+  }
+  const { host, fs } = setup(config, {
+    [posix.join(CWD, 'content/posts/hello.md')]: '---\ntitle: Hello\n---\n# Hello World\n\nA body.'
+  })
+
+  const result = await build(host)
+  equal(result.diagnostics.length, 0)
+  equal(result.output.collections.posts!.entries.length, 1)
+
+  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{ title: string; body: string }>
+  equal(posts[0]!.title, 'Hello')
+  ok(posts[0]!.body.includes('<h1>Hello World</h1>'), posts[0]!.body)
+  ok(posts[0]!.body.includes('<p>A body.</p>'), posts[0]!.body)
+})
+
+test('build: markdown collection exposes raw body, metadata and path via schemas', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: {
+      posts: {
+        pattern: 'posts/*.md',
+        schema: s.object({ title: s.string(), body: s.raw(), meta: s.metadata(), route: s.path() })
+      }
+    }
+  }
+  const { host, fs } = setup(config, {
+    [posix.join(CWD, 'content/posts/hello.md')]: '---\ntitle: Hello\n---\n# Hello World\n\nA body paragraph here.'
+  })
+
+  const result = await build(host)
+  equal(result.diagnostics.length, 0)
+  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{
+    title: string
+    body: string
+    meta: { readingTime: number; wordCount: number }
+    route: string
+  }>
+  equal(posts[0]!.title, 'Hello')
+  equal(posts[0]!.body, '# Hello World\n\nA body paragraph here.')
+  ok(posts[0]!.meta.wordCount > 0)
+  equal(posts[0]!.route, 'posts/hello')
+})

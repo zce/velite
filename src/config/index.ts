@@ -1,14 +1,17 @@
+import { resolveConfigPath } from './discover'
+import { loadConfig } from './load'
+
 import type { BuildResult, Collections } from '../collections'
 import type { Diagnostic } from '../core/diagnostics'
-import type { Loader } from '../loaders/types'
+import type { Loader, Promisable } from '../loaders/types'
 import type { OutputConfig } from '../output'
 import type { MarkdownOptions } from '../schemas/markdown'
 import type { MdxOptions } from '../schemas/mdx'
 
-export type { OutputConfig } from '../output'
+import type { LoadedConfig } from './load'
 
-/** A value or a promise of the value. */
-type Promisable<T> = T | Promise<T>
+export type { OutputConfig } from '../output'
+export type { LoadedConfig } from './load'
 
 /** Result of the `prepare` hook: continue, skip output, or replace the result. */
 export type PrepareResult<TCollections extends Collections> = void | false | BuildResult<TCollections>
@@ -55,5 +58,22 @@ export interface UserConfig<TCollections extends Collections = Collections> {
   prepare?: PrepareHook<TCollections>
 }
 
+/**
+ * Config loading abstraction.
+ *
+ * Implementations resolve a user-supplied (or discovered) config path into a
+ * `LoadedConfig`. The default implementation uses jiti; tests can inject a mock.
+ */
+export interface ConfigLoader {
+  resolvePath(path: string | undefined, cwd?: string): Promise<string>
+  load(configPath: string): Promise<LoadedConfig<UserConfig>>
+}
+
 /** Define a config (identity helper for type inference). */
 export const defineConfig = <TCollections extends Collections>(config: UserConfig<TCollections>): UserConfig<TCollections> => config
+
+/** Default config loader: jiti-based loading with auto-discovery. */
+export const defaultConfigLoader: ConfigLoader = {
+  resolvePath: (path, cwd) => resolveConfigPath(path, cwd),
+  load: configPath => loadConfig<UserConfig>(configPath)
+}

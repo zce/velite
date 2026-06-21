@@ -57,14 +57,14 @@ export const createWatcher = ({ logger = defaultLogger }: WatcherOptions = {}): 
 
     const { watch } = await import('chokidar')
     const root = project.root
-    let configImports = project.configImports
+    let configImports = project.config.dependencies
     let patterns = Object.values(project.collections).flatMap(({ pattern }) => (Array.isArray(pattern) ? pattern : [pattern]))
 
-    /** Re-read patterns/configImports from the latest resolved project (after a reload). */
+    /** Re-read patterns/config dependencies from the latest resolved project (after a reload). */
     const refreshFromProject = (): void => {
       const latest = engine.config
       if (latest == null) return
-      configImports = latest.configImports
+      configImports = latest.config.dependencies
       patterns = Object.values(latest.collections).flatMap(({ pattern }) => (Array.isArray(pattern) ? pattern : [pattern]))
     }
 

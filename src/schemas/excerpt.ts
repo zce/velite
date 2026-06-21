@@ -1,6 +1,6 @@
 import * as z from 'zod'
 
-import { getContext } from './context'
+import { context } from './context'
 
 /** Options for the excerpt schema. */
 export interface ExcerptOptions {
@@ -14,7 +14,7 @@ export const excerpt = ({ length = 260 }: ExcerptOptions = {}): z.ZodType<string
     .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
-      const body = value ?? getContext().file.plain
+      const body = value ?? context().file.plain
       if (body == null || body.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
         return ''

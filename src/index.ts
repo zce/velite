@@ -1,10 +1,9 @@
 // Public API entry.
 //
-// The root barrel is intentionally small: it exposes the product concepts
-// (build, watch, config, collection, loader, schema, context) and the
-// integration types. Internal pipeline objects (dependency graph, cache
-// registry, pipeline stages, output committer, schema effects) are deliberately
-// not exported.
+// The root barrel exposes the product concepts (build, watch, config, collection,
+// loader, schema, context, effects) and the integration types. Internal pipeline
+// objects (dependency graph, cache registry, pipeline stages, output committer)
+// are not exported.
 
 export { build, watch } from './app/build'
 export { defineCollection } from './collections'
@@ -25,6 +24,9 @@ export type { Collection, Collections, CollectionResult } from './collections'
 export type { Loader, LoaderSource, LoaderContext, LoaderResult, LoaderRecord } from './loaders/types'
 export type { VeliteSchema, InferSchema } from './schemas'
 export type { SchemaContext, ProjectInfo, ContentFile, ContentRecord } from './schemas/context'
+export type { Effect, UniqueEffect, AssetReferenceEffect, SourceDependencyEffect } from './schemas/effects'
+export type { AssetProcessingCache } from './assets/cache'
+export type { AssetStore, AssetRecord } from './assets/store'
 export type { SessionStore } from './core/session'
 export type { Diagnostic, DiagnosticSeverity, DiagnosticStage } from './core/diagnostics'
 export type { FileOptions } from './schemas/file'

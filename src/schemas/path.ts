@@ -1,7 +1,7 @@
 import { relative } from 'node:path'
 import * as z from 'zod'
 
-import { getContext } from './context'
+import { context } from './context'
 
 /** Options for the flattened path schema. */
 export interface PathOptions {
@@ -20,7 +20,7 @@ export const path = (options?: PathOptions): z.ZodType<string> =>
     .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(() => {
-      const { project, file } = getContext()
+      const { project, file } = context()
       const flattened = relativePosix(project.root, file.path).replace(/\.[^.]+$/, '')
       return options?.removeIndex === false ? flattened : flattened.replace(/\/index$/, '')
     })

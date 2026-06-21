@@ -2,6 +2,7 @@ import { createAssetProcessingCache } from '../assets/cache'
 import { createFileCache } from '../collections/cache'
 import { loadFile } from '../collections/file'
 import { createEffectIndex } from '../schemas/effects'
+import { silentLogger } from '../runtime/logger'
 import { createCacheRegistry } from './cache'
 import { createDependencyGraph } from './graph'
 import { createSessionStore } from './store'
@@ -90,10 +91,3 @@ export const createSession = <T extends Project = Project>(options: CreateSessio
   diagnostics: [],
   snapshot: undefined
 })
-
-const silentLogger: Logger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {}
-}

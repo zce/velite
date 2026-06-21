@@ -3,7 +3,7 @@ import { visit } from 'unist-util-visit'
 import * as z from 'zod'
 
 import { remarkCopyLinkedFiles } from '../assets/markdown'
-import { getContext } from './context'
+import { context } from './context'
 
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root } from 'mdast'
@@ -39,7 +39,7 @@ export const mdx = (options: MdxOptions = {}): z.ZodType<string> =>
     .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
-      const { file, project, assetStore, assetCache } = getContext()
+      const { file, project, assetStore, assetCache } = context()
       const body = value ?? file.content
       if (body == null || body.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })

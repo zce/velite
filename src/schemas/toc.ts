@@ -1,7 +1,7 @@
 import { visit } from 'unist-util-visit'
 import * as z from 'zod'
 
-import { getContext } from './context'
+import { context } from './context'
 
 import type { Link, List, Paragraph } from 'mdast'
 import type { Options } from 'mdast-util-toc'
@@ -55,7 +55,7 @@ export const toc = <T extends TocOptions = TocOptions>(options?: T) =>
     .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<T extends { original: true } ? TocTree : TocEntry[]>(async (value, ctx) => {
-      const { file } = getContext()
+      const { file } = context()
       const body = value ?? file.content
       if (body == null || body.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })

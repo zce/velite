@@ -8,7 +8,7 @@ import { visit } from 'unist-util-visit'
 import * as z from 'zod'
 
 import { rehypeCopyLinkedFiles } from '../assets/markdown'
-import { getContext } from './context'
+import { context } from './context'
 
 import type { Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
@@ -58,7 +58,7 @@ export const markdown = (options: MarkdownOptions = {}): z.ZodType<string> =>
     .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
-      const { file, project, assetStore, assetCache } = getContext()
+      const { file, project, assetStore, assetCache } = context()
       const body = value ?? file.content
       if (body == null || body.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })

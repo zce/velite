@@ -7,11 +7,13 @@ import { test } from 'node:test'
 import { createEngine } from '../../src/app/engine'
 import { VeliteError } from '../../src/core/diagnostics'
 import { builtinLoaders } from '../../src/loaders'
+import { resolveProject } from '../../src/core/project'
 import { createWriter } from '../../src/output/write'
 import { s } from '../../src/schemas'
 
+import type { ConfigLoader } from '../../src/config'
 import type { Collections } from '../../src/collections'
-import type { ConfigLoader, LoadOptions } from '../../src/config/load'
+import type { UserConfig } from '../../src/config'
 import type { Project } from '../../src/core/project'
 import type { Logger } from '../../src/runtime/logger'
 
@@ -36,9 +38,8 @@ const setupFixture = async (): Promise<Fixture> => {
 const silentLogger: Logger = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }
 
 const makeProject = (fixture: Fixture, collections: Collections, strict = false): Project => ({
+  config: { path: join(fixture.root, 'velite.config.ts'), dependencies: [] },
   root: fixture.root,
-  configPath: join(fixture.root, 'velite.config.ts'),
-  configImports: [],
   collections,
   loaders: builtinLoaders,
   output: { data: fixture.dataDir, assets: fixture.assetsDir, base: '/static/', name: '[name]-[hash:8].[ext]', format: 'esm', clean: false },
@@ -49,7 +50,21 @@ const makeProject = (fixture: Fixture, collections: Collections, strict = false)
 })
 
 const makeLoader = (project: Project): ConfigLoader => ({
-  load: async <T extends Collections = Collections>(_path: string | undefined, _options?: LoadOptions): Promise<Project<T>> => project as unknown as Project<T>
+  resolvePath: async () => project.config.path,
+  load: async () => ({
+    path: project.config.path,
+    dependencies: project.config.dependencies,
+    config: {
+      root: project.root,
+      collections: project.collections,
+      loaders: project.loaders as UserConfig['loaders'],
+      output: { data: project.output.data, assets: project.output.assets, base: project.output.base, format: project.output.format, clean: project.output.clean },
+      strict: project.strict,
+      markdown: project.markdown,
+      mdx: project.mdx,
+      prepare: project.prepare
+    }
+  })
 })
 
 const capturingWriter = () => {
@@ -87,7 +102,7 @@ test('engine full build resolves collections and writes single-layout output', a
   const capture = capturingWriter()
   try {
     const project = makeProject(fixture, { posts: postsCollection })
-    const engine = createEngine({ loader: makeLoader(project), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project), writer: capture.create(), logger: silentLogger })
     const result = (await engine.build({ logLevel: 'silent' })) as { posts: { slug: string }[] }
 
     deepStrictEqual(result.posts.map(p => p.slug).sort(), ['post-a', 'post-b'])
@@ -105,7 +120,7 @@ test('incremental rebuild reprocesses only affected collections and stays equiva
   const capture = capturingWriter()
   try {
     const project = makeProject(fixture, { posts: postsCollection })
-    const engine = createEngine({ loader: makeLoader(project), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project), writer: capture.create(), logger: silentLogger })
     const first = (await engine.build({ logLevel: 'silent' })) as { posts: { title: string }[] }
     const firstTitles = first.posts.map(p => p.title).sort()
 
@@ -131,7 +146,7 @@ test('unique value conflict fails the build in strict mode', async () => {
     await writeFile(join(fixture.root, 'posts', 'a.md'), '---\ntitle: A\nslug: dup\n---\n\nA')
     await writeFile(join(fixture.root, 'posts', 'b.md'), '---\ntitle: B\nslug: dup\n---\n\nB')
     const project = makeProject(fixture, { posts: postsCollection }, true)
-    const engine = createEngine({ loader: makeLoader(project), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project), writer: capture.create(), logger: silentLogger })
     await rejects(engine.build({ logLevel: 'silent' }), VeliteError)
   } finally {
     await fixture.cleanup()
@@ -146,7 +161,7 @@ test('non-strict mode succeeds with schema validation errors, excluding invalid 
     await writeFile(join(fixture.root, 'posts', 'a.md'), '---\ntitle: A\nslug: x\n---\n\nA')
     await writeFile(join(fixture.root, 'posts', 'b.md'), '---\ntitle: B\nslug: post-b\n---\n\nB')
     const project = makeProject(fixture, { posts: postsCollection }, false) // non-strict
-    const engine = createEngine({ loader: makeLoader(project), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project), writer: capture.create(), logger: silentLogger })
     const result = (await engine.build({ logLevel: 'silent' })) as { posts: { slug: string }[] }
     // only the valid record is included; the invalid one is excluded
     deepStrictEqual(
@@ -167,7 +182,7 @@ test('unique value is released after a source edit so another record can reuse i
     await writeFile(join(fixture.root, 'posts', 'a.md'), '---\ntitle: A\nslug: shared\n---\n\nA')
     await writeFile(join(fixture.root, 'posts', 'b.md'), '---\ntitle: B\nslug: shared\n---\n\nB')
     const project = makeProject(fixture, { posts: postsCollection }, true)
-    const engine = createEngine({ loader: makeLoader(project), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project), writer: capture.create(), logger: silentLogger })
 
     // initially conflicts
     await rejects(engine.build({ logLevel: 'silent' }), VeliteError)
@@ -186,7 +201,7 @@ test('deleting a source removes its record from the result', async () => {
   const capture = capturingWriter()
   try {
     const project = makeProject(fixture, { posts: postsCollection })
-    const engine = createEngine({ loader: makeLoader(project), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project), writer: capture.create(), logger: silentLogger })
     await engine.build({ logLevel: 'silent' })
 
     await rm(join(fixture.root, 'posts', 'b.md'))
@@ -208,7 +223,7 @@ test('single collection with zero records fails in strict mode', async () => {
     await rm(join(fixture.root, 'posts', 'b.md'))
     const single = { typeName: 'Options', pattern: 'posts/*.md', single: true, schema: s.object({ title: s.string() }) }
     const project = makeProject(fixture, { options: single }, true)
-    const engine = createEngine({ loader: makeLoader(project), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project), writer: capture.create(), logger: silentLogger })
     await rejects(engine.build({ logLevel: 'silent' }), VeliteError)
   } finally {
     await fixture.cleanup()
@@ -223,7 +238,7 @@ test('prepare mutations are reflected in split-layout record files', async () =>
     project.prepare = result => {
       ;(result as { posts: { title: string }[] }).posts[0].title = 'MUTATED'
     }
-    const engine = createEngine({ loader: makeLoader(project), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project), writer: capture.create(), logger: silentLogger })
     await engine.build({ logLevel: 'silent' })
 
     // a rebuild goes through the split layout; the record file for post-a must
@@ -250,7 +265,7 @@ test('prepare replacement result is used for split-layout record files', async (
       const posts = (result as { posts: { title: string; slug: string; body: string }[] }).posts
       return { posts: posts.map(p => ({ ...p, title: `R:${p.title}` })) } as never
     }
-    const engine = createEngine({ loader: makeLoader(project), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project), writer: capture.create(), logger: silentLogger })
     await engine.build({ logLevel: 'silent' })
 
     await writeFile(join(fixture.root, 'posts', 'a.md'), '---\ntitle: A2\nslug: post-a\n---\n\nUpdated')
@@ -270,7 +285,7 @@ test('config reload drops the previous session caches and rebuilds fully', async
   const capture = capturingWriter()
   try {
     const project1 = makeProject(fixture, { posts: postsCollection })
-    const engine = createEngine({ loader: makeLoader(project1), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project1), writer: capture.create(), logger: silentLogger })
     await engine.build({ logLevel: 'silent' })
 
     // simulate a config reload: same root but a different project (e.g. a new
@@ -282,7 +297,7 @@ test('config reload drops the previous session caches and rebuilds fully', async
       schema: s.object({ title: s.string() })
     }
     const project2 = makeProject(fixture, { posts: postsCollection, pages: pagesCollection })
-    const engine2 = createEngine({ loader: makeLoader(project2), writer: capture.create(), logger: silentLogger })
+    const engine2 = createEngine({ configLoader: makeLoader(project2), writer: capture.create(), logger: silentLogger })
     const result = (await engine2.build({ logLevel: 'silent' })) as { posts: unknown[]; pages: unknown[] }
 
     // the new collection is present — proving the previous session's parsed
@@ -299,7 +314,7 @@ test('already-aborted signal fails immediately without committing candidate stat
   const capture = capturingWriter()
   try {
     const project = makeProject(fixture, { posts: postsCollection })
-    const engine = createEngine({ loader: makeLoader(project), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(project), writer: capture.create(), logger: silentLogger })
 
     // signal aborted before the first build — the engine must refuse to commit
     const controller = new AbortController()
@@ -334,7 +349,7 @@ test('mid-build signal abort causes failure without committing snapshot', async 
         }
       ]
     }
-    const engine = createEngine({ loader: makeLoader(slowProject), writer: capture.create(), logger: silentLogger })
+    const engine = createEngine({ configLoader: makeLoader(slowProject), writer: capture.create(), logger: silentLogger })
     await rejects(engine.build({ logLevel: 'silent', signal: controller.signal }), VeliteError)
     equal(engine.snapshot, undefined, 'no snapshot committed after mid-build abort')
   } finally {

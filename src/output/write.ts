@@ -3,10 +3,10 @@ import { dirname, join, relative } from 'node:path'
 
 import type { OutputState } from '../core/session'
 import type { Logger } from '../runtime/logger'
-import type { OutputPlan } from './plan'
+import type { OutputWrite } from './plan'
 
 export interface Writer {
-  writeData(state: OutputState, dataDir: string, plan: Pick<OutputPlan, 'writes'>): Promise<void>
+  writeData(state: OutputState, dataDir: string, plan: { writes: readonly OutputWrite[] }): Promise<void>
   writeAssets(state: OutputState, assetsDir: string, assets: ReadonlyArray<{ path: string; sourcePath: string }>): Promise<void>
 }
 

@@ -1,6 +1,6 @@
 import * as z from 'zod'
 
-import { getContext } from './context'
+import { context } from './context'
 
 /** Document metadata: reading time and word count. */
 export interface Metadata {
@@ -60,7 +60,7 @@ export const metadata = (): z.ZodType<Metadata> =>
     .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<Metadata>(async (value, ctx) => {
-      const body = value ?? getContext().file.plain
+      const body = value ?? context().file.plain
       if (body == null || body.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
         return { readingTime: 0, wordCount: 0 }

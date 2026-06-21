@@ -29,25 +29,28 @@ Velite — a tool that turns Markdown / MDX, YAML, JSON into a type-safe data la
 | `index.ts`     | Public API entry and barrel, including public helpers/types plus the public `build()` facade                                        |
 | `cli.ts`       | CLI entry (`velite build` / `velite dev`)                                                                                           |
 | `app/`         | Application orchestration: `Engine`, watch controller, and build options                                                            |
-| `config/`      | Public config types/helper plus runtime config loading/bundling                                                                     |
-| `collections/` | Public collection types/helper plus discovery, resolving, `VeliteFile`, and file cache                                              |
-| `output/`      | Public output type plus generated entry/data/assets writing and emit cache                                                          |
+| `core/`        | Core models: `diagnostics`, `ids`, `session`, `graph`, `cache`, `snapshot`, `project`, `pipeline`                                   |
+| `config/`      | Public config types/helper plus runtime config loading (via jiti)                                                                   |
+| `collections/` | Public collection types/helper plus discovery, file loading, and file cache                                                         |
+| `output/`      | Public output type plus output planning (single/split layout), writing, and emit cache                                              |
 | `assets/`      | Asset store, asset path processing, image metadata, and Markdown/MDX linked-file plugins                                            |
-| `runtime/`     | Schema parsing context, session store, build session, and logger                                                                    |
+| `runtime/`     | Logger                                                                                                                              |
 | `loaders/`     | Built-in loaders: `json`, `yaml`, `matter` (frontmatter)                                                                            |
-| `schemas/`     | Custom Zod extensions: `file`, `image`, `markdown`, `mdx`, `slug`, `toc`, `excerpt`, `metadata`, `path`, `raw`, `isodate`, `unique` |
-| `utils/`       | Small shared utilities such as pattern matching                                                                                     |
+| `schemas/`     | Schema namespace (`s`), context, effects, and built-in schemas: `file`, `image`, `markdown`, `mdx`, `slug`, `toc`, `excerpt`, `metadata`, `path`, `raw`, `isoDate`, `unique` |
 
 ## Key patterns
 
-- `s` is the extended Zod namespace (`src/schemas/index.ts:16`) — re-exports all of `zod` plus custom schemas
-- User config files (`velite.config.{js,ts,mjs,mts,cjs,cts}`) are bundled with esbuild at runtime, not imported directly (`src/config/load.ts`)
+- `s` is the extended Zod namespace (`src/schemas/index.ts`) — re-exports all of `zod` plus custom schemas
+- User config files (`velite.config.{js,ts,mjs,mts,cjs,cts}`) are loaded with **jiti** at runtime (`src/config/load.ts`), not bundled with esbuild
 - Config is searched up to 3 parent directories from cwd (`src/config/load.ts`)
 - Default content root: `content/`, default output: `.velite/` (data) + `public/static/` (assets)
-- `defineConfig`, `defineCollection`, `defineLoader`, `defineSchema` are identity helpers for type inference only
+- `defineConfig`, `defineCollection`, `defineLoader` are identity helpers for type inference only
 - The `prepare` hook can return `false` to suppress default file output
-- Tests use Node's built-in test runner (`node:test`), not Jest/Vitest
-- All build-scoped mutable state lives on `BuildSession` (`src/runtime/session.ts`) and its `SessionStore`; independent builds are isolated by construction
+- Tests use Node's built-in test runner (`node:test`) with `jiti/register` as the TS loader
+- Bundled with **tsdown** (rolldown/Rust), not tsup (esbuild)
+- All build-scoped mutable state lives on `Session` (`src/core/session.ts`) and its `SessionStore`; independent builds are isolated by construction
+- Schema cross-file state uses the effects model (collect → validate → commit), not direct mutation
+- `context()` returns the full schema context (project, file, record, store, assetCache, assetStore, collectEffect) — built-in and user schemas have the same capability boundary
 
 ## Code style
 
@@ -58,23 +61,24 @@ Velite — a tool that turns Markdown / MDX, YAML, JSON into a type-safe data la
 ## Testing
 
 ```bash
-pnpm test   # runs: node --import tsx --test test/**/*.tests.ts
+pnpm test   # runs: node --import jiti/register --test test/**/*.tests.ts
 ```
 
 - Tests in `test/` use `node:test` + `node:assert`
 - Tests run against the **built** output (`dist/`), so `pnpm build` must run first
-- `test/basic.ts` builds the `examples/basic` fixture and checks generated output content
+- `test/integration/basic.tests.ts` builds the `examples/basic` fixture and checks generated output content
 - Tests clean up `.velite` output dirs after running
 
 ## Gotchas
 
-- The package bin points to `dist/cli.js`; `tsup` injects the Node shebang during build
-- The `tsup` config injects a `require` shim banner for CJS interop in the ESM output
-- Bundling strategy intentionally follows tsup defaults: `dependencies` stay external, while runtime internals listed only in `devDependencies` are bundled into `dist/`
+- The package bin points to `dist/cli.mjs`; `tsdown` injects the Node shebang during build
+- `jiti` is a runtime dependency (config loading), not bundled into dist
+- `sharp`, `@mdx-js/mdx`, `terser`, `zod` are runtime dependencies (external)
+- All other runtime tools (`chokidar`, `picomatch`, `tinyglobby`, `yaml`, `unified`, etc.) are devDependencies bundled into dist
+- Config loading uses `jiti` with `alias: { velite: dist/index.mjs }` for self-reference
 - When adding runtime imports, put public API/native/heavy/override-sensitive deps in `dependencies`; put pure internal implementation tools in `devDependencies` so they are bundled
 - After changing dependency groups, run `pnpm build` and check `dist/` for unexpected bare imports
-- `sharp` and `esbuild` are allowed native builds in `pnpm-workspace.yaml`
-- Config bundling uses `packages: 'external'` — user deps are not bundled into config output
+- `sharp` is an allowed native build in `pnpm-workspace.yaml`
 - Internal modules are exposed through `src/index.ts` only when intentionally public; do not re-export implementation folders wholesale
 
 ## Session workspace

@@ -1,7 +1,7 @@
 import * as z from 'zod'
 
 import { isRelativePath, processAsset } from '../assets/process'
-import { getContext } from './context'
+import { context } from './context'
 
 /** Options for the file schema. */
 export interface FileOptions {
@@ -18,7 +18,7 @@ export const file = ({ allowNonRelativePath = true }: FileOptions = {}): z.ZodTy
   z.string().transform<string>(async (value, ctx) => {
     try {
       if (allowNonRelativePath && !isRelativePath(value)) return value
-      const { file, project, assetStore, assetCache, record, collectEffect } = getContext()
+      const { file, project, assetStore, assetCache, record, collectEffect } = context()
       const result = await processAsset({
         input: value,
         from: file.path,

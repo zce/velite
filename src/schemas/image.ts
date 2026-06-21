@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import * as z from 'zod'
 
 import { processAsset } from '../assets/process'
-import { getContext } from './context'
+import { context } from './context'
 
 import type { ImageBlurOptions, ImageData, ImageOptions } from '../assets/image'
 
@@ -20,7 +20,7 @@ export const image = ({ absoluteRoot, blur }: ImageOptions = {}): z.ZodType<Imag
         if (metadata == null) throw new Error(`Failed to get image metadata: ${value}`)
         return { src: value, ...metadata }
       }
-      const { file, project, assetStore, assetCache, record, collectEffect } = getContext()
+      const { file, project, assetStore, assetCache, record, collectEffect } = context()
       const result = await processAsset({
         input: value,
         from: file.path,

@@ -1,6 +1,6 @@
 import * as z from 'zod'
 
-import { getContext } from './context'
+import { context } from './context'
 
 /**
  * Unique-value schema.
@@ -15,6 +15,6 @@ import { getContext } from './context'
  */
 export const unique = (group: string = 'global'): z.ZodType<string> =>
   z.string().superRefine(value => {
-    const ctx = getContext()
+    const ctx = context()
     ctx.collectEffect({ type: 'unique', owner: ctx.record.id, group, value })
   })

@@ -17,9 +17,3 @@ export interface OutputConfig {
   /** Whether to clean the output directories before build. @default false */
   clean: boolean
 }
-
-export type { OutputPlan, OutputWrite, RecordInput, SplitState } from './plan'
-export { createWriter } from './write'
-export type { Writer, WriterOptions } from './write'
-export { planAssets, planEntry, planSingleCollection, planSplitCollectionEntry, planSplitOutput, planTypes } from './plan'
-export { collectionDataPath, collectionEntryPath, recordFilePath } from './layout'

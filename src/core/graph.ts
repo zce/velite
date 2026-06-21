@@ -10,6 +10,8 @@
  * `record:`, `asset:`, `output:`). Edges carry a `reason` for diagnostics.
  */
 
+import type { Collections } from '../collections'
+
 export interface GraphEdge {
   readonly from: string
   readonly to: string
@@ -130,4 +132,39 @@ export const createDependencyGraph = (): DependencyGraph => {
       edgeReasons.clear()
     }
   }
+}
+
+/**
+ * Build the full set of graph edges from the current build state.
+ *
+ * This is called at the end of a build run to produce the candidate graph
+ * that will be committed on success.
+ */
+export const buildGraphEdges = (
+  collections: Collections,
+  recordIds: ReadonlyMap<string, readonly { id: string; sourceId: string }[]>,
+  assetEffects: readonly { owner: string; assetPath: string }[],
+  dependencyEffects: readonly { owner: string; sourceId: string }[]
+): GraphEdge[] => {
+  const edges: GraphEdge[] = []
+  const configNode = 'config'
+  for (const key of Object.keys(collections)) {
+    edges.push({ from: configNode, to: `collection:${key}`, reason: 'config-affects-collection' })
+    const collectionNode = `collection:${key}`
+    const records = recordIds.get(key) ?? []
+    for (const record of records) {
+      const sourceNode = `source:${record.sourceId}`
+      const recordNode = `record:${record.id}`
+      edges.push({ from: collectionNode, to: sourceNode, reason: 'collection-matches-source' })
+      edges.push({ from: sourceNode, to: recordNode, reason: 'source-produces-record' })
+      edges.push({ from: recordNode, to: `output:${key}/${record.id}`, reason: 'record-produces-output' })
+    }
+  }
+  for (const asset of assetEffects) {
+    edges.push({ from: `record:${asset.owner}`, to: `asset:${asset.assetPath}`, reason: 'record-references-asset' })
+  }
+  for (const dep of dependencyEffects) {
+    edges.push({ from: `source:${dep.sourceId}`, to: `source:${dep.owner}`, reason: 'loader-depends-on-source' })
+  }
+  return edges
 }

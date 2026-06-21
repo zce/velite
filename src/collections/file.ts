@@ -9,7 +9,7 @@ import { matchesLoader } from '../loaders/types'
 import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
 import type { Loader } from '../loaders/types'
-import type { InternalFile } from '../schemas/context'
+import type { ContentFile } from '../schemas/context'
 
 /** A raw record produced by a loader, with its body content attached. */
 export interface LoadedRecord {
@@ -36,8 +36,6 @@ export interface LoadedFile {
   /** Source-level metadata. */
   metadata?: Record<string, unknown>
 }
-
-const toStringContent = (content: string | Uint8Array): string => (typeof content === 'string' ? content : Buffer.from(content).toString('utf8'))
 
 /**
  * Read `path` and run the first matching loader.
@@ -66,14 +64,14 @@ export const loadFile = async (path: string, loaders: readonly Loader[], sourceI
  * Create a schema-context content file with lazily-parsed AST.
  *
  * `mdast`, `hast` and `plain` are derived on first access from `content` and
- * cached. Built-in schemas access them via the internal schema context.
+ * cached. All schemas (built-in and user-defined) access them via `context()`.
  */
-export const createContentFile = (id: string, path: string, content?: string): InternalFile => {
+export const createContentFile = (id: string, path: string, content?: string): ContentFile => {
   let mdastCache: Root | undefined
   let hastCache: Nodes | undefined
   let plainCache: string | undefined
 
-  const file: InternalFile = {
+  const file: ContentFile = {
     id,
     path,
     content,
@@ -100,8 +98,3 @@ export const createContentFile = (id: string, path: string, content?: string): I
   }
   return file
 }
-
-/** Convenience: read raw file text (used by the watcher for change detection). */
-export const readRawText = (path: string): Promise<string> => readFile(path, 'utf8')
-
-export { toStringContent }

@@ -18,7 +18,7 @@ const cleanBasic = async (): Promise<void> => {
 describe('integration: basic fixture', { concurrency: 1 }, () => {
   test('standalone fixture builds via the CLI', async () => {
     await cleanBasic()
-    await execAsync('node ../../dist/cli.js build', { cwd: 'examples/basic' })
+    await execAsync('node ../../dist/cli.mjs build', { cwd: 'examples/basic' })
 
     const entry = await readFile('examples/basic/.velite/index.js', 'utf8')
     ok(entry.includes("export { default as options } from './options.json'"))

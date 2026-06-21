@@ -162,3 +162,37 @@ test('engine/gc: drops memo entries not demanded within the kept window', async 
   equal(await engine.get(inc, null), 5)
   equal(compute.mock.calls.length, 2)
 })
+
+test('engine/error: a failed first computation is retried on next demand, not poisoned', async () => {
+  const engine = createEngine()
+  let calls = 0
+  const flaky: Derivation<null, number> = {
+    name: 'flaky',
+    compute: () => {
+      calls++
+      throw new Error('boom')
+    }
+  }
+  await rejects(engine.get(flaky, null), (err: unknown) => err instanceof Error && err.message === 'boom')
+  await rejects(engine.get(flaky, null), (err: unknown) => err instanceof Error && err.message === 'boom')
+  equal(calls, 2) // recomputed both times, not silently returned undefined
+})
+
+test('engine/cycle: a cycle error is re-thrown on retry, not poisoned', async () => {
+  const engine = createEngine()
+  const a: Derivation<null, number> = { name: 'a', compute: ctx => ctx.get(b, null) }
+  const b: Derivation<null, number> = { name: 'b', compute: ctx => ctx.get(a, null) }
+  await rejects(engine.get(a, null), (err: unknown) => err instanceof EngineError && err.code === 'cycle')
+  await rejects(engine.get(a, null), (err: unknown) => err instanceof EngineError && err.code === 'cycle')
+})
+
+test('engine/inflight: concurrent identical demands compute once and share the result', async () => {
+  const engine = createEngine()
+  const compute = mock.fn((ctx: Context) => ctx.input<number>('a') + 1)
+  const inc: Derivation<null, number> = { name: 'inc', compute }
+  engine.set('a', 41)
+  const [r1, r2] = await Promise.all([engine.get(inc, null), engine.get(inc, null)])
+  equal(r1, 42)
+  equal(r2, 42)
+  equal(compute.mock.calls.length, 1)
+})

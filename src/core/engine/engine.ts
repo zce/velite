@@ -70,7 +70,7 @@ interface Entry {
 
 const KEY_SEPARATOR = '\0'
 
-const defaultKey = (key: unknown): string => (typeof key === 'string' ? key : (JSON.stringify(key) ?? 'undefined'))
+const defaultKey = (key: unknown): string => JSON.stringify(key) ?? 'undefined'
 
 const hashValue = (value: unknown): string => hash(value instanceof Uint8Array ? value : (JSON.stringify(value) ?? 'undefined'))
 
@@ -161,7 +161,12 @@ export const createEngine = (): Engine => {
         lastUsed: revision
       }
       memos.set(memoKey, entry)
-      await recompute(entry, childStack, true)
+      try {
+        await recompute(entry, childStack, true)
+      } catch (err) {
+        memos.delete(memoKey)
+        throw err
+      }
       return entry.value
     }
     existing.lastUsed = revision

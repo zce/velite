@@ -1,8 +1,8 @@
 import { classifyEvent } from './classify'
-import { codeFromDiagnostics, hasFatalDiagnostic, VeliteError } from './diagnostic'
+import { codeFromDiagnostics, diagnostic, hasFatalDiagnostic, VeliteError } from './diagnostic'
 import { emptyManifest } from './output/manifest'
 import { writeOutput } from './output/writer'
-import { fileInput, TREE } from './pipeline'
+import { assetInput, assetKeyOf, fileInput, TREE } from './pipeline'
 
 import type { ResolvedConfig } from './config'
 import type { Diagnostic } from './diagnostic'
@@ -65,17 +65,97 @@ export const readSources = async (context: RunContext): Promise<void> => {
   }
 }
 
+/**
+ * Two-pass emit + write.
+ *
+ * Pass 1 demands emit to discover asset references (schema parses complete
+ * against placeholder asset urls). The driver then reads each referenced
+ * asset's bytes and feeds them as `asset:<key>` inputs. Pass 2 re-demands emit
+ * so the asset derivation (and everything downstream) recomputes with real
+ * probe results and content-hashed urls. Then diagnostics are reported, the
+ * data output is written (unchanged), and referenced asset files are copied
+ * into the assets output directory.
+ *
+ * Asset read failures become fatal `ASSET_FAILED` diagnostics rather than
+ * crashing the build.
+ */
 const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
   const { engine, pipeline, config, host } = context
-  const emitted = await engine.get(pipeline.emit, null)
-  const diagnostics = emitted.diagnostics
+
+  // Pass 1: discover asset references via the schema parse.
+  let emitted = await engine.get(pipeline.emit, null)
+
+  // Collect unique asset references (by assetKey) and feed their bytes.
+  const assetBytes = new Map<string, Uint8Array>()
+  const assetDiagnostics: Diagnostic[] = []
+  const seenKeys = new Set<string>()
+  for (const effect of emitted.effects) {
+    if (effect.type !== 'asset') continue
+    const assetKey = assetKeyOf(effect.assetPath, config.root)
+    if (seenKeys.has(assetKey)) continue
+    seenKeys.add(assetKey)
+    try {
+      const bytes = await host.fs.read(effect.assetPath)
+      assetBytes.set(assetKey, bytes)
+      engine.set(assetInput(assetKey), bytes)
+    } catch (err) {
+      assetDiagnostics.push(
+        diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${effect.assetPath}`, {
+          stage: 'asset',
+          file: effect.assetPath,
+          cause: err
+        })
+      )
+    }
+  }
+
+  // Pass 2: re-emit with real asset data (only when at least one asset was fed;
+  // if every read failed, pass 2 would reproduce placeholders and the fatal
+  // diagnostics below discard the output anyway).
+  if (assetBytes.size > 0) {
+    emitted = await engine.get(pipeline.emit, null)
+  }
+
+  // Copy referenced asset files into the assets output directory. Done before
+  // the fatal gate so a write failure (full disk, permissions) surfaces as a
+  // structured ASSET_FAILED diagnostic instead of a raw fs error — matching the
+  // read-failure handling above. The final (content-hashed) public url is in
+  // pass 2's effects; the output name is the url with the base prefix stripped.
+  // Only assets successfully read are written.
+  const written: string[] = []
+  const writtenAssets = new Set<string>()
+  for (const effect of emitted.effects) {
+    if (effect.type !== 'asset') continue
+    const assetKey = assetKeyOf(effect.assetPath, config.root)
+    const bytes = assetBytes.get(assetKey)
+    if (bytes === undefined) continue
+    const outputName = effect.publicUrl.slice(config.output.base.length)
+    if (outputName.length === 0 || writtenAssets.has(outputName)) continue
+    writtenAssets.add(outputName)
+    const dest = host.path.join(config.output.assets, outputName)
+    try {
+      await host.fs.write(dest, bytes)
+      written.push(dest)
+    } catch (err) {
+      assetDiagnostics.push(
+        diagnostic('error', 'ASSET_FAILED', `failed to write asset: ${dest}`, {
+          stage: 'asset',
+          file: effect.assetPath,
+          cause: err
+        })
+      )
+    }
+  }
+
+  const diagnostics = [...emitted.diagnostics, ...assetDiagnostics]
   host.logger?.report?.(diagnostics)
   // Fatal (non-schema) errors make the output untrustworthy: report and throw,
   // skipping the write. Schema-level errors are non-fatal and returned in the result.
   if (hasFatalDiagnostic(diagnostics)) {
     throw new VeliteError(codeFromDiagnostics(diagnostics), { diagnostics })
   }
-  const { written, manifest } = await writeOutput(
+
+  const { written: dataWritten, manifest } = await writeOutput(
     emitted.output,
     {
       fs: host.fs,
@@ -85,6 +165,8 @@ const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
     context.manifest
   )
   context.manifest = manifest
+  written.push(...dataWritten)
+
   return { output: emitted.output, diagnostics, written }
 }
 
@@ -125,9 +207,14 @@ export const applyChanges = async (context: RunContext, events: FileEvent[], opt
 
     const rel = host.path.relative(config.root, event.absPath)
     if (rel.startsWith('..')) continue
+    // The asset input key must match what the schema demands (assetKeyOf uses
+    // posix.relative). For posix hosts this equals `rel`; computing it via
+    // assetKeyOf keeps the key consistent across non-posix Path implementations.
+    const assetKey = assetKeyOf(event.absPath, config.root)
 
     if (event.type === 'unlink') {
       engine.remove(fileInput(rel))
+      engine.remove(assetInput(assetKey))
       context.tree = context.tree.filter(f => f.path !== rel)
       content = true
       continue
@@ -141,11 +228,16 @@ export const applyChanges = async (context: RunContext, events: FileEvent[], opt
       else context.tree.push(entry)
       sortTree(context.tree)
       engine.set(TREE, context.tree)
-      engine.set(fileInput(rel), await host.fs.read(event.absPath))
+      const bytes = await host.fs.read(event.absPath)
+      engine.set(fileInput(rel), bytes)
+      // Feed the asset input too: the file may be an asset source referenced by
+      // a schema. Over-inclusive but correct — unused inputs are never demanded.
+      engine.set(assetInput(assetKey), bytes)
       content = true
     } catch {
       // Race: file disappeared between event and read — treat as unlink.
       engine.remove(fileInput(rel))
+      engine.remove(assetInput(assetKey))
       context.tree = context.tree.filter(f => f.path !== rel)
       engine.set(TREE, context.tree)
       content = true

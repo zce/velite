@@ -33,6 +33,13 @@ export interface BuildResult {
 
 export type ApplyResult = 'config-reload' | 'content' | 'none'
 
+/**
+ * Default physical output layout: `single` for one-shot production builds,
+ * `split` (per-record files) otherwise (dev/watch). Overridable via
+ * `BuildOptions.layout`.
+ */
+export const defaultLayout = (): 'split' | 'single' => (process.env.NODE_ENV === 'production' ? 'single' : 'split')
+
 const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
 
 /** Walk the content root and feed the tree snapshot as an engine input. */
@@ -87,7 +94,7 @@ export const readSources = async (context: RunContext): Promise<void> => {
  * Asset read failures become fatal `ASSET_FAILED` diagnostics rather than
  * crashing the build.
  */
-const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
+const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Promise<BuildResult> => {
   const { engine, pipeline, config, host } = context
 
   // Pass 1: discover asset references via the schema parse.
@@ -194,7 +201,12 @@ const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
     {
       fs: host.fs,
       path: host.path,
-      dir: config.output.data
+      dir: config.output.data,
+      layout,
+      configPath: config.configPath,
+      collections: config.collections,
+      format: config.output.format,
+      pretty: process.env.NODE_ENV !== 'production'
     },
     context.manifest
   )
@@ -205,14 +217,14 @@ const emitAndWrite = async (context: RunContext): Promise<BuildResult> => {
 }
 
 /** Execute one full build run: I/O in, pure pipeline, I/O out. */
-export const runBuild = async (context: RunContext): Promise<BuildResult> => {
+export const runBuild = async (context: RunContext, layout: 'split' | 'single' = defaultLayout()): Promise<BuildResult> => {
   await refreshTree(context)
   await readSources(context)
-  return emitAndWrite(context)
+  return emitAndWrite(context, layout)
 }
 
 /** Re-emit after inputs were patched (incremental). Skips full tree walk and bulk read. */
-export const runIncremental = async (context: RunContext): Promise<BuildResult> => emitAndWrite(context)
+export const runIncremental = async (context: RunContext, layout: 'split' | 'single' = defaultLayout()): Promise<BuildResult> => emitAndWrite(context, layout)
 
 /**
  * Apply file events to engine inputs. Returns whether a config reload, content

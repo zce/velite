@@ -1,6 +1,6 @@
 import { resolveConfig, validateConfig } from './config'
 import { type Diagnostic } from './diagnostic'
-import { applyChanges, createRunContext, runBuild, runIncremental } from './driver'
+import { applyChanges, createRunContext, defaultLayout, runBuild, runIncremental } from './driver'
 import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
 import { createPipeline } from './pipeline'
@@ -17,6 +17,8 @@ import type { Scheduler } from './scheduler'
 
 export interface BuildOptions {
   signal?: AbortSignal
+  /** Output layout override (default: `split` in dev, `single` in production). */
+  layout?: 'split' | 'single'
 }
 
 export interface WatchOptions {
@@ -88,9 +90,9 @@ export const createBuilder = (host: Host, options: CreateBuilderOptions): Builde
     return session
   }
 
-  const build = async (): Promise<BuildResult> => {
+  const build = async (buildOptions?: BuildOptions): Promise<BuildResult> => {
     const current = await init()
-    return runBuild(current.context)
+    return runBuild(current.context, buildOptions?.layout ?? defaultLayout())
   }
 
   const apply = async (events: FileEvent[]): Promise<BuildResult | undefined> => {
@@ -101,9 +103,9 @@ export const createBuilder = (host: Host, options: CreateBuilderOptions): Builde
     })
     if (result === 'config-reload') {
       session = await reload()
-      return runBuild(session.context)
+      return runBuild(session.context, defaultLayout())
     }
-    if (result === 'content') return runIncremental(current.context)
+    if (result === 'content') return runIncremental(current.context, defaultLayout())
     return undefined
   }
 

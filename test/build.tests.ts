@@ -25,7 +25,8 @@ const setup = (config: UserConfig, files: Record<string, string>): { host: Host;
   return { host, fs }
 }
 
-const build = (host: Host) => createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') }).build()
+const build = (host: Host, layout: 'split' | 'single' = 'single') =>
+  createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') }).build({ layout })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
@@ -131,3 +132,104 @@ test('build: markdown collection exposes raw body, metadata and path via schemas
   ok(posts[0]!.meta.wordCount > 0)
   equal(posts[0]!.route, 'posts/hello')
 })
+
+test('build: single layout writes {name}.json + index.js + index.d.ts', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: {
+      posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) }
+    }
+  }
+  const { host, fs } = setup(config, {
+    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
+  })
+
+  const result = await build(host, 'single')
+  equal(result.diagnostics.length, 0)
+  // {name}.json data file
+  const posts = await readJson(fs, posix.join(DATA_DIR, 'posts.json'))
+  deepEqual(posts, [{ title: 'A' }])
+  // entry module + type declaration
+  ok(result.written.includes(posix.join(DATA_DIR, 'index.js')))
+  ok(result.written.includes(posix.join(DATA_DIR, 'index.d.ts')))
+  const entry = new TextDecoder().decode(await fs.read(posix.join(DATA_DIR, 'index.js')))
+  ok(entry.includes("export { default as posts } from './posts.json' with { type: 'json' }"))
+  const types = new TextDecoder().decode(await fs.read(posix.join(DATA_DIR, 'index.d.ts')))
+  ok(types.includes("import type { Infer } from 'velite'"))
+  // No split-layout artifacts.
+  ok(!result.written.some(p => p.includes('/records/')))
+  ok(!result.written.some(p => p.includes('/collections/')))
+})
+
+test('build: split layout writes record files + collections/{name}.js + index.js + index.d.ts', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: {
+      posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) }
+    }
+  }
+  const { host, fs } = setup(config, {
+    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }, { title: 'B' }])
+  })
+
+  const result = await build(host, 'split')
+  equal(result.diagnostics.length, 0)
+  // Two record files under records/posts/
+  const recordFiles = result.written.filter(p => p.startsWith(posix.join(DATA_DIR, 'records/posts/')))
+  equal(recordFiles.length, 2)
+  // collection entry + shared entry + types
+  ok(result.written.includes(posix.join(DATA_DIR, 'collections/posts.js')))
+  ok(result.written.includes(posix.join(DATA_DIR, 'index.js')))
+  ok(result.written.includes(posix.join(DATA_DIR, 'index.d.ts')))
+  // No flat {name}.json in split layout.
+  ok(!result.written.includes(posix.join(DATA_DIR, 'posts.json')))
+  // The collection entry re-exports the record files.
+  const entry = new TextDecoder().decode(await fs.read(posix.join(DATA_DIR, 'collections/posts.js')))
+  ok(entry.includes("import r0 from '../records/posts/"))
+  ok(entry.includes('export default [r0, r1]'))
+  // Record file content is the per-record data.
+  const recordData = JSON.parse(new TextDecoder().decode(await fs.read(recordFiles[0]!)))
+  ok(typeof recordData.title === 'string')
+})
+
+test('build: unchanged rebuild skips writes via manifest (single layout)', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
+  }
+  const { host } = setup(config, {
+    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
+  })
+  const instance = createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
+  const first = await instance.build({ layout: 'single' })
+  ok(first.written.length > 0)
+  // A second identical build (same instance → carries the manifest) writes nothing.
+  const second = await instance.build({ layout: 'single' })
+  deepEqual(second.written, [])
+  instance.dispose()
+})
+
+test('build: stale output from a previous layout is deleted when switching layouts', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
+  }
+  const { host, fs } = setup(config, {
+    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
+  })
+  const instance = createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
+  // First build: single layout writes posts.json.
+  await instance.build({ layout: 'single' })
+  ok(await exists(fs, posix.join(DATA_DIR, 'posts.json')))
+  // Second build: split layout — posts.json is stale and must be removed.
+  await instance.build({ layout: 'split' })
+  equal(await exists(fs, posix.join(DATA_DIR, 'posts.json')), false)
+  ok(await exists(fs, posix.join(DATA_DIR, 'collections/posts.js')))
+  instance.dispose()
+})
+
+const exists = async (fs: MemoryFileSystem, path: string): Promise<boolean> =>
+  fs.read(path).then(
+    () => true,
+    () => false
+  )

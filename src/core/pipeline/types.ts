@@ -22,6 +22,11 @@ export interface Collected {
   diagnostics: Diagnostic[]
 }
 
+/** Result of the cross-file uniqueness scan: conflict diagnostics only. */
+export interface UniqueChecked {
+  diagnostics: Diagnostic[]
+}
+
 export interface Emitted {
   output: LogicalOutput
   /** Effects aggregated across all collections — the driver consumes asset refs. */

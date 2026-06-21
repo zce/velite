@@ -4,6 +4,7 @@ import { createCollectDerivation } from './collect'
 import { createSourcesDerivation } from './discover'
 import { createEmitDerivation } from './emit'
 import { createLoadDerivation } from './load'
+import { createUniqueCheckDerivation } from './unique'
 import { createValidateDerivation } from './validate'
 
 import type { ResolvedConfig } from '../config'
@@ -13,13 +14,15 @@ import type { LoaderRegistry } from '../loader'
 import type { Source } from '../model'
 import type { Matcher } from '../util/glob'
 import type { AssetResult } from './asset'
-import type { Collected, Emitted, Loaded, Validated, ValidateKey } from './types'
+import type { Collected, Emitted, Loaded, UniqueChecked, Validated, ValidateKey } from './types'
 
 export interface Pipeline {
   sources: Derivation<string, Source[]>
   load: Derivation<string, Loaded>
   validate: Derivation<ValidateKey, Validated>
   collect: Derivation<string, Collected>
+  /** Cross-file uniqueness conflict scan (keyed by `null` — scans all collections). */
+  uniqueCheck: Derivation<null, UniqueChecked>
   emit: Derivation<null, Emitted>
   /** Per-asset derivation: assetKey → public url + image metadata. */
   asset: Derivation<string, AssetResult>
@@ -37,12 +40,14 @@ export const createPipeline = (config: ResolvedConfig, loaders: LoaderRegistry, 
   const asset = createAssetDerivation(config, host)
   const validate = createValidateDerivation(config, load, asset)
   const collect = createCollectDerivation(config, sources, validate)
-  const emit = createEmitDerivation(config, collect)
-  return { sources, load, validate, collect, emit, asset }
+  const uniqueCheck = createUniqueCheckDerivation(config, sources, validate)
+  const emit = createEmitDerivation(config, collect, uniqueCheck)
+  return { sources, load, validate, collect, uniqueCheck, emit, asset }
 }
 
 export { TREE, fileInput } from './inputs'
 export { assetInput, assetKeyOf, publicUrlOf, renderAssetName } from './asset'
 export type { TreeFile } from './inputs'
 export type { AssetResult } from './asset'
+export type { UniqueChecked } from './unique'
 export type { Pipeline as PipelineDerivations }

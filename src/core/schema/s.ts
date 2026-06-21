@@ -11,7 +11,8 @@ import * as builtins from './builtins'
  * / `path`) read the current file's body via the schema context (`context()`),
  * which the validate derivation wires via `runWithContext` for each record parse.
  * Asset builtins (`file` / `image`) resolve content-relative references through
- * the engine's asset derivation (M5); `slug` / `unique` arrive in M6.
+ * the engine's asset derivation (M5). Uniqueness builtins (`unique` / `slug`)
+ * register `UniqueEffect`s the pipeline's `uniqueCheck` derivation scans (M6).
  */
 export const s = {
   string: z.string,
@@ -35,7 +36,9 @@ export const s = {
   metadata: builtins.metadata,
   path: builtins.path,
   file: builtins.file,
-  image: builtins.image
+  image: builtins.image,
+  unique: builtins.unique,
+  slug: builtins.slug
 }
 
 export type SchemaNamespace = typeof s

@@ -100,7 +100,7 @@ test('flattenError normalizes each input shape', () => {
   assert.equal(flattenError(null), 'unknown')
 })
 
-test('isError and isVeliteError are structural-safe', () => {
+test('isError and isVeliteError classify Error subtypes correctly', () => {
   assert.equal(isError(new Error('x')), true)
   assert.equal(isError(new VeliteError('internal')), true)
   assert.equal(isError('nope'), false)

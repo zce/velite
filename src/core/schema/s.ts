@@ -7,8 +7,10 @@ import * as builtins from './builtins'
  * own builtins) never import zod directly — this isolates the validation library
  * so it can evolve or be swapped without churning user configs.
  *
- * M2a ships only the `isodate` builtin; richer builtins (markdown/mdx/toc/...)
- * arrive in later milestones.
+ * Content builtins (`markdown` / `mdx` / `toc` / `excerpt` / `raw` / `metadata`
+ * / `path`) read the current file's body via the schema context (`context()`),
+ * which the validate derivation wires via `runWithContext` for each record parse.
+ * Asset-coupled builtins (`file` / `image` / `slug` / `unique`) arrive in M5/M6.
  */
 export const s = {
   string: z.string,
@@ -23,7 +25,14 @@ export const s = {
   record: z.record,
   unknown: z.unknown,
   any: z.any,
-  isodate: builtins.isodate
+  isodate: builtins.isodate,
+  markdown: builtins.markdown,
+  mdx: builtins.mdx,
+  toc: builtins.toc,
+  excerpt: builtins.excerpt,
+  raw: builtins.raw,
+  metadata: builtins.metadata,
+  path: builtins.path
 }
 
 export type SchemaNamespace = typeof s

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { fail, flattenError, isError, isVeliteError, assert as veliteAssert, VeliteError } from '../../src/core/errors'
+import { codeFromDiagnostics, createDiagnostic, fail, flattenError, isError, isVeliteError, assert as veliteAssert, VeliteError } from '../../src/core/errors'
 
 test('VeliteError carries code, context, cause, diagnostics', () => {
   const err = new VeliteError<{ path: string }>('load', {
@@ -106,4 +106,21 @@ test('isError and isVeliteError are structural-safe', () => {
   assert.equal(isError('nope'), false)
   assert.equal(isVeliteError(new VeliteError('internal')), true)
   assert.equal(isVeliteError(new Error('plain')), false)
+})
+
+test('codeFromDiagnostics returns the fatal stage', () => {
+  const diags = [
+    createDiagnostic({ severity: 'warning', code: 'w', message: 'w', stage: 'schema' }),
+    createDiagnostic({ severity: 'error', code: 'e', message: 'e', stage: 'asset' })
+  ]
+  assert.equal(codeFromDiagnostics(diags), 'asset')
+})
+
+test('codeFromDiagnostics skips schema-only errors (non-fatal)', () => {
+  const diags = [createDiagnostic({ severity: 'error', code: 'e', message: 'e', stage: 'schema' })]
+  assert.equal(codeFromDiagnostics(diags), 'unknown')
+})
+
+test('codeFromDiagnostics falls back to unknown on empty', () => {
+  assert.equal(codeFromDiagnostics([]), 'unknown')
 })

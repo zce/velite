@@ -100,6 +100,16 @@ export class VeliteError<T = unknown> extends Error {
  */
 export const hasFatalDiagnostic = (diagnostics: readonly Diagnostic[]): boolean => diagnostics.some(d => d.severity === 'error' && d.stage !== 'schema')
 
+/**
+ * Pick the {@link VeliteErrorCode} for a thrown build-failure `VeliteError`:
+ * the `stage` of the first fatal diagnostic (error severity, non-schema —
+ * mirroring {@link hasFatalDiagnostic}), or `'unknown'` if none.
+ */
+export const codeFromDiagnostics = (diagnostics: readonly Diagnostic[]): VeliteErrorCode => {
+  const fatal = diagnostics.find(d => d.severity === 'error' && d.stage !== 'schema')
+  return (fatal?.stage ?? 'unknown') as VeliteErrorCode
+}
+
 /** Throw a {@link VeliteError}. Never returns. */
 export function fail(code: VeliteErrorCode, message?: string): never
 export function fail<T = unknown>(code: VeliteErrorCode, options?: VeliteErrorOptions<T>): never

@@ -4,7 +4,7 @@ import { normalize } from 'node:path'
 import { createAssetStore } from '../assets/store'
 import { collectionAffected } from '../collections/discover'
 import { defaultConfigLoader } from '../config'
-import { createDiagnostic, hasFatalDiagnostic, VeliteError } from '../core/errors'
+import { codeFromDiagnostics, createDiagnostic, hasFatalDiagnostic, VeliteError } from '../core/errors'
 import { buildGraphEdges } from '../core/graph'
 import { aggregateResult, applyPrepare, createParsedCache, parseCollection, runBuild, throwIfAborted } from '../core/pipeline'
 import { resolveProject } from '../core/project'
@@ -230,7 +230,7 @@ export const createEngine = (options: EngineOptions = {}): Engine => {
     if (currentSession == null) throw new Error('session missing')
     const runResult = await runBuild(currentSession, { execute: () => execute(currentSession!, project, options, change, split, log) })
     if (runResult.status === 'failure' || runResult.result == null) {
-      throw new VeliteError('output', { message: 'Build failed', diagnostics: [...runResult.diagnostics] })
+      throw new VeliteError(codeFromDiagnostics(runResult.diagnostics), { message: 'Build failed', diagnostics: [...runResult.diagnostics] })
     }
     return runResult.result
   }

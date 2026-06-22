@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { extractToc, parseMarkdown } from '../content/reference'
+import { extractToc } from '../content/reference'
 import { context } from './context'
 
 import type { TocItem } from '../content/reference'
@@ -19,7 +19,13 @@ export const toc = (): Schema<TocItem[]> =>
         return []
       }
       try {
-        return extractToc(parseMarkdown(body))
+        // Use the lazily-cached mdast from the schema context rather than
+        // re-parsing. The context computes `file.mdast` once via
+        // `fromMarkdown()` and caches it, so every builtin that needs the
+        // AST in the same record parse shares one parse call.
+        const tree = file.mdast
+        if (tree == null) throw new Error('No mdast tree available')
+        return extractToc(tree)
       } catch (err) {
         ctx.addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
         return null as never

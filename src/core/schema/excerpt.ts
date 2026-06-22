@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import { extractText, parseMarkdown } from '../content/reference'
 import { context } from './context'
 
 import type { Schema } from './s'
@@ -11,22 +10,24 @@ export interface ExcerptSchemaOptions {
   length?: number
 }
 
-/** Extract a plain-text excerpt from the current content. */
+/**
+ * Extract a plain-text excerpt from the current content.
+ *
+ * Uses the lazily-cached `file.plain` from the schema context rather than
+ * re-parsing the markdown body. The context computes `file.plain` once (via
+ * mdast → hast → plain text) and caches it, so every builtin that needs
+ * plain text in the same record parse shares the computation.
+ */
 export const excerpt = ({ length = 260 }: ExcerptSchemaOptions = {}): Schema<string> =>
   z
     .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
       const { file } = context()
-      const body = value ?? file.content
+      const body = value ?? file.plain
       if (body == null || body.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
         return ''
       }
-      try {
-        return extractText(parseMarkdown(body), length)
-      } catch (err) {
-        ctx.addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
-        return null as never
-      }
+      return body.slice(0, length)
     })

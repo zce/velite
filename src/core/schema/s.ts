@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as z from 'zod'
 
 import * as builtins from './builtins'
 
@@ -6,6 +6,10 @@ import * as builtins from './builtins'
  * Velite's schema namespace. A thin, curated surface over zod so users (and our
  * own builtins) never import zod directly — this isolates the validation library
  * so it can evolve or be swapped without churning user configs.
+ *
+ * Uses `...z` to forward all zod base schemas: if zod adds a new primitive in
+ * a future minor, it appears here automatically without a velite release.
+ * Builtins (`markdown`, `image`, etc.) override or extend the zod surface.
  *
  * Content builtins (`markdown` / `mdx` / `toc` / `excerpt` / `raw` / `metadata`
  * / `path`) read the current file's body via the schema context (`context()`),
@@ -15,30 +19,8 @@ import * as builtins from './builtins'
  * register `UniqueEffect`s the pipeline's `uniqueCheck` derivation scans (M6).
  */
 export const s = {
-  string: z.string,
-  number: z.number,
-  boolean: z.boolean,
-  date: z.date,
-  literal: z.literal,
-  enum: z.enum,
-  object: z.object,
-  array: z.array,
-  union: z.union,
-  record: z.record,
-  unknown: z.unknown,
-  any: z.any,
-  isodate: builtins.isodate,
-  markdown: builtins.markdown,
-  mdx: builtins.mdx,
-  toc: builtins.toc,
-  excerpt: builtins.excerpt,
-  raw: builtins.raw,
-  metadata: builtins.metadata,
-  path: builtins.path,
-  file: builtins.file,
-  image: builtins.image,
-  unique: builtins.unique,
-  slug: builtins.slug
+  ...z,
+  ...builtins
 }
 
 export type SchemaNamespace = typeof s

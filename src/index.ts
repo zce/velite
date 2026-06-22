@@ -33,7 +33,7 @@ export const build = async (options: BuildEntryOptions = {}): Promise<BuildResul
   try {
     return await instance.build({ layout })
   } finally {
-    instance.dispose()
+    await instance.dispose()
   }
 }
 

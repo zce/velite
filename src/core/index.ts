@@ -6,8 +6,8 @@ export type { OutputManifest } from './output/manifest'
 export { mergeEvents } from './scheduler'
 export type { Scheduler } from './scheduler'
 
-export { defineConfig, defineCollection, prepareConfig, ConfigError } from './config'
-export type { UserConfig, CollectionDef, ResolvedConfig, PrepareHook, PrepareContext, PrepareResult, PrepareConfigOptions, ConfigRuntime } from './config'
+export { defineConfig, defineCollection, resolveConfig, validateConfig, ConfigError } from './config'
+export type { UserConfig, CollectionDef, ResolvedConfig, PrepareHook, PrepareContext, PrepareResult, ResolveConfigOptions, ConfigRuntime } from './config'
 
 export { s } from './schema'
 export type { SchemaNamespace, Schema, Infer } from './schema'

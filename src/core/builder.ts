@@ -1,4 +1,4 @@
-import { prepareConfig } from './config'
+import { resolveConfig } from './config'
 import { applyChanges, createRunContext, runBuild, runIncremental } from './driver'
 import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
@@ -35,12 +35,12 @@ export interface Builder {
   build(options?: BuildOptions): Promise<BuildResult>
   watch(options?: WatchOptions): Promise<WatchHandle>
   applyChanges(events: FileEvent[]): Promise<BuildResult | undefined>
-  dispose(): void
+  dispose(): Promise<void>
 }
 
 export interface CreateBuilderOptions {
   cwd: string
-  /** Explicit config path. When omitted, `prepareConfig` searches from `cwd`. */
+  /** Explicit config path. When omitted, `resolveConfig` searches from `cwd`. */
   configPath?: string
   loaders?: Loader[]
 }
@@ -53,7 +53,7 @@ interface Session {
 }
 
 const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Promise<Session> => {
-  const config = await prepareConfig(runtime, { cwd: options.cwd, configPath: options.configPath })
+  const config = await resolveConfig(runtime, { cwd: options.cwd, configPath: options.configPath })
   const engine = createEngine()
   const pipeline = createPipeline(config, createLoaderRegistry(options.loaders ?? []), runtime)
   const context = createRunContext(engine, pipeline, config, runtime)
@@ -126,7 +126,7 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
     }
   }
 
-  const dispose = () => {
+  const dispose = async () => {
     scheduler?.dispose()
     unsubscribe?.()
     session = undefined

@@ -96,7 +96,7 @@ export const defineConfig = (config: UserConfig): UserConfig => config
 export const defineCollection = <S extends Schema>(def: CollectionDef<S>): CollectionDef<S> => def
 
 /**
- * Thrown by `prepareConfig` when the loaded config fails shape validation.
+ * Thrown by `resolveConfig` when the loaded config fails shape validation.
  * Carries the structured diagnostics so callers can surface them.
  */
 export class ConfigError extends Error {
@@ -107,31 +107,6 @@ export class ConfigError extends Error {
 }
 
 const toArray = (value: string | string[] | undefined): string[] => (value === undefined ? [] : Array.isArray(value) ? value : [value])
-
-/** Resolve a user config into absolute paths and a normalized shape (pure). */
-export const resolveConfig = (config: UserConfig, options: { cwd: string; path: Path; configPath?: string }): ResolvedConfig => {
-  const { cwd, path } = options
-  return {
-    root: path.join(cwd, config.root ?? '.'),
-    configPath: options.configPath ?? '',
-    output: {
-      data: path.join(cwd, config.output?.data ?? '.velite'),
-      assets: path.join(cwd, config.output?.assets ?? 'public/static'),
-      base: config.output?.base ?? '/static/',
-      name: config.output?.name ?? 'static',
-      format: config.output?.format ?? 'esm'
-    },
-    collections: Object.entries(config.collections).map(([name, def]) => ({
-      name,
-      include: toArray(def.pattern),
-      exclude: toArray(def.exclude),
-      single: def.single ?? false,
-      typeName: def.typeName ?? name,
-      schema: def.schema
-    })),
-    prepare: config.prepare
-  }
-}
 
 /** Validate a raw config value's shape. Returns diagnostics (does not throw). */
 export const validateConfig = (config: unknown): Diagnostic[] => {
@@ -164,8 +139,8 @@ export const DEFAULT_CONFIG_CANDIDATES: readonly string[] = [
   'velite.config.cts'
 ]
 
-/** Inputs for the {@link prepareConfig} facade. */
-export interface PrepareConfigOptions {
+/** Inputs for the {@link resolveConfig} facade. */
+export interface ResolveConfigOptions {
   cwd: string
   /** Given an absolute path, load it directly. Otherwise search from `cwd`. */
   configPath?: string
@@ -175,7 +150,7 @@ export interface PrepareConfigOptions {
   searchDepth?: number
 }
 
-/** The runtime slice `prepareConfig` needs. Keeps the facade testable. */
+/** The runtime slice `resolveConfig` needs. Keeps the facade testable. */
 export interface ConfigRuntime {
   modules: ModuleLoader
   fs: FileSystem
@@ -210,20 +185,20 @@ const searchConfigFile = async (fs: FileSystem, path: Path, cwd: string, candida
 }
 
 /**
- * High-level facade: locate (when path omitted), load, validate, and resolve a
- * user config. Throws {@link ConfigError} on validation failure; throws a plain
- * `Error` when the file cannot be located.
+ * High-level facade: locate (when path omitted), load, validate, and normalize a
+ * user config into a {@link ResolvedConfig}. Throws {@link ConfigError} on
+ * validation failure; throws a plain `Error` when the file cannot be located.
  *
- * This is the single entry point production code should call — the lower-level
- * `validateConfig` / `resolveConfig` remain exported for tests and exotic
- * embedders.
+ * This is the single entry point production code should call. `validateConfig`
+ * remains exported for tests and exotic embedders that bring their own loader.
  */
-export const prepareConfig = async (runtime: ConfigRuntime, options: PrepareConfigOptions): Promise<ResolvedConfig> => {
+export const resolveConfig = async (runtime: ConfigRuntime, options: ResolveConfigOptions): Promise<ResolvedConfig> => {
   const { cwd } = options
+  const { path } = runtime
   const candidates = options.candidates ?? DEFAULT_CONFIG_CANDIDATES
   const depth = options.searchDepth ?? 3
 
-  const configPath = options.configPath !== undefined ? options.configPath : await searchConfigFile(runtime.fs, runtime.path, cwd, candidates, depth)
+  const configPath = options.configPath !== undefined ? options.configPath : await searchConfigFile(runtime.fs, path, cwd, candidates, depth)
   if (configPath === undefined) {
     throw new Error(`config file not found in '${cwd}' (searched ${candidates.join(', ')} up to ${depth} parent directories)`)
   }
@@ -231,11 +206,30 @@ export const prepareConfig = async (runtime: ConfigRuntime, options: PrepareConf
   const loaded = await runtime.modules.load(configPath)
   // Modules may expose the config as `default` or as the namespace itself.
   const exports = loaded.exports as { default?: unknown } | unknown
-  const raw =
-    typeof exports === 'object' && exports !== null && 'default' in (exports as Record<string, unknown>) ? (exports as { default: unknown }).default : exports
+  const raw = typeof exports === 'object' && exports !== null && 'default' in exports ? exports.default : exports
 
   const issues = validateConfig(raw)
   if (issues.length > 0) throw new ConfigError(issues)
 
-  return resolveConfig(raw as UserConfig, { cwd, path: runtime.path, configPath })
+  const config = raw as UserConfig
+  return {
+    root: path.join(cwd, config.root ?? '.'),
+    configPath,
+    output: {
+      data: path.join(cwd, config.output?.data ?? '.velite'),
+      assets: path.join(cwd, config.output?.assets ?? 'public/static'),
+      base: config.output?.base ?? '/static/',
+      name: config.output?.name ?? 'static',
+      format: config.output?.format ?? 'esm'
+    },
+    collections: Object.entries(config.collections).map(([name, def]) => ({
+      name,
+      include: toArray(def.pattern),
+      exclude: toArray(def.exclude),
+      single: def.single ?? false,
+      typeName: def.typeName ?? name,
+      schema: def.schema
+    })),
+    prepare: config.prepare
+  }
 }

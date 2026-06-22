@@ -117,8 +117,7 @@ export default defineConfig({
   output: {
     data: '.velite',
     assets: 'public/static',
-    base: '/static/',
-    clean: true
+    base: '/static/'
   },
   collections: { options, categories, tags, pages, posts },
   markdown: { rehypePlugins: [rehypePrettyCode] },

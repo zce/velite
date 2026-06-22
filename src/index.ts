@@ -110,6 +110,7 @@ export type {
   MdxSchemaOptions,
   Metadata,
   PathSchemaOptions,
+  PrepareCollections,
   PrepareContext,
   PrepareHook,
   PrepareResult,

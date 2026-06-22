@@ -8,7 +8,7 @@ import type { Schema } from './s'
  * Validates a parseable date string and normalizes it to a UTC ISO timestamp.
  * Pure: no context, no I/O — safe to use in any runtime-agnostic schema.
  */
-export const isodate = (): Schema<string> =>
+export const isoDate = (): Schema<string> =>
   z
     .string()
     .refine(value => !Number.isNaN(Date.parse(value)), 'Invalid date string')

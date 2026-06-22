@@ -98,7 +98,7 @@ export default defineConfig({
         .object({
           title: s.string().max(99),
           slug: s.path(),
-          date: s.isodate(),
+          date: s.isoDate(),
           updated: timestamp(),
           cover: s.image().optional(),
           video: s.file().optional(),

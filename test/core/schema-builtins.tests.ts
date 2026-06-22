@@ -147,8 +147,8 @@ test('s.excerpt(): extracts a plain-text excerpt of the given length', async () 
   assert.ok(e.length <= 11)
 })
 
-test('s.isodate(): still works (regression)', async () => {
-  const r = await s.isodate().safeParseAsync('2024-01-15')
+test('s.isoDate(): still works (regression)', async () => {
+  const r = await s.isoDate().safeParseAsync('2024-01-15')
   assert.ok(r.success)
   assert.equal(r.data, '2024-01-15T00:00:00.000Z')
 })

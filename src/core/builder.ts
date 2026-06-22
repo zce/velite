@@ -52,6 +52,16 @@ interface Session {
   context: RunContext
 }
 
+/**
+ * The watch subsystem's state. Lives only when a watch is active; both fields
+ * are created together and torn down together, so they are grouped so the
+ * tear-down path can't leak one without the other.
+ */
+interface WatchState {
+  scheduler: Scheduler
+  unsubscribe: () => void
+}
+
 const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Promise<Session> => {
   const config = await resolveConfig(runtime, { cwd: options.cwd, configPath: options.configPath })
   const engine = createEngine()
@@ -63,42 +73,50 @@ const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Pro
 /**
  * Composition root (Pure DI): assembles runtime + config + engine + pipeline into a
  * Builder. No DI framework — the Runtime object is the container, wired here.
+ *
+ * State lives in three closures captured here, each with a single owner:
+ *  - `session`: the loaded config + engine + pipeline. Lazy on first build();
+ *    replaced wholesale on a `config-reload`.
+ *  - `activeLayout`: a build-time preference, sticky from the first `build()`
+ *    so incremental/watch rebuilds stay consistent. Core never reads
+ *    `process.env`; the root entry decides the env-based default and passes
+ *    it via `BuildOptions`.
+ *  - `watchState`: only present while a watch is running. Bundled so close()
+ *    can't drop half of it.
  */
 export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): Builder => {
   let session: Session | undefined
-  let scheduler: Scheduler | undefined
-  let unsubscribe: (() => void) | undefined
-  // Active output layout — sticky from the first build() so incremental/watch
-  // rebuilds stay consistent. Core never reads process.env; the root entry
-  // (src/index.ts) decides the env-based default and passes it via BuildOptions.
   let activeLayout: 'split' | 'single' = 'split'
+  let watchState: WatchState | undefined
 
-  const init = async (): Promise<Session> => {
-    if (session !== undefined) return session
-    session = await loadSession(runtime, options)
+  /** Load (or reload) the session. Pass `force` to replace an existing one. */
+  const ensureSession = async (force = false): Promise<Session> => {
+    if (force || session === undefined) session = await loadSession(runtime, options)
     return session
   }
 
-  const reload = async (): Promise<Session> => {
-    session = await loadSession(runtime, options)
-    return session
+  const closeWatch = (): void => {
+    if (watchState === undefined) return
+    watchState.scheduler.dispose()
+    watchState.unsubscribe()
+    watchState = undefined
   }
 
   const build = async (buildOptions?: BuildOptions): Promise<BuildResult> => {
-    const current = await init()
+    const current = await ensureSession()
     if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
     return runBuild(current.context, activeLayout)
   }
 
   const apply = async (events: FileEvent[]): Promise<BuildResult | undefined> => {
-    const current = await init()
+    const current = await ensureSession()
     const result = await applyChanges(current.context, events, {
       cwd: options.cwd,
       configPath: current.config.configPath
     })
     if (result === 'config-reload') {
-      session = await reload()
-      return runBuild(session.context, activeLayout)
+      const reloaded = await ensureSession(true)
+      return runBuild(reloaded.context, activeLayout)
     }
     if (result === 'content') return runIncremental(current.context, activeLayout)
     return undefined
@@ -106,29 +124,28 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
 
   const watch = async (watchOptions: WatchOptions = {}): Promise<WatchHandle> => {
     if (runtime.watch === undefined) {
-      throw new Error('watch is not available: runtime has no watch factory')
+      throw new Error('watch is not available: runtime has no watch support')
     }
+    // A second watch() call replaces the previous subscription instead of
+    // leaking it — calling watch() twice on the same builder is unusual but
+    // shouldn't strand a chokidar instance.
+    closeWatch()
     await build()
     const current = session!
-    const watcher = runtime.watch!([current.config.root, current.config.configPath])
-    scheduler = createScheduler(async events => {
+    const watcher = runtime.watch([current.config.root, current.config.configPath])
+    const scheduler = createScheduler(async events => {
       const result = await apply(events)
       if (result !== undefined) watchOptions.onRebuild?.(result)
     }, watchOptions.debounceMs)
-    unsubscribe = watcher.subscribe(event => scheduler!.push([event]))
+    const unsubscribe = watcher.subscribe(event => scheduler.push([event]))
+    watchState = { scheduler, unsubscribe }
     return {
-      close: async () => {
-        scheduler?.dispose()
-        scheduler = undefined
-        unsubscribe?.()
-        unsubscribe = undefined
-      }
+      close: async () => closeWatch()
     }
   }
 
-  const dispose = async () => {
-    scheduler?.dispose()
-    unsubscribe?.()
+  const dispose = async (): Promise<void> => {
+    closeWatch()
     session = undefined
   }
 

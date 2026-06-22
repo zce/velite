@@ -23,7 +23,14 @@
   "types": "./dist/index.d.mts",
   "exports": {
     "./package.json": "./package.json",
-    ".": "./dist/index.mjs"
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.mts",
+      "default": "./dist/runtime.mjs"
+    }
   },
   "files": [
     "dist"
@@ -36,10 +43,11 @@
     "format": "prettier . --write"
   },
   "tsdown": {
-    "entry": [
-      "src/index.ts",
-      "src/cli.ts"
-    ],
+    "entry": {
+      "index": "src/index.ts",
+      "cli": "src/cli.ts",
+      "runtime": "src/entries/runtime.ts"
+    },
     "format": "esm",
     "platform": "node",
     "target": "node22",

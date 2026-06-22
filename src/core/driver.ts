@@ -6,7 +6,8 @@ import { assetInput, assetKeyOf, fileInput, TREE } from './pipeline'
 import { join, relative } from './util/path'
 import { createPool } from './util/pool'
 
-import type { Runtime } from '../runtime'
+import type { FileSystem } from '../runtime/fs'
+import type { Logger } from '../runtime/logger'
 import type { FileEvent } from '../runtime/watcher'
 import type { PrepareContext, ResolvedConfig } from './config'
 import type { Diagnostic } from './diagnostic'
@@ -15,11 +16,21 @@ import type { LogicalOutput } from './output/logical'
 import type { OutputManifest } from './output/manifest'
 import type { Pipeline, TreeFile } from './pipeline'
 
+/**
+ * Runtime capabilities the driver actually touches at build time. Stated
+ * explicitly so this layer doesn't pull in `modules`/`image`/`watch` (those
+ * belong to config loading, asset derivation, and the watch loop respectively).
+ */
+export interface DriverRuntime {
+  fs: FileSystem
+  logger?: Logger
+}
+
 export interface RunContext {
   engine: Engine
   pipeline: Pipeline
   config: ResolvedConfig
-  runtime: Runtime
+  runtime: DriverRuntime
   /** Shadow copy of the tree input, kept in sync with the engine. */
   tree: TreeFile[]
   manifest: OutputManifest
@@ -289,7 +300,7 @@ export const applyChanges = async (context: RunContext, events: FileEvent[], opt
 }
 
 /** Create a fresh run context (empty tree/manifest). */
-export const createRunContext = (engine: Engine, pipeline: Pipeline, config: ResolvedConfig, runtime: Runtime): RunContext => ({
+export const createRunContext = (engine: Engine, pipeline: Pipeline, config: ResolvedConfig, runtime: DriverRuntime): RunContext => ({
   engine,
   pipeline,
   config,

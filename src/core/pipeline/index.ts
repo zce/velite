@@ -52,7 +52,6 @@ export const createPipeline = (config: ResolvedConfig, loaders: LoaderRegistry, 
 }
 
 export { TREE, fileInput } from './inputs'
-export { assetInput, assetKeyOf, publicUrlOf, renderAssetName } from './asset'
+export { assetInput, assetKeyOf, publicUrlOf } from './asset'
 export type { TreeFile } from './inputs'
 export type { AssetKey, AssetResult, BlurOptions } from './asset'
-export type { UniqueChecked } from './unique'

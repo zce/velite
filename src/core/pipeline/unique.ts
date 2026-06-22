@@ -17,11 +17,7 @@ import type { ResolvedConfig } from '../config'
 import type { Diagnostic } from '../diagnostic'
 import type { Derivation } from '../engine'
 import type { Source } from '../model'
-import type { Validated, ValidateKey } from './types'
-
-export interface UniqueChecked {
-  diagnostics: Diagnostic[]
-}
+import type { UniqueChecked, Validated, ValidateKey } from './types'
 
 /** One `(group, value)` bucket tracking every owner that registered it. */
 interface UniqueBucket {

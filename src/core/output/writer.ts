@@ -22,7 +22,7 @@ import type { OutputManifest } from './manifest'
 
 const encoder = new TextEncoder()
 
-export interface WriteDeps {
+interface WriteDeps {
   fs: FileSystem
   /** Absolute data output directory. */
   dir: string
@@ -38,7 +38,7 @@ export interface WriteDeps {
   pretty?: boolean
 }
 
-export interface WriteResult {
+interface WriteResult {
   /** Output files written this run (unchanged files are skipped). */
   written: string[]
   manifest: OutputManifest

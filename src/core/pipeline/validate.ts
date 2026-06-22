@@ -26,7 +26,7 @@ const buildProjectInfo = (config: ResolvedConfig): ProjectInfo => {
  * (`readFile` is required if any `s.image({ absoluteRoot })` is used; `image`
  * gives blur/probe). The driver wires these from the `Runtime` bundle.
  */
-export interface ValidateRuntime {
+interface ValidateRuntime {
   fs: Pick<FileSystem, 'read'>
   image?: ImageProcessor
 }

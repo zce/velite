@@ -1,7 +1,7 @@
 import type { FileEvent } from '../runtime/watcher'
 
 /** Merge consecutive events for the same path; the last event wins. */
-export const mergeEvents = (events: FileEvent[]): FileEvent[] => {
+const mergeEvents = (events: FileEvent[]): FileEvent[] => {
   const byPath = new Map<string, FileEvent>()
   for (const event of events) byPath.set(event.absPath, event)
   return [...byPath.values()]

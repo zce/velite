@@ -73,7 +73,7 @@ export interface UserConfig {
   prepare?: PrepareHook
 }
 
-export interface ResolvedCollection {
+interface ResolvedCollection {
   name: string
   include: string[]
   exclude: string[]
@@ -145,7 +145,7 @@ const DEFAULT_CONFIG_CANDIDATES: readonly string[] = [
 ]
 
 /** Inputs for the {@link resolveConfig} facade. */
-export interface ResolveConfigOptions {
+interface ResolveConfigOptions {
   cwd: string
   /** Given an absolute path, load it directly. Otherwise search from `cwd`. */
   configPath?: string

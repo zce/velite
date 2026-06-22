@@ -15,7 +15,7 @@ import { visit } from 'unist-util-visit'
 
 import type { Root } from 'mdast'
 
-export type ReferenceKind = 'image' | 'link'
+type ReferenceKind = 'image' | 'link'
 
 /** A local resource referenced from markdown / mdx body content. */
 export interface ContentReference {

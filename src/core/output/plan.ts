@@ -24,8 +24,6 @@ export interface OutputWrite {
   readonly content: string
 }
 
-export type { CollectionMeta } from './declaration'
-
 const stringify = (data: unknown, pretty: boolean): string => (pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data))
 
 /**

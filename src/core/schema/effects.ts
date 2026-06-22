@@ -30,14 +30,7 @@ export interface AssetReferenceEffect {
   readonly isImage: boolean
 }
 
-/** A declared source dependency effect produced by loaders / schemas. */
-export interface SourceDependencyEffect {
-  readonly type: 'dependency'
-  readonly owner: string
-  readonly sourceId: string
-}
-
-export type Effect = UniqueEffect | AssetReferenceEffect | SourceDependencyEffect
+export type Effect = UniqueEffect | AssetReferenceEffect
 
 /**
  * Immutable-ish index of committed schema effects, keyed by owner.

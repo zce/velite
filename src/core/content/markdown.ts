@@ -106,6 +106,3 @@ export const processMarkdown = async (source: string, options: MarkdownOptions =
   if (options.references) result.references = findReferences(tree)
   return result
 }
-
-export type { ContentReference, TocItem } from './reference'
-export { extractToc, extractText, findReferences, parseMarkdown } from './reference'

@@ -53,7 +53,7 @@ export interface ContentFile {
 }
 
 /** Identity of the record currently being parsed within a multi-record source. */
-export interface ContentRecord {
+interface ContentRecord {
   /** Stable record id (`sourceId#key`). */
   readonly id: string
   /** Loader-provided record key, when available. */

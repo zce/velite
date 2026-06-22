@@ -13,7 +13,7 @@
 //   — used only by `driver.ts` / `writer.ts`, imported directly.
 // - Content helpers (`processMarkdown`, `processMdx`, `extractText`, etc.)
 //   — used only by `builtins.ts` / `context.ts`, imported directly.
-// - Scheduler (`mergeEvents`, `createScheduler`, `Scheduler`) — used only
+// - Scheduler (`createScheduler`, `Scheduler`) — used only
 //   by `builder.ts`, imported directly.
 // - Loader internals (`createLoaderRegistry`, individual loader types)
 //   — used only by `builder.ts` / `load.ts`, imported directly.
@@ -21,7 +21,7 @@
 //   — used only by `context.ts` / `driver.ts`, imported directly.
 // - Model internals (`Source`, `SourcePath`, `RawEntry`, `EntryId`, `Collection`)
 //   — used only by pipeline/loader types, imported directly.
-// - Config internals (`ConfigRuntime`, `ResolveConfigOptions`, `PrepareResult`)
+// - Config internals (`ConfigRuntime`, `PrepareResult`)
 //   — used only by `config.ts` tests, imported directly.
 // - Driver internals (`ApplyResult`, `DriverRuntime`, `OutputManifest`)
 //   — used only by `driver.ts` / builder, imported directly.

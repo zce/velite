@@ -2,7 +2,7 @@ import { normalize } from './util/path'
 
 import type { FileEvent } from '../runtime/watcher'
 
-export type ChangeKind = 'config' | 'content' | 'ignore'
+type ChangeKind = 'config' | 'content' | 'ignore'
 
 /**
  * Classify a file event for incremental handling.

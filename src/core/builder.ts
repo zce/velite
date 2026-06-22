@@ -1,4 +1,5 @@
 import { resolveConfig } from './config'
+import { fail } from './diagnostic'
 import { applyChanges, createRunContext, runBuild, runIncremental } from './driver'
 import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
@@ -126,9 +127,7 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
   }
 
   const watch = async (watchOptions: WatchOptions = {}): Promise<WatchHandle> => {
-    if (runtime.watch === undefined) {
-      throw new Error('watch is not available: runtime has no watch support')
-    }
+    if (runtime.watch === undefined) fail('watch', 'watch is not available: runtime has no watch support')
     // A second watch() call replaces the previous subscription instead of
     // leaking it — calling watch() twice on the same builder is unusual but
     // shouldn't strand a chokidar instance.

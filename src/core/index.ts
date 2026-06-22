@@ -17,7 +17,7 @@
 //   by `builder.ts`, imported directly.
 // - Loader internals (`createLoaderRegistry`, individual loader types)
 //   — used only by `builder.ts` / `load.ts`, imported directly.
-// - Individual diagnostic helpers (`fail`, `assert`, `flattenError`, etc.)
+// - Individual diagnostic helpers (`fail`, `hasFatalDiagnostic`, etc.)
 //   — used only by `context.ts` / `driver.ts`, imported directly.
 // - Model internals (`Source`, `SourcePath`, `RawEntry`, `EntryId`, `Collection`)
 //   — used only by pipeline/loader types, imported directly.

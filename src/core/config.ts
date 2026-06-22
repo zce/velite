@@ -1,4 +1,4 @@
-import { diagnostic } from './diagnostic'
+import { diagnostic, fail } from './diagnostic'
 import { dirname, join } from './util/path'
 
 import type { FileSystem } from '../runtime/fs'
@@ -203,7 +203,7 @@ export const resolveConfig = async (runtime: ConfigRuntime, options: ResolveConf
 
   const configPath = options.configPath !== undefined ? options.configPath : await searchConfigFile(runtime.fs, cwd, candidates, depth)
   if (configPath === undefined) {
-    throw new Error(`config file not found in '${cwd}' (searched ${candidates.join(', ')} up to ${depth} parent directories)`)
+    fail('config', `config file not found in '${cwd}' (searched ${candidates.join(', ')} up to ${depth} parent directories)`)
   }
 
   const loaded = await runtime.modules.load(configPath)

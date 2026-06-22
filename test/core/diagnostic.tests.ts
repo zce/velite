@@ -1,17 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import {
-  codeFromDiagnostics,
-  diagnostic,
-  fail,
-  flattenError,
-  hasFatalDiagnostic,
-  isError,
-  isVeliteError,
-  assert as veliteAssert,
-  VeliteError
-} from '../../src/core/diagnostic'
+import { codeFromDiagnostics, diagnostic, fail, hasFatalDiagnostic, isVeliteError, VeliteError } from '../../src/core/diagnostic'
 
 test('diagnostic() factory builds a diagnostic with level/code/message and extra fields', () => {
   const d = diagnostic('error', 'LOADER_FAILED', 'invalid JSON', { file: 'a.json', stage: 'load', recordId: 'a.json#0', cause: new Error('x') })
@@ -93,30 +83,6 @@ test('fail accepts an options object', () => {
   )
 })
 
-test('assert passes through when condition is truthy', () => {
-  const value = 'x'
-  veliteAssert(value, 'internal', 'should not throw')
-  // reaching here means no throw
-})
-
-test('assert throws when condition is falsy', () => {
-  assert.throws(() => veliteAssert(false, 'internal', 'bad'), VeliteError)
-})
-
-test('assert narrows the type (asserts condition)', () => {
-  const maybe: string | undefined = 'present'
-  veliteAssert(maybe != null, 'internal', 'missing')
-  const len: number = maybe.length
-  assert.equal(len, 7)
-})
-
-test('assert accepts a throw thunk overload', () => {
-  assert.throws(
-    () => veliteAssert(false, () => fail('config', 'from thunk')),
-    (e: unknown) => e instanceof VeliteError && (e as VeliteError).code === 'config'
-  )
-})
-
 test('hasFatalDiagnostic is true for error-level non-schema diagnostics', () => {
   const diags = [diagnostic('warn', 'CONFIG_INVALID', 'w', { stage: 'config' }), diagnostic('error', 'ASSET_FAILED', 'e', { stage: 'asset' })]
   assert.equal(hasFatalDiagnostic(diags), true)
@@ -150,19 +116,7 @@ test('codeFromDiagnostics falls back to unknown on empty', () => {
   assert.equal(codeFromDiagnostics([]), 'unknown')
 })
 
-test('flattenError normalizes each input shape', () => {
-  assert.equal(flattenError(new VeliteError('internal', { message: 'x' })), 'internal')
-  assert.equal(flattenError(new Error('plain')), 'plain')
-  assert.equal(flattenError('a string'), 'a string')
-  assert.equal(flattenError({ a: 1 }), '{"a":1}')
-  assert.equal(flattenError(42), 'unknown')
-  assert.equal(flattenError(null), 'unknown')
-})
-
-test('isError and isVeliteError classify Error subtypes correctly', () => {
-  assert.equal(isError(new Error('x')), true)
-  assert.equal(isError(new VeliteError('internal')), true)
-  assert.equal(isError('nope'), false)
+test('isVeliteError classifies VeliteError vs plain Error', () => {
   assert.equal(isVeliteError(new VeliteError('internal')), true)
   assert.equal(isVeliteError(new Error('plain')), false)
 })
@@ -170,5 +124,4 @@ test('isError and isVeliteError classify Error subtypes correctly', () => {
 test('isVeliteError rejects Node-style system errors (code + message but not VeliteError)', () => {
   const sysErr = Object.assign(new Error('not found'), { code: 'ENOENT' })
   assert.equal(isVeliteError(sysErr), false)
-  assert.equal(flattenError(sysErr), 'not found')
 })

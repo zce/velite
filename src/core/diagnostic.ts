@@ -2,11 +2,15 @@
 // presentation layer over diagnostics; programmatic callers read diagnostics
 // directly.
 //
-// This module fuses z-labs's diagnostic vocabulary (level/code/DiagnosticCode
-// closed set + `diagnostic()` factory) with the current `errors.ts` error
-// machinery (VeliteError / fail / assert / hasFatalDiagnostic / codeFromDiagnostics).
-// The field is `level` ('error' | 'warn' | 'info'); schema-stage errors are
-// non-fatal by themselves.
+// Surface:
+//  - `Diagnostic` + `diagnostic()` factory: the structured failure shape the
+//    pipeline emits.
+//  - `VeliteError` + `fail()`: thrown for invariant violations and on build
+//    failure (carries the diagnostics that triggered it).
+//  - `hasFatalDiagnostic` / `codeFromDiagnostics`: classify a diagnostic set
+//    against the schema-is-non-fatal-by-itself rule.
+//  - `isVeliteError`: programmatic discrimination for callers that want to
+//    distinguish library errors from native ones.
 
 import type { Collection, SourcePath } from './model'
 
@@ -59,8 +63,8 @@ export const diagnostic = (
 /** Error codes aligned with pipeline stages plus `internal` (invariant violations) and `unknown`. */
 export type VeliteErrorCode = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch' | 'internal' | 'unknown'
 
-/** Options for constructing a {@link VeliteError}. */
-export type VeliteErrorOptions<T = unknown> = {
+/** Options for constructing a {@link VeliteError}. Internal — callers use the {@link fail} helper. */
+interface VeliteErrorOptions<T = unknown> {
   message?: string
   context?: T
   cause?: unknown
@@ -69,7 +73,7 @@ export type VeliteErrorOptions<T = unknown> = {
 
 /**
  * Error type thrown by `build()` / `watch()` on build failure and by internal
- * `fail()` / `assert()` calls for invariant violations.
+ * `fail()` calls for invariant violations.
  *
  * Carries a typed `code` (aligned with pipeline stages), optional `context`,
  * the standard `cause`, and — when representing a build failure — the
@@ -135,32 +139,6 @@ export function fail<T = unknown>(code: VeliteErrorCode, options?: VeliteErrorOp
 export function fail(code: VeliteErrorCode, options?: string | VeliteErrorOptions): never {
   throw new VeliteError(code, typeof options === 'string' ? { message: options } : options)
 }
-
-/**
- * Assert `condition` is truthy, otherwise throw a {@link VeliteError} via
- * {@link fail}. Acts as an `asserts condition` type guard.
- */
-export function assert(condition: unknown, code: VeliteErrorCode, message?: string): asserts condition
-export function assert<T = unknown>(condition: unknown, code: VeliteErrorCode, options?: VeliteErrorOptions<T>): asserts condition
-export function assert(condition: unknown, throwError: () => never): asserts condition
-export function assert(condition: unknown, error: VeliteErrorCode | (() => never), options?: string | VeliteErrorOptions): asserts condition {
-  if (!condition) {
-    if (typeof error === 'string') fail(error, options as VeliteErrorOptions)
-    else error()
-  }
-}
-
-/** Flatten any thrown value to a stable string for logging. */
-export const flattenError = (error: unknown): string => {
-  if (isVeliteError(error)) return error.code
-  if (isError(error)) return error.message
-  if (typeof error === 'string') return error
-  if (typeof error === 'object' && error != null) return JSON.stringify(error)
-  return 'unknown'
-}
-
-/** Whether `error` is an `Error`. */
-export const isError = (error: unknown): error is Error => error instanceof Error
 
 /** Whether `error` is a {@link VeliteError} (instanceof, or an `Error` named `VeliteError` carrying a `code`). */
 export const isVeliteError = (error: unknown): error is VeliteError =>

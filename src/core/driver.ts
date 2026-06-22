@@ -152,7 +152,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
     }
     const prepared = await config.prepare({ output, diagnostics }, prepareContext)
     if (prepared === false) {
-      runtime.logger?.report?.(diagnostics)
+      runtime.logger?.report(diagnostics)
       return { output, diagnostics, written: [] }
     }
     if (prepared !== undefined) {
@@ -194,7 +194,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   }
 
   const finalDiagnostics = [...diagnostics, ...assetWriteDiagnostics]
-  runtime.logger?.report?.(finalDiagnostics)
+  runtime.logger?.report(finalDiagnostics)
   // Fatal (non-schema) errors make the output untrustworthy: report and throw,
   // skipping the write. Schema-level errors are non-fatal and returned in the result.
   if (hasFatalDiagnostic(finalDiagnostics)) {

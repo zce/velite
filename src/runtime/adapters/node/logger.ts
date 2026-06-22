@@ -35,7 +35,7 @@ const formatDiagnostic = (d: Diagnostic): string => {
  * as a structural type so callers (e.g. `setLogLevel`) can adjust the level
  * without re-creating the logger object.
  */
-export type LeveledLogger = Required<Logger> & { set(level: LogLevel): void }
+export type LeveledLogger = Logger & { set(level: LogLevel): void }
 
 /**
  * Create a console logger writing at `level`. The returned logger also exposes

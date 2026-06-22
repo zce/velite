@@ -50,7 +50,9 @@ export interface ImageSchemaOptions {
    * referencing static files served from `public/`.
    */
   absoluteRoot?: string
-  /** Blur placeholder options (width / height / quality). */
+  /**
+   * Blur placeholder options (width / height / quality).
+   */
   blur?: BlurOptions
   /**
    * Per-schema override of the global `output.name` template.
@@ -66,7 +68,7 @@ export interface ImageSchemaOptions {
  * blur placeholder).
  */
 export const image = ({ absoluteRoot, blur, outputName }: ImageSchemaOptions = {}): z.ZodType<ImageData> =>
-  z.string().transform<ImageData>(async (value, ctx) => {
+  z.string().transform<ImageData>(async (value, { addIssue }) => {
     try {
       const { project, file, record, asset, collectEffect, readFile, probeImage } = context()
 
@@ -92,7 +94,7 @@ export const image = ({ absoluteRoot, blur, outputName }: ImageSchemaOptions = {
         blurHeight: result.blurHeight
       }
     } catch (err) {
-      ctx.addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
+      addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
       return null as never
     }
   })

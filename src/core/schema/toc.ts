@@ -11,11 +11,11 @@ export const toc = (): Schema<TocItem[]> =>
   z
     .custom<string>(i => typeof i === 'string')
     .optional()
-    .transform<TocItem[]>(async (value, ctx) => {
+    .transform<TocItem[]>(async (value, { addIssue }) => {
       const { file } = context()
       const body = value ?? file.content
       if (body == null || body.length === 0) {
-        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        addIssue({ code: 'custom', message: 'The content is empty' })
         return []
       }
       try {
@@ -27,7 +27,7 @@ export const toc = (): Schema<TocItem[]> =>
         if (tree == null) throw new Error('No mdast tree available')
         return extractToc(tree)
       } catch (err) {
-        ctx.addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
+        addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
         return null as never
       }
     })

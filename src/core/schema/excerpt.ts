@@ -22,11 +22,11 @@ export const excerpt = ({ length = 260 }: ExcerptSchemaOptions = {}): Schema<str
   z
     .custom<string>(i => typeof i === 'string')
     .optional()
-    .transform<string>(async (value, ctx) => {
+    .transform<string>(async (value, { addIssue }) => {
       const { file } = context()
       const body = value ?? file.plain
       if (body == null || body.length === 0) {
-        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        addIssue({ code: 'custom', message: 'The content is empty' })
         return ''
       }
       return body.slice(0, length)

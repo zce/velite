@@ -32,11 +32,11 @@ export const markdown = (options: MarkdownSchemaOptions = {}): Schema<string> =>
   z
     .custom<string>(i => typeof i === 'string')
     .optional()
-    .transform<string>(async (value, ctx) => {
+    .transform<string>(async (value, { addIssue }) => {
       const { file, project, record, asset, collectEffect } = context()
       const body = value ?? file.content
       if (body == null || body.length === 0) {
-        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        addIssue({ code: 'custom', message: 'The content is empty' })
         return ''
       }
       const g = project.markdown
@@ -60,7 +60,7 @@ export const markdown = (options: MarkdownSchemaOptions = {}): Schema<string> =>
         const { html } = await processMarkdown(body, merged)
         return html
       } catch (err) {
-        ctx.addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
+        addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
         return null as never
       }
     })

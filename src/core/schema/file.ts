@@ -44,7 +44,7 @@ export interface FileSchemaOptions {
  * unchanged when `allowNonRelativePath` is true (default).
  */
 export const file = ({ allowNonRelativePath = true, outputName }: FileSchemaOptions = {}): z.ZodType<string> =>
-  z.string().transform<string>(async (value, ctx) => {
+  z.string().transform<string>(async (value, { addIssue }) => {
     if (allowNonRelativePath && !isRelativePath(value)) return value
     try {
       const { project, file, record, asset, collectEffect } = context()
@@ -55,7 +55,7 @@ export const file = ({ allowNonRelativePath = true, outputName }: FileSchemaOpti
       collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, isImage: false })
       return result.publicUrl
     } catch (err) {
-      ctx.addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
+      addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
       return null as never
     }
   })

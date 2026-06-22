@@ -61,10 +61,10 @@ export const metadata = (): Schema<Metadata> =>
   z
     .custom<string>(i => typeof i === 'string')
     .optional()
-    .transform<Metadata>(async (value, ctx) => {
+    .transform<Metadata>(async (value, { addIssue }) => {
       const body = value ?? context().file.plain
       if (body == null || body.length === 0) {
-        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        addIssue({ code: 'custom', message: 'The content is empty' })
         return { readingTime: 0, wordCount: 0 }
       }
       const avgWPM = 265

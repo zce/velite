@@ -38,11 +38,11 @@ export const mdx = (options: MdxSchemaOptions = {}): Schema<string> =>
   z
     .custom<string>(i => typeof i === 'string')
     .optional()
-    .transform<string>(async (value, ctx) => {
+    .transform<string>(async (value, { addIssue }) => {
       const { file, project, record, asset, collectEffect } = context()
       const body = value ?? file.content
       if (body == null || body.length === 0) {
-        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        addIssue({ code: 'custom', message: 'The content is empty' })
         return ''
       }
       const g = project.mdx
@@ -71,7 +71,7 @@ export const mdx = (options: MdxSchemaOptions = {}): Schema<string> =>
         const { code } = await processMdx(body, merged)
         return code
       } catch (err) {
-        ctx.addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
+        addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
         return null as never
       }
     })

@@ -15,8 +15,8 @@ import type { Schema } from './s'
  */
 export const unique = (group: string = 'global'): Schema<string> =>
   z.string().superRefine(value => {
-    const ctx = context()
-    ctx.collectEffect({ type: 'unique', owner: ctx.record.id, group, value })
+    const { collectEffect, record } = context()
+    collectEffect({ type: 'unique', owner: record.id, group, value })
   })
 
 /**

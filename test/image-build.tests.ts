@@ -250,3 +250,125 @@ test('asset write failure (full disk / permissions) surfaces as a fatal ASSET_FA
       err.diagnostics.some(d => d.code === 'ASSET_FAILED' && d.stage === 'asset' && /failed to write asset/.test(d.message) && d.cause != null)
   )
 })
+
+test('s.image: outputName template overrides global output.name and supports subdirectories', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image({ outputName: 'logos/[name]-[hash:6].[ext]' }) }) } }
+  }
+  const { runtime, fs } = setup(config, {
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
+    [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+  })
+
+  const result = await build(runtime)
+  equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ cover: { src: string } }>
+  match(posts[0]!.cover.src, /^\/static\/logos\/cover-[0-9a-f]{6}\.png$/)
+  // The asset was written under the templated subdirectory.
+  ok(
+    result.written.some(p => /logos\/cover-[0-9a-f]{6}\.png$/.test(p)),
+    JSON.stringify(result.written)
+  )
+})
+
+test('s.file: outputName template overrides global output.name', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ doc: s.file({ outputName: 'docs/[name].[ext]' }) }) } }
+  }
+  const { runtime, fs } = setup(config, {
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ doc: './report.pdf' }]),
+    [join(CWD, 'content/posts/report.pdf')]: new Uint8Array([0x25, 0x50, 0x44, 0x46])
+  })
+
+  const result = await build(runtime)
+  equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ doc: string }>
+  equal(posts[0]!.doc, '/static/docs/report.pdf')
+  ok(result.written.some(p => /docs\/report\.pdf$/.test(p)))
+})
+
+test('s.image: absoluteRoot reads /-prefixed paths directly, no hash, no copy', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image({ absoluteRoot: join(CWD, 'public') }) }) } }
+  }
+  const { runtime, fs } = setup(config, {
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: '/logo.png' }]),
+    [join(CWD, 'public/logo.png')]: PNG_BYTES
+  })
+
+  const result = await build(runtime)
+  equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ cover: { src: string; width: number } }>
+  // Public url is verbatim — no /static prefix, no hash.
+  equal(posts[0]!.cover.src, '/logo.png')
+  equal(posts[0]!.cover.width, 100)
+  // No asset copy was emitted.
+  ok(!result.written.some(p => p.startsWith(ASSETS_DIR)), JSON.stringify(result.written))
+})
+
+test('s.image: blur options propagate to the image processor (custom width)', async () => {
+  let receivedOutput: { width?: number; height?: number; quality?: number } | undefined
+  const image: ImageProcessor = {
+    probe: async () => ({ width: 200, height: 100, format: 'png' }),
+    blurDataURL: async (_data, _meta, output) => {
+      receivedOutput = output
+      return 'data:image/webp;base64,X'
+    }
+  }
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image({ blur: { width: 32, quality: 80 } }) }) } }
+  }
+  const { runtime } = setup(
+    config,
+    {
+      [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
+      [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+    },
+    image
+  )
+
+  await build(runtime)
+  equal(receivedOutput?.width, 32)
+  equal(receivedOutput?.quality, 80)
+})
+
+test('s.markdown: copyLinkedFiles rewrites img src + asset is copied once', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.md', schema: s.object({ html: s.markdown() }) } }
+  }
+  const md = '# title\n\n![logo](./cover.png)'
+  const { runtime, fs } = setup(config, {
+    [join(CWD, 'content/posts/a.md')]: md,
+    [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+  })
+
+  const result = await build(runtime)
+  equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ html: string }>
+  match(posts[0]!.html, /<img\s+src="\/static\/cover-[0-9a-f]{8}\.png"/)
+  // The asset file was written via the markdown plugin's processAsset hook.
+  ok(result.written.some(p => /\/static\/cover-[0-9a-f]{8}\.png$/.test(p)))
+})
+
+test('s.markdown: copyLinkedFiles: false leaves urls untouched', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.md', schema: s.object({ html: s.markdown({ copyLinkedFiles: false }) }) } }
+  }
+  const md = '![logo](./cover.png)'
+  const { runtime, fs } = setup(config, {
+    [join(CWD, 'content/posts/a.md')]: md,
+    [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+  })
+
+  const result = await build(runtime)
+  equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ html: string }>
+  match(posts[0]!.html, /<img\s+src="\.\/cover\.png"/)
+  ok(!result.written.some(p => p.startsWith(ASSETS_DIR)))
+})

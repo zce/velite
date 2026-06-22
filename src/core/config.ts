@@ -57,7 +57,12 @@ export interface UserConfig {
     assets?: string
     /** Public base url for assets (default '/static/'). */
     base?: string
-    /** Asset sub-directory name within the asset dir (default 'static'). */
+    /**
+     * Output filename template for assets, evaluated by {@link renderAssetName}.
+     * Supports `[name]`, `[hash]`, `[hash:N]`, `[ext]` placeholders, and the
+     * `/` character to nest the asset under sub-directories of the assets dir.
+     * @default '[name]-[hash:8].[ext]'
+     */
     name?: string
     /** Output entry file format (default 'esm'). */
     format?: 'esm' | 'cjs'
@@ -217,7 +222,7 @@ export const resolveConfig = async (runtime: ConfigRuntime, options: ResolveConf
       data: join(cwd, config.output?.data ?? '.velite'),
       assets: join(cwd, config.output?.assets ?? 'public/static'),
       base: config.output?.base ?? '/static/',
-      name: config.output?.name ?? 'static',
+      name: config.output?.name ?? '[name]-[hash:8].[ext]',
       format: config.output?.format ?? 'esm'
     },
     collections: Object.entries(config.collections).map(([name, def]) => ({

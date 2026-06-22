@@ -1,6 +1,8 @@
 import { z } from 'zod'
 
 import { processMdx } from '../content/mdx'
+import { assetKeyOf } from '../pipeline/asset'
+import { dirname, join, stripQueryAndHash } from '../util/path'
 import { context } from './context'
 
 import type { PluggableList } from 'unified'
@@ -23,6 +25,12 @@ export interface MdxSchemaOptions {
   rehypePlugins?: PluggableList
   /** Enable development-friendly output. @default false */
   development?: boolean
+  /**
+   * Copy locally-referenced asset files (relative `url`s on `link` / `image` /
+   * `definition` nodes and on mdx JSX attributes) into the assets output and
+   * rewrite to the content-hashed public urls. @default true
+   */
+  copyLinkedFiles?: boolean
 }
 
 /** Compile the current content body as MDX. */
@@ -31,13 +39,14 @@ export const mdx = (options: MdxSchemaOptions = {}): Schema<string> =>
     .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, ctx) => {
-      const { file, project } = context()
+      const { file, project, record, asset, collectEffect } = context()
       const body = value ?? file.content
       if (body == null || body.length === 0) {
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
         return ''
       }
       const g = project.mdx
+      const copyLinkedFiles = options.copyLinkedFiles ?? g?.copyLinkedFiles ?? true
       const merged: ProcessMdxOptions = {
         gfm: options.gfm ?? g?.gfm ?? true,
         removeComments: options.removeComments ?? g?.removeComments ?? true,
@@ -48,6 +57,15 @@ export const mdx = (options: MdxSchemaOptions = {}): Schema<string> =>
         rehypePlugins: [...(options.rehypePlugins ?? []), ...(g?.rehypePlugins ?? [])],
         path: file.path,
         references: false
+      }
+      if (copyLinkedFiles) {
+        merged.processAsset = async (url: string): Promise<string> => {
+          const absSourcePath = join(dirname(file.path), stripQueryAndHash(url))
+          const assetKey = assetKeyOf(absSourcePath, project.root)
+          const result = await asset(assetKey, { template: project.output.name })
+          collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, isImage: false })
+          return result.publicUrl
+        }
       }
       try {
         const { code } = await processMdx(body, merged)

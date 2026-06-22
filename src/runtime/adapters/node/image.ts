@@ -14,13 +14,11 @@
 
 import type { ImageProcessor } from '../../image'
 
-/**
- * Blur placeholder width. NOTE: the canonical contract lives in
- * `src/core/pipeline/asset.ts` (`BLUR_WIDTH`), which gates blur generation on
- * `width > 0`. This root adapter mirrors the same width so the generated blur
- * image matches the dimensions the asset derivation reports.
- */
-const BLUR_WIDTH = 8
+/** Default blur placeholder width when no explicit `output.width` is passed. */
+const DEFAULT_BLUR_WIDTH = 8
+
+/** Default WebP quality used when the caller does not request one. */
+const DEFAULT_BLUR_QUALITY = 1
 
 /**
  * Sharp-backed {@link ImageProcessor}. `sharp` is imported lazily so the runtime
@@ -31,6 +29,10 @@ const BLUR_WIDTH = 8
  * the caller already has dimensions (the asset derivation always does). When
  * metadata is omitted the adapter probes internally; either way, dimensionless
  * inputs (e.g. some SVGs) return `''` rather than divide by zero.
+ *
+ * `output.width` / `output.height` / `output.quality` are honored when present;
+ * otherwise the defaults match the canonical contract in
+ * `src/core/pipeline/asset.ts`.
  */
 export const sharpImageProcessor: ImageProcessor = {
   async probe(data) {
@@ -39,7 +41,7 @@ export const sharpImageProcessor: ImageProcessor = {
     return { width: width ?? 0, height: height ?? 0, format: format ?? '' }
   },
 
-  async blurDataURL(data, metadata) {
+  async blurDataURL(data, metadata, output) {
     const { default: sharp } = await import('sharp')
     const img = sharp(data)
     let width = metadata?.width ?? 0
@@ -50,8 +52,10 @@ export const sharpImageProcessor: ImageProcessor = {
       height = meta.height ?? 0
     }
     if (width <= 0 || height <= 0) return ''
-    const blurHeight = Math.max(1, Math.round((BLUR_WIDTH * height) / width))
-    const blurImage = await img.resize(BLUR_WIDTH, blurHeight).webp({ quality: 1 }).toBuffer()
+    const blurWidth = output?.width ?? DEFAULT_BLUR_WIDTH
+    const blurHeight = output?.height ?? Math.max(1, Math.round((blurWidth * height) / width))
+    const quality = output?.quality ?? DEFAULT_BLUR_QUALITY
+    const blurImage = await img.resize(blurWidth, blurHeight).webp({ quality }).toBuffer()
     return `data:image/webp;base64,${blurImage.toString('base64')}`
   }
 }

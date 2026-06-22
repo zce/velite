@@ -15,11 +15,13 @@
 import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 
+import { remarkCopyLinkedFiles } from './asset-links'
 import { findReferences, parseMarkdown } from './reference'
 
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root } from 'mdast'
 import type { PluggableList } from 'unified'
+import type { ProcessAsset } from './asset-links'
 import type { ContentReference } from './reference'
 
 /** MDX compiler options. */
@@ -38,6 +40,19 @@ export interface MdxOptions {
   rehypePlugins?: PluggableList
   /** Enable development-friendly output. @default false */
   development?: boolean
+  /**
+   * Copy locally-referenced asset files into the assets output. The schema
+   * layer reads this global default and decides whether to wire
+   * `processAsset` for each mdx invocation. @default true
+   */
+  copyLinkedFiles?: boolean
+  /**
+   * Copy local image/link references encountered in the body to the assets
+   * output and replace their urls with the public urls returned by
+   * `processAsset`. The schema layer wires this through `context().asset(...)`
+   * and `collectEffect(...)`; pure-core / tests can leave it `undefined`.
+   */
+  processAsset?: ProcessAsset
 }
 
 /** Result of compiling MDX source. */
@@ -78,6 +93,7 @@ export const processMdx = async (source: string, options: ProcessMdxOptions = {}
   if (enableGfm) remarkPlugins.push(remarkGfm)
   if (removeComments) remarkPlugins.push(remarkRemoveComments)
   if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins)
+  if (options.processAsset != null) remarkPlugins.push([remarkCopyLinkedFiles, options.processAsset])
 
   const rehypePlugins: PluggableList = []
   if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)

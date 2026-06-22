@@ -2,12 +2,13 @@ import { diagnostic } from '../diagnostic'
 import { createContentFile, resolveBody, runWithContext } from '../schema/context'
 import { join } from '../util/path'
 
+import type { FileSystem, ImageProcessor } from '../../runtime'
 import type { ResolvedConfig } from '../config'
 import type { Derivation } from '../engine'
 import type { Entry } from '../model'
-import type { ProjectCollectionInfo, ProjectInfo } from '../schema/context'
+import type { AssetRequest, ImageMetadata, ProjectCollectionInfo, ProjectInfo } from '../schema/context'
 import type { Effect } from '../schema/effects'
-import type { AssetResult } from './asset'
+import type { AssetKey, AssetResult, BlurOptions } from './asset'
 import type { Loaded, Validated, ValidateKey } from './types'
 
 /** Build the read-only project snapshot exposed to schemas from the resolved config. */
@@ -20,6 +21,37 @@ const buildProjectInfo = (config: ResolvedConfig): ProjectInfo => {
 }
 
 /**
+ * The runtime slice the validate derivation needs: file reads for absolute-path
+ * image schemas, and image processing for the same path. Both are optional
+ * (`readFile` is required if any `s.image({ absoluteRoot })` is used; `image`
+ * gives blur/probe). The driver wires these from the `Runtime` bundle.
+ */
+export interface ValidateRuntime {
+  fs: Pick<FileSystem, 'read'>
+  image?: ImageProcessor
+}
+
+const DEFAULT_BLUR_WIDTH = 8
+
+/**
+ * Build the {@link SchemaContext.probeImage} closure from a runtime
+ * `ImageProcessor`. Returns zero metadata when no processor is present, mirroring
+ * the no-sharp degradation path used by the asset derivation.
+ */
+const createProbeImage =
+  (image: ImageProcessor | undefined) =>
+  async (bytes: Uint8Array, blur?: BlurOptions): Promise<ImageMetadata> => {
+    if (image === undefined) return { width: 0, height: 0, format: '', blurDataURL: '', blurWidth: 0, blurHeight: 0 }
+    const probed = await image.probe(bytes)
+    const { width, height } = probed
+    if (width <= 0 || height <= 0) return { width, height, format: probed.format, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
+    const requestedWidth = blur?.width ?? DEFAULT_BLUR_WIDTH
+    const blurHeight = blur?.height ?? Math.max(1, Math.round((requestedWidth * height) / width))
+    const blurDataURL = await image.blurDataURL(bytes, { width, height }, { width: requestedWidth, height: blurHeight, quality: blur?.quality })
+    return { width, height, format: probed.format, blurDataURL, blurWidth: requestedWidth, blurHeight }
+  }
+
+/**
  * `validate({collection, path})` → validated entries for one source.
  * Source-grained, matching the PRD's source-level invalidation contract.
  *
@@ -29,14 +61,19 @@ const buildProjectInfo = (config: ResolvedConfig): ProjectInfo => {
  * via `collectEffect` and returned alongside the entries; the driver consumes
  * asset-reference effects to drive the two-pass asset flow.
  *
- * The `asset(assetKey)` closure demands the asset derivation through the engine
- * context, recording the dependency so a later `engine.set('asset:'+key, ...)`
- * invalidates this source's memo (and everything downstream).
+ * The `asset(assetKey, request?)` closure demands the asset derivation through
+ * the engine context (request includes optional `template` and `blur`),
+ * recording the dependency so a later `engine.set('asset:'+key, ...)`
+ * invalidates this source's memo (and everything downstream). The `readFile` /
+ * `probeImage` closures live outside the engine — they implement absolute-path
+ * support for `s.image({ absoluteRoot })` and don't need memoization (the
+ * source file's bytes already invalidate the validate derivation).
  */
 export const createValidateDerivation = (
   config: ResolvedConfig,
   load: Derivation<string, Loaded>,
-  asset: Derivation<string, AssetResult>
+  asset: Derivation<AssetKey, AssetResult>,
+  runtime: ValidateRuntime
 ): Derivation<ValidateKey, Validated> => ({
   name: 'validate',
   async compute(context, { collection, path }) {
@@ -49,7 +86,10 @@ export const createValidateDerivation = (
 
     const project = buildProjectInfo(config)
     const absPath = join(config.root, path)
-    const demandAsset = (assetKey: string): Promise<AssetResult> => context.get(asset, assetKey)
+    const demandAsset = (assetKey: string, request?: AssetRequest): Promise<AssetResult> =>
+      context.get(asset, { assetKey, template: request?.template ?? config.output.name, blur: request?.blur })
+    const probeImage = createProbeImage(runtime.image)
+    const readFile = (p: string): Promise<Uint8Array> => runtime.fs.read(p)
 
     for (let index = 0; index < loaded.entries.length; index++) {
       const raw = loaded.entries[index]!
@@ -58,7 +98,7 @@ export const createValidateDerivation = (
       const key = raw.key === '' ? undefined : typeof raw.key === 'number' ? String(raw.key) : raw.key
       const record = { id: raw.id, ...(key != null ? { key } : {}), index }
 
-      const parsed = await runWithContext({ project, file, record, collectEffect: e => effects.push(e), asset: demandAsset }, () =>
+      const parsed = await runWithContext({ project, file, record, collectEffect: e => effects.push(e), asset: demandAsset, readFile, probeImage }, () =>
         col.schema.safeParseAsync(raw.data)
       )
 

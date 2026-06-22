@@ -27,7 +27,7 @@ import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
 import type { MarkdownOptions } from '../content/markdown'
 import type { MdxOptions } from '../content/mdx'
-import type { AssetResult } from '../pipeline/asset'
+import type { AssetResult, BlurOptions } from '../pipeline/asset'
 import type { Effect } from './effects'
 
 /**
@@ -82,6 +82,14 @@ export interface ProjectInfo {
   readonly mdx?: MdxOptions
 }
 
+/** Options passed when resolving an asset. */
+export interface AssetRequest {
+  /** Override the global `output.name` template for this asset. */
+  template?: string
+  /** Override the global blur dimensions/quality. */
+  blur?: BlurOptions
+}
+
 /**
  * Schema execution context.
  *
@@ -99,8 +107,37 @@ export interface SchemaContext {
    * engine's asset derivation, returning a memoized {@link AssetResult}. The
    * returned `publicUrl` is always available (derivable from the key); image
    * metadata is zero until the driver feeds the asset's bytes in pass 2.
+   *
+   * `request.template` lets a single schema invocation pick a different
+   * filename template than the global `project.output.name`. `request.blur`
+   * customises the generated placeholder.
    */
-  readonly asset: (assetKey: string) => Promise<AssetResult>
+  readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
+  /**
+   * Read an asset's bytes directly. Used by `s.image({ absoluteRoot })` to
+   * resolve absolute paths that bypass the asset derivation pipeline. The
+   * implementation closes over the runtime's filesystem so the schema layer
+   * stays runtime-agnostic.
+   */
+  readonly readFile: (absPath: string) => Promise<Uint8Array>
+  /**
+   * Probe + blur an image's bytes directly, without going through the asset
+   * derivation. Used by `s.image({ absoluteRoot })` because those paths never
+   * become hashed asset outputs. Returns metadata-rich {@link AssetResult}-ish
+   * tuple; the public url is the caller's responsibility (it is the verbatim
+   * input value for absolute paths).
+   */
+  readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
+}
+
+/** Metadata returned by {@link SchemaContext.probeImage}. */
+export interface ImageMetadata {
+  width: number
+  height: number
+  format: string
+  blurDataURL: string
+  blurWidth: number
+  blurHeight: number
 }
 
 export interface RunWithContextInput {
@@ -108,7 +145,9 @@ export interface RunWithContextInput {
   readonly file: ContentFile
   readonly record: ContentRecord
   readonly collectEffect: (effect: Effect) => void
-  readonly asset: (assetKey: string) => Promise<AssetResult>
+  readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
+  readonly readFile: (absPath: string) => Promise<Uint8Array>
+  readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
 }
 
 const als = new AsyncLocalStorage<SchemaContext>()
@@ -133,7 +172,9 @@ export const runWithContext = <R>(input: RunWithContextInput, run: () => R): R =
     file: input.file,
     record: input.record,
     collectEffect: input.collectEffect,
-    asset: input.asset
+    asset: input.asset,
+    readFile: input.readFile,
+    probeImage: input.probeImage
   }
   return als.run(ctx, run)
 }

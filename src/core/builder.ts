@@ -67,7 +67,7 @@ interface WatchState {
 const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Promise<Session> => {
   const config = await resolveConfig(runtime, { cwd: options.cwd, configPath: options.configPath })
   const engine = createEngine()
-  const pipeline = createPipeline(config, createLoaderRegistry(options.loaders ?? []), runtime.image)
+  const pipeline = createPipeline(config, createLoaderRegistry(options.loaders ?? []), runtime.image, runtime.fs)
   const context = createRunContext(engine, pipeline, config, runtime)
   return { config, engine, pipeline, context }
 }

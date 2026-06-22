@@ -17,10 +17,12 @@ import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
 
+import { rehypeCopyLinkedFiles } from './asset-links'
 import { extractText, extractToc, findReferences, parseMarkdown } from './reference'
 
 import type { Root as Mdast } from 'mdast'
 import type { PluggableList } from 'unified'
+import type { ProcessAsset } from './asset-links'
 import type { ContentReference, TocItem } from './reference'
 
 /** Markdown rendering options. */
@@ -35,10 +37,23 @@ export interface MarkdownOptions {
   excerpt?: number
   /** Collect local image/link references from the body. */
   references?: boolean
+  /**
+   * Copy locally-referenced asset files into the assets output. The schema
+   * layer reads this global default and decides whether to wire
+   * `processAsset` for each markdown invocation. @default true
+   */
+  copyLinkedFiles?: boolean
   /** Remark plugins. */
   remarkPlugins?: PluggableList
   /** Rehype plugins. */
   rehypePlugins?: PluggableList
+  /**
+   * Copy local image/link references encountered in the body to the assets
+   * output and replace their urls with the public urls returned by
+   * `processAsset`. The schema layer wires this through `context().asset(...)`
+   * and `collectEffect(...)`; pure-core / tests can leave it `undefined`.
+   */
+  processAsset?: ProcessAsset
 }
 
 /** Result of rendering markdown source. */
@@ -74,6 +89,7 @@ export const processMarkdown = async (source: string, options: MarkdownOptions =
 
   const rehypePlugins: PluggableList = []
   if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
+  if (options.processAsset != null) rehypePlugins.push([rehypeCopyLinkedFiles, options.processAsset])
 
   const file = await unified()
     .use(remarkParse)

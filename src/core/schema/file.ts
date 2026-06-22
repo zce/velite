@@ -30,6 +30,12 @@ export interface FileSchemaOptions {
    * @default true
    */
   allowNonRelativePath?: boolean
+  /**
+   * Per-schema override of the global `output.name` template.
+   * Supports `[name]`, `[hash]`, `[hash:N]`, `[ext]`, and `/` for subdirectories.
+   * @example 'docs/[name]-[hash:8].[ext]'
+   */
+  outputName?: string
 }
 
 /**
@@ -37,14 +43,15 @@ export interface FileSchemaOptions {
  * resolved to its content-hashed public url. Non-relative paths pass through
  * unchanged when `allowNonRelativePath` is true (default).
  */
-export const file = ({ allowNonRelativePath = true }: FileSchemaOptions = {}): z.ZodType<string> =>
+export const file = ({ allowNonRelativePath = true, outputName }: FileSchemaOptions = {}): z.ZodType<string> =>
   z.string().transform<string>(async (value, ctx) => {
     if (allowNonRelativePath && !isRelativePath(value)) return value
     try {
       const { project, file, record, asset, collectEffect } = context()
       const absSourcePath = join(dirname(file.path), stripQueryAndHash(value))
       const assetKey = assetKeyOf(absSourcePath, project.root)
-      const result = await asset(assetKey)
+      const template = outputName ?? project.output.name
+      const result = await asset(assetKey, { template })
       collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, isImage: false })
       return result.publicUrl
     } catch (err) {

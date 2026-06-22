@@ -16,9 +16,12 @@ import type { ImageProcessor } from '../../src/runtime'
 const config: ResolvedConfig = {
   root: '/proj/content',
   configPath: '',
-  output: { data: '/proj/.velite', assets: '/proj/public/static', base: '/static/', name: 'static', format: 'esm' },
+  output: { data: '/proj/.velite', assets: '/proj/public/static', base: '/static/', name: '[name]-[hash:8].[ext]', format: 'esm' },
   collections: []
 }
+
+const DEF_TEMPLATE = '[name]-[hash:8].[ext]'
+const ak = (k: string) => ({ assetKey: k, template: DEF_TEMPLATE })
 
 const bytes = (n: number): Uint8Array => {
   const b = new Uint8Array(n)
@@ -29,9 +32,11 @@ const bytes = (n: number): Uint8Array => {
 test('asset derivation: returns a placeholder (no throw) when the asset input is unset', async () => {
   const engine = createEngine()
   const asset = createAssetDerivation(config, undefined)
-  const result = await engine.get(asset, 'posts/cover.png')
-  // publicUrl is derivable from the key alone (no hash): /static/cover.png
-  equal(result.publicUrl, '/static/cover.png')
+  const result = await engine.get(asset, ak('posts/cover.png'))
+  // publicUrl is derivable from the key alone (no hash placeholder): /static/cover-.png
+  // — the default template '[name]-[hash:8].[ext]' renders the [hash] segment as
+  // an empty string when bytes aren't known yet.
+  equal(result.publicUrl, '/static/cover-.png')
   equal(result.width, 0)
   equal(result.height, 0)
   equal(result.format, '')
@@ -49,7 +54,7 @@ test('asset derivation: probes and returns real metadata + content-hashed url wh
 
   const data = bytes(64)
   engine.set(assetInput('posts/cover.png'), data)
-  const result = await engine.get(asset, 'posts/cover.png')
+  const result = await engine.get(asset, ak('posts/cover.png'))
 
   // content-hashed url: /static/cover-<8 hex>.png
   match(result.publicUrl, /^\/static\/cover-[0-9a-f]{8}\.png$/)
@@ -73,7 +78,7 @@ test('asset derivation: no-sharp degradation — real url, zero metadata when no
   const engine = createEngine()
   const asset = createAssetDerivation(config, undefined)
   engine.set(assetInput('docs/a.pdf'), bytes(16))
-  const result = await engine.get(asset, 'docs/a.pdf')
+  const result = await engine.get(asset, ak('docs/a.pdf'))
   // real content-hashed url, but zero metadata
   match(result.publicUrl, /^\/static\/a-[0-9a-f]{8}\.pdf$/)
   equal(result.width, 0)
@@ -89,9 +94,9 @@ test('asset derivation: memoizes — probe runs once across repeated demands', a
   const asset = createAssetDerivation(config, { probe, blurDataURL: blur })
   engine.set(assetInput('x.png'), bytes(8))
 
-  await engine.get(asset, 'x.png')
-  await engine.get(asset, 'x.png')
-  await engine.get(asset, 'x.png')
+  await engine.get(asset, ak('x.png'))
+  await engine.get(asset, ak('x.png'))
+  await engine.get(asset, ak('x.png'))
   equal(probe.mock.calls.length, 1)
   equal(blur.mock.calls.length, 1)
 })
@@ -104,9 +109,8 @@ test('asset derivation: backdating — re-setting equal bytes does not recompute
 
   // A dependent that reads the asset derivation.
   const consumerFn = mock.fn(async (ctx: never): Promise<AssetResult> => {
-    // ctx is the engine Context; demand the asset through it
-    const c = ctx as unknown as { get: (d: Derivation<string, AssetResult>, k: string) => Promise<AssetResult> }
-    return c.get(asset, 'y.png')
+    const c = ctx as unknown as { get: (d: typeof asset, k: { assetKey: string; template: string }) => Promise<AssetResult> }
+    return c.get(asset, ak('y.png'))
   })
   const consumer: Derivation<null, AssetResult> = { name: 'consumer', compute: consumerFn }
 
@@ -134,8 +138,8 @@ test('asset derivation: changing the bytes recomputes the asset and its dependen
   const asset = createAssetDerivation(config, { probe, blurDataURL: blur })
 
   const consumerFn = mock.fn(async (ctx: never): Promise<AssetResult> => {
-    const c = ctx as unknown as { get: (d: Derivation<string, AssetResult>, k: string) => Promise<AssetResult> }
-    return c.get(asset, 'z.png')
+    const c = ctx as unknown as { get: (d: typeof asset, k: { assetKey: string; template: string }) => Promise<AssetResult> }
+    return c.get(asset, ak('z.png'))
   })
   const consumer: Derivation<null, AssetResult> = { name: 'consumer2', compute: consumerFn }
 
@@ -155,20 +159,20 @@ test('asset derivation: placeholder dependency is tracked — setting the input 
   const asset = createAssetDerivation(config, { probe, blurDataURL: blur })
 
   // First demand with no input → placeholder (dependency on the input recorded).
-  const before = await engine.get(asset, 'w.png')
+  const before = await engine.get(asset, ak('w.png'))
   equal(before.width, 0)
-  equal(before.publicUrl, '/static/w.png')
+  equal(before.publicUrl, '/static/w-.png')
 
   // Now feed the bytes — the recorded dependency invalidates the memo.
   engine.set(assetInput('w.png'), bytes(8))
-  const after = await engine.get(asset, 'w.png')
+  const after = await engine.get(asset, ak('w.png'))
   equal(after.width, 42)
   match(after.publicUrl, /^\/static\/w-[0-9a-f]{8}\.png$/)
 })
 
 test('publicUrlOf: placeholder url has no hash; real url is content-hashed', () => {
-  equal(publicUrlOf('a/b.png', undefined, config), '/static/b.png')
-  const url = publicUrlOf('a/b.png', bytes(4), config)
+  equal(publicUrlOf('a/b.png', DEF_TEMPLATE, undefined, config), '/static/b-.png')
+  const url = publicUrlOf('a/b.png', DEF_TEMPLATE, bytes(4), config)
   match(url, /^\/static\/b-[0-9a-f]{8}\.png$/)
 })
 
@@ -179,13 +183,39 @@ test('asset derivation: dimensionless image (width 0) skips blur — no divide-b
   const asset = createAssetDerivation(config, { probe, blurDataURL: blur })
   engine.set(assetInput('logo.svg'), bytes(16))
 
-  const result = await engine.get(asset, 'logo.svg')
+  const result = await engine.get(asset, ak('logo.svg'))
   equal(result.width, 0)
   equal(result.height, 0)
-  // blurDataURL must be empty (not the would-be data url), so consumers can key
-  // on "blurDataURL non-empty ⇒ dimensions valid". blur generation is skipped.
   equal(result.blurDataURL, '')
   equal(result.blurWidth, 0)
   equal(result.blurHeight, 0)
   equal(blur.mock.calls.length, 0) // blurDataURL never invoked for a dimensionless image
+})
+
+test('asset derivation: per-call template renders different output names from same bytes', async () => {
+  const engine = createEngine()
+  const probe = mock.fn(async () => ({ width: 10, height: 10, format: 'png' }))
+  const blur = mock.fn(async () => 'data:image/webp;base64,A')
+  const asset = createAssetDerivation(config, { probe, blurDataURL: blur })
+  engine.set(assetInput('logo.png'), bytes(32))
+
+  const a = await engine.get(asset, { assetKey: 'logo.png', template: '[name].[ext]' })
+  const b = await engine.get(asset, { assetKey: 'logo.png', template: 'icons/[name]-[hash:6].[ext]' })
+  equal(a.publicUrl, '/static/logo.png')
+  match(b.publicUrl, /^\/static\/icons\/logo-[0-9a-f]{6}\.png$/)
+})
+
+test('asset derivation: per-call blur options propagate to the image processor', async () => {
+  const engine = createEngine()
+  const probe = mock.fn(async () => ({ width: 100, height: 100, format: 'png' }))
+  const blur = mock.fn(async () => 'data:image/webp;base64,X')
+  const asset = createAssetDerivation(config, { probe, blurDataURL: blur })
+  engine.set(assetInput('p.png'), bytes(8))
+
+  const result = await engine.get(asset, { assetKey: 'p.png', template: DEF_TEMPLATE, blur: { width: 16, quality: 50 } })
+  equal(result.blurWidth, 16)
+  equal(blur.mock.calls.length, 1)
+  const outputArg = blur.mock.calls[0]!.arguments[2]!
+  equal(outputArg.width, 16)
+  equal(outputArg.quality, 50)
 })

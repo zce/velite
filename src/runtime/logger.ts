@@ -1,5 +1,8 @@
 import type { Diagnostic } from '../core/diagnostic'
 
+/** Log level ordering from most verbose to least. `silent` disables all output. */
+export type LogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug'
+
 /**
  * Leveled progress logger for the imperative shell (driver/scheduler/builder/
  * cli). The core never calls a logger directly — only the shell does.

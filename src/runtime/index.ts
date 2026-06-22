@@ -26,6 +26,6 @@ export interface Runtime {
 
 export type { FileSystem } from './fs'
 export type { ImageProcessor } from './image'
-export type { Logger } from './logger'
+export type { Logger, LogLevel } from './logger'
 export type { ModuleLoader } from './modules'
 export type { FileEvent, Watcher } from './watcher'

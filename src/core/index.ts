@@ -33,7 +33,7 @@ export { ConfigError, defineCollection, defineConfig, resolveConfig, validateCon
 export type { CollectionDef, PrepareContext, PrepareHook, PrepareResult, ResolvedConfig, UserConfig } from './config'
 
 export { diagnostic, VeliteError } from './diagnostic'
-export type { Diagnostic, VeliteErrorCode } from './diagnostic'
+export type { Diagnostic, DiagnosticCode, DiagnosticLevel, DiagnosticStage, VeliteErrorCode } from './diagnostic'
 
 export type { BuildResult } from './driver'
 

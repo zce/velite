@@ -25,7 +25,7 @@ export const nodeFileSystem: FileSystem = {
     await mkdir(dirname(absPath), { recursive: true })
     await writeFile(absPath, data)
   },
-  async remove(absPath) {
-    await rm(absPath, { force: true })
+  async remove(absPath, options) {
+    await rm(absPath, { force: true, recursive: options?.recursive ?? false })
   }
 }

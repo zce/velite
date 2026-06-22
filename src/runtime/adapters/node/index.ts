@@ -14,3 +14,6 @@ export const nodeRuntime: Runtime = {
   image: sharpImageProcessor,
   watch: createChokidarWatcher
 }
+
+export { createLogger, setLogLevel, silentLogger } from './logger'
+export type { LogLevel } from './logger'

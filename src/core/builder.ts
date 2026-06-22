@@ -35,6 +35,8 @@ export interface Builder {
   build(options?: BuildOptions): Promise<BuildResult>
   watch(options?: WatchOptions): Promise<WatchHandle>
   applyChanges(events: FileEvent[]): Promise<BuildResult | undefined>
+  /** Remove the configured output directories. Idempotent on missing dirs. */
+  clean(): Promise<void>
   dispose(): Promise<void>
 }
 
@@ -149,10 +151,17 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
     session = undefined
   }
 
+  const clean = async (): Promise<void> => {
+    const current = await ensureSession()
+    await runtime.fs.remove(current.config.output.data, { recursive: true })
+    await runtime.fs.remove(current.config.output.assets, { recursive: true })
+  }
+
   return {
     build,
     watch,
     applyChanges: apply,
+    clean,
     dispose
   }
 }

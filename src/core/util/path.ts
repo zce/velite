@@ -1,10 +1,18 @@
-// src/core/util/path.ts
-import type { Path } from '../../runtime/path'
+// Pure posix path operations the core uses everywhere internally.
+//
+// Why a hand-rolled implementation rather than a `runtime.path` port? Path
+// semantics are *definitional* in this codebase — the core only ever deals in
+// posix ('/') paths; runtime adapters normalize platform separators at the
+// filesystem boundary. There is no "alternate implementation" that would make
+// sense to plug in (Deno, Bun, Node all want the same posix behaviour here),
+// so making it a runtime capability would only add a parameter to every
+// schema/pipeline function for no replaceability benefit.
+//
+// Implementing it inline (rather than re-exporting `node:path/posix`) keeps
+// `src/core/` free of `node:*` imports — guarded by test/runtime-neutral —
+// which is what lets the core run unchanged under non-Node runtimes.
 
-// Pure posix path operations. The core only ever deals in posix ('/') paths;
-// runtime adapters normalize platform separators at the filesystem boundary.
-
-const normalize = (path: string): string => {
+const doNormalize = (path: string): string => {
   const isAbsolute = path.startsWith('/')
   const out: string[] = []
   for (const segment of path.split('/')) {
@@ -19,29 +27,33 @@ const normalize = (path: string): string => {
   return (isAbsolute ? '/' : '') + out.join('/') || (isAbsolute ? '/' : '.')
 }
 
-const join = (...segments: string[]): string => normalize(segments.join('/'))
+/** Normalize a posix path: collapse `.` / `..` / duplicate slashes. */
+export const normalize = (path: string): string => doNormalize(path)
 
-const relative = (from: string, to: string): string => {
-  const fromParts = normalize(from).split('/').filter(Boolean)
-  const toParts = normalize(to).split('/').filter(Boolean)
+/** Join segments with `/` and normalize the result. */
+export const join = (...segments: string[]): string => doNormalize(segments.join('/'))
+
+/** Return the relative path from `from` to `to`. Both are normalized first. */
+export const relative = (from: string, to: string): string => {
+  const fromParts = doNormalize(from).split('/').filter(Boolean)
+  const toParts = doNormalize(to).split('/').filter(Boolean)
   let i = 0
   while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) i++
   const up = fromParts.slice(i).map(() => '..')
   return [...up, ...toParts.slice(i)].join('/') || '.'
 }
 
-const dirname = (path: string): string => {
+/** Return the directory portion of `path` (everything before the last `/`). */
+export const dirname = (path: string): string => {
   const i = path.lastIndexOf('/')
   if (i < 0) return '.'
   if (i === 0) return '/'
   return path.slice(0, i)
 }
 
-const extname = (path: string): string => {
+/** Return the extension of `path`, including the leading dot, or `''`. */
+export const extname = (path: string): string => {
   const base = path.slice(path.lastIndexOf('/') + 1)
   const i = base.lastIndexOf('.')
   return i > 0 ? base.slice(i) : ''
 }
-
-/** A pure posix implementation of the {@link Path} runtime contract. */
-export const posix: Path = { join, relative, normalize, dirname, extname }

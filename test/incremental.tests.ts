@@ -2,7 +2,7 @@ import { deepEqual, equal, ok } from 'node:assert'
 import { test } from 'node:test'
 
 import { createBuilder, s } from '../src/core'
-import { posix } from '../src/core/util/path'
+import { join } from '../src/core/util/path'
 import { silentLogger } from '../src/runtime/adapters/node/logger'
 import { MemoryFileSystem } from './helpers/memory-fs'
 
@@ -11,14 +11,14 @@ import type { Runtime } from '../src/runtime'
 import type { FileEvent } from '../src/runtime/watcher'
 
 const CWD = '/proj'
-const ROOT = posix.join(CWD, 'content')
+const ROOT = join(CWD, 'content')
 
 const config: UserConfig = {
   root: 'content',
   collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
 }
 
-const file = (name: string, data: unknown): string => posix.join(ROOT, `posts/${name}.json`)
+const file = (name: string, data: unknown): string => join(ROOT, `posts/${name}.json`)
 const body = (items: Array<{ title: string }>): string => JSON.stringify(items)
 
 const setup = (): { runtime: Runtime; fs: MemoryFileSystem } => {
@@ -29,13 +29,12 @@ const setup = (): { runtime: Runtime; fs: MemoryFileSystem } => {
   const runtime: Runtime = {
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
-    path: posix,
     logger: silentLogger
   }
   return { runtime, fs }
 }
 
-const newBuilder = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
+const newBuilder = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
 const entries = (result: { output: { collections: Record<string, { entries: Array<{ data: unknown }> }> } }): unknown[] =>
   result.output.collections.posts!.entries.map(e => e.data)
@@ -94,6 +93,6 @@ test('incremental: no-op events return undefined (no rebuild)', async () => {
   await builder.build({ layout: 'single' })
 
   // An event outside the content root and not the config path is classified 'ignore'.
-  const result = await builder.applyChanges([{ type: 'add', absPath: posix.join(CWD, 'elsewhere.txt') }])
+  const result = await builder.applyChanges([{ type: 'add', absPath: join(CWD, 'elsewhere.txt') }])
   equal(result, undefined, 'ignored events should not trigger a rebuild')
 })

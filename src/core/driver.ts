@@ -3,6 +3,7 @@ import { codeFromDiagnostics, diagnostic, hasFatalDiagnostic, VeliteError } from
 import { emptyManifest } from './output/manifest'
 import { writeOutput } from './output/writer'
 import { assetInput, assetKeyOf, fileInput, TREE } from './pipeline'
+import { join, relative } from './util/path'
 import { createPool } from './util/pool'
 
 import type { Runtime } from '../runtime'
@@ -44,7 +45,7 @@ export const refreshTree = async (context: RunContext): Promise<TreeFile[]> => {
   const tree: TreeFile[] = []
   for (const absPath of absPaths) {
     const stat = await runtime.fs.stat(absPath)
-    tree.push({ path: runtime.path.relative(config.root, absPath), absPath, stat })
+    tree.push({ path: relative(config.root, absPath), absPath, stat })
   }
   sortTree(tree)
   engine.set(TREE, tree)
@@ -166,7 +167,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
     const outputName = effect.publicUrl.slice(config.output.base.length)
     if (outputName.length === 0 || writtenAssets.has(outputName)) continue
     writtenAssets.add(outputName)
-    const dest = runtime.path.join(config.output.assets, outputName)
+    const dest = join(config.output.assets, outputName)
     try {
       await runtime.fs.write(dest, bytes)
       written.push(dest)
@@ -193,7 +194,6 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
     output,
     {
       fs: runtime.fs,
-      path: runtime.path,
       dir: config.output.data,
       layout,
       configPath: config.configPath,
@@ -232,8 +232,7 @@ export const applyChanges = async (context: RunContext, events: FileEvent[], opt
     cwd: options.cwd,
     configPath: options.configPath,
     contentRoot: config.root,
-    outputDir: config.output.data,
-    path: runtime.path
+    outputDir: config.output.data
   }
 
   for (const event of events) {
@@ -244,7 +243,7 @@ export const applyChanges = async (context: RunContext, events: FileEvent[], opt
       continue
     }
 
-    const rel = runtime.path.relative(config.root, event.absPath)
+    const rel = relative(config.root, event.absPath)
     if (rel.startsWith('..')) continue
     // The asset input key must match what the schema demands (assetKeyOf uses
     // posix.relative). For posix hosts this equals `rel`; computing it via

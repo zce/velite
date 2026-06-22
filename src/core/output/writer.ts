@@ -11,11 +11,11 @@
 // asset-effect plumbing.
 
 import { hash } from '../util/hash'
+import { join, relative } from '../util/path'
 import { emptyManifest } from './manifest'
 import { planWrites } from './plan'
 
 import type { FileSystem } from '../../runtime/fs'
-import type { Path } from '../../runtime/path'
 import type { CollectionMeta } from './declaration'
 import type { LogicalOutput } from './logical'
 import type { OutputManifest } from './manifest'
@@ -24,7 +24,6 @@ const encoder = new TextEncoder()
 
 export interface WriteDeps {
   fs: FileSystem
-  path: Path
   /** Absolute data output directory. */
   dir: string
   /** Physical layout: `split` (dev, per-record files) or `single` (prod). */
@@ -52,7 +51,7 @@ export interface WriteResult {
  * skipped.
  */
 export const writeOutput = async (output: LogicalOutput, deps: WriteDeps, previous: OutputManifest = emptyManifest()): Promise<WriteResult> => {
-  const configRelPath = deps.configPath === '' ? 'velite.config.ts' : deps.path.relative(deps.dir, deps.configPath)
+  const configRelPath = deps.configPath === '' ? 'velite.config.ts' : relative(deps.dir, deps.configPath)
   const writes = planWrites(
     {
       output,
@@ -69,7 +68,7 @@ export const writeOutput = async (output: LogicalOutput, deps: WriteDeps, previo
   const written: string[] = []
 
   for (const write of writes) {
-    const absPath = deps.path.join(deps.dir, write.path)
+    const absPath = join(deps.dir, write.path)
     desired.add(absPath)
     const digest = hash(write.content)
     manifest.files[absPath] = digest

@@ -1,8 +1,8 @@
 import { diagnostic } from './diagnostic'
+import { dirname, join } from './util/path'
 
 import type { FileSystem } from '../runtime/fs'
 import type { ModuleLoader } from '../runtime/modules'
-import type { Path } from '../runtime/path'
 import type { Diagnostic } from './diagnostic'
 import type { LogicalOutput } from './output/logical'
 import type { Schema } from './schema/s'
@@ -130,7 +130,7 @@ export const validateConfig = (config: unknown): Diagnostic[] => {
 }
 
 /** Default config filename candidates, searched in order. */
-export const DEFAULT_CONFIG_CANDIDATES: readonly string[] = [
+const DEFAULT_CONFIG_CANDIDATES: readonly string[] = [
   'velite.config.ts',
   'velite.config.js',
   'velite.config.mjs',
@@ -154,7 +154,6 @@ export interface ResolveConfigOptions {
 export interface ConfigRuntime {
   modules: ModuleLoader
   fs: FileSystem
-  path: Path
 }
 
 /**
@@ -165,11 +164,11 @@ export interface ConfigRuntime {
  * `stat`, so we don't need a dedicated `access` capability. Any throw (ENOENT
  * or otherwise) is treated as "not present here, keep looking".
  */
-const searchConfigFile = async (fs: FileSystem, path: Path, cwd: string, candidates: readonly string[], depth: number): Promise<string | undefined> => {
+const searchConfigFile = async (fs: FileSystem, cwd: string, candidates: readonly string[], depth: number): Promise<string | undefined> => {
   let current = cwd
   for (let i = 0; i <= depth; i++) {
     for (const name of candidates) {
-      const candidate = path.join(current, name)
+      const candidate = join(current, name)
       try {
         await fs.stat(candidate)
         return candidate
@@ -177,7 +176,7 @@ const searchConfigFile = async (fs: FileSystem, path: Path, cwd: string, candida
         // not here — keep looking
       }
     }
-    const parent = path.dirname(current)
+    const parent = dirname(current)
     if (parent === current) break
     current = parent
   }
@@ -194,11 +193,10 @@ const searchConfigFile = async (fs: FileSystem, path: Path, cwd: string, candida
  */
 export const resolveConfig = async (runtime: ConfigRuntime, options: ResolveConfigOptions): Promise<ResolvedConfig> => {
   const { cwd } = options
-  const { path } = runtime
   const candidates = options.candidates ?? DEFAULT_CONFIG_CANDIDATES
   const depth = options.searchDepth ?? 3
 
-  const configPath = options.configPath !== undefined ? options.configPath : await searchConfigFile(runtime.fs, path, cwd, candidates, depth)
+  const configPath = options.configPath !== undefined ? options.configPath : await searchConfigFile(runtime.fs, cwd, candidates, depth)
   if (configPath === undefined) {
     throw new Error(`config file not found in '${cwd}' (searched ${candidates.join(', ')} up to ${depth} parent directories)`)
   }
@@ -213,11 +211,11 @@ export const resolveConfig = async (runtime: ConfigRuntime, options: ResolveConf
 
   const config = raw as UserConfig
   return {
-    root: path.join(cwd, config.root ?? '.'),
+    root: join(cwd, config.root ?? '.'),
     configPath,
     output: {
-      data: path.join(cwd, config.output?.data ?? '.velite'),
-      assets: path.join(cwd, config.output?.assets ?? 'public/static'),
+      data: join(cwd, config.output?.data ?? '.velite'),
+      assets: join(cwd, config.output?.assets ?? 'public/static'),
       base: config.output?.base ?? '/static/',
       name: config.output?.name ?? 'static',
       format: config.output?.format ?? 'esm'

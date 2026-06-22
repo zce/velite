@@ -1,6 +1,6 @@
 import { diagnostic } from '../diagnostic'
 import { createContentFile, resolveBody, runWithContext } from '../schema/context'
-import { posix } from '../util/path'
+import { join } from '../util/path'
 
 import type { ResolvedConfig } from '../config'
 import type { Derivation } from '../engine'
@@ -48,7 +48,7 @@ export const createValidateDerivation = (
     if (col === undefined) return { entries, effects, diagnostics }
 
     const project = buildProjectInfo(config)
-    const absPath = posix.join(config.root, path)
+    const absPath = join(config.root, path)
     const demandAsset = (assetKey: string): Promise<AssetResult> => context.get(asset, assetKey)
 
     for (let index = 0; index < loaded.entries.length; index++) {

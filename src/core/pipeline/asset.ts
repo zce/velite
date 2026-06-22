@@ -21,7 +21,7 @@
 
 import { EngineError } from '../engine'
 import { hash } from '../util/hash'
-import { posix } from '../util/path'
+import { extname, relative } from '../util/path'
 
 import type { Runtime } from '../../runtime'
 import type { ResolvedConfig } from '../config'
@@ -54,7 +54,7 @@ export const assetInput = (assetKey: string): string => `asset:${assetKey}`
  * derivation) and the driver (which sets the input). Takes the root explicitly
  * so callers with only `project.root` (e.g. schemas) need no `ResolvedConfig`.
  */
-export const assetKeyOf = (absSourcePath: string, root: string): string => posix.relative(root, absSourcePath)
+export const assetKeyOf = (absSourcePath: string, root: string): string => relative(root, absSourcePath)
 
 /** Default blur width used when generating blur placeholders. */
 const BLUR_WIDTH = 8
@@ -70,7 +70,7 @@ const BLUR_WIDTH = 8
  */
 export const renderAssetName = (assetKey: string, bytes?: Uint8Array): string => {
   const base = assetKey.slice(assetKey.lastIndexOf('/') + 1)
-  const ext = posix.extname(assetKey)
+  const ext = extname(assetKey)
   const stem = ext.length > 0 ? base.slice(0, -ext.length) : base
   if (bytes === undefined) return `${stem}${ext}`
   return `${stem}-${hash(bytes).slice(0, 8)}${ext}`

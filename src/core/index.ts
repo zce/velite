@@ -1,26 +1,17 @@
+export type { FileEvent, FileSystem, ImageProcessor, Logger, ModuleLoader, Runtime, Watcher } from '../runtime'
 export { createBuilder } from './builder'
-export type { Builder, BuildOptions, WatchOptions, WatchHandle, CreateBuilderOptions } from './builder'
-export type { BuildResult } from './driver'
-export type { ApplyResult } from './driver'
+export type { Builder, BuildOptions, CreateBuilderOptions, WatchHandle, WatchOptions } from './builder'
+export { ConfigError, defineCollection, defineConfig, resolveConfig, validateConfig } from './config'
+export type { CollectionDef, ConfigRuntime, PrepareContext, PrepareHook, PrepareResult, ResolveConfigOptions, ResolvedConfig, UserConfig } from './config'
+export { assert, codeFromDiagnostics, diagnostic, fail, flattenError, hasFatalDiagnostic, isError, isVeliteError, VeliteError } from './diagnostic'
+export type { Diagnostic, DiagnosticCode, DiagnosticLevel, DiagnosticStage, VeliteErrorCode } from './diagnostic'
+export type { ApplyResult, BuildResult } from './driver'
+export { createLoaderRegistry } from './loader'
+export type { LoadedItem, Loader, LoaderInput, LoaderRegistry, LoaderResult } from './loader'
+export type { Collection, CollectionResult, Entry, EntryId, RawEntry, Source, SourcePath } from './model'
+export type { LogicalOutput } from './output/logical'
 export type { OutputManifest } from './output/manifest'
 export { mergeEvents } from './scheduler'
 export type { Scheduler } from './scheduler'
-
-export { defineConfig, defineCollection, resolveConfig, validateConfig, ConfigError } from './config'
-export type { UserConfig, CollectionDef, ResolvedConfig, PrepareHook, PrepareContext, PrepareResult, ResolveConfigOptions, ConfigRuntime } from './config'
-
 export { s } from './schema'
-export type { SchemaNamespace, Schema, Infer } from './schema'
-
-export { diagnostic, VeliteError, fail, assert, hasFatalDiagnostic, codeFromDiagnostics, isVeliteError, isError, flattenError } from './diagnostic'
-export type { Diagnostic, DiagnosticCode, DiagnosticLevel, DiagnosticStage, VeliteErrorCode } from './diagnostic'
-
-export type { SourcePath, EntryId, Collection, Source, RawEntry, Entry, CollectionResult } from './model'
-export type { LogicalOutput } from './output/logical'
-
-export { createLoaderRegistry } from './loader'
-export type { Loader, LoaderInput, LoaderResult, LoadedItem, LoaderRegistry } from './loader'
-
-export type { Runtime, FileSystem, Watcher, FileEvent, ImageProcessor, ModuleLoader, Logger, Path } from '../runtime'
-
-export { posix } from './util/path'
+export type { Infer, Schema, SchemaNamespace } from './schema'

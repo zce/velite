@@ -10,7 +10,7 @@
 import { z } from 'zod'
 
 import { assetKeyOf } from '../pipeline/asset'
-import { posix } from '../util/path'
+import { dirname, join } from '../util/path'
 import { context } from './context'
 
 // A relative path is a candidate asset reference: not a fragment, query, scheme
@@ -54,7 +54,7 @@ export const file = ({ allowNonRelativePath = true }: FileSchemaOptions = {}): z
     if (allowNonRelativePath && !isRelativePath(value)) return value
     try {
       const { project, file, record, asset, collectEffect } = context()
-      const absSourcePath = posix.join(posix.dirname(file.path), stripQueryAndHash(value))
+      const absSourcePath = join(dirname(file.path), stripQueryAndHash(value))
       const assetKey = assetKeyOf(absSourcePath, project.root)
       const result = await asset(assetKey)
       collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, isImage: false })

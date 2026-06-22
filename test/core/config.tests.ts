@@ -3,7 +3,7 @@ import { test } from 'node:test'
 
 import { ConfigError, defineConfig, resolveConfig, validateConfig } from '../../src/core/config'
 import { s } from '../../src/core/schema/s'
-import { posix } from '../../src/core/util/path'
+import { join } from '../../src/core/util/path'
 import { MemoryFileSystem } from '../helpers/memory-fs'
 
 import type { ConfigRuntime, UserConfig } from '../../src/core/config'
@@ -47,7 +47,6 @@ const baseConfig = defineConfig({ collections: { posts: { pattern: '*.md', schem
 
 const makeRuntime = (fs: MemoryFileSystem, exports: unknown): ConfigRuntime => ({
   fs,
-  path: posix,
   modules: { load: async () => ({ exports, dependencies: [] }) }
 })
 
@@ -102,7 +101,7 @@ test('resolveConfig: throws ConfigError with diagnostics on validation failure',
 // Normalization — checked through the facade now that the pure helper is gone.
 
 const resolveWith = async (cfg: UserConfig, cwd = '/proj'): Promise<Awaited<ReturnType<typeof resolveConfig>>> => {
-  const configPath = posix.join(cwd, 'velite.config.ts')
+  const configPath = join(cwd, 'velite.config.ts')
   const { runtime } = setupAt(configPath, { default: cfg })
   return resolveConfig(runtime, { cwd, configPath })
 }

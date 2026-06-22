@@ -1,6 +1,5 @@
+import nodePosix from 'node:path/posix'
 import chokidar from 'chokidar'
-
-import { nodePath as posix } from './path'
 
 import type { FileEvent, Watcher } from '../../watcher'
 
@@ -12,7 +11,11 @@ export const createChokidarWatcher = (paths: string[]): Watcher => ({
       awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 }
     })
     const emit = (type: FileEvent['type'], absPath: string): void => {
-      onEvent({ type, absPath: posix.normalize(absPath) })
+      // Normalize at the runtime boundary so the core only ever sees posix
+      // paths. Node's path/posix is used directly (the adapter is allowed
+      // node:* imports); the core's pure-JS posix util is not imported here
+      // to keep the runtime → core dependency direction enforced.
+      onEvent({ type, absPath: nodePosix.normalize(absPath) })
     }
     watcher.on('add', p => emit('add', p))
     watcher.on('change', p => emit('change', p))

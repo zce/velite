@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { processMarkdown } from '../content/markdown'
 import { processMdx } from '../content/mdx'
 import { extractText, extractToc, parseMarkdown } from '../content/reference'
-import { posix } from '../util/path'
+import { relative } from '../util/path'
 import { context } from './context'
 
 import type { PluggableList } from 'unified'
@@ -273,7 +273,7 @@ export const path = (options?: PathSchemaOptions): Schema<string> =>
     .optional()
     .transform<string>(() => {
       const { project, file } = context()
-      const flattened = posix.relative(project.root, file.path).replace(/\.[^.]+$/, '')
+      const flattened = relative(project.root, file.path).replace(/\.[^.]+$/, '')
       return options?.removeIndex === false ? flattened : flattened.replace(/\/index$/, '')
     })
 

@@ -3,7 +3,7 @@ import { test } from 'node:test'
 
 import { emptyManifest } from '../../../src/core/output/manifest'
 import { writeOutput } from '../../../src/core/output/writer'
-import { posix } from '../../../src/core/util/path'
+import { join } from '../../../src/core/util/path'
 
 import type { CollectionResult } from '../../../src/core/model'
 import type { CollectionMeta } from '../../../src/core/output/declaration'
@@ -57,7 +57,6 @@ const meta = (out: LogicalOutput): CollectionMeta[] =>
 
 const singleDeps = (mem: ReturnType<typeof createMemoryFs>, out: LogicalOutput) => ({
   fs: mem.fs,
-  path: posix,
   dir: '/out',
   layout: 'single' as const,
   configPath: '/proj/velite.config.ts',

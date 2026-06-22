@@ -1,4 +1,5 @@
-import type { Path } from '../runtime/path'
+import { normalize } from './util/path'
+
 import type { FileEvent } from '../runtime/watcher'
 
 export type ChangeKind = 'config' | 'content' | 'ignore'
@@ -9,21 +10,18 @@ export type ChangeKind = 'config' | 'content' | 'ignore'
  * - content: patch tree/file inputs under the content root
  * - ignore: output dir and other unrelated paths
  */
-export const classifyEvent = (
-  event: FileEvent,
-  options: { cwd: string; configPath: string; contentRoot: string; outputDir: string; path: Path }
-): ChangeKind => {
+export const classifyEvent = (event: FileEvent, options: { cwd: string; configPath: string; contentRoot: string; outputDir: string }): ChangeKind => {
   const { absPath } = event
-  const { cwd, configPath, contentRoot, outputDir, path } = options
-  const normalized = path.normalize(absPath)
+  const { cwd, configPath, contentRoot, outputDir } = options
+  const normalized = normalize(absPath)
 
-  if (normalized === path.normalize(configPath)) return 'config'
-  if (normalized.startsWith(path.normalize(outputDir) + '/') || normalized === path.normalize(outputDir)) {
+  if (normalized === normalize(configPath)) return 'config'
+  if (normalized.startsWith(normalize(outputDir) + '/') || normalized === normalize(outputDir)) {
     return 'ignore'
   }
-  const root = path.normalize(contentRoot)
+  const root = normalize(contentRoot)
   if (normalized.startsWith(root + '/') || normalized === root) return 'content'
   // Config dependencies outside content root (future): treat as config for now if under cwd
-  if (normalized.startsWith(path.normalize(cwd) + '/')) return 'ignore'
+  if (normalized.startsWith(normalize(cwd) + '/')) return 'ignore'
   return 'ignore'
 }

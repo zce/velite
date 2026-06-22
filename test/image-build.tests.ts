@@ -7,7 +7,7 @@ import { test } from 'node:test'
 
 import { createBuilder, s } from '../src/core'
 import { isVeliteError } from '../src/core/diagnostic'
-import { posix } from '../src/core/util/path'
+import { join } from '../src/core/util/path'
 import { silentLogger } from '../src/runtime/adapters/node/logger'
 import { MemoryFileSystem } from './helpers/memory-fs'
 
@@ -16,8 +16,8 @@ import type { Runtime } from '../src/runtime'
 import type { ImageProcessor } from '../src/runtime/image'
 
 const CWD = '/proj'
-const DATA_DIR = posix.join(CWD, '.velite')
-const ASSETS_DIR = posix.join(CWD, 'public/static')
+const DATA_DIR = join(CWD, '.velite')
+const ASSETS_DIR = join(CWD, 'public/static')
 
 // A stub image processor so tests don't need sharp. Returns deterministic dims.
 const stubImage: ImageProcessor = {
@@ -38,14 +38,13 @@ const setup = (
   const runtime: Runtime = {
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
-    path: posix,
     logger: silentLogger
   }
   if (image !== null) runtime.image = image
   return { runtime, fs }
 }
 
-const build = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
+const build = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
@@ -55,14 +54,14 @@ test('s.image: resolves a content-relative image to a content-hashed url + probe
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image() }) } }
   }
   const { runtime, fs } = setup(config, {
-    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
-    [posix.join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
+    [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
   })
 
   const result = await build(runtime)
   equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
 
-  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{
     cover: { src: string; width: number; height: number; blurDataURL: string; blurWidth: number; blurHeight: number }
   }>
   equal(posts.length, 1)
@@ -80,17 +79,17 @@ test('s.image: the asset file is copied into the assets output directory', async
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image() }) } }
   }
   const { runtime, fs } = setup(config, {
-    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
-    [posix.join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
+    [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
   })
 
   const result = await build(runtime)
   equal(result.diagnostics.length, 0)
 
-  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{ cover: { src: string } }>
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ cover: { src: string } }>
   const src = posts[0]!.cover.src
   const outputName = src.slice('/static/'.length)
-  const assetPath = posix.join(ASSETS_DIR, outputName)
+  const assetPath = join(ASSETS_DIR, outputName)
   // The asset file was written to the assets dir with the same bytes.
   ok(result.written.includes(assetPath), `expected ${assetPath} in written: ${JSON.stringify(result.written)}`)
   deepEqual(Array.from(await fs.read(assetPath)), Array.from(PNG_BYTES))
@@ -102,13 +101,13 @@ test('s.file: resolves a content-relative file to a content-hashed public url', 
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ doc: s.file() }) } }
   }
   const { runtime, fs } = setup(config, {
-    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ doc: './report.pdf' }]),
-    [posix.join(CWD, 'content/posts/report.pdf')]: new Uint8Array([0x25, 0x50, 0x44, 0x46])
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ doc: './report.pdf' }]),
+    [join(CWD, 'content/posts/report.pdf')]: new Uint8Array([0x25, 0x50, 0x44, 0x46])
   })
 
   const result = await build(runtime)
   equal(result.diagnostics.length, 0)
-  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{ doc: string }>
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ doc: string }>
   match(posts[0]!.doc, /^\/static\/report-[0-9a-f]{8}\.pdf$/)
 
   // Non-relative paths pass through unchanged.
@@ -121,12 +120,12 @@ test('s.file: non-relative paths pass through unchanged (no asset copy)', async 
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ link: s.file() }) } }
   }
   const { runtime, fs } = setup(config, {
-    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ link: 'https://example.com/x.pdf' }])
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ link: 'https://example.com/x.pdf' }])
   })
 
   const result = await build(runtime)
   equal(result.diagnostics.length, 0)
-  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{ link: string }>
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ link: string }>
   equal(posts[0]!.link, 'https://example.com/x.pdf')
   // No asset files written.
   ok(!result.written.some(p => p.startsWith(ASSETS_DIR)))
@@ -140,15 +139,15 @@ test('s.image: no-sharp degradation — runtime without image processor yields z
   const { runtime, fs } = setup(
     config,
     {
-      [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
-      [posix.join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+      [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
+      [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
     },
     null
   )
 
   const result = await build(runtime)
   equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
-  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{
     cover: { src: string; width: number; height: number; blurDataURL: string }
   }>
   // Real content-hashed url, but zero metadata.
@@ -165,7 +164,7 @@ test('s.image: a missing asset file surfaces as a fatal ASSET_FAILED VeliteError
   }
   // cover.png is referenced but never seeded in the fs.
   const { runtime } = setup(config, {
-    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }])
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }])
   })
 
   await rejects(
@@ -180,8 +179,8 @@ test('s.image: a content file shared across two records references one asset, co
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image() }) } }
   }
   const { runtime, fs } = setup(config, {
-    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }, { cover: './cover.png' }]),
-    [posix.join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }, { cover: './cover.png' }]),
+    [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
   })
 
   const result = await build(runtime)
@@ -189,7 +188,7 @@ test('s.image: a content file shared across two records references one asset, co
   // Two records, same asset → one asset file written.
   const assetWrites = result.written.filter(p => p.startsWith(ASSETS_DIR))
   equal(assetWrites.length, 1)
-  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{ cover: { src: string } }>
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ cover: { src: string } }>
   equal(posts[0]!.cover.src, posts[1]!.cover.src)
 })
 
@@ -199,13 +198,13 @@ test('s.image: strips a cache-busting query string before resolving the source p
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image() }) } }
   }
   const { runtime, fs } = setup(config, {
-    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png?v=2' }]),
-    [posix.join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png?v=2' }]),
+    [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
   })
 
   const result = await build(runtime)
   equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
-  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{ cover: { src: string } }>
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ cover: { src: string } }>
   // The query was stripped; the real cover.png was read and content-hashed.
   match(posts[0]!.cover.src, /^\/static\/cover-[0-9a-f]{8}\.png$/)
   equal(posts[0]!.cover.width, 100)
@@ -217,13 +216,13 @@ test('s.file: strips a cache-busting query string and hash fragment before resol
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ doc: s.file() }) } }
   }
   const { runtime, fs } = setup(config, {
-    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ doc: './report.pdf?v=3#page=1' }]),
-    [posix.join(CWD, 'content/posts/report.pdf')]: new Uint8Array([0x25, 0x50, 0x44, 0x46])
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ doc: './report.pdf?v=3#page=1' }]),
+    [join(CWD, 'content/posts/report.pdf')]: new Uint8Array([0x25, 0x50, 0x44, 0x46])
   })
 
   const result = await build(runtime)
   equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
-  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{ doc: string }>
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ doc: string }>
   match(posts[0]!.doc, /^\/static\/report-[0-9a-f]{8}\.pdf$/)
 })
 
@@ -233,8 +232,8 @@ test('asset write failure (full disk / permissions) surfaces as a fatal ASSET_FA
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image() }) } }
   }
   const { runtime, fs } = setup(config, {
-    [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
-    [posix.join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
+    [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
   })
   // Wrap the fs so writes into the assets dir fail (simulate read-only / full disk).
   const realWrite = fs.write.bind(fs)

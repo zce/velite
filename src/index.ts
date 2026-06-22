@@ -1,4 +1,5 @@
 import { createBuilder } from './core'
+import { join } from './core/util/path'
 import { nodeRuntime } from './runtime/adapters/node'
 
 import type { Builder, BuildResult, WatchHandle } from './core'
@@ -14,10 +15,12 @@ export interface BuildEntryOptions {
 
 const resolveConfigOption = (cwd: string, explicit: string | undefined): string | undefined => {
   if (explicit === undefined) return undefined
-  // Pass through as-is when already absolute (posix or windows). The runtime
-  // path adapter would otherwise mis-handle drive letters.
+  // Pass through as-is when already absolute (posix or windows). The Node fs
+  // adapter normalizes platform separators at the I/O boundary; here we just
+  // need to know whether the user supplied an absolute path so we don't join
+  // it with cwd.
   if (explicit.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(explicit)) return explicit
-  return nodeRuntime.path.join(cwd, explicit)
+  return join(cwd, explicit)
 }
 
 /** Create a durable Node builder. Advanced/stateful entry; also the DI seam. */

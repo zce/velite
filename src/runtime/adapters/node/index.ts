@@ -2,7 +2,6 @@ import { nodeFileSystem } from './fs'
 import { sharpImageProcessor } from './image'
 import { consoleLogger } from './logger'
 import { jitiModuleLoader } from './modules'
-import { nodePath } from './path'
 import { createChokidarWatcher } from './watcher'
 
 import type { Runtime } from '../../index'
@@ -13,6 +12,5 @@ export const nodeRuntime: Runtime = {
   modules: jitiModuleLoader,
   logger: consoleLogger,
   image: sharpImageProcessor,
-  path: nodePath,
   watch: createChokidarWatcher
 }

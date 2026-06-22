@@ -7,7 +7,6 @@ import { mock, test } from 'node:test'
 
 import { createEngine } from '../../src/core/engine'
 import { assetInput, createAssetDerivation, publicUrlOf } from '../../src/core/pipeline/asset'
-import { posix } from '../../src/core/util/path'
 
 import type { ResolvedConfig } from '../../src/core/config'
 import type { Derivation } from '../../src/core/engine'
@@ -30,7 +29,6 @@ const bytes = (n: number): Uint8Array => {
 const makeHost = (image: Runtime['image']): Runtime => ({
   fs: { read: async () => new Uint8Array(), stat: async () => ({ mtimeMs: 0, size: 0 }), walk: async () => [], write: async () => {}, remove: async () => {} },
   modules: { load: async () => ({ exports: {}, dependencies: [] }) },
-  path: posix,
   image
 })
 

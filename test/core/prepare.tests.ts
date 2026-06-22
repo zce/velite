@@ -6,7 +6,7 @@ import { deepEqual, equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
 import { createBuilder, s } from '../../src/core'
-import { posix } from '../../src/core/util/path'
+import { join } from '../../src/core/util/path'
 import { silentLogger } from '../../src/runtime/adapters/node/logger'
 import { MemoryFileSystem } from '../helpers/memory-fs'
 
@@ -15,7 +15,7 @@ import type { LogicalOutput } from '../../src/core/output/logical'
 import type { Runtime } from '../../src/runtime'
 
 const CWD = '/proj'
-const DATA_DIR = posix.join(CWD, '.velite')
+const DATA_DIR = join(CWD, '.velite')
 
 const baseConfig: UserConfig = {
   root: 'content',
@@ -25,12 +25,12 @@ const baseConfig: UserConfig = {
 const setup = (prepare: PrepareHook | undefined): { runtime: Runtime; fs: MemoryFileSystem } => {
   const config: UserConfig = { ...baseConfig, prepare }
   const fs = new MemoryFileSystem()
-  fs.put(posix.join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
-  const runtime: Runtime = { fs, modules: { load: async () => ({ exports: config, dependencies: [] }) }, path: posix, logger: silentLogger }
+  fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
+  const runtime: Runtime = { fs, modules: { load: async () => ({ exports: config, dependencies: [] }) }, logger: silentLogger }
   return { runtime, fs }
 }
 
-const build = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
+const build = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
@@ -41,7 +41,7 @@ test('prepare: void return writes the original output', async () => {
     result.written.some(p => p.endsWith('posts.json')),
     'data file written'
   )
-  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{ title: string }>
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ title: string }>
   deepEqual(posts, [{ title: 'A' }, { title: 'B' }])
 })
 
@@ -50,7 +50,7 @@ test('prepare: false return suppresses all writes (written: [])', async () => {
   const result = await build(runtime)
   equal(result.written.length, 0, 'nothing written when prepare returns false')
   // The data file was not created.
-  await readJson(fs, posix.join(DATA_DIR, 'posts.json')).then(
+  await readJson(fs, join(DATA_DIR, 'posts.json')).then(
     () => ok(false, 'posts.json should not exist'),
     () => ok(true, 'posts.json absent as expected')
   )
@@ -78,7 +78,7 @@ test('prepare: a modified result is written in place of the original', async () 
   const { runtime, fs } = setup(prepare)
   const result = await build(runtime)
   ok(result.written.some(p => p.endsWith('posts.json')))
-  const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{ title: string; processed: boolean }>
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ title: string; processed: boolean }>
   equal(posts.length, 2)
   ok(
     posts.every(p => p.processed === true),
@@ -95,7 +95,7 @@ test('prepare: receives a context with project metadata and diagnostics', async 
   await build(runtime)
   ok(received !== undefined)
   ok(received!.project.root.length > 0)
-  equal(received!.project.configPath, posix.join(CWD, 'velite.config.ts'))
+  equal(received!.project.configPath, join(CWD, 'velite.config.ts'))
   equal(received!.project.collections.length, 1)
   equal(received!.project.collections[0]!.name, 'posts')
   ok(Array.isArray(received!.diagnostics))

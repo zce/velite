@@ -14,7 +14,7 @@
 import { z } from 'zod'
 
 import { assetKeyOf } from '../pipeline/asset'
-import { posix } from '../util/path'
+import { dirname, join } from '../util/path'
 import { context } from './context'
 
 // Strip a trailing `?query`/`#hash` from the reference before resolving it to a
@@ -64,7 +64,7 @@ export const image = (_options: ImageSchemaOptions = {}): z.ZodType<ImageData> =
   z.string().transform<ImageData>(async (value, ctx) => {
     try {
       const { project, file, record, asset, collectEffect } = context()
-      const absSourcePath = posix.join(posix.dirname(file.path), stripQueryAndHash(value))
+      const absSourcePath = join(dirname(file.path), stripQueryAndHash(value))
       const assetKey = assetKeyOf(absSourcePath, project.root)
       const result = await asset(assetKey)
       collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, isImage: true })

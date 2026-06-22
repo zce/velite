@@ -10,7 +10,7 @@
 // record id, so createRecordId/parseRecordId map onto it directly.
 
 import { hash } from './hash'
-import { posix } from './path'
+import { relative } from './path'
 
 const toPosix = (input: string): string => input.replaceAll('\\', '/')
 
@@ -20,7 +20,7 @@ const toPosix = (input: string): string => input.replaceAll('\\', '/')
  * @example
  * createSourceId('/repo/content/posts/hello.md', '/repo/content') // 'posts/hello.md'
  */
-export const createSourceId = (absolutePath: string, root: string): string => toPosix(posix.relative(root, absolutePath))
+export const createSourceId = (absolutePath: string, root: string): string => toPosix(relative(root, absolutePath))
 
 /** A stable record key. Single-record sources use the literal `default`. */
 export const DEFAULT_RECORD_KEY = 'default'
@@ -64,8 +64,8 @@ export const sanitizeStem = (input: string): string =>
     .slice(0, 48) || 'record'
 
 /**
- * Pure-posix basename. The runtime {@link Path} interface has no basename, but the
- * layout needs the final segment of a source id to name single-record files.
+ * Pure-posix basename. The core's path util has no basename, but the layout
+ * needs the final segment of a source id to name single-record files.
  */
 export const basename = (input: string): string => {
   const i = input.lastIndexOf('/')

@@ -57,3 +57,15 @@ export const extname = (path: string): string => {
   const i = base.lastIndexOf('.')
   return i > 0 ? base.slice(i) : ''
 }
+
+/**
+ * Strip a trailing `?query` and/or `#hash` from an asset reference string.
+ * Cache-busting suffixes are common on asset urls and must not reach the
+ * filesystem. The cleaned reference is used for the actual file path lookup.
+ */
+export const stripQueryAndHash = (value: string): string => {
+  const queryIdx = value.indexOf('?')
+  const hashIdx = value.indexOf('#')
+  const index = Math.min(queryIdx >= 0 ? queryIdx : Infinity, hashIdx >= 0 ? hashIdx : Infinity)
+  return index === Infinity ? value : value.slice(0, index)
+}

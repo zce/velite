@@ -14,18 +14,8 @@
 import { z } from 'zod'
 
 import { assetKeyOf } from '../pipeline/asset'
-import { dirname, join } from '../util/path'
+import { dirname, join, stripQueryAndHash } from '../util/path'
 import { context } from './context'
-
-// Strip a trailing `?query`/`#hash` from the reference before resolving it to a
-// source path — cache-busting suffixes are common and must not reach the fs.
-// Pure port of the stripping done by the pre-refactor `processAsset`.
-const stripQueryAndHash = (value: string): string => {
-  const queryIdx = value.indexOf('?')
-  const hashIdx = value.indexOf('#')
-  const index = Math.min(queryIdx >= 0 ? queryIdx : Infinity, hashIdx >= 0 ? hashIdx : Infinity)
-  return index === Infinity ? value : value.slice(0, index)
-}
 
 /** Image object with metadata & blur placeholder. */
 export interface ImageData {

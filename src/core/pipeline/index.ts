@@ -55,4 +55,3 @@ export { assetInput, assetKeyOf, publicUrlOf, renderAssetName } from './asset'
 export type { TreeFile } from './inputs'
 export type { AssetResult } from './asset'
 export type { UniqueChecked } from './unique'
-export type { Pipeline as PipelineDerivations }

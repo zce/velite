@@ -21,7 +21,4 @@ export const createLoaderRegistry = (custom: Loader[] = []): LoaderRegistry => {
   }
 }
 
-export { jsonLoader } from './json'
-export { matterLoader } from './matter'
-export { yamlLoader } from './yaml'
 export type { Loader, LoaderInput, LoaderResult, LoadedItem } from './types'

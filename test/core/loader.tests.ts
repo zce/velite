@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { createLoaderRegistry, jsonLoader, matterLoader, yamlLoader } from '../../src/core/loader'
+import { createLoaderRegistry } from '../../src/core/loader'
+import { jsonLoader } from '../../src/core/loader/json'
+import { matterLoader } from '../../src/core/loader/matter'
+import { yamlLoader } from '../../src/core/loader/yaml'
 
 import type { LoaderInput } from '../../src/core/loader'
 

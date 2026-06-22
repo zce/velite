@@ -17,7 +17,7 @@ const isDev = process.argv.indexOf('dev') !== -1
 const isBuild = process.argv.indexOf('build') !== -1
 if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
   process.env.VELITE_STARTED = '1'
-  import('velite').then(m => m.build({ watch: isDev, clean: !isDev }))
+  import('velite').then(m => (isDev ? m.watch({ clean: false }) : m.build({ clean: true })))
 }
 
 const nextConfig: NextConfig = {
@@ -32,8 +32,8 @@ const isDev = process.argv.indexOf('dev') !== -1
 const isBuild = process.argv.indexOf('build') !== -1
 if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
   process.env.VELITE_STARTED = '1'
-  const { build } = await import('velite')
-  await build({ watch: isDev, clean: !isDev })
+  const { build, watch } = await import('velite')
+  await (isDev ? watch({ clean: false }) : build({ clean: true }))
 }
 
 /** @type {import('next').NextConfig} */
@@ -73,15 +73,15 @@ class VeliteWebpackPlugin {
       if (VeliteWebpackPlugin.started) return
       VeliteWebpackPlugin.started = true
       const dev = compiler.options.mode === 'development'
-      const { build } = await import('velite')
-      await build({ watch: dev, clean: !dev })
+      const { build, watch } = await import('velite')
+      await (dev ? watch({ clean: false }) : build({ clean: true }))
     })
   }
 }
 ```
 
 ```js [ESM]
-import { build } from 'velite'
+import { build, watch } from 'velite'
 
 /** @type {import('next').NextConfig} */
 export default {
@@ -101,7 +101,7 @@ class VeliteWebpackPlugin {
       if (VeliteWebpackPlugin.started) return
       VeliteWebpackPlugin.started = true
       const dev = compiler.options.mode === 'development'
-      await build({ watch: dev, clean: !dev })
+      await (dev ? watch({ clean: false }) : build({ clean: true }))
     })
   }
 }
@@ -155,13 +155,13 @@ e.g.
 import { defineCollection, s } from 'velite'
 
 import type { Route } from 'next'
-import type { VeliteSchema } from 'velite'
+import type { Schema } from 'velite'
 
 const options = defineCollection({
   // ...
   schema: s.object({
     // ...
-    link: s.string() as VeliteSchema<Route<'/posts/${string}'>>
+    link: s.string() as Schema<Route<'/posts/${string}'>>
   })
 })
 ```

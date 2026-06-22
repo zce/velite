@@ -147,7 +147,7 @@ const isBuild = process.argv.includes('build')
 
 if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
   process.env.VELITE_STARTED = '1'
-  import('velite').then(m => m.build({ watch: isDev, clean: !isDev }))
+  import('velite').then(m => (isDev ? m.watch({ clean: false }) : m.build({ clean: true })))
 }
 
 export default {}

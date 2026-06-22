@@ -23,7 +23,7 @@ import { EngineError } from '../engine'
 import { hash } from '../util/hash'
 import { extname, relative } from '../util/path'
 
-import type { Runtime } from '../../runtime'
+import type { ImageProcessor } from '../../runtime'
 import type { ResolvedConfig } from '../config'
 import type { Derivation } from '../engine'
 
@@ -99,15 +99,19 @@ const placeholder = (assetKey: string, config: ResolvedConfig): AssetResult => (
  * Reads the INPUT `asset:<assetKey>` (raw bytes). Three outcomes:
  *  - input UNSET → returns a zero-metadata placeholder (the dependency is still
  *    recorded, so setting the input later invalidates this memo + dependents);
- *  - input SET, no `runtime.image` → no-sharp degradation: real (content-hashed)
+ *  - input SET, no `image` processor → no-sharp degradation: real (content-hashed)
  *    public url but zero metadata. No crash, no diagnostic (documented);
- *  - input SET, `runtime.image` present → probe + blur via the runtime.
+ *  - input SET, `image` present → probe + blur via the processor.
  *
  * The try/catch is INSIDE compute on purpose: `context.input()` records the
  * dependency before throwing, so catching the `missing-input` error preserves
  * the tracked dep while letting compute return a placeholder value.
+ *
+ * Takes only the `ImageProcessor` it needs (not the whole Runtime): asset
+ * resolution depends on image processing and nothing else, so the dependency
+ * is spelled out at the factory edge.
  */
-export const createAssetDerivation = (config: ResolvedConfig, runtime: Runtime): Derivation<string, AssetResult> => ({
+export const createAssetDerivation = (config: ResolvedConfig, image: ImageProcessor | undefined): Derivation<string, AssetResult> => ({
   name: 'asset',
   async compute(context, assetKey) {
     let bytes: Uint8Array
@@ -119,7 +123,6 @@ export const createAssetDerivation = (config: ResolvedConfig, runtime: Runtime):
     }
 
     const publicUrl = publicUrlOf(assetKey, bytes, config)
-    const image = runtime.image
     if (image === undefined) {
       // No-sharp degradation: real (content-hashed) url, zero metadata.
       return { publicUrl, width: 0, height: 0, format: '', blurDataURL: '', blurWidth: 0, blurHeight: 0 }
@@ -132,7 +135,7 @@ export const createAssetDerivation = (config: ResolvedConfig, runtime: Runtime):
     // intrinsic size) would divide by zero inside the runtime adapter and yield a
     // non-empty data url inconsistent with the zero blurWidth/blurHeight here.
     if (width > 0 && height > 0) {
-      const blurDataURL = await image.blurDataURL(bytes)
+      const blurDataURL = await image.blurDataURL(bytes, { width, height })
       const blurHeight = Math.max(1, Math.round((BLUR_WIDTH * height) / width))
       return { publicUrl, width, height, format: probed.format, blurDataURL, blurWidth: BLUR_WIDTH, blurHeight }
     }

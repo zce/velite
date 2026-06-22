@@ -6,7 +6,7 @@
 // lazy, runtime-optional capability.
 //
 // Ported from the pre-refactor `src/assets/image.ts` `getImageMetadata`. The
-// new contract (`ImageProcessor`) splits probe (dimensions + format) from
+// contract (`ImageProcessor`) splits probe (dimensions + format) from
 // blur-data-url generation so a future runtime could implement either
 // independently; this adapter implements both via sharp. Asset content hashing
 // for filenames lives in the runtime-agnostic core (`src/core/util/hash.ts`),
@@ -27,11 +27,10 @@ const BLUR_WIDTH = 8
  * stays usable without it (the no-sharp degradation path), and so the bundler
  * never pulls the native binary into `dist`.
  *
- * `blurDataURL` guards against zero/undefined dimensions to avoid a
- * divide-by-zero (sharp can return undefined width/height for dimensionless
- * inputs like some SVGs). The asset derivation skips calling it entirely when
- * the probe reports non-positive dimensions; this guard is defense-in-depth for
- * direct runtime use.
+ * `blurDataURL` accepts pre-probed metadata to avoid re-reading the image when
+ * the caller already has dimensions (the asset derivation always does). When
+ * metadata is omitted the adapter probes internally; either way, dimensionless
+ * inputs (e.g. some SVGs) return `''` rather than divide by zero.
  */
 export const sharpImageProcessor: ImageProcessor = {
   async probe(data) {
@@ -40,12 +39,16 @@ export const sharpImageProcessor: ImageProcessor = {
     return { width: width ?? 0, height: height ?? 0, format: format ?? '' }
   },
 
-  async blurDataURL(data) {
+  async blurDataURL(data, metadata) {
     const { default: sharp } = await import('sharp')
     const img = sharp(data)
-    const meta = await img.metadata()
-    const width = meta.width ?? 0
-    const height = meta.height ?? 0
+    let width = metadata?.width ?? 0
+    let height = metadata?.height ?? 0
+    if (metadata === undefined) {
+      const meta = await img.metadata()
+      width = meta.width ?? 0
+      height = meta.height ?? 0
+    }
     if (width <= 0 || height <= 0) return ''
     const blurHeight = Math.max(1, Math.round((BLUR_WIDTH * height) / width))
     const blurImage = await img.resize(BLUR_WIDTH, blurHeight).webp({ quality: 1 }).toBuffer()

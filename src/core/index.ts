@@ -37,11 +37,31 @@ export type { Diagnostic, DiagnosticCode, DiagnosticLevel, DiagnosticStage, Veli
 
 export type { BuildResult } from './driver'
 
-export type { Loader, LoaderRegistry } from './loader'
+export { defineLoader } from './loader'
+export type { Loader, LoaderInput, LoaderResult, LoadedItem } from './loader'
 
 export type { CollectionResult, Entry } from './model'
 
 export type { LogicalOutput } from './output/logical'
 
-export { s } from './schema'
-export type { Infer, Schema, SchemaNamespace } from './schema'
+export { context, defineSchema, s } from './schema'
+export type {
+  BlurOptions,
+  ContentFile,
+  ExcerptSchemaOptions,
+  FileSchemaOptions,
+  ImageData,
+  ImageSchemaOptions,
+  Infer,
+  MarkdownSchemaOptions,
+  MdxSchemaOptions,
+  Metadata,
+  PathSchemaOptions,
+  Schema,
+  SchemaContext,
+  SchemaNamespace,
+  TocItem
+} from './schema'
+
+export type { MarkdownOptions } from './content/markdown'
+export type { MdxOptions } from './content/mdx'

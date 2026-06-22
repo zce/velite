@@ -3,8 +3,9 @@ import { dirname, join } from './util/path'
 
 import type { FileSystem } from '../runtime/fs'
 import type { ModuleLoader } from '../runtime/modules'
+import type { MarkdownOptions } from './content/markdown'
+import type { MdxOptions } from './content/mdx'
 import type { Diagnostic } from './diagnostic'
-import type { LogicalOutput } from './output/logical'
 import type { Schema } from './schema/s'
 
 /** A collection definition as written by the user. */
@@ -21,8 +22,15 @@ export interface CollectionDef<S extends Schema = Schema> {
   schema: S
 }
 
-/** Result of the `prepare` hook: continue, skip output, or replace the result. */
-export type PrepareResult = void | false | { output: LogicalOutput; diagnostics: Diagnostic[] }
+/**
+ * The collections as the prepare hook sees them: a map of collection name →
+ * data array (list collections) or single data object (single collections).
+ * Mutating the arrays or their elements mutates the underlying entries.
+ */
+export type PrepareCollections = Record<string, unknown[] | unknown>
+
+/** Result of the `prepare` hook: continue (void), skip output (`false`), or replace the collections. */
+export type PrepareResult = void | false | { collections: PrepareCollections; diagnostics?: Diagnostic[] }
 
 /** A `T | Promise<T>` helper (kept local to avoid importing the old loaders). */
 type Promisable<T> = T | Promise<T>
@@ -30,12 +38,14 @@ type Promisable<T> = T | Promise<T>
 /**
  * The output-oriented `prepare` hook.
  *
- * Receives the complete logical build result (`{output, diagnostics}`) and may
- * mutate it in place (returning `void`), replace it (returning a new
- * `{output, diagnostics}`), or skip default output (returning `false`). Partial
- * patch returns are not supported.
+ * Receives the collections map directly (name → data array, or single object
+ * for `single: true` collections) as the first argument, so callers can
+ * destructure: `prepare: ({ posts, categories }) => { ... }`. The hook may
+ * mutate the data in place (returning `void`), replace the collections
+ * wholesale (returning a new `{ collections, diagnostics }`), or skip default
+ * output (returning `false`).
  */
-export type PrepareHook = (result: { output: LogicalOutput; diagnostics: Diagnostic[] }, context: PrepareContext) => Promisable<PrepareResult>
+export type PrepareHook = (collections: PrepareCollections, context: PrepareContext) => Promisable<PrepareResult>
 
 /** Context passed to the `prepare` hook. */
 export interface PrepareContext {
@@ -69,6 +79,10 @@ export interface UserConfig {
   }
   /** Collections keyed by name (the name is also the output data key). */
   collections: Record<string, CollectionDef>
+  /** Global markdown rendering options; per-schema options override these. */
+  markdown?: MarkdownOptions
+  /** Global MDX compiler options; per-schema options override these. */
+  mdx?: MdxOptions
   /** Output-oriented result-processing hook, applied between emit and write. */
   prepare?: PrepareHook
 }
@@ -90,6 +104,10 @@ export interface ResolvedConfig {
   configPath: string
   output: { data: string; assets: string; base: string; name: string; format: 'esm' | 'cjs' }
   collections: ResolvedCollection[]
+  /** Global markdown rendering options (carried through from {@link UserConfig}). */
+  markdown?: MarkdownOptions
+  /** Global MDX compiler options (carried through from {@link UserConfig}). */
+  mdx?: MdxOptions
   /** Carried through from UserConfig; applied by the driver. */
   prepare?: PrepareHook
 }
@@ -112,6 +130,21 @@ export class ConfigError extends Error {
 }
 
 const toArray = (value: string | string[] | undefined): string[] => (value === undefined ? [] : Array.isArray(value) ? value : [value])
+
+/**
+ * Split a collection's pattern list into include / exclude. A `!`-prefixed
+ * pattern is a negation (gitignore-style) and belongs in exclude, not include —
+ * picomatch treats a bare negation mixed into the include array as matching
+ * everything, so this separation is required for mixed pattern lists to behave
+ * as users expect.
+ */
+const splitPatterns = (pattern: string | string[] | undefined, exclude: string | string[] | undefined): { include: string[]; exclude: string[] } => {
+  const raw = toArray(pattern)
+  const include = raw.filter(p => !p.startsWith('!'))
+  const negated = raw.filter(p => p.startsWith('!')).map(p => p.slice(1))
+  const explicit = toArray(exclude)
+  return { include, exclude: [...negated, ...explicit] }
+}
 
 /** Validate a raw config value's shape. Returns diagnostics (does not throw). */
 export const validateConfig = (config: unknown): Diagnostic[] => {
@@ -225,14 +258,19 @@ export const resolveConfig = async (runtime: ConfigRuntime, options: ResolveConf
       name: config.output?.name ?? '[name]-[hash:8].[ext]',
       format: config.output?.format ?? 'esm'
     },
-    collections: Object.entries(config.collections).map(([name, def]) => ({
-      name,
-      include: toArray(def.pattern),
-      exclude: toArray(def.exclude),
-      single: def.single ?? false,
-      typeName: def.typeName ?? name,
-      schema: def.schema
-    })),
+    collections: Object.entries(config.collections).map(([name, def]) => {
+      const { include, exclude } = splitPatterns(def.pattern, def.exclude)
+      return {
+        name,
+        include,
+        exclude,
+        single: def.single ?? false,
+        typeName: def.typeName ?? name,
+        schema: def.schema
+      }
+    }),
+    markdown: config.markdown,
+    mdx: config.mdx,
     prepare: config.prepare
   }
 }

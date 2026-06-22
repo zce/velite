@@ -1,2 +1,15 @@
-export { s } from './s'
-export type { SchemaNamespace, Schema, Infer } from './s'
+export { defineSchema, s } from './s'
+export type { Infer, Schema, SchemaNamespace } from './s'
+
+export { context } from './context'
+export type { ContentFile, SchemaContext } from './context'
+
+export type { BlurOptions } from '../pipeline/asset'
+export type { FileSchemaOptions } from './file'
+export type { ImageData, ImageSchemaOptions } from './image'
+export type { MarkdownSchemaOptions } from './markdown'
+export type { MdxSchemaOptions } from './mdx'
+export type { Metadata } from './metadata'
+export type { PathSchemaOptions } from './path-schema'
+export type { ExcerptSchemaOptions } from './excerpt'
+export type { TocItem } from '../content/reference'

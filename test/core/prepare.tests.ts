@@ -1,7 +1,8 @@
 // Integration tests for the `prepare` hook: void (write original), false (skip
-// writes), and a modified result (write the replacement). Uses the full builder
-// + MemoryFileSystem so the hook is exercised in its real wiring between emit
-// and writeOutput.
+// writes), a modified result (write the replacement), and the friendly
+// collections view (name → data array / single object, destructurable as the
+// first argument). Uses the full builder + MemoryFileSystem so the hook is
+// exercised in its real wiring between emit and writeOutput.
 import { deepEqual, equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
@@ -10,8 +11,7 @@ import { join } from '../../src/core/util/path'
 import { silentLogger } from '../../src/runtime/adapters/node/logger'
 import { MemoryFileSystem } from '../helpers/memory-fs'
 
-import type { PrepareContext, PrepareHook, UserConfig } from '../../src/core/config'
-import type { LogicalOutput } from '../../src/core/output/logical'
+import type { PrepareCollections, PrepareContext, PrepareHook, UserConfig } from '../../src/core/config'
 import type { Runtime } from '../../src/runtime'
 
 const CWD = '/proj'
@@ -49,31 +49,54 @@ test('prepare: false return suppresses all writes (written: [])', async () => {
   const { runtime, fs } = setup(() => false)
   const result = await build(runtime)
   equal(result.written.length, 0, 'nothing written when prepare returns false')
-  // The data file was not created.
   await readJson(fs, join(DATA_DIR, 'posts.json')).then(
     () => ok(false, 'posts.json should not exist'),
     () => ok(true, 'posts.json absent as expected')
   )
-  // Output is still returned (logical), just not written.
-  equal(result.output.collections.posts!.entries.length, 2)
 })
 
-test('prepare: a modified result is written in place of the original', async () => {
-  const prepare: PrepareHook = result => {
-    // Clone the output and tag every post with `processed: true`.
-    const output: LogicalOutput = {
-      collections: {
-        ...result.output.collections,
-        posts: {
-          ...result.output.collections.posts!,
-          entries: result.output.collections.posts!.entries.map(entry => ({
-            ...entry,
-            data: { ...(entry.data as { title: string }), processed: true }
-          }))
-        }
-      }
-    }
-    return { output, diagnostics: result.diagnostics }
+test('prepare: collections are destructurable as the first argument', async () => {
+  let received: Array<{ title: string }> | undefined
+  const prepare: PrepareHook = ({ posts }) => {
+    received = posts as Array<{ title: string }>
+  }
+  const { runtime } = setup(prepare)
+  await build(runtime)
+  deepEqual(
+    received?.map(p => p.title),
+    ['A', 'B']
+  )
+})
+
+test('prepare: mutating the collections view in place (void) writes the mutation', async () => {
+  const prepare: PrepareHook = ({ posts }) => {
+    for (const post of posts as Array<{ title: string; processed?: boolean }>) post.processed = true
+  }
+  const { runtime, fs } = setup(prepare)
+  const result = await build(runtime)
+  ok(result.written.some(p => p.endsWith('posts.json')))
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ title: string; processed: boolean }>
+  ok(
+    posts.every(p => p.processed === true),
+    'in-place mutation propagated'
+  )
+})
+
+test('prepare: pushing a new entry into the array propagates (rebuild syncs length)', async () => {
+  const prepare: PrepareHook = ({ posts }) => {
+    ;(posts as Array<{ title: string }>).push({ title: 'C' })
+  }
+  const { runtime, fs } = setup(prepare)
+  await build(runtime)
+  const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ title: string }>
+  equal(posts.length, 3)
+  equal(posts[2]!.title, 'C')
+})
+
+test('prepare: a replaced collections result is written in place of the original', async () => {
+  const prepare: PrepareHook = ({ posts }) => {
+    const next: PrepareCollections = { posts: (posts as Array<{ title: string }>).map(p => ({ ...p, processed: true })) }
+    return { collections: next }
   }
   const { runtime, fs } = setup(prepare)
   const result = await build(runtime)
@@ -82,8 +105,35 @@ test('prepare: a modified result is written in place of the original', async () 
   equal(posts.length, 2)
   ok(
     posts.every(p => p.processed === true),
-    'the modified data was written'
+    'the replaced data was written'
   )
+})
+
+test('prepare: single collections expose the single object, not an array', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { options: { pattern: 'options/*.json', single: true, schema: s.object({ name: s.string() }) } }
+  }
+  let received: unknown
+  const fs = new MemoryFileSystem()
+  fs.put(join(CWD, 'content/options/a.json'), JSON.stringify({ name: 'velite' }))
+  const runtime: Runtime = {
+    fs,
+    modules: {
+      load: async () => ({
+        exports: {
+          ...config,
+          prepare: ({ options }: PrepareCollections) => {
+            received = options
+          }
+        },
+        dependencies: []
+      })
+    },
+    logger: silentLogger
+  }
+  await build(runtime)
+  deepEqual(received, { name: 'velite' })
 })
 
 test('prepare: receives a context with project metadata and diagnostics', async () => {
@@ -102,9 +152,9 @@ test('prepare: receives a context with project metadata and diagnostics', async 
 })
 
 test('prepare: async hook is awaited', async () => {
-  const prepare: PrepareHook = async result => {
+  const prepare: PrepareHook = async collections => {
     await Promise.resolve()
-    return { output: result.output, diagnostics: result.diagnostics }
+    return { collections }
   }
   const { runtime } = setup(prepare)
   const result = await build(runtime)

@@ -36,8 +36,7 @@ export default defineConfig({
   output: {
     data: '.velite',
     assets: 'public/static',
-    base: '/static/',
-    clean: true
+    base: '/static/'
   },
   collections: {
     options: {
@@ -99,7 +98,7 @@ export default defineConfig({
         .object({
           title: s.string().max(99),
           slug: s.path(),
-          date: s.isoDate(),
+          date: s.isodate(),
           updated: timestamp(),
           cover: s.image().optional(),
           video: s.file().optional(),

@@ -31,3 +31,6 @@ export interface Loader {
   match: string[] | ((path: SourcePath) => boolean)
   load(input: LoaderInput): LoaderResult
 }
+
+/** Identity helper for a custom loader, for type inference. No runtime effect. */
+export const defineLoader = <L extends Loader>(loader: L): L => loader

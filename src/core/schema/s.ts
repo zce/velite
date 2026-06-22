@@ -30,3 +30,12 @@ export type Schema<T = unknown> = z.ZodType<T>
 
 /** Infer the output type of a schema. */
 export type Infer<S extends Schema> = z.infer<S>
+
+/**
+ * Identity helper for a custom schema, for type inference and editor support.
+ * No runtime effect — constrains the value to a valid {@link Schema}.
+ *
+ * @example
+ * const gitSha = defineSchema(s.string().transform(() => execSync('git rev-parse HEAD').toString()))
+ */
+export const defineSchema = <S extends Schema>(schema: S): S => schema

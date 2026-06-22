@@ -21,4 +21,5 @@ export const createLoaderRegistry = (custom: Loader[] = []): LoaderRegistry => {
   }
 }
 
+export { defineLoader } from './types'
 export type { Loader, LoaderInput, LoaderResult, LoadedItem } from './types'

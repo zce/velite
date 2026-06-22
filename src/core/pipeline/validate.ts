@@ -17,7 +17,7 @@ const buildProjectInfo = (config: ResolvedConfig): ProjectInfo => {
   for (const c of config.collections) {
     collections[c.name] = { pattern: c.include, single: c.single, schema: c.schema }
   }
-  return { root: config.root, configPath: config.configPath, collections, output: config.output }
+  return { root: config.root, configPath: config.configPath, collections, output: config.output, markdown: config.markdown, mdx: config.mdx }
 }
 
 /**

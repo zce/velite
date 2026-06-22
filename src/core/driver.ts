@@ -9,7 +9,7 @@ import { createPool } from './util/pool'
 import type { FileSystem } from '../runtime/fs'
 import type { Logger } from '../runtime/logger'
 import type { FileEvent } from '../runtime/watcher'
-import type { PrepareContext, ResolvedConfig } from './config'
+import type { PrepareCollections, PrepareContext, ResolvedConfig } from './config'
 import type { Diagnostic } from './diagnostic'
 import type { Engine } from './engine'
 import type { LogicalOutput } from './output/logical'
@@ -46,6 +46,47 @@ export interface BuildResult {
 export type ApplyResult = 'config-reload' | 'content' | 'none'
 
 const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+
+/**
+ * Build the prepare hook's friendly view of the output: collection name → data
+ * array (list collections) or single data object (single collections). The
+ * data values are live references into the entries, so mutating elements
+ * propagates; pushing/splicing the array does not (the rebuild below catches
+ * those length changes).
+ */
+const buildPrepareCollections = (output: LogicalOutput): PrepareCollections => {
+  const collections: PrepareCollections = {}
+  for (const [name, result] of Object.entries(output.collections)) {
+    collections[name] = result.mode === 'single' ? result.entries[0]?.data : result.entries.map(e => e.data)
+  }
+  return collections
+}
+
+/**
+ * Rebuild the {@link LogicalOutput} after the prepare hook ran, syncing the
+ * (possibly mutated / replaced) collections back onto entries. Existing
+ * entries keep their `id`/`source`; items beyond the original length get
+ * synthetic ids; items removed (shorter array) drop. Single collections take
+ * their single data object.
+ */
+const rebuildOutput = (output: LogicalOutput, collections: PrepareCollections): LogicalOutput => {
+  const next: LogicalOutput['collections'] = {}
+  for (const [name, result] of Object.entries(output.collections)) {
+    const data = collections[name]
+    if (result.mode === 'single') {
+      const entries = data == null ? [] : [{ ...result.entries[0]!, data }]
+      next[name] = { collection: name, mode: 'single', entries }
+    } else {
+      const arr = Array.isArray(data) ? data : []
+      const entries = arr.map((item, i) => {
+        const existing = result.entries[i]
+        return existing === undefined ? { id: `${name}#${i}` as const, source: '', data: item } : { ...existing, data: item }
+      })
+      next[name] = { collection: name, mode: 'list', entries }
+    }
+  }
+  return { collections: next }
+}
 
 /** Walk the content root and feed the tree snapshot as an engine input. */
 export const refreshTree = async (context: RunContext): Promise<TreeFile[]> => {
@@ -141,8 +182,9 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   let diagnostics = [...emitted.diagnostics, ...assetReadDiagnostics]
 
   // Apply the user-facing `prepare` hook between emit and any writes. The hook
-  // may mutate/replace the logical output + diagnostics, or return `false` to
-  // suppress all output (data + assets). Runs before the asset copy so `false`
+  // sees a friendly `{ collections, diagnostics }` view (name → data array, or
+  // single object) and may mutate in place (void), replace (new collections),
+  // or suppress output (`false`). Runs before the asset copy so `false`
   // genuinely writes nothing.
   let output: LogicalOutput = emitted.output
   if (config.prepare !== undefined) {
@@ -150,14 +192,17 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
       project: { root: config.root, configPath: config.configPath, collections: config.collections },
       diagnostics
     }
-    const prepared = await config.prepare({ output, diagnostics }, prepareContext)
+    const view = buildPrepareCollections(output)
+    const prepared = await config.prepare(view, prepareContext)
     if (prepared === false) {
       runtime.logger?.report(diagnostics)
       return { output, diagnostics, written: [] }
     }
     if (prepared !== undefined) {
-      output = prepared.output
-      diagnostics = prepared.diagnostics
+      output = rebuildOutput(output, prepared.collections)
+      if (prepared.diagnostics !== undefined) diagnostics = prepared.diagnostics
+    } else {
+      output = rebuildOutput(output, view)
     }
   }
 

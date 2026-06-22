@@ -5,7 +5,7 @@ import { consoleLogger } from './logger'
 import { nodePath } from './path'
 import { createChokidarWatcher } from './watcher'
 
-import type { Runtime } from '../runtime'
+import type { Runtime } from '../../index'
 
 /** Default Node runtime: the wired-up set of runtime adapters. */
 export const nodeRuntime: Runtime = {
@@ -14,5 +14,5 @@ export const nodeRuntime: Runtime = {
   logger: consoleLogger,
   image: sharpImageProcessor,
   path: nodePath,
-  watch: paths => createChokidarWatcher(paths)
+  watch: createChokidarWatcher
 }

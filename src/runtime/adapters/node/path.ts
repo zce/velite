@@ -1,6 +1,6 @@
 import nodePosix from 'node:path/posix'
 
-import type { Path } from '../runtime/path'
+import type { Path } from '../../path'
 
 /**
  * Node adapter for the {@link Path} runtime contract. Wraps `node:path/posix`

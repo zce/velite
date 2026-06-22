@@ -1,9 +1,9 @@
 import { fileURLToPath } from 'node:url'
 import { createJiti } from 'jiti'
 
-import { name as pkgName } from '../../package.json'
+import { name as pkgName } from '../../../../package.json'
 
-import type { ConfigLoader } from '../runtime/config'
+import type { ConfigLoader } from '../../config'
 
 // Lazy jiti instance — created once and reused (moduleCache disabled so watch
 // reloads pick up config edits). The `velite` import is aliased to this

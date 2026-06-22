@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import posix from 'node:path/posix'
 
-import { nodeRuntime } from './adapters/runtime'
 import { createBuilder } from './core'
+import { nodeRuntime } from './runtime/adapters/node'
 
 import type { Builder, BuildResult, WatchHandle } from './core'
 
@@ -59,7 +59,6 @@ export type {
   Diagnostic,
   Entry,
   FileSystem,
-  Runtime,
   ImageProcessor,
   Infer,
   Loader,
@@ -68,6 +67,7 @@ export type {
   PrepareContext,
   PrepareHook,
   PrepareResult,
+  Runtime,
   Schema,
   UserConfig,
   Watcher,

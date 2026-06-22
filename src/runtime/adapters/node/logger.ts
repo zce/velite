@@ -1,9 +1,9 @@
 import { sep } from 'node:path'
 
-import { name as pkgName } from '../../package.json'
+import { name as pkgName } from '../../../../package.json'
 
-import type { Diagnostic } from '../core/diagnostic'
-import type { Logger } from '../runtime/logger'
+import type { Diagnostic } from '../../../core/diagnostic'
+import type { Logger } from '../../logger'
 
 /** Log level ordering. `silent` disables all output. */
 export type LogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug'

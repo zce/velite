@@ -2,7 +2,7 @@ import chokidar from 'chokidar'
 
 import { nodePath as posix } from './path'
 
-import type { FileEvent, Watcher } from '../runtime/watcher'
+import type { FileEvent, Watcher } from '../../watcher'
 
 /** Chokidar adapter for the {@link Watcher} runtime contract. */
 export const createChokidarWatcher = (paths: string[]): Watcher => ({

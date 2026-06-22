@@ -21,9 +21,9 @@ export interface Runtime {
   watch?: (paths: string[]) => Watcher
 }
 
-export type { FileSystem } from './fs'
-export type { Watcher, FileEvent } from './watcher'
-export type { ImageProcessor } from './image'
 export type { ConfigLoader } from './config'
+export type { FileSystem } from './fs'
+export type { ImageProcessor } from './image'
 export type { Logger } from './logger'
 export type { Path } from './path'
+export type { FileEvent, Watcher } from './watcher'

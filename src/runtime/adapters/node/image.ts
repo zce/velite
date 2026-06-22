@@ -12,7 +12,7 @@
 // for filenames lives in the runtime-agnostic core (`src/core/util/hash.ts`),
 // NOT here.
 
-import type { ImageProcessor } from '../runtime/image'
+import type { ImageProcessor } from '../../image'
 
 /**
  * Blur placeholder width. NOTE: the canonical contract lives in

@@ -64,7 +64,7 @@ export const sanitizeStem = (input: string): string =>
     .slice(0, 48) || 'record'
 
 /**
- * Pure-posix basename. The host {@link Path} interface has no basename, but the
+ * Pure-posix basename. The runtime {@link Path} interface has no basename, but the
  * layout needs the final segment of a source id to name single-record files.
  */
 export const basename = (input: string): string => {

@@ -5,11 +5,11 @@ import { writeOutput } from './output/writer'
 import { assetInput, assetKeyOf, fileInput, TREE } from './pipeline'
 import { createPool } from './util/pool'
 
+import type { Runtime } from '../runtime'
+import type { FileEvent } from '../runtime/watcher'
 import type { PrepareContext, ResolvedConfig } from './config'
 import type { Diagnostic } from './diagnostic'
 import type { Engine } from './engine'
-import type { Host } from './host'
-import type { FileEvent } from './host/watcher'
 import type { LogicalOutput } from './output/logical'
 import type { OutputManifest } from './output/manifest'
 import type { Pipeline, TreeFile } from './pipeline'
@@ -18,7 +18,7 @@ export interface RunContext {
   engine: Engine
   pipeline: Pipeline
   config: ResolvedConfig
-  host: Host
+  runtime: Runtime
   /** Shadow copy of the tree input, kept in sync with the engine. */
   tree: TreeFile[]
   manifest: OutputManifest
@@ -37,14 +37,14 @@ const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => (a.path <
 
 /** Walk the content root and feed the tree snapshot as an engine input. */
 export const refreshTree = async (context: RunContext): Promise<TreeFile[]> => {
-  const { engine, config, host } = context
+  const { engine, config, runtime } = context
   const include = [...new Set(config.collections.flatMap(c => c.include))]
   const exclude = [...new Set(config.collections.flatMap(c => c.exclude))]
-  const absPaths = await host.fs.walk(config.root, { include, exclude })
+  const absPaths = await runtime.fs.walk(config.root, { include, exclude })
   const tree: TreeFile[] = []
   for (const absPath of absPaths) {
-    const stat = await host.fs.stat(absPath)
-    tree.push({ path: host.path.relative(config.root, absPath), absPath, stat })
+    const stat = await runtime.fs.stat(absPath)
+    tree.push({ path: runtime.path.relative(config.root, absPath), absPath, stat })
   }
   sortTree(tree)
   engine.set(TREE, tree)
@@ -54,7 +54,7 @@ export const refreshTree = async (context: RunContext): Promise<TreeFile[]> => {
 
 /** Read all current source files into engine inputs (full build). */
 export const readSources = async (context: RunContext): Promise<void> => {
-  const { engine, pipeline, config, host } = context
+  const { engine, pipeline, config, runtime } = context
   const seen = new Set<string>()
   const pool = createPool(8)
   const tasks: Promise<void>[] = []
@@ -65,7 +65,7 @@ export const readSources = async (context: RunContext): Promise<void> => {
       seen.add(source.path)
       tasks.push(
         pool.run(async () => {
-          engine.set(fileInput(source.path), await host.fs.read(source.absPath))
+          engine.set(fileInput(source.path), await runtime.fs.read(source.absPath))
         })
       )
     }
@@ -88,7 +88,7 @@ export const readSources = async (context: RunContext): Promise<void> => {
  * crashing the build.
  */
 const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Promise<BuildResult> => {
-  const { engine, pipeline, config, host } = context
+  const { engine, pipeline, config, runtime } = context
 
   // Pass 1: discover asset references via the schema parse.
   let emitted = await engine.get(pipeline.emit, null)
@@ -103,7 +103,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
     if (seenKeys.has(assetKey)) continue
     seenKeys.add(assetKey)
     try {
-      const bytes = await host.fs.read(effect.assetPath)
+      const bytes = await runtime.fs.read(effect.assetPath)
       assetBytes.set(assetKey, bytes)
       engine.set(assetInput(assetKey), bytes)
     } catch (err) {
@@ -140,7 +140,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
     }
     const prepared = await config.prepare({ output, diagnostics }, prepareContext)
     if (prepared === false) {
-      host.logger?.report?.(diagnostics)
+      runtime.logger?.report?.(diagnostics)
       return { output, diagnostics, written: [] }
     }
     if (prepared !== undefined) {
@@ -166,9 +166,9 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
     const outputName = effect.publicUrl.slice(config.output.base.length)
     if (outputName.length === 0 || writtenAssets.has(outputName)) continue
     writtenAssets.add(outputName)
-    const dest = host.path.join(config.output.assets, outputName)
+    const dest = runtime.path.join(config.output.assets, outputName)
     try {
-      await host.fs.write(dest, bytes)
+      await runtime.fs.write(dest, bytes)
       written.push(dest)
     } catch (err) {
       assetWriteDiagnostics.push(
@@ -182,7 +182,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   }
 
   const finalDiagnostics = [...diagnostics, ...assetWriteDiagnostics]
-  host.logger?.report?.(finalDiagnostics)
+  runtime.logger?.report?.(finalDiagnostics)
   // Fatal (non-schema) errors make the output untrustworthy: report and throw,
   // skipping the write. Schema-level errors are non-fatal and returned in the result.
   if (hasFatalDiagnostic(finalDiagnostics)) {
@@ -192,8 +192,8 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   const { written: dataWritten, manifest } = await writeOutput(
     output,
     {
-      fs: host.fs,
-      path: host.path,
+      fs: runtime.fs,
+      path: runtime.path,
       dir: config.output.data,
       layout,
       configPath: config.configPath,
@@ -224,7 +224,7 @@ export const runIncremental = async (context: RunContext, layout: 'split' | 'sin
  * rebuild, or no action is needed.
  */
 export const applyChanges = async (context: RunContext, events: FileEvent[], options: { cwd: string; configPath: string }): Promise<ApplyResult> => {
-  const { engine, config, host } = context
+  const { engine, config, runtime } = context
   let configReload = false
   let content = false
 
@@ -233,7 +233,7 @@ export const applyChanges = async (context: RunContext, events: FileEvent[], opt
     configPath: options.configPath,
     contentRoot: config.root,
     outputDir: config.output.data,
-    path: host.path
+    path: runtime.path
   }
 
   for (const event of events) {
@@ -244,7 +244,7 @@ export const applyChanges = async (context: RunContext, events: FileEvent[], opt
       continue
     }
 
-    const rel = host.path.relative(config.root, event.absPath)
+    const rel = runtime.path.relative(config.root, event.absPath)
     if (rel.startsWith('..')) continue
     // The asset input key must match what the schema demands (assetKeyOf uses
     // posix.relative). For posix hosts this equals `rel`; computing it via
@@ -260,14 +260,14 @@ export const applyChanges = async (context: RunContext, events: FileEvent[], opt
     }
 
     try {
-      const stat = await host.fs.stat(event.absPath)
+      const stat = await runtime.fs.stat(event.absPath)
       const entry: TreeFile = { path: rel, absPath: event.absPath, stat }
       const index = context.tree.findIndex(f => f.path === rel)
       if (index >= 0) context.tree[index] = entry
       else context.tree.push(entry)
       sortTree(context.tree)
       engine.set(TREE, context.tree)
-      const bytes = await host.fs.read(event.absPath)
+      const bytes = await runtime.fs.read(event.absPath)
       engine.set(fileInput(rel), bytes)
       // Feed the asset input too: the file may be an asset source referenced by
       // a schema. Over-inclusive but correct — unused inputs are never demanded.
@@ -290,11 +290,11 @@ export const applyChanges = async (context: RunContext, events: FileEvent[], opt
 }
 
 /** Create a fresh run context (empty tree/manifest). */
-export const createRunContext = (engine: Engine, pipeline: Pipeline, config: ResolvedConfig, host: Host): RunContext => ({
+export const createRunContext = (engine: Engine, pipeline: Pipeline, config: ResolvedConfig, runtime: Runtime): RunContext => ({
   engine,
   pipeline,
   config,
-  host,
+  runtime,
   tree: [],
   manifest: emptyManifest()
 })

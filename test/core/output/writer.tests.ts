@@ -5,10 +5,10 @@ import { emptyManifest } from '../../../src/core/output/manifest'
 import { writeOutput } from '../../../src/core/output/writer'
 import { posix } from '../../../src/core/util/path'
 
-import type { FileSystem } from '../../../src/core/host/fs'
 import type { CollectionResult } from '../../../src/core/model'
 import type { CollectionMeta } from '../../../src/core/output/declaration'
 import type { LogicalOutput } from '../../../src/core/output/logical'
+import type { FileSystem } from '../../../src/runtime/fs'
 
 /** Minimal in-memory FileSystem for writer tests. */
 const createMemoryFs = () => {

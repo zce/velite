@@ -23,9 +23,9 @@ import { EngineError } from '../engine'
 import { hash } from '../util/hash'
 import { posix } from '../util/path'
 
+import type { Runtime } from '../../runtime'
 import type { ResolvedConfig } from '../config'
 import type { Derivation } from '../engine'
-import type { Host } from '../host'
 
 /** Result of resolving an asset: public url plus image metadata (zeros when unknown). */
 export interface AssetResult {
@@ -99,15 +99,15 @@ const placeholder = (assetKey: string, config: ResolvedConfig): AssetResult => (
  * Reads the INPUT `asset:<assetKey>` (raw bytes). Three outcomes:
  *  - input UNSET → returns a zero-metadata placeholder (the dependency is still
  *    recorded, so setting the input later invalidates this memo + dependents);
- *  - input SET, no `host.image` → no-sharp degradation: real (content-hashed)
+ *  - input SET, no `runtime.image` → no-sharp degradation: real (content-hashed)
  *    public url but zero metadata. No crash, no diagnostic (documented);
- *  - input SET, `host.image` present → probe + blur via the host.
+ *  - input SET, `runtime.image` present → probe + blur via the runtime.
  *
  * The try/catch is INSIDE compute on purpose: `context.input()` records the
  * dependency before throwing, so catching the `missing-input` error preserves
  * the tracked dep while letting compute return a placeholder value.
  */
-export const createAssetDerivation = (config: ResolvedConfig, host: Host): Derivation<string, AssetResult> => ({
+export const createAssetDerivation = (config: ResolvedConfig, runtime: Runtime): Derivation<string, AssetResult> => ({
   name: 'asset',
   async compute(context, assetKey) {
     let bytes: Uint8Array
@@ -119,7 +119,7 @@ export const createAssetDerivation = (config: ResolvedConfig, host: Host): Deriv
     }
 
     const publicUrl = publicUrlOf(assetKey, bytes, config)
-    const image = host.image
+    const image = runtime.image
     if (image === undefined) {
       // No-sharp degradation: real (content-hashed) url, zero metadata.
       return { publicUrl, width: 0, height: 0, format: '', blurDataURL: '', blurWidth: 0, blurHeight: 0 }
@@ -129,7 +129,7 @@ export const createAssetDerivation = (config: ResolvedConfig, host: Host): Deriv
     const { width, height } = probed
     // Only generate a blur placeholder when the image has real dimensions.
     // Calling blurDataURL on a dimensionless image (e.g. an SVG without
-    // intrinsic size) would divide by zero inside the host adapter and yield a
+    // intrinsic size) would divide by zero inside the runtime adapter and yield a
     // non-empty data url inconsistent with the zero blurWidth/blurHeight here.
     if (width > 0 && height > 0) {
       const blurDataURL = await image.blurDataURL(bytes)

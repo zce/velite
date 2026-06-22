@@ -1,10 +1,10 @@
 import chokidar from 'chokidar'
 
-import { posix } from './core/util/path'
+import { nodePath as posix } from './path'
 
-import type { FileEvent, Watcher } from './core/host/watcher'
+import type { FileEvent, Watcher } from '../runtime/watcher'
 
-/** Chokidar adapter for the {@link Watcher} host contract. */
+/** Chokidar adapter for the {@link Watcher} runtime contract. */
 export const createChokidarWatcher = (paths: string[]): Watcher => ({
   subscribe(onEvent) {
     const watcher = chokidar.watch(paths, {

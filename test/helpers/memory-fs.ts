@@ -1,4 +1,4 @@
-import type { FileSystem } from '../../src/core/host/fs'
+import type { FileSystem } from '../../src/runtime/fs'
 
 const encoder = new TextEncoder()
 
@@ -8,7 +8,7 @@ const encoder = new TextEncoder()
  *
  * NOTE: `walk` currently returns every stored path under `root` and ignores the
  * include/exclude globs — glob matching is the pipeline's responsibility (added
- * with util/glob in a later milestone). Enough for engine/host-contract tests.
+ * with util/glob in a later milestone). Enough for engine/runtime-contract tests.
  */
 export class MemoryFileSystem implements FileSystem {
   private readonly files = new Map<string, Uint8Array>()

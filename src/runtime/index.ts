@@ -6,11 +6,13 @@ import type { Path } from './path'
 import type { Watcher } from './watcher'
 
 /**
- * The host contract bundle: the core's complete set of runtime dependencies.
- * This plain object is the "container" for the project's manual dependency
- * injection (no DI framework). Assembled once at the composition root.
+ * The runtime contract bundle: the core's complete set of runtime dependencies.
+ * Velite's pure core (engine + pipeline + schemas) is runtime-agnostic — it
+ * consumes this interface; adapters (`src/adapters/`) implement it. This plain
+ * object doubles as the "container" for the project's manual dependency
+ * injection (no DI framework), assembled once at the composition root.
  */
-export interface Host {
+export interface Runtime {
   fs: FileSystem
   config: ConfigLoader
   path: Path

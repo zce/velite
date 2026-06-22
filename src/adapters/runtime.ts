@@ -1,18 +1,18 @@
-import { jitiConfigLoader } from './config-loader'
-import { posix } from './core/util/path'
+import { jitiConfigLoader } from './config'
 import { nodeFileSystem } from './fs'
 import { sharpImageProcessor } from './image'
 import { consoleLogger } from './logger'
+import { nodePath } from './path'
 import { createChokidarWatcher } from './watcher'
 
-import type { Host } from './core/host'
+import type { Runtime } from '../runtime'
 
-/** Default Node host: the wired-up set of runtime adapters. */
-export const nodeHost: Host = {
+/** Default Node runtime: the wired-up set of runtime adapters. */
+export const nodeRuntime: Runtime = {
   fs: nodeFileSystem,
   config: jitiConfigLoader,
   logger: consoleLogger,
   image: sharpImageProcessor,
-  path: posix,
+  path: nodePath,
   watch: paths => createChokidarWatcher(paths)
 }

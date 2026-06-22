@@ -1,4 +1,4 @@
-import type { FileEvent } from './host/watcher'
+import type { FileEvent } from '../runtime/watcher'
 
 /** Merge consecutive events for the same path; the last event wins. */
 export const mergeEvents = (events: FileEvent[]): FileEvent[] => {

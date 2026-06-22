@@ -5,13 +5,13 @@
 import { equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
+import { silentLogger } from '../../src/adapters/logger'
 import { createBuilder, s } from '../../src/core'
 import { posix } from '../../src/core/util/path'
-import { silentLogger } from '../../src/logger'
 import { MemoryFileSystem } from '../helpers/memory-fs'
 
 import type { UserConfig } from '../../src/core/config'
-import type { Host } from '../../src/core/host'
+import type { Runtime } from '../../src/runtime'
 
 const CWD = '/proj'
 
@@ -22,25 +22,25 @@ const config: UserConfig = {
   }
 }
 
-const setup = (files: Record<string, string>): { host: Host; fs: MemoryFileSystem } => {
+const setup = (files: Record<string, string>): { runtime: Runtime; fs: MemoryFileSystem } => {
   const fs = new MemoryFileSystem()
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
-  const host: Host = { fs, config: { load: async () => ({ config, dependencies: [] }) }, path: posix, logger: silentLogger }
-  return { host, fs }
+  const runtime: Runtime = { fs, config: { load: async () => ({ config, dependencies: [] }) }, path: posix, logger: silentLogger }
+  return { runtime, fs }
 }
 
-const build = (host: Host) => createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') }).build()
+const build = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') }).build()
 
 const post = (slug: string, title = slug): string => `---\ntitle: ${title}\nslug: ${slug}\n---\nbody`
 
 const abs = (rel: string): string => posix.join(CWD, rel)
 
 test('uniqueCheck: flags a duplicate slug across two records', async () => {
-  const { host } = setup({
+  const { runtime } = setup({
     [abs('content/posts/a.md')]: post('hello-world', 'A'),
     [abs('content/posts/b.md')]: post('hello-world', 'B')
   })
-  const result = await build(host)
+  const result = await build(runtime)
   const dupes = result.diagnostics.filter(d => d.code === 'SCHEMA_INVALID' && d.message.includes('duplicate unique value'))
   equal(dupes.length, 2, 'one diagnostic per conflicting owner')
   ok(dupes.every(d => d.stage === 'schema'))
@@ -53,11 +53,11 @@ test('uniqueCheck: flags a duplicate slug across two records', async () => {
 })
 
 test('uniqueCheck: no conflict when slugs differ', async () => {
-  const { host } = setup({
+  const { runtime } = setup({
     [abs('content/posts/a.md')]: post('hello-world'),
     [abs('content/posts/b.md')]: post('other-slug')
   })
-  const result = await build(host)
+  const result = await build(runtime)
   const dupes = result.diagnostics.filter(d => d.message.includes('duplicate unique value'))
   equal(dupes.length, 0)
   equal(result.diagnostics.length, 0)
@@ -76,18 +76,18 @@ test('uniqueCheck: distinct groups do not conflict', async () => {
   const fs = new MemoryFileSystem()
   fs.put(abs('content/posts/a.md'), post('shared-slug', 'A'))
   fs.put(abs('content/notes/b.md'), post('shared-slug', 'B'))
-  const host: Host = { fs, config: { load: async () => ({ config: cfg, dependencies: [] }) }, path: posix, logger: silentLogger }
-  const result = await build(host)
+  const runtime: Runtime = { fs, config: { load: async () => ({ config: cfg, dependencies: [] }) }, path: posix, logger: silentLogger }
+  const result = await build(runtime)
   const dupes = result.diagnostics.filter(d => d.message.includes('duplicate unique value'))
   equal(dupes.length, 0, 'same value in different groups is not a conflict')
 })
 
 test('uniqueCheck: incremental — changing one record clears the conflict', async () => {
-  const { host, fs } = setup({
+  const { runtime, fs } = setup({
     [abs('content/posts/a.md')]: post('hello-world', 'A'),
     [abs('content/posts/b.md')]: post('hello-world', 'B')
   })
-  const builder = createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
+  const builder = createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
 
   const first = await builder.build()
   const firstDupes = first.diagnostics.filter(d => d.message.includes('duplicate unique value'))
@@ -104,11 +104,11 @@ test('uniqueCheck: incremental — changing one record clears the conflict', asy
 })
 
 test('uniqueCheck: incremental — backdating (re-setting equal content) keeps the memo', async () => {
-  const { host } = setup({
+  const { runtime } = setup({
     [abs('content/posts/a.md')]: post('hello-world', 'A'),
     [abs('content/posts/b.md')]: post('hello-world', 'B')
   })
-  const builder = createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
+  const builder = createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
   const first = await builder.build()
   const firstDupes = first.diagnostics.filter(d => d.message.includes('duplicate unique value'))
   equal(firstDupes.length, 2)

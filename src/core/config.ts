@@ -1,7 +1,7 @@
 import { diagnostic } from './diagnostic'
 
+import type { Path } from '../runtime/path'
 import type { Diagnostic } from './diagnostic'
-import type { Path } from './host/path'
 import type { LogicalOutput } from './output/logical'
 import type { Schema } from './schema/s'
 

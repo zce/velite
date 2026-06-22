@@ -5,10 +5,10 @@
 //
 // Ported from the pre-refactor `src/schemas/image.ts`, adapted to the new
 // schema context (`context().asset(assetKey)` + `collectEffect`) and the
-// engine-driven asset derivation. The no-sharp degradation (host without an
+// engine-driven asset derivation. The no-sharp degradation (runtime without an
 // image processor) is handled inside the asset derivation: it returns a real
 // content-hashed url with zero metadata, so `s.image` produces an `ImageData`
-// with zeros — no crash, no diagnostic. The driver/host is responsible for
+// with zeros — no crash, no diagnostic. The driver/runtime is responsible for
 // providing an `ImageProcessor` when image metadata is required.
 
 import { z } from 'zod'

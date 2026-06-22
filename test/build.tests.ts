@@ -1,32 +1,32 @@
 import { deepEqual, equal, ok, rejects } from 'node:assert'
 import { test } from 'node:test'
 
+import { silentLogger } from '../src/adapters/logger'
 import { createBuilder, s } from '../src/core'
 import { isVeliteError } from '../src/core/diagnostic'
 import { posix } from '../src/core/util/path'
-import { silentLogger } from '../src/logger'
 import { MemoryFileSystem } from './helpers/memory-fs'
 
 import type { UserConfig } from '../src/core/config'
-import type { Host } from '../src/core/host'
+import type { Runtime } from '../src/runtime'
 
 const CWD = '/proj'
 const DATA_DIR = posix.join(CWD, '.velite')
 
-const setup = (config: UserConfig, files: Record<string, string>): { host: Host; fs: MemoryFileSystem } => {
+const setup = (config: UserConfig, files: Record<string, string>): { runtime: Runtime; fs: MemoryFileSystem } => {
   const fs = new MemoryFileSystem()
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
-  const host: Host = {
+  const runtime: Runtime = {
     fs,
     config: { load: async () => ({ config, dependencies: [] }) },
     path: posix,
     logger: silentLogger
   }
-  return { host, fs }
+  return { runtime, fs }
 }
 
-const build = (host: Host, layout: 'split' | 'single' = 'single') =>
-  createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') }).build({ layout })
+const build = (runtime: Runtime, layout: 'split' | 'single' = 'single') =>
+  createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') }).build({ layout })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
@@ -38,12 +38,12 @@ test('build: list collection (JSON array) and single collection (YAML object)', 
       site: { pattern: 'site.yaml', single: true, schema: s.object({ name: s.string() }) }
     }
   }
-  const { host, fs } = setup(config, {
+  const { runtime, fs } = setup(config, {
     [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }, { title: 'B' }]),
     [posix.join(CWD, 'content/site.yaml')]: 'name: Site'
   })
 
-  const result = await build(host)
+  const result = await build(runtime)
   equal(result.diagnostics.length, 0)
   equal(result.output.collections.posts!.entries.length, 2)
   equal(result.output.collections.site!.mode, 'single')
@@ -61,11 +61,11 @@ test('build: schema validation errors are non-fatal diagnostics, invalid entries
     root: 'content',
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
   }
-  const { host } = setup(config, {
+  const { runtime } = setup(config, {
     [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }, { title: 123 }])
   })
 
-  const result = await build(host)
+  const result = await build(runtime)
   ok(result.diagnostics.some(d => d.code === 'SCHEMA_INVALID'))
   equal(result.output.collections.posts!.entries.length, 1) // only the valid entry
 })
@@ -75,11 +75,11 @@ test('build: fatal (non-schema) errors throw VeliteError and skip output', async
     root: 'content',
     collections: { misc: { pattern: 'misc.txt', schema: s.unknown() } }
   }
-  const { host, fs } = setup(config, {
+  const { runtime, fs } = setup(config, {
     [posix.join(CWD, 'content/misc.txt')]: 'no loader for .txt'
   })
 
-  await rejects(build(host), (err: unknown) => isVeliteError(err) && err.code === 'load')
+  await rejects(build(runtime), (err: unknown) => isVeliteError(err) && err.code === 'load')
   // output dir untouched on fatal
   await rejects(readJson(fs, posix.join(DATA_DIR, 'misc.json')))
 })
@@ -91,11 +91,11 @@ test('build: markdown collection renders body to html via s.markdown()', async (
       posts: { pattern: 'posts/*.md', schema: s.object({ title: s.string(), body: s.markdown() }) }
     }
   }
-  const { host, fs } = setup(config, {
+  const { runtime, fs } = setup(config, {
     [posix.join(CWD, 'content/posts/hello.md')]: '---\ntitle: Hello\n---\n# Hello World\n\nA body.'
   })
 
-  const result = await build(host)
+  const result = await build(runtime)
   equal(result.diagnostics.length, 0)
   equal(result.output.collections.posts!.entries.length, 1)
 
@@ -115,11 +115,11 @@ test('build: markdown collection exposes raw body, metadata and path via schemas
       }
     }
   }
-  const { host, fs } = setup(config, {
+  const { runtime, fs } = setup(config, {
     [posix.join(CWD, 'content/posts/hello.md')]: '---\ntitle: Hello\n---\n# Hello World\n\nA body paragraph here.'
   })
 
-  const result = await build(host)
+  const result = await build(runtime)
   equal(result.diagnostics.length, 0)
   const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{
     title: string
@@ -140,11 +140,11 @@ test('build: single layout writes {name}.json + index.js + index.d.ts', async ()
       posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) }
     }
   }
-  const { host, fs } = setup(config, {
+  const { runtime, fs } = setup(config, {
     [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
   })
 
-  const result = await build(host, 'single')
+  const result = await build(runtime, 'single')
   equal(result.diagnostics.length, 0)
   // {name}.json data file
   const posts = await readJson(fs, posix.join(DATA_DIR, 'posts.json'))
@@ -168,11 +168,11 @@ test('build: split layout writes record files + collections/{name}.js + index.js
       posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) }
     }
   }
-  const { host, fs } = setup(config, {
+  const { runtime, fs } = setup(config, {
     [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }, { title: 'B' }])
   })
 
-  const result = await build(host, 'split')
+  const result = await build(runtime, 'split')
   equal(result.diagnostics.length, 0)
   // Two record files under records/posts/
   const recordFiles = result.written.filter(p => p.startsWith(posix.join(DATA_DIR, 'records/posts/')))
@@ -197,10 +197,10 @@ test('build: unchanged rebuild skips writes via manifest (single layout)', async
     root: 'content',
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
   }
-  const { host } = setup(config, {
+  const { runtime } = setup(config, {
     [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
   })
-  const instance = createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
+  const instance = createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
   const first = await instance.build({ layout: 'single' })
   ok(first.written.length > 0)
   // A second identical build (same instance → carries the manifest) writes nothing.
@@ -214,10 +214,10 @@ test('build: stale output from a previous layout is deleted when switching layou
     root: 'content',
     collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
   }
-  const { host, fs } = setup(config, {
+  const { runtime, fs } = setup(config, {
     [posix.join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
   })
-  const instance = createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
+  const instance = createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
   // First build: single layout writes posts.json.
   await instance.build({ layout: 'single' })
   ok(await exists(fs, posix.join(DATA_DIR, 'posts.json')))

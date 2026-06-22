@@ -1,5 +1,5 @@
 // src/core/util/path.ts
-import type { Path } from '../host/path'
+import type { Path } from '../../runtime/path'
 
 // Pure posix path operations. The core only ever deals in posix ('/') paths;
 // runtime adapters normalize platform separators at the filesystem boundary.
@@ -43,5 +43,5 @@ const extname = (path: string): string => {
   return i > 0 ? base.slice(i) : ''
 }
 
-/** A pure posix implementation of the {@link Path} host contract. */
+/** A pure posix implementation of the {@link Path} runtime contract. */
 export const posix: Path = { join, relative, normalize, dirname, extname }

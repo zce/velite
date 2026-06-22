@@ -7,9 +7,9 @@ import { createLoadDerivation } from './load'
 import { createUniqueCheckDerivation } from './unique'
 import { createValidateDerivation } from './validate'
 
+import type { Runtime } from '../../runtime'
 import type { ResolvedConfig } from '../config'
 import type { Derivation } from '../engine'
-import type { Host } from '../host'
 import type { LoaderRegistry } from '../loader'
 import type { Source } from '../model'
 import type { Matcher } from '../util/glob'
@@ -33,11 +33,11 @@ export interface Pipeline {
  * loader registry. Config/schemas are captured here (not engine inputs): a
  * config change creates a fresh builder/engine epoch, so they never need hashing.
  */
-export const createPipeline = (config: ResolvedConfig, loaders: LoaderRegistry, host: Host): Pipeline => {
+export const createPipeline = (config: ResolvedConfig, loaders: LoaderRegistry, runtime: Runtime): Pipeline => {
   const matchers = new Map<string, Matcher>(config.collections.map(c => [c.name, createMatcher(c.include, c.exclude)]))
   const sources = createSourcesDerivation(config, matchers)
   const load = createLoadDerivation(loaders)
-  const asset = createAssetDerivation(config, host)
+  const asset = createAssetDerivation(config, runtime)
   const validate = createValidateDerivation(config, load, asset)
   const collect = createCollectDerivation(config, sources, validate)
   const uniqueCheck = createUniqueCheckDerivation(config, sources, validate)

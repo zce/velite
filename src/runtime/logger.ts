@@ -1,4 +1,4 @@
-import type { Diagnostic } from '../diagnostic'
+import type { Diagnostic } from '../core/diagnostic'
 
 /**
  * Leveled progress logger for the imperative shell (driver/scheduler/builder/

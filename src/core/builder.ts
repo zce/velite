@@ -6,11 +6,11 @@ import { createLoaderRegistry } from './loader'
 import { createPipeline } from './pipeline'
 import { createScheduler } from './scheduler'
 
+import type { Runtime } from '../runtime'
+import type { FileEvent } from '../runtime/watcher'
 import type { ResolvedConfig } from './config'
 import type { BuildResult, RunContext } from './driver'
 import type { Engine } from './engine'
-import type { Host } from './host'
-import type { FileEvent } from './host/watcher'
 import type { Loader } from './loader'
 import type { Pipeline } from './pipeline'
 import type { Scheduler } from './scheduler'
@@ -59,22 +59,22 @@ interface Session {
   context: RunContext
 }
 
-const loadSession = async (host: Host, options: CreateBuilderOptions): Promise<Session> => {
-  const loaded = await host.config.load(options.configPath)
+const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Promise<Session> => {
+  const loaded = await runtime.config.load(options.configPath)
   const issues = validateConfig(loaded.config)
   if (issues.length > 0) throw new ConfigError(issues)
-  const config = resolveConfig(loaded.config as never, { cwd: options.cwd, path: host.path, configPath: options.configPath })
+  const config = resolveConfig(loaded.config as never, { cwd: options.cwd, path: runtime.path, configPath: options.configPath })
   const engine = createEngine()
-  const pipeline = createPipeline(config, createLoaderRegistry(options.loaders ?? []), host)
-  const context = createRunContext(engine, pipeline, config, host)
+  const pipeline = createPipeline(config, createLoaderRegistry(options.loaders ?? []), runtime)
+  const context = createRunContext(engine, pipeline, config, runtime)
   return { config, engine, pipeline, context }
 }
 
 /**
- * Composition root (Pure DI): assembles host + config + engine + pipeline into a
- * Builder. No DI framework — the Host object is the container, wired here.
+ * Composition root (Pure DI): assembles runtime + config + engine + pipeline into a
+ * Builder. No DI framework — the Runtime object is the container, wired here.
  */
-export const createBuilder = (host: Host, options: CreateBuilderOptions): Builder => {
+export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): Builder => {
   let session: Session | undefined
   let scheduler: Scheduler | undefined
   let unsubscribe: (() => void) | undefined
@@ -85,12 +85,12 @@ export const createBuilder = (host: Host, options: CreateBuilderOptions): Builde
 
   const init = async (): Promise<Session> => {
     if (session !== undefined) return session
-    session = await loadSession(host, options)
+    session = await loadSession(runtime, options)
     return session
   }
 
   const reload = async (): Promise<Session> => {
-    session = await loadSession(host, options)
+    session = await loadSession(runtime, options)
     return session
   }
 
@@ -115,12 +115,12 @@ export const createBuilder = (host: Host, options: CreateBuilderOptions): Builde
   }
 
   const watch = async (watchOptions: WatchOptions = {}): Promise<WatchHandle> => {
-    if (host.watch === undefined) {
-      throw new Error('watch is not available: host has no watch factory')
+    if (runtime.watch === undefined) {
+      throw new Error('watch is not available: runtime has no watch factory')
     }
     await build()
     const current = session!
-    const watcher = host.watch!([current.config.root, options.configPath])
+    const watcher = runtime.watch!([current.config.root, options.configPath])
     scheduler = createScheduler(async events => {
       const result = await apply(events)
       if (result !== undefined) watchOptions.onRebuild?.(result)

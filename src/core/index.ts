@@ -21,6 +21,6 @@ export type { LogicalOutput } from './output/logical'
 export { createLoaderRegistry } from './loader'
 export type { Loader, LoaderInput, LoaderResult, LoadedItem, LoaderRegistry } from './loader'
 
-export type { Host, FileSystem, Watcher, FileEvent, ImageProcessor, ConfigLoader, Logger, Path } from './host'
+export type { Runtime, FileSystem, Watcher, FileEvent, ImageProcessor, ConfigLoader, Logger, Path } from '../runtime'
 
 export { posix } from './util/path'

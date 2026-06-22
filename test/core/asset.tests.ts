@@ -11,8 +11,8 @@ import { posix } from '../../src/core/util/path'
 
 import type { ResolvedConfig } from '../../src/core/config'
 import type { Derivation } from '../../src/core/engine'
-import type { Host } from '../../src/core/host'
 import type { AssetResult } from '../../src/core/pipeline/asset'
+import type { Runtime } from '../../src/runtime'
 
 const config: ResolvedConfig = {
   root: '/proj/content',
@@ -27,7 +27,7 @@ const bytes = (n: number): Uint8Array => {
   return b
 }
 
-const makeHost = (image: Host['image']): Host => ({
+const makeHost = (image: Runtime['image']): Runtime => ({
   fs: { read: async () => new Uint8Array(), stat: async () => ({ mtimeMs: 0, size: 0 }), walk: async () => [], write: async () => {}, remove: async () => {} },
   config: { load: async () => ({ config: {}, dependencies: [] }) },
   path: posix,
@@ -69,7 +69,7 @@ test('asset derivation: probes and returns real metadata + content-hashed url wh
   equal(probe.mock.calls.length, 1)
 })
 
-test('asset derivation: no-sharp degradation — real url, zero metadata when host has no image processor', async () => {
+test('asset derivation: no-sharp degradation — real url, zero metadata when runtime has no image processor', async () => {
   const engine = createEngine()
   const asset = createAssetDerivation(config, makeHost(undefined))
   engine.set(assetInput('docs/a.pdf'), bytes(16))

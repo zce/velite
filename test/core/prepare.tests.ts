@@ -5,14 +5,14 @@
 import { deepEqual, equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
+import { silentLogger } from '../../src/adapters/logger'
 import { createBuilder, s } from '../../src/core'
 import { posix } from '../../src/core/util/path'
-import { silentLogger } from '../../src/logger'
 import { MemoryFileSystem } from '../helpers/memory-fs'
 
 import type { PrepareContext, PrepareHook, UserConfig } from '../../src/core/config'
-import type { Host } from '../../src/core/host'
 import type { LogicalOutput } from '../../src/core/output/logical'
+import type { Runtime } from '../../src/runtime'
 
 const CWD = '/proj'
 const DATA_DIR = posix.join(CWD, '.velite')
@@ -22,21 +22,21 @@ const baseConfig: UserConfig = {
   collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
 }
 
-const setup = (prepare: PrepareHook | undefined): { host: Host; fs: MemoryFileSystem } => {
+const setup = (prepare: PrepareHook | undefined): { runtime: Runtime; fs: MemoryFileSystem } => {
   const config: UserConfig = { ...baseConfig, prepare }
   const fs = new MemoryFileSystem()
   fs.put(posix.join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
-  const host: Host = { fs, config: { load: async () => ({ config, dependencies: [] }) }, path: posix, logger: silentLogger }
-  return { host, fs }
+  const runtime: Runtime = { fs, config: { load: async () => ({ config, dependencies: [] }) }, path: posix, logger: silentLogger }
+  return { runtime, fs }
 }
 
-const build = (host: Host) => createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
+const build = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
 test('prepare: void return writes the original output', async () => {
-  const { host, fs } = setup(() => undefined)
-  const result = await build(host)
+  const { runtime, fs } = setup(() => undefined)
+  const result = await build(runtime)
   ok(
     result.written.some(p => p.endsWith('posts.json')),
     'data file written'
@@ -46,8 +46,8 @@ test('prepare: void return writes the original output', async () => {
 })
 
 test('prepare: false return suppresses all writes (written: [])', async () => {
-  const { host, fs } = setup(() => false)
-  const result = await build(host)
+  const { runtime, fs } = setup(() => false)
+  const result = await build(runtime)
   equal(result.written.length, 0, 'nothing written when prepare returns false')
   // The data file was not created.
   await readJson(fs, posix.join(DATA_DIR, 'posts.json')).then(
@@ -75,8 +75,8 @@ test('prepare: a modified result is written in place of the original', async () 
     }
     return { output, diagnostics: result.diagnostics }
   }
-  const { host, fs } = setup(prepare)
-  const result = await build(host)
+  const { runtime, fs } = setup(prepare)
+  const result = await build(runtime)
   ok(result.written.some(p => p.endsWith('posts.json')))
   const posts = (await readJson(fs, posix.join(DATA_DIR, 'posts.json'))) as Array<{ title: string; processed: boolean }>
   equal(posts.length, 2)
@@ -88,11 +88,11 @@ test('prepare: a modified result is written in place of the original', async () 
 
 test('prepare: receives a context with project metadata and diagnostics', async () => {
   let received: PrepareContext | undefined
-  const { host } = setup((_, ctx) => {
+  const { runtime } = setup((_, ctx) => {
     received = ctx
     return undefined
   })
-  await build(host)
+  await build(runtime)
   ok(received !== undefined)
   ok(received!.project.root.length > 0)
   equal(received!.project.configPath, posix.join(CWD, 'velite.config.ts'))
@@ -106,7 +106,7 @@ test('prepare: async hook is awaited', async () => {
     await Promise.resolve()
     return { output: result.output, diagnostics: result.diagnostics }
   }
-  const { host } = setup(prepare)
-  const result = await build(host)
+  const { runtime } = setup(prepare)
+  const result = await build(runtime)
   ok(result.written.some(p => p.endsWith('posts.json')))
 })

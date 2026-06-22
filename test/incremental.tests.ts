@@ -1,14 +1,14 @@
 import { deepEqual, equal, ok } from 'node:assert'
 import { test } from 'node:test'
 
+import { silentLogger } from '../src/adapters/logger'
 import { createBuilder, s } from '../src/core'
 import { posix } from '../src/core/util/path'
-import { silentLogger } from '../src/logger'
 import { MemoryFileSystem } from './helpers/memory-fs'
 
 import type { UserConfig } from '../src/core/config'
-import type { Host } from '../src/core/host'
-import type { FileEvent } from '../src/core/host/watcher'
+import type { Runtime } from '../src/runtime'
+import type { FileEvent } from '../src/runtime/watcher'
 
 const CWD = '/proj'
 const ROOT = posix.join(CWD, 'content')
@@ -21,21 +21,21 @@ const config: UserConfig = {
 const file = (name: string, data: unknown): string => posix.join(ROOT, `posts/${name}.json`)
 const body = (items: Array<{ title: string }>): string => JSON.stringify(items)
 
-const setup = (): { host: Host; fs: MemoryFileSystem } => {
+const setup = (): { runtime: Runtime; fs: MemoryFileSystem } => {
   const fs = new MemoryFileSystem()
   fs.put(file('a'), body([{ title: 'A' }]))
   fs.put(file('b'), body([{ title: 'B' }]))
   fs.put(file('c'), body([{ title: 'C' }]))
-  const host: Host = {
+  const runtime: Runtime = {
     fs,
     config: { load: async () => ({ config, dependencies: [] }) },
     path: posix,
     logger: silentLogger
   }
-  return { host, fs }
+  return { runtime, fs }
 }
 
-const newBuilder = (host: Host) => createBuilder(host, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
+const newBuilder = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: posix.join(CWD, 'velite.config.ts') })
 
 const entries = (result: { output: { collections: Record<string, { entries: Array<{ data: unknown }> }> } }): unknown[] =>
   result.output.collections.posts!.entries.map(e => e.data)
@@ -44,8 +44,8 @@ const diagSummary = (result: { diagnostics: Array<{ code: string; file?: string 
   result.diagnostics.map(d => `${d.code}:${d.file ?? ''}`).sort()
 
 test('incremental ≡ full: modify/add/delete produce the same output as a clean full build', async () => {
-  const { host, fs } = setup()
-  const builder = newBuilder(host)
+  const { runtime, fs } = setup()
+  const builder = newBuilder(runtime)
 
   // Baseline full build.
   await builder.build({ layout: 'single' })
@@ -64,15 +64,15 @@ test('incremental ≡ full: modify/add/delete produce the same output as a clean
   ok(incremental !== undefined, 'applyChanges should rebuild on content events')
 
   // Clean full build against the same final filesystem state.
-  const clean = await newBuilder(host).build({ layout: 'single' })
+  const clean = await newBuilder(runtime).build({ layout: 'single' })
 
   deepEqual(entries(incremental!), entries(clean), 'incremental entries must equal clean full build entries')
   deepEqual(diagSummary(incremental!), diagSummary(clean), 'diagnostic categories must match')
 })
 
 test('incremental ≡ full: rename (unlink + add) keeps output stable', async () => {
-  const { host, fs } = setup()
-  const builder = newBuilder(host)
+  const { runtime, fs } = setup()
+  const builder = newBuilder(runtime)
   await builder.build({ layout: 'single' })
 
   // Rename b -> e: delete b, add e with b's content.
@@ -83,14 +83,14 @@ test('incremental ≡ full: rename (unlink + add) keeps output stable', async ()
     { type: 'add', absPath: file('e') }
   ])
 
-  const clean = await newBuilder(host).build({ layout: 'single' })
+  const clean = await newBuilder(runtime).build({ layout: 'single' })
   deepEqual(entries(incremental!), entries(clean))
   equal(incremental!.diagnostics.length, clean.diagnostics.length)
 })
 
 test('incremental: no-op events return undefined (no rebuild)', async () => {
-  const { host } = setup()
-  const builder = newBuilder(host)
+  const { runtime } = setup()
+  const builder = newBuilder(runtime)
   await builder.build({ layout: 'single' })
 
   // An event outside the content root and not the config path is classified 'ignore'.

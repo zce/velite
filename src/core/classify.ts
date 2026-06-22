@@ -1,5 +1,5 @@
-import type { Path } from './host/path'
-import type { FileEvent } from './host/watcher'
+import type { Path } from '../runtime/path'
+import type { FileEvent } from '../runtime/watcher'
 
 export type ChangeKind = 'config' | 'content' | 'ignore'
 

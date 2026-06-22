@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
+import posix from 'node:path/posix'
 
+import { nodeRuntime } from './adapters/runtime'
 import { createBuilder } from './core'
-import { posix } from './core/util/path'
-import { nodeHost } from './host'
 
 import type { Builder, BuildResult, WatchHandle } from './core'
 
@@ -29,10 +29,10 @@ export interface BuildEntryOptions {
 /** Create a durable Node builder. Advanced/stateful entry; also the DI seam. */
 export const builder = (options: BuildEntryOptions = {}): Builder => {
   const cwd = options.cwd ?? process.cwd()
-  return createBuilder(nodeHost, { cwd, configPath: resolveConfigPath(cwd, options.config) })
+  return createBuilder(nodeRuntime, { cwd, configPath: resolveConfigPath(cwd, options.config) })
 }
 
-/** One-shot build with the default Node host. */
+/** One-shot build with the default Node runtime. */
 export const build = async (options: BuildEntryOptions = {}): Promise<BuildResult> => {
   const layout = options.layout ?? (process.env.NODE_ENV === 'production' ? 'single' : 'split')
   const instance = builder(options)
@@ -43,34 +43,34 @@ export const build = async (options: BuildEntryOptions = {}): Promise<BuildResul
   }
 }
 
-/** Watch mode: long-lived builder reacting to file events via the host watcher. */
+/** Watch mode: long-lived builder reacting to file events via the runtime watcher. */
 export const watch = async (options: BuildEntryOptions = {}): Promise<WatchHandle> => {
   return builder(options).watch()
 }
 
-export { createBuilder, defineConfig, defineCollection, s } from './core'
+export { createBuilder, defineCollection, defineConfig, s } from './core'
 export type {
   Builder,
   BuildOptions,
-  WatchOptions,
-  WatchHandle,
   BuildResult,
-  UserConfig,
   CollectionDef,
-  Schema,
-  Infer,
-  Diagnostic,
-  Loader,
-  Host,
-  FileSystem,
-  Watcher,
-  ImageProcessor,
-  ConfigLoader,
-  Logger,
-  Entry,
   CollectionResult,
+  ConfigLoader,
+  Diagnostic,
+  Entry,
+  FileSystem,
+  Runtime,
+  ImageProcessor,
+  Infer,
+  Loader,
+  Logger,
   LogicalOutput,
-  PrepareHook,
   PrepareContext,
-  PrepareResult
+  PrepareHook,
+  PrepareResult,
+  Schema,
+  UserConfig,
+  Watcher,
+  WatchHandle,
+  WatchOptions
 } from './core'

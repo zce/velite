@@ -1,18 +1,18 @@
 // Root-level image processor adapter: the ONLY place the core-adjacent code
 // touches `sharp`. The runtime-neutral guard scans only `src/core/`, so this
-// file lives at the root (next to `src/host.ts`, `src/fs.ts`, ...). `sharp` is a
+// file lives at the root (next to `src/runtime.ts`, `src/fs.ts`, ...). `sharp` is a
 // runtime dependency (an allowed native build in pnpm-workspace.yaml) and stays
 // external — tsdown never bundles it; the dynamic `import('sharp')` keeps it a
-// lazy, host-optional capability.
+// lazy, runtime-optional capability.
 //
 // Ported from the pre-refactor `src/assets/image.ts` `getImageMetadata`. The
 // new contract (`ImageProcessor`) splits probe (dimensions + format) from
-// blur-data-url generation so a future host could implement either
+// blur-data-url generation so a future runtime could implement either
 // independently; this adapter implements both via sharp. Asset content hashing
 // for filenames lives in the runtime-agnostic core (`src/core/util/hash.ts`),
 // NOT here.
 
-import type { ImageProcessor } from './core/host/image'
+import type { ImageProcessor } from '../runtime/image'
 
 /**
  * Blur placeholder width. NOTE: the canonical contract lives in
@@ -23,7 +23,7 @@ import type { ImageProcessor } from './core/host/image'
 const BLUR_WIDTH = 8
 
 /**
- * Sharp-backed {@link ImageProcessor}. `sharp` is imported lazily so the host
+ * Sharp-backed {@link ImageProcessor}. `sharp` is imported lazily so the runtime
  * stays usable without it (the no-sharp degradation path), and so the bundler
  * never pulls the native binary into `dist`.
  *
@@ -31,7 +31,7 @@ const BLUR_WIDTH = 8
  * divide-by-zero (sharp can return undefined width/height for dimensionless
  * inputs like some SVGs). The asset derivation skips calling it entirely when
  * the probe reports non-positive dimensions; this guard is defense-in-depth for
- * direct host use.
+ * direct runtime use.
  */
 export const sharpImageProcessor: ImageProcessor = {
   async probe(data) {

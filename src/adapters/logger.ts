@@ -1,9 +1,9 @@
 import { sep } from 'node:path'
 
-import { name as pkgName } from '../package.json'
+import { name as pkgName } from '../../package.json'
 
-import type { Diagnostic } from './core/diagnostic'
-import type { Logger } from './core/host/logger'
+import type { Diagnostic } from '../core/diagnostic'
+import type { Logger } from '../runtime/logger'
 
 /** Log level ordering. `silent` disables all output. */
 export type LogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug'
@@ -13,7 +13,7 @@ type LogType = 'debug' | 'info' | 'warn' | 'error'
 /**
  * The shell's logger: a leveled progress surface plus `report`, the
  * presentation sink for structured diagnostics. The pure core produces
- * Diagnostic values; this logger (injected via the host) decides how to show
+ * Diagnostic values; this logger (injected via the runtime) decides how to show
  * them. Tests/embedded callers pass `silentLogger` to mute.
  */
 const LEVELS: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3, silent: 4 }
@@ -71,5 +71,5 @@ export const silentLogger: Logger = {
   report: () => {}
 }
 
-/** Default console logger used by the Node host. */
+/** Default console logger used by the Node runtime. */
 export const consoleLogger: Logger = createLogger('info')

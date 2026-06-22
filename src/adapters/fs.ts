@@ -2,7 +2,7 @@ import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { glob } from 'tinyglobby'
 
-import type { FileSystem } from './core/host/fs'
+import type { FileSystem } from '../runtime/fs'
 
 /** Node filesystem adapter. Uses tinyglobby for directory walking. */
 export const nodeFileSystem: FileSystem = {

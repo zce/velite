@@ -3,7 +3,7 @@ import { test } from 'node:test'
 
 import { createBuilder, s } from '../src/core'
 import { join } from '../src/core/util/path'
-import { silentLogger } from '../src/runtime/adapters/node/logger'
+import { nodeContextStorage, silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
 
 import type { UserConfig } from '../src/core/config'
@@ -27,6 +27,7 @@ const setup = (): { runtime: Runtime; fs: MemoryFileSystem } => {
   fs.put(file('b'), body([{ title: 'B' }]))
   fs.put(file('c'), body([{ title: 'C' }]))
   const runtime: Runtime = {
+    contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger

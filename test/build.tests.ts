@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { createBuilder, s } from '../src/core'
 import { isVeliteError } from '../src/core/diagnostic'
 import { join } from '../src/core/util/path'
-import { silentLogger } from '../src/runtime/adapters/node/logger'
+import { nodeContextStorage, silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
 
 import type { UserConfig } from '../src/core/config'
@@ -17,6 +17,7 @@ const setup = (config: UserConfig, files: Record<string, string>): { runtime: Ru
   const fs = new MemoryFileSystem()
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
   const runtime: Runtime = {
+    contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger

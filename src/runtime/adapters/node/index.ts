@@ -1,3 +1,4 @@
+import { nodeContextStorage } from './contextual'
 import { nodeFileSystem } from './fs'
 import { sharpImageProcessor } from './image'
 import { consoleLogger } from './logger'
@@ -10,10 +11,12 @@ import type { Runtime } from '../../index'
 export const nodeRuntime: Runtime = {
   fs: nodeFileSystem,
   modules: jitiModuleLoader,
+  contextStorage: nodeContextStorage,
   logger: consoleLogger,
   image: sharpImageProcessor,
   watch: createChokidarWatcher
 }
 
+export { nodeContextStorage } from './contextual'
 export { createLogger, setLogLevel, silentLogger } from './logger'
 export type { LogLevel } from './logger'

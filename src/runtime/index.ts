@@ -1,3 +1,4 @@
+import type { ContextStorage } from './contextual'
 import type { FileSystem } from './fs'
 import type { ImageProcessor } from './image'
 import type { Logger } from './logger'
@@ -12,6 +13,10 @@ import type { Watcher } from './watcher'
  * dependency injection (no DI framework), assembled once at the composition
  * root.
  *
+ * `contextStorage` is typed-erased (`unknown`): the runtime layer must not
+ * depend on core's `SchemaContext`. Only the core narrows it (once, at
+ * composition root) to the type it actually carries.
+ *
  * Note: posix path operations are NOT part of the runtime — they are a pure
  * value imported directly from `core/util/path`. See that file's header for
  * the rationale.
@@ -19,11 +24,14 @@ import type { Watcher } from './watcher'
 export interface Runtime {
   fs: FileSystem
   modules: ModuleLoader
+  /** Ambient context propagation (schema context through zod transforms). */
+  contextStorage: ContextStorage<unknown>
   logger?: Logger
   image?: ImageProcessor
   watch?: (paths: string[]) => Watcher
 }
 
+export type { ContextStorage } from './contextual'
 export type { FileSystem } from './fs'
 export type { ImageProcessor } from './image'
 export type { Logger, LogLevel } from './logger'

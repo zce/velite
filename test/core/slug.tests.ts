@@ -5,13 +5,16 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { createContentFile, runWithContext } from '../../src/core/schema/context'
+import { createContentFile, installContextStorage, runWithContext } from '../../src/core/schema/context'
 import { s } from '../../src/core/schema/s'
+import { nodeContextStorage } from '../../src/runtime/adapters/node'
 
 import type { AssetResult } from '../../src/core/pipeline/asset'
 import type { ContentFile, ProjectInfo } from '../../src/core/schema/context'
 import type { UniqueEffect } from '../../src/core/schema/effects'
 import type { Schema } from '../../src/core/schema/s'
+
+installContextStorage(nodeContextStorage as never)
 
 const project: ProjectInfo = {
   root: '/proj/content',
@@ -32,10 +35,21 @@ const stubAsset = async (assetKey: string): Promise<AssetResult> => ({
   blurHeight: 0
 })
 
+const stubReadFile = async (): Promise<Uint8Array> => new Uint8Array()
+const stubProbeImage = async () => ({ width: 0, height: 0, format: '', blurDataURL: '', blurWidth: 0, blurHeight: 0 })
+
 const parseWith = async (schema: Schema, input: unknown, recordId = 'posts/hello.md#') => {
   const effects: UniqueEffect[] = []
   const result = await runWithContext(
-    { project, file: file(), record: { id: recordId, index: 0 }, collectEffect: e => effects.push(e as UniqueEffect), asset: stubAsset },
+    {
+      project,
+      file: file(),
+      record: { id: recordId, index: 0 },
+      collectEffect: e => effects.push(e as UniqueEffect),
+      asset: stubAsset,
+      readFile: stubReadFile,
+      probeImage: stubProbeImage
+    },
     () => schema.safeParseAsync(input)
   )
   return { result, effects }

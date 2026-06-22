@@ -2,12 +2,15 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import { isVeliteError } from '../../src/core/diagnostic'
-import { context, createContentFile, runWithContext } from '../../src/core/schema/context'
+import { context, createContentFile, installContextStorage, runWithContext } from '../../src/core/schema/context'
 import { s } from '../../src/core/schema/s'
+import { nodeContextStorage } from '../../src/runtime/adapters/node'
 
 import type { AssetResult } from '../../src/core/pipeline/asset'
 import type { ContentFile, ProjectInfo } from '../../src/core/schema/context'
 import type { Schema } from '../../src/core/schema/s'
+
+installContextStorage(nodeContextStorage as never)
 
 const project: ProjectInfo = {
   root: '/proj/content',
@@ -29,9 +32,21 @@ const stubAsset = async (assetKey: string): Promise<AssetResult> => ({
   blurHeight: 0
 })
 
+const stubReadFile = async (): Promise<Uint8Array> => new Uint8Array()
+const stubProbeImage = async () => ({ width: 0, height: 0, format: '', blurDataURL: '', blurWidth: 0, blurHeight: 0 })
+
 const parseWith = async (schema: Schema, content: string, input: unknown = undefined) =>
-  runWithContext({ project, file: file(content), record: { id: 'posts/hello.md#', index: 0 }, collectEffect: () => {}, asset: stubAsset }, () =>
-    schema.safeParseAsync(input)
+  runWithContext(
+    {
+      project,
+      file: file(content),
+      record: { id: 'posts/hello.md#', index: 0 },
+      collectEffect: () => {},
+      asset: stubAsset,
+      readFile: stubReadFile,
+      probeImage: stubProbeImage
+    },
+    () => schema.safeParseAsync(input)
   )
 
 test('context(): throws a VeliteError (internal) outside runWithContext', () => {

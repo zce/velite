@@ -3,19 +3,14 @@
 // The context is the bridge between the pipeline (which knows the current file,
 // record and project) and schemas (built-in and user-defined), which need that
 // ambient information during a parse. It is propagated through async zod
-// transforms via `AsyncLocalStorage`, so a schema calls `context()` and gets the
-// state for the record currently being parsed.
+// transforms via the runtime's `ContextStorage` port, so a schema calls
+// `context()` and gets the state for the record currently being parsed.
 //
-// Adapted from the pre-refactor `src/schemas/context.ts` for the new arch:
-// - the asset capability is a single `asset(assetKey)` closure (M5): it demands
-//   the engine's asset derivation, returning a memoized `AssetResult`. The
-//   closure is built by the validate derivation, which has engine access;
-// - `collectEffect` is kept (effects are accumulated in M4, fully wired in M6);
-// - `ProjectInfo` is a read-only snapshot built from `ResolvedConfig` by the
-//   validate derivation (no import of `ResolvedConfig` here, to avoid a cycle:
-//   config -> schema/s -> builtins -> context).
+// The core never imports `node:async_hooks` directly — the `ContextStorage`
+// implementation is injected once at the composition root (`createBuilder`)
+// via `installContextStorage`. The Node adapter wraps `AsyncLocalStorage`;
+// other runtimes supply their own.
 
-import { AsyncLocalStorage } from 'node:async_hooks'
 import { raw as hastRaw } from 'hast-util-raw'
 import { toString } from 'hast-util-to-string'
 import { fromMarkdown } from 'mdast-util-from-markdown'
@@ -25,6 +20,7 @@ import { fail } from '../diagnostic'
 
 import type { Nodes } from 'hast'
 import type { Root } from 'mdast'
+import type { ContextStorage } from '../../runtime/contextual'
 import type { MarkdownOptions } from '../content/markdown'
 import type { MdxOptions } from '../content/mdx'
 import type { AssetResult, BlurOptions } from '../pipeline/asset'
@@ -150,9 +146,22 @@ export interface RunWithContextInput {
   readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
 }
 
-const als = new AsyncLocalStorage<SchemaContext>()
+let storage: ContextStorage<SchemaContext> | undefined
 
-const MISSING = 'Missing schema context — are you calling context() outside of a schema parse?'
+/**
+ * Composition-root hook: install the runtime's context storage. Called once
+ * by `createBuilder` with the `Runtime.contextStorage` (type-erased at the
+ * port boundary, narrowed here to the `SchemaContext` it actually carries).
+ * Subsequent `runWithContext` / `context()` calls use it.
+ *
+ * Internal — not part of the public package barrel.
+ */
+export const installContextStorage = (s: ContextStorage<SchemaContext>): void => {
+  storage = s
+}
+
+const MISSING_STORAGE = 'Schema context storage is not installed — createBuilder() must run before parsing.'
+const MISSING_CONTEXT = 'Missing schema context — are you calling context() outside of a schema parse?'
 
 /**
  * Get the schema context for the current record parse.
@@ -160,13 +169,15 @@ const MISSING = 'Missing schema context — are you calling context() outside of
  * @throws `VeliteError` (`internal`) when called outside of a schema parse.
  */
 export const context = (): SchemaContext => {
-  const ctx = als.getStore()
-  if (ctx == null) fail('internal', MISSING)
+  if (storage === undefined) fail('internal', MISSING_STORAGE)
+  const ctx = storage.get()
+  if (ctx == null) fail('internal', MISSING_CONTEXT)
   return ctx
 }
 
 /** Run `run` inside a schema context for a single record parse. */
 export const runWithContext = <R>(input: RunWithContextInput, run: () => R): R => {
+  if (storage === undefined) fail('internal', MISSING_STORAGE)
   const ctx: SchemaContext = {
     project: input.project,
     file: input.file,
@@ -176,7 +187,7 @@ export const runWithContext = <R>(input: RunWithContextInput, run: () => R): R =
     readFile: input.readFile,
     probeImage: input.probeImage
   }
-  return als.run(ctx, run)
+  return storage.run(ctx, run)
 }
 
 /**

@@ -5,8 +5,10 @@ import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
 import { createPipeline } from './pipeline'
 import { createScheduler } from './scheduler'
+import { installContextStorage } from './schema/context'
 
 import type { Runtime } from '../runtime'
+import type { ContextStorage } from '../runtime/contextual'
 import type { FileEvent } from '../runtime/watcher'
 import type { ResolvedConfig } from './config'
 import type { BuildResult, RunContext } from './driver'
@@ -14,6 +16,7 @@ import type { Engine } from './engine'
 import type { Loader } from './loader'
 import type { Pipeline } from './pipeline'
 import type { Scheduler } from './scheduler'
+import type { SchemaContext } from './schema/context'
 
 export interface BuildOptions {
   signal?: AbortSignal
@@ -89,6 +92,11 @@ const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Pro
  *    can't drop half of it.
  */
 export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): Builder => {
+  // Install the runtime's context storage once, so schema transforms can
+  // propagate the SchemaContext through zod's async callbacks. The port is
+  // type-erased at the runtime boundary; narrow it here to SchemaContext.
+  installContextStorage(runtime.contextStorage as ContextStorage<SchemaContext>)
+
   let session: Session | undefined
   let activeLayout: 'split' | 'single' = 'split'
   let watchState: WatchState | undefined

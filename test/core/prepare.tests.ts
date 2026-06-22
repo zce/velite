@@ -8,7 +8,7 @@ import { test } from 'node:test'
 
 import { createBuilder, s } from '../../src/core'
 import { join } from '../../src/core/util/path'
-import { silentLogger } from '../../src/runtime/adapters/node/logger'
+import { nodeContextStorage, silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
 
 import type { PrepareCollections, PrepareContext, PrepareHook, UserConfig } from '../../src/core/config'
@@ -26,7 +26,12 @@ const setup = (prepare: PrepareHook | undefined): { runtime: Runtime; fs: Memory
   const config: UserConfig = { ...baseConfig, prepare }
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
-  const runtime: Runtime = { fs, modules: { load: async () => ({ exports: config, dependencies: [] }) }, logger: silentLogger }
+  const runtime: Runtime = {
+    contextStorage: nodeContextStorage,
+    fs,
+    modules: { load: async () => ({ exports: config, dependencies: [] }) },
+    logger: silentLogger
+  }
   return { runtime, fs }
 }
 
@@ -118,6 +123,7 @@ test('prepare: single collections expose the single object, not an array', async
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/options/a.json'), JSON.stringify({ name: 'velite' }))
   const runtime: Runtime = {
+    contextStorage: nodeContextStorage,
     fs,
     modules: {
       load: async () => ({

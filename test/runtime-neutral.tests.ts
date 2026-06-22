@@ -9,12 +9,10 @@ const CORE_DIR = new URL('../src/core/', import.meta.url).pathname
 // Allowed core deps: picomatch, zod, unified, @mdx-js/mdx, yaml (pure data/string).
 const FORBIDDEN = [/^node:/, /^sharp$/, /^chokidar$/, /^tinyglobby$/, /^jiti$/]
 
-// Spec-accepted exception: `node:async_hooks` powers the AsyncLocalStorage that
-// threads the schema context through zod transforms (design §4). It is the ONLY
-// node builtin the core touches, available in Node/Deno/Bun, and confined to
-// schema/context.ts. Listed explicitly so the guard stays honest rather than
-// being bypassed with a bare `'async_hooks'` import.
-const ALLOWED_NODE = new Set(['node:async_hooks'])
+// Intentionally empty: the core is strictly runtime-agnostic. The schema
+// context storage was lifted to a runtime port (src/runtime/contextual.ts) so
+// no Node builtin — not even `node:async_hooks` — is imported by `src/core/`.
+const ALLOWED_NODE = new Set<string>()
 
 const collectTsFiles = async (dir: string): Promise<string[]> => {
   const out: string[] = []

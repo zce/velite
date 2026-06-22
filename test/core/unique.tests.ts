@@ -95,8 +95,8 @@ test('uniqueCheck: incremental — changing one record clears the conflict', asy
 
   // Edit post b to use a different slug.
   fs.put(abs('content/posts/b.md'), post('goodbye-world', 'B'))
-  const second = await builder.applyChanges([{ type: 'change', absPath: abs('content/posts/b.md') }])
-  ok(second !== undefined, 'applyChanges returns a rebuild result for content changes')
+  const second = await builder.apply([{ type: 'change', absPath: abs('content/posts/b.md') }])
+  ok(second !== undefined, 'apply returns a rebuild result for content changes')
   const secondDupes = second.diagnostics.filter(d => d.message.includes('duplicate unique value'))
   equal(secondDupes.length, 0, 'conflict clears after one slug changes')
 
@@ -115,7 +115,7 @@ test('uniqueCheck: incremental — backdating (re-setting equal content) keeps t
 
   // Re-feed the SAME bytes for post a → engine.set no-ops (equal hash), no recompute.
   // The conflict must still be reported (state unchanged).
-  const second = await builder.applyChanges([{ type: 'change', absPath: abs('content/posts/a.md') }])
+  const second = await builder.apply([{ type: 'change', absPath: abs('content/posts/a.md') }])
   ok(second !== undefined)
   const secondDupes = second.diagnostics.filter(d => d.message.includes('duplicate unique value'))
   equal(secondDupes.length, 2, 'backdating equal content preserves the diagnostic state')

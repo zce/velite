@@ -59,8 +59,8 @@ test('incremental ≡ full: modify/add/delete produce the same output as a clean
     { type: 'unlink', absPath: file('c') },
     { type: 'add', absPath: file('d') }
   ]
-  const incremental = await builder.applyChanges(events)
-  ok(incremental !== undefined, 'applyChanges should rebuild on content events')
+  const incremental = await builder.apply(events)
+  ok(incremental !== undefined, 'apply should rebuild on content events')
 
   // Clean full build against the same final filesystem state.
   const clean = await newBuilder(runtime).build({ layout: 'single' })
@@ -77,7 +77,7 @@ test('incremental ≡ full: rename (unlink + add) keeps output stable', async ()
   // Rename b -> e: delete b, add e with b's content.
   fs.remove(file('b'))
   fs.put(file('e'), body([{ title: 'B' }]))
-  const incremental = await builder.applyChanges([
+  const incremental = await builder.apply([
     { type: 'unlink', absPath: file('b') },
     { type: 'add', absPath: file('e') }
   ])
@@ -93,6 +93,6 @@ test('incremental: no-op events return undefined (no rebuild)', async () => {
   await builder.build({ layout: 'single' })
 
   // An event outside the content root and not the config path is classified 'ignore'.
-  const result = await builder.applyChanges([{ type: 'add', absPath: join(CWD, 'elsewhere.txt') }])
+  const result = await builder.apply([{ type: 'add', absPath: join(CWD, 'elsewhere.txt') }])
   equal(result, undefined, 'ignored events should not trigger a rebuild')
 })

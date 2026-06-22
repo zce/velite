@@ -34,7 +34,8 @@ export interface WatchHandle {
 export interface Builder {
   build(options?: BuildOptions): Promise<BuildResult>
   watch(options?: WatchOptions): Promise<WatchHandle>
-  applyChanges(events: FileEvent[]): Promise<BuildResult | undefined>
+  /** Apply file events to the engine and return an incremental rebuild (or undefined if the events change nothing). */
+  apply(events: FileEvent[]): Promise<BuildResult | undefined>
   /** Remove the configured output directories. Idempotent on missing dirs. */
   clean(): Promise<void>
   dispose(): Promise<void>
@@ -160,7 +161,7 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
   return {
     build,
     watch,
-    applyChanges: apply,
+    apply,
     clean,
     dispose
   }

@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
-import type { BuildOptions as VeliteOptions } from 'velite'
+import type { BuildEntryOptions as VeliteOptions } from 'velite'
 
-export type Options = Omit<VeliteOptions, 'watch' | 'clean'>
+export type Options = Omit<VeliteOptions, 'clean'>
 
 type NextConfigFunction = (phase: string, options: { defaultConfig: NextConfig }) => Promise<NextConfig> | NextConfig
 type NextConfigInput = NextConfig | NextConfigFunction

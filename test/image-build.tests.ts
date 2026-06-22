@@ -5,10 +5,10 @@
 import { deepEqual, equal, match, ok, rejects } from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { silentLogger } from '../src/adapters/logger'
 import { createBuilder, s } from '../src/core'
 import { isVeliteError } from '../src/core/diagnostic'
 import { posix } from '../src/core/util/path'
+import { silentLogger } from '../src/runtime/adapters/node/logger'
 import { MemoryFileSystem } from './helpers/memory-fs'
 
 import type { UserConfig } from '../src/core/config'
@@ -37,7 +37,7 @@ const setup = (
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
   const runtime: Runtime = {
     fs,
-    config: { load: async () => ({ config, dependencies: [] }) },
+    modules: { load: async () => ({ exports: config, dependencies: [] }) },
     path: posix,
     logger: silentLogger
   }

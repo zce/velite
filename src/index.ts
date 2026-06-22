@@ -1,35 +1,29 @@
-import { existsSync } from 'node:fs'
-import posix from 'node:path/posix'
-
 import { createBuilder } from './core'
 import { nodeRuntime } from './runtime/adapters/node'
 
 import type { Builder, BuildResult, WatchHandle } from './core'
 
-const CONFIG_CANDIDATES = ['velite.config.ts', 'velite.config.js', 'velite.config.mjs']
-
-const resolveConfigPath = (cwd: string, explicit?: string): string => {
-  if (explicit !== undefined) return posix.join(cwd, explicit)
-  for (const name of CONFIG_CANDIDATES) {
-    const candidate = posix.join(cwd, name)
-    if (existsSync(candidate)) return candidate
-  }
-  return posix.join(cwd, CONFIG_CANDIDATES[0]!)
-}
-
 export interface BuildEntryOptions {
   /** Project directory (default: process.cwd()). */
   cwd?: string
-  /** Config path relative to cwd (default: auto-detect velite.config.*). */
+  /** Config path (relative to cwd or absolute). Default: auto-detect velite.config.*. */
   config?: string
   /** Output layout (default: `single` in production, `split` otherwise). */
   layout?: 'split' | 'single'
 }
 
+const resolveConfigOption = (cwd: string, explicit: string | undefined): string | undefined => {
+  if (explicit === undefined) return undefined
+  // Pass through as-is when already absolute (posix or windows). The runtime
+  // path adapter would otherwise mis-handle drive letters.
+  if (explicit.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(explicit)) return explicit
+  return nodeRuntime.path.join(cwd, explicit)
+}
+
 /** Create a durable Node builder. Advanced/stateful entry; also the DI seam. */
 export const builder = (options: BuildEntryOptions = {}): Builder => {
   const cwd = options.cwd ?? process.cwd()
-  return createBuilder(nodeRuntime, { cwd, configPath: resolveConfigPath(cwd, options.config) })
+  return createBuilder(nodeRuntime, { cwd, configPath: resolveConfigOption(cwd, options.config) })
 }
 
 /** One-shot build with the default Node runtime. */
@@ -55,7 +49,6 @@ export type {
   BuildResult,
   CollectionDef,
   CollectionResult,
-  ConfigLoader,
   Diagnostic,
   Entry,
   FileSystem,
@@ -64,6 +57,7 @@ export type {
   Loader,
   Logger,
   LogicalOutput,
+  ModuleLoader,
   PrepareContext,
   PrepareHook,
   PrepareResult,

@@ -6,8 +6,8 @@ export type { OutputManifest } from './output/manifest'
 export { mergeEvents } from './scheduler'
 export type { Scheduler } from './scheduler'
 
-export { defineConfig, defineCollection } from './config'
-export type { UserConfig, CollectionDef, ResolvedConfig, PrepareHook, PrepareContext, PrepareResult } from './config'
+export { defineConfig, defineCollection, prepareConfig, ConfigError } from './config'
+export type { UserConfig, CollectionDef, ResolvedConfig, PrepareHook, PrepareContext, PrepareResult, PrepareConfigOptions, ConfigRuntime } from './config'
 
 export { s } from './schema'
 export type { SchemaNamespace, Schema, Infer } from './schema'
@@ -21,6 +21,6 @@ export type { LogicalOutput } from './output/logical'
 export { createLoaderRegistry } from './loader'
 export type { Loader, LoaderInput, LoaderResult, LoadedItem, LoaderRegistry } from './loader'
 
-export type { Runtime, FileSystem, Watcher, FileEvent, ImageProcessor, ConfigLoader, Logger, Path } from '../runtime'
+export type { Runtime, FileSystem, Watcher, FileEvent, ImageProcessor, ModuleLoader, Logger, Path } from '../runtime'
 
 export { posix } from './util/path'

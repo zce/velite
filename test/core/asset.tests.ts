@@ -29,7 +29,7 @@ const bytes = (n: number): Uint8Array => {
 
 const makeHost = (image: Runtime['image']): Runtime => ({
   fs: { read: async () => new Uint8Array(), stat: async () => ({ mtimeMs: 0, size: 0 }), walk: async () => [], write: async () => {}, remove: async () => {} },
-  config: { load: async () => ({ config: {}, dependencies: [] }) },
+  modules: { load: async () => ({ exports: {}, dependencies: [] }) },
   path: posix,
   image
 })

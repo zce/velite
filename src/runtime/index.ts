@@ -1,7 +1,7 @@
-import type { ConfigLoader } from './config'
 import type { FileSystem } from './fs'
 import type { ImageProcessor } from './image'
 import type { Logger } from './logger'
+import type { ModuleLoader } from './modules'
 import type { Path } from './path'
 import type { Watcher } from './watcher'
 
@@ -14,16 +14,16 @@ import type { Watcher } from './watcher'
  */
 export interface Runtime {
   fs: FileSystem
-  config: ConfigLoader
+  modules: ModuleLoader
   path: Path
   logger?: Logger
   image?: ImageProcessor
   watch?: (paths: string[]) => Watcher
 }
 
-export type { ConfigLoader } from './config'
 export type { FileSystem } from './fs'
 export type { ImageProcessor } from './image'
 export type { Logger } from './logger'
+export type { ModuleLoader } from './modules'
 export type { Path } from './path'
 export type { FileEvent, Watcher } from './watcher'

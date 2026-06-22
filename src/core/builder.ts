@@ -1,5 +1,4 @@
-import { resolveConfig, validateConfig } from './config'
-import { type Diagnostic } from './diagnostic'
+import { prepareConfig } from './config'
 import { applyChanges, createRunContext, runBuild, runIncremental } from './driver'
 import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
@@ -41,15 +40,9 @@ export interface Builder {
 
 export interface CreateBuilderOptions {
   cwd: string
-  configPath: string
+  /** Explicit config path. When omitted, `prepareConfig` searches from `cwd`. */
+  configPath?: string
   loaders?: Loader[]
-}
-
-class ConfigError extends Error {
-  constructor(readonly diagnostics: Diagnostic[]) {
-    super(diagnostics.map(d => d.message).join('; '))
-    this.name = 'ConfigError'
-  }
 }
 
 interface Session {
@@ -60,10 +53,7 @@ interface Session {
 }
 
 const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Promise<Session> => {
-  const loaded = await runtime.config.load(options.configPath)
-  const issues = validateConfig(loaded.config)
-  if (issues.length > 0) throw new ConfigError(issues)
-  const config = resolveConfig(loaded.config as never, { cwd: options.cwd, path: runtime.path, configPath: options.configPath })
+  const config = await prepareConfig(runtime, { cwd: options.cwd, configPath: options.configPath })
   const engine = createEngine()
   const pipeline = createPipeline(config, createLoaderRegistry(options.loaders ?? []), runtime)
   const context = createRunContext(engine, pipeline, config, runtime)
@@ -104,7 +94,7 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
     const current = await init()
     const result = await applyChanges(current.context, events, {
       cwd: options.cwd,
-      configPath: options.configPath
+      configPath: current.config.configPath
     })
     if (result === 'config-reload') {
       session = await reload()
@@ -120,7 +110,7 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
     }
     await build()
     const current = session!
-    const watcher = runtime.watch!([current.config.root, options.configPath])
+    const watcher = runtime.watch!([current.config.root, current.config.configPath])
     scheduler = createScheduler(async events => {
       const result = await apply(events)
       if (result !== undefined) watchOptions.onRebuild?.(result)
@@ -136,14 +126,16 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
     }
   }
 
+  const dispose = () => {
+    scheduler?.dispose()
+    unsubscribe?.()
+    session = undefined
+  }
+
   return {
     build,
     watch,
     applyChanges: apply,
-    dispose() {
-      scheduler?.dispose()
-      unsubscribe?.()
-      session = undefined
-    }
+    dispose
   }
 }

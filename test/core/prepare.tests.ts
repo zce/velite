@@ -5,9 +5,9 @@
 import { deepEqual, equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { silentLogger } from '../../src/adapters/logger'
 import { createBuilder, s } from '../../src/core'
 import { posix } from '../../src/core/util/path'
+import { silentLogger } from '../../src/runtime/adapters/node/logger'
 import { MemoryFileSystem } from '../helpers/memory-fs'
 
 import type { PrepareContext, PrepareHook, UserConfig } from '../../src/core/config'
@@ -26,7 +26,7 @@ const setup = (prepare: PrepareHook | undefined): { runtime: Runtime; fs: Memory
   const config: UserConfig = { ...baseConfig, prepare }
   const fs = new MemoryFileSystem()
   fs.put(posix.join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
-  const runtime: Runtime = { fs, config: { load: async () => ({ config, dependencies: [] }) }, path: posix, logger: silentLogger }
+  const runtime: Runtime = { fs, modules: { load: async () => ({ exports: config, dependencies: [] }) }, path: posix, logger: silentLogger }
   return { runtime, fs }
 }
 

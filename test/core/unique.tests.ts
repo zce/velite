@@ -5,9 +5,9 @@
 import { equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { silentLogger } from '../../src/adapters/logger'
 import { createBuilder, s } from '../../src/core'
 import { posix } from '../../src/core/util/path'
+import { silentLogger } from '../../src/runtime/adapters/node/logger'
 import { MemoryFileSystem } from '../helpers/memory-fs'
 
 import type { UserConfig } from '../../src/core/config'
@@ -25,7 +25,7 @@ const config: UserConfig = {
 const setup = (files: Record<string, string>): { runtime: Runtime; fs: MemoryFileSystem } => {
   const fs = new MemoryFileSystem()
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
-  const runtime: Runtime = { fs, config: { load: async () => ({ config, dependencies: [] }) }, path: posix, logger: silentLogger }
+  const runtime: Runtime = { fs, modules: { load: async () => ({ exports: config, dependencies: [] }) }, path: posix, logger: silentLogger }
   return { runtime, fs }
 }
 
@@ -76,7 +76,7 @@ test('uniqueCheck: distinct groups do not conflict', async () => {
   const fs = new MemoryFileSystem()
   fs.put(abs('content/posts/a.md'), post('shared-slug', 'A'))
   fs.put(abs('content/notes/b.md'), post('shared-slug', 'B'))
-  const runtime: Runtime = { fs, config: { load: async () => ({ config: cfg, dependencies: [] }) }, path: posix, logger: silentLogger }
+  const runtime: Runtime = { fs, modules: { load: async () => ({ exports: cfg, dependencies: [] }) }, path: posix, logger: silentLogger }
   const result = await build(runtime)
   const dupes = result.diagnostics.filter(d => d.message.includes('duplicate unique value'))
   equal(dupes.length, 0, 'same value in different groups is not a conflict')

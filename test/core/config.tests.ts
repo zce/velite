@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { defineConfig, resolveConfig, validateConfig } from '../../src/core/config'
+import { ConfigError, defineConfig, prepareConfig, resolveConfig, validateConfig } from '../../src/core/config'
 import { s } from '../../src/core/schema/s'
 import { posix } from '../../src/core/util/path'
+import { MemoryFileSystem } from '../helpers/memory-fs'
+
+import type { ConfigRuntime } from '../../src/core/config'
 
 test('resolveConfig applies defaults: root=".", data=".velite"', () => {
   const cfg = defineConfig({ collections: { posts: { pattern: 'posts/*.md', schema: s.object({ title: s.string() }) } } })
@@ -88,4 +91,68 @@ test('validateConfig: collection missing schema yields a diagnostic', () => {
 test('validateConfig: valid config yields no diagnostics', () => {
   const diags = validateConfig({ collections: { posts: { pattern: '*.md', schema: s.string() } } })
   assert.deepEqual(diags, [])
+})
+
+// --- prepareConfig (load → validate → resolve facade) -----------------------
+
+const baseConfig = defineConfig({ collections: { posts: { pattern: '*.md', schema: s.string() } } })
+
+const makeRuntime = (fs: MemoryFileSystem, loaded: { exports: unknown }): ConfigRuntime => ({
+  fs,
+  path: posix,
+  modules: { load: async () => ({ ...loaded, dependencies: [] }) }
+})
+
+test('prepareConfig: uses an explicit configPath and resolves into ResolvedConfig', async () => {
+  const fs = new MemoryFileSystem()
+  const configPath = '/proj/velite.config.ts'
+  fs.put(configPath, '// stub — module loader returns the exports directly')
+  const runtime = makeRuntime(fs, { exports: { default: baseConfig } })
+  const resolved = await prepareConfig(runtime, { cwd: '/proj', configPath })
+  assert.equal(resolved.configPath, configPath)
+  assert.equal(resolved.root, '/proj')
+  assert.equal(resolved.collections.length, 1)
+})
+
+test('prepareConfig: accepts a namespace without a `default` export', async () => {
+  const fs = new MemoryFileSystem()
+  const configPath = '/proj/velite.config.ts'
+  fs.put(configPath, '// stub')
+  const runtime = makeRuntime(fs, { exports: baseConfig })
+  const resolved = await prepareConfig(runtime, { cwd: '/proj', configPath })
+  assert.equal(resolved.collections.length, 1)
+})
+
+test('prepareConfig: searches default candidates at cwd when no configPath is given', async () => {
+  const fs = new MemoryFileSystem()
+  fs.put('/proj/velite.config.ts', '// stub')
+  const runtime = makeRuntime(fs, { exports: { default: baseConfig } })
+  const resolved = await prepareConfig(runtime, { cwd: '/proj' })
+  assert.equal(resolved.configPath, '/proj/velite.config.ts')
+})
+
+test('prepareConfig: walks up parent directories up to searchDepth', async () => {
+  const fs = new MemoryFileSystem()
+  fs.put('/work/velite.config.ts', '// stub at the project root')
+  const runtime = makeRuntime(fs, { exports: { default: baseConfig } })
+  // cwd is two levels below the config; default depth (3) covers it.
+  const resolved = await prepareConfig(runtime, { cwd: '/work/apps/web' })
+  assert.equal(resolved.configPath, '/work/velite.config.ts')
+})
+
+test('prepareConfig: throws when the config file cannot be located', async () => {
+  const fs = new MemoryFileSystem()
+  const runtime = makeRuntime(fs, { exports: { default: baseConfig } })
+  await assert.rejects(prepareConfig(runtime, { cwd: '/proj' }), /config file not found/)
+})
+
+test('prepareConfig: throws ConfigError with diagnostics on validation failure', async () => {
+  const fs = new MemoryFileSystem()
+  const configPath = '/proj/velite.config.ts'
+  fs.put(configPath, '// stub')
+  const runtime = makeRuntime(fs, { exports: { default: { collections: { posts: { schema: s.string() } } } } })
+  await assert.rejects(
+    prepareConfig(runtime, { cwd: '/proj', configPath }),
+    (err: unknown) => err instanceof ConfigError && err.diagnostics.some(d => d.code === 'CONFIG_INVALID')
+  )
 })

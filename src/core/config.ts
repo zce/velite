@@ -1,5 +1,7 @@
 import { diagnostic } from './diagnostic'
 
+import type { FileSystem } from '../runtime/fs'
+import type { ModuleLoader } from '../runtime/modules'
 import type { Path } from '../runtime/path'
 import type { Diagnostic } from './diagnostic'
 import type { LogicalOutput } from './output/logical'
@@ -93,6 +95,17 @@ export const defineConfig = (config: UserConfig): UserConfig => config
 /** Identity helper for a single collection, for type inference. */
 export const defineCollection = <S extends Schema>(def: CollectionDef<S>): CollectionDef<S> => def
 
+/**
+ * Thrown by `prepareConfig` when the loaded config fails shape validation.
+ * Carries the structured diagnostics so callers can surface them.
+ */
+export class ConfigError extends Error {
+  public readonly name = 'ConfigError'
+  constructor(public readonly diagnostics: Diagnostic[]) {
+    super(diagnostics.map(d => d.message).join('; '))
+  }
+}
+
 const toArray = (value: string | string[] | undefined): string[] => (value === undefined ? [] : Array.isArray(value) ? value : [value])
 
 /** Resolve a user config into absolute paths and a normalized shape (pure). */
@@ -139,4 +152,90 @@ export const validateConfig = (config: unknown): Diagnostic[] => {
     }
   }
   return issues
+}
+
+/** Default config filename candidates, searched in order. */
+export const DEFAULT_CONFIG_CANDIDATES: readonly string[] = [
+  'velite.config.ts',
+  'velite.config.js',
+  'velite.config.mjs',
+  'velite.config.mts',
+  'velite.config.cjs',
+  'velite.config.cts'
+]
+
+/** Inputs for the {@link prepareConfig} facade. */
+export interface PrepareConfigOptions {
+  cwd: string
+  /** Given an absolute path, load it directly. Otherwise search from `cwd`. */
+  configPath?: string
+  /** Filename candidates for the search (default {@link DEFAULT_CONFIG_CANDIDATES}). */
+  candidates?: readonly string[]
+  /** How many parent directories to walk up during the search (default 3). */
+  searchDepth?: number
+}
+
+/** The runtime slice `prepareConfig` needs. Keeps the facade testable. */
+export interface ConfigRuntime {
+  modules: ModuleLoader
+  fs: FileSystem
+  path: Path
+}
+
+/**
+ * Search `cwd` and up to `depth` parent directories for the first existing
+ * filename in `candidates`. Returns the absolute path or `undefined`.
+ *
+ * Uses `fs.stat` as the existence probe — the runtime port already requires
+ * `stat`, so we don't need a dedicated `access` capability. Any throw (ENOENT
+ * or otherwise) is treated as "not present here, keep looking".
+ */
+const searchConfigFile = async (fs: FileSystem, path: Path, cwd: string, candidates: readonly string[], depth: number): Promise<string | undefined> => {
+  let current = cwd
+  for (let i = 0; i <= depth; i++) {
+    for (const name of candidates) {
+      const candidate = path.join(current, name)
+      try {
+        await fs.stat(candidate)
+        return candidate
+      } catch {
+        // not here — keep looking
+      }
+    }
+    const parent = path.dirname(current)
+    if (parent === current) break
+    current = parent
+  }
+  return undefined
+}
+
+/**
+ * High-level facade: locate (when path omitted), load, validate, and resolve a
+ * user config. Throws {@link ConfigError} on validation failure; throws a plain
+ * `Error` when the file cannot be located.
+ *
+ * This is the single entry point production code should call — the lower-level
+ * `validateConfig` / `resolveConfig` remain exported for tests and exotic
+ * embedders.
+ */
+export const prepareConfig = async (runtime: ConfigRuntime, options: PrepareConfigOptions): Promise<ResolvedConfig> => {
+  const { cwd } = options
+  const candidates = options.candidates ?? DEFAULT_CONFIG_CANDIDATES
+  const depth = options.searchDepth ?? 3
+
+  const configPath = options.configPath !== undefined ? options.configPath : await searchConfigFile(runtime.fs, runtime.path, cwd, candidates, depth)
+  if (configPath === undefined) {
+    throw new Error(`config file not found in '${cwd}' (searched ${candidates.join(', ')} up to ${depth} parent directories)`)
+  }
+
+  const loaded = await runtime.modules.load(configPath)
+  // Modules may expose the config as `default` or as the namespace itself.
+  const exports = loaded.exports as { default?: unknown } | unknown
+  const raw =
+    typeof exports === 'object' && exports !== null && 'default' in (exports as Record<string, unknown>) ? (exports as { default: unknown }).default : exports
+
+  const issues = validateConfig(raw)
+  if (issues.length > 0) throw new ConfigError(issues)
+
+  return resolveConfig(raw as UserConfig, { cwd, path: runtime.path, configPath })
 }

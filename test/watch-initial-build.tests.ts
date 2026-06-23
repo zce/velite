@@ -128,10 +128,9 @@ test('Builder.apply(): logs content rebuilds separately from config reloads', as
   await builder.apply([{ type: 'add', absPath: join(CWD, 'content/posts/b.json') }])
   await builder.apply([{ type: 'change', absPath: configDependency }])
 
-  const messages = logs.map(log => log.message)
-  ok(messages.some(message => message.includes(`changed: '${join(CWD, 'content/posts/b.json')}', rebuilding`)))
-  ok(messages.some(message => message.includes('rebuild finished')))
-  ok(messages.some(message => message.includes(`config changed: '${configDependency}', reloading`)))
+  ok(logs.some(log => log.level === 'info' && log.message.includes(`changed: '${join(CWD, 'content/posts/b.json')}', rebuilding`)))
+  ok(logs.some(log => log.level === 'info' && log.message.includes('rebuild finished')))
+  ok(logs.some(log => log.level === 'info' && log.message.includes(`config changed: '${configDependency}', reloading`)))
 
   await builder.dispose()
 })

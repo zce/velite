@@ -90,7 +90,7 @@ interface WatchState {
 const loadSession = async (deps: BuilderDeps): Promise<Session> => {
   const { fs, image, logger, modules } = deps
   const config = await resolveConfig({ fs, modules }, { cwd: deps.cwd, configPath: deps.configPath })
-  logger.info(`using config '${config.configPath}'`)
+  logger.debug(`using config '${config.configPath}'`)
   const loaders = createLoaderRegistry(deps.loaders ?? [])
   const pipeline = createPipeline({ config, loaders, fs, image })
   const engine = createEngine()

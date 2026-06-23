@@ -136,7 +136,7 @@ const rebuildOutput = (output: LogicalOutput, collections: PrepareCollections): 
 /** Walk the content root and feed the tree snapshot as an engine input. */
 const refreshTree = async (context: RunContext): Promise<TreeFile[]> => {
   const { engine, config, runtime } = context
-  runtime.logger.info(`building from '${config.root}'`)
+  runtime.logger.debug(`building from '${config.root}'`)
   const include = [...new Set(config.collections.flatMap(c => c.include))]
   const exclude = [...new Set(config.collections.flatMap(c => c.exclude))]
   const absPaths = await runtime.fs.walk(config.root, { include, exclude })
@@ -193,7 +193,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   // Pass 1: discover asset references via the schema parse.
   let emitted = await engine.get(pipeline.emit, null)
   for (const [name, collection] of Object.entries(emitted.output.collections)) {
-    runtime.logger.info(`resolved ${collection.entries.length} ${name}`)
+    runtime.logger.debug(`resolved ${collection.entries.length} ${name}`)
   }
 
   // Collect unique asset references (by assetKey) and feed their bytes.
@@ -320,7 +320,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   context.manifest = manifest
   written.push(...dataWritten)
   const dataFileCount = Object.keys(output.collections).length
-  runtime.logger.info(`output ${dataFileCount} data ${dataFileCount === 1 ? 'file' : 'files'}`)
+  runtime.logger.debug(`output ${dataFileCount} data ${dataFileCount === 1 ? 'file' : 'files'}`)
   runtime.logger.debug(`wrote ${written.length} output ${written.length === 1 ? 'file' : 'files'}`)
 
   // Reconcile asset output after a successful commit: drop orphaned hashed

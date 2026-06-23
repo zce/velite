@@ -244,12 +244,12 @@ test('build: logs the essential build lifecycle and output summary', async () =>
 
   await build(runtime)
 
-  const messages = logs.map(log => log.message)
-  ok(messages.some(message => message.includes(`using config '${join(CWD, 'velite.config.ts')}'`)))
-  ok(messages.some(message => message.includes(`building from '${join(CWD, 'content')}'`)))
-  ok(messages.some(message => message.includes('resolved 1 posts')))
-  ok(messages.some(message => message.includes('output 1 data file')))
-  ok(messages.some(message => message.includes('build finished')))
+  ok(logs.some(log => log.level === 'debug' && log.message.includes(`using config '${join(CWD, 'velite.config.ts')}'`)))
+  ok(logs.some(log => log.level === 'info' && log.message.includes('building...')))
+  ok(logs.some(log => log.level === 'debug' && log.message.includes(`building from '${join(CWD, 'content')}'`)))
+  ok(logs.some(log => log.level === 'debug' && log.message.includes('resolved 1 posts')))
+  ok(logs.some(log => log.level === 'debug' && log.message.includes('output 1 data file')))
+  ok(logs.some(log => log.level === 'info' && log.message.includes('build finished')))
 })
 
 const exists = async (fs: MemoryFileSystem, path: string): Promise<boolean> =>

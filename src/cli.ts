@@ -86,9 +86,9 @@ const runWatch = async (): Promise<void> => {
   await handle.close()
 }
 
-const run = values.watch ? runWatch() : runBuild()
+const task = values.watch ? runWatch() : runBuild()
 
-run.catch(err => {
+task.catch(err => {
   const message = err instanceof Error ? err.message : String(err)
   console.error(message)
   if (values.debug) throw err

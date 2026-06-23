@@ -28,20 +28,18 @@ export const buildProjectInfo = (config: ResolvedConfig): ProjectInfo => {
  */
 interface ValidateRuntime {
   fs: FileSystem
-  image?: ImageProcessor
+  image: ImageProcessor
 }
 
 const DEFAULT_BLUR_WIDTH = 8
 
 /**
  * Build the {@link SchemaContext.probeImage} closure from a runtime
- * `ImageProcessor`. Returns zero metadata when no processor is present, mirroring
- * the no-sharp degradation path used by the asset derivation.
+ * `ImageProcessor`.
  */
 const createProbeImage =
-  (image: ImageProcessor | undefined) =>
+  (image: ImageProcessor) =>
   async (bytes: Uint8Array, blur?: BlurOptions): Promise<ImageMetadata> => {
-    if (image === undefined) return { width: 0, height: 0, format: '', blurDataURL: '', blurWidth: 0, blurHeight: 0 }
     const probed = await image.probe(bytes)
     const { width, height } = probed
     if (width <= 0 || height <= 0) return { width, height, format: probed.format, blurDataURL: '', blurWidth: 0, blurHeight: 0 }

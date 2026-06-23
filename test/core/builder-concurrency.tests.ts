@@ -18,9 +18,10 @@ import { createBuilder, s } from '../../src/core'
 import { join } from '../../src/core/util/path'
 import { nodeContextStorage, silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
+import { noopImageProcessor, noopWatch } from '../helpers/runtime'
 
 import type { PrepareHook, UserConfig } from '../../src/core/config'
-import type { Runtime } from '../../src/runtime'
+import type { TestRuntime } from '../helpers/runtime'
 
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -51,13 +52,15 @@ test('Builder: build() critical section is strictly serialized (max inflight = 1
   }
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }]))
-  const runtime: Runtime = {
+  const runtime: TestRuntime = {
     contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
-    logger: silentLogger
+    logger: silentLogger,
+    image: noopImageProcessor,
+    watch: noopWatch
   }
-  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
   const tasks = Array.from({ length: 5 }, () => builder.build({ layout: 'single' }))
   await Promise.all(tasks)
@@ -77,11 +80,12 @@ test('Builder: concurrent watch() invocations are serialized, no watcher leak', 
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }]))
   let watcherCount = 0
   const unsubscribed: number[] = []
-  const runtime: Runtime = {
+  const runtime: TestRuntime = {
     contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
+    image: noopImageProcessor,
     watch: () => {
       const id = watcherCount++
       return {
@@ -91,7 +95,7 @@ test('Builder: concurrent watch() invocations are serialized, no watcher leak', 
       }
     }
   }
-  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
   // Two simultaneous watch() calls. Without serialization, both could pass
   // closeWatch() then both create watchers and the second would overwrite
@@ -133,13 +137,15 @@ test('Builder: build() and apply() share the same serialization lock', async () 
   }
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }]))
-  const runtime: Runtime = {
+  const runtime: TestRuntime = {
     contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
-    logger: silentLogger
+    logger: silentLogger,
+    image: noopImageProcessor,
+    watch: noopWatch
   }
-  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
   // Interleave build() and apply() with content events. Each apply() seeds
   // a new source file so applyChanges → runIncremental → emitAndWrite runs

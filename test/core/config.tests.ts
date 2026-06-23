@@ -58,35 +58,35 @@ const setupAt = (configPath: string, exports: unknown): { runtime: ConfigRuntime
 
 test('resolveConfig: uses an explicit configPath and exposes it on the result', async () => {
   const configPath = '/proj/velite.config.ts'
-  const { runtime } = setupAt(configPath, { default: baseConfig })
+  const { runtime } = setupAt(configPath, baseConfig)
   const resolved = await resolveConfig(runtime, { cwd: '/proj', configPath })
   assert.equal(resolved.configPath, configPath)
   assert.equal(resolved.root, '/proj/content')
   assert.equal(resolved.collections.length, 1)
 })
 
-test('resolveConfig: accepts a namespace without a `default` export', async () => {
+test('resolveConfig: accepts the direct config export returned by the module loader', async () => {
   const { runtime } = setupAt('/proj/velite.config.ts', baseConfig)
   const resolved = await resolveConfig(runtime, { cwd: '/proj', configPath: '/proj/velite.config.ts' })
   assert.equal(resolved.collections.length, 1)
 })
 
 test('resolveConfig: searches default candidates at cwd when no configPath is given', async () => {
-  const { runtime } = setupAt('/proj/velite.config.ts', { default: baseConfig })
+  const { runtime } = setupAt('/proj/velite.config.ts', baseConfig)
   const resolved = await resolveConfig(runtime, { cwd: '/proj' })
   assert.equal(resolved.configPath, '/proj/velite.config.ts')
 })
 
 test('resolveConfig: walks up parent directories up to searchDepth', async () => {
   // cwd is two levels below the config; default depth (3) covers it.
-  const { runtime } = setupAt('/work/velite.config.ts', { default: baseConfig })
+  const { runtime } = setupAt('/work/velite.config.ts', baseConfig)
   const resolved = await resolveConfig(runtime, { cwd: '/work/apps/web' })
   assert.equal(resolved.configPath, '/work/velite.config.ts')
 })
 
 test('resolveConfig: throws when the config file cannot be located', async () => {
   const fs = new MemoryFileSystem()
-  const runtime = makeRuntime(fs, { default: baseConfig })
+  const runtime = makeRuntime(fs, baseConfig)
   await assert.rejects(resolveConfig(runtime, { cwd: '/proj' }), /config file not found/)
 })
 
@@ -102,9 +102,21 @@ test('resolveConfig: throws ConfigError with diagnostics on validation failure',
 
 const resolveWith = async (cfg: UserConfig, cwd = '/proj'): Promise<Awaited<ReturnType<typeof resolveConfig>>> => {
   const configPath = join(cwd, 'velite.config.ts')
-  const { runtime } = setupAt(configPath, { default: cfg })
+  const { runtime } = setupAt(configPath, cfg)
   return resolveConfig(runtime, { cwd, configPath })
 }
+
+test('resolveConfig: preserves local module dependencies returned by the loader', async () => {
+  const configPath = '/proj/velite.config.ts'
+  const fs = new MemoryFileSystem()
+  fs.put(configPath, '// stub')
+  const runtime: ConfigRuntime = {
+    fs,
+    modules: { load: async () => ({ exports: baseConfig, dependencies: [configPath, '/proj/velite.shared.ts'] }) }
+  }
+  const resolved = await resolveConfig(runtime, { cwd: '/proj', configPath })
+  assert.deepEqual(resolved.configDependencies, ['/proj/velite.shared.ts'])
+})
 
 test('resolveConfig: applies defaults: root="content", data=".velite"', async () => {
   const resolved = await resolveWith(defineConfig({ collections: { posts: { pattern: 'posts/*.md', schema: s.object({ title: s.string() }) } } }))

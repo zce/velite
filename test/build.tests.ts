@@ -6,27 +6,30 @@ import { isVeliteError } from '../src/core/diagnostic'
 import { join } from '../src/core/util/path'
 import { nodeContextStorage, silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
+import { noopImageProcessor, noopWatch } from './helpers/runtime'
 
 import type { UserConfig } from '../src/core/config'
-import type { Runtime } from '../src/runtime'
+import type { TestRuntime } from './helpers/runtime'
 
 const CWD = '/proj'
 const DATA_DIR = join(CWD, '.velite')
 
-const setup = (config: UserConfig, files: Record<string, string>): { runtime: Runtime; fs: MemoryFileSystem } => {
+const setup = (config: UserConfig, files: Record<string, string>): { runtime: TestRuntime; fs: MemoryFileSystem } => {
   const fs = new MemoryFileSystem()
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
-  const runtime: Runtime = {
+  const runtime: TestRuntime = {
     contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
-    logger: silentLogger
+    logger: silentLogger,
+    image: noopImageProcessor,
+    watch: noopWatch
   }
   return { runtime, fs }
 }
 
-const build = (runtime: Runtime, layout: 'split' | 'single' = 'single') =>
-  createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout })
+const build = (runtime: TestRuntime, layout: 'split' | 'single' = 'single') =>
+  createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
@@ -200,7 +203,7 @@ test('build: unchanged rebuild skips writes via manifest (single layout)', async
   const { runtime } = setup(config, {
     [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
   })
-  const instance = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const instance = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   const first = await instance.build({ layout: 'single' })
   ok(first.written.length > 0)
   // A second identical build (same instance → carries the manifest) writes nothing.
@@ -217,7 +220,7 @@ test('build: stale output from a previous layout is deleted when switching layou
   const { runtime, fs } = setup(config, {
     [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
   })
-  const instance = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const instance = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   // First build: single layout writes posts.json.
   await instance.build({ layout: 'single' })
   ok(await exists(fs, join(DATA_DIR, 'posts.json')))

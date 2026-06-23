@@ -23,7 +23,7 @@ import type { Pipeline, TreeFile } from './pipeline'
  */
 export interface DriverRuntime {
   fs: FileSystem
-  logger?: Logger
+  logger: Logger
 }
 
 export interface RunContext {
@@ -246,7 +246,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
       await reconcileDataToEmpty(context)
       await reconcileAssetsTo(context, new Set())
       await persistManifest(context)
-      runtime.logger?.report(diagnostics)
+      runtime.logger.report(diagnostics)
       return { output, diagnostics, written: [] }
     }
     if (prepared !== undefined) {
@@ -291,7 +291,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   }
 
   const finalDiagnostics = [...diagnostics, ...assetWriteDiagnostics]
-  runtime.logger?.report(finalDiagnostics)
+  runtime.logger.report(finalDiagnostics)
   // Fatal (non-schema) errors make the output untrustworthy: report and throw,
   // skipping the write. Schema-level errors are non-fatal and returned in the result.
   if (hasFatalDiagnostic(finalDiagnostics)) {
@@ -344,6 +344,7 @@ const applyChanges = async (context: RunContext, events: FileEvent[]): Promise<A
   const classifyOpts = {
     cwd: context.cwd,
     configPath: config.configPath,
+    configDependencies: config.configDependencies,
     contentRoot: config.root,
     outputDir: config.output.data,
     assetsDir: config.output.assets

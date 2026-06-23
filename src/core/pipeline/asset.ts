@@ -133,12 +133,11 @@ const placeholder = (key: AssetKey, config: ResolvedConfig): AssetResult => ({
 /**
  * `asset({assetKey, template, blur})` → resolved public url + image metadata.
  *
- * Reads the INPUT `asset:<assetKey>` (raw bytes). Three outcomes:
+ * Reads the INPUT `asset:<assetKey>` (raw bytes). Two outcomes:
  *  - input UNSET → returns a zero-metadata placeholder (the dependency is still
  *    recorded, so setting the input later invalidates this memo + dependents);
- *  - input SET, no `image` processor → no-sharp degradation: real (content-hashed)
- *    public url but zero metadata. No crash, no diagnostic (documented);
- *  - input SET, `image` present → probe + blur via the processor.
+ *  - input SET → compute the real (content-hashed) public url and probe via the
+ *    image processor.
  *
  * The try/catch is INSIDE compute on purpose: `context.input()` records the
  * dependency before throwing, so catching the `missing-input` error preserves
@@ -148,7 +147,7 @@ const placeholder = (key: AssetKey, config: ResolvedConfig): AssetResult => ({
  * resolution depends on image processing and nothing else, so the dependency
  * is spelled out at the factory edge.
  */
-export const createAssetDerivation = (config: ResolvedConfig, image: ImageProcessor | undefined): Derivation<AssetKey, AssetResult> => ({
+export const createAssetDerivation = (config: ResolvedConfig, image: ImageProcessor): Derivation<AssetKey, AssetResult> => ({
   name: 'asset',
   key: k => {
     const blur = k.blur === undefined ? '' : `${k.blur.width ?? ''}|${k.blur.height ?? ''}|${k.blur.quality ?? ''}`
@@ -168,11 +167,6 @@ export const createAssetDerivation = (config: ResolvedConfig, image: ImageProces
     }
 
     const publicUrl = publicUrlOf(key.assetKey, key.template, bytes, config)
-    if (image === undefined) {
-      // No-sharp degradation: real (content-hashed) url, zero metadata.
-      return { publicUrl, width: 0, height: 0, format: '', blurDataURL: '', blurWidth: 0, blurHeight: 0 }
-    }
-
     // Probe + blur can fail on corrupt / unsupported images (e.g. some SVGs
     // without intrinsic size, truncated downloads). Degrade to zero metadata
     // rather than crashing the build — the public url is still valid (it's

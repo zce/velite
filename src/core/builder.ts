@@ -1,22 +1,23 @@
 import { resolveConfig } from './config'
-import { fail } from './diagnostic'
 import { createDriver, createRunContext } from './driver'
 import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
 import { createPipeline } from './pipeline'
 import { createScheduler } from './scheduler'
-import { installContextStorage } from './schema/context'
+import { installContextStorage, SchemaContext } from './schema/context'
 
-import type { Runtime } from '../runtime'
 import type { ContextStorage } from '../runtime/contextual'
-import type { FileEvent } from '../runtime/watcher'
+import type { FileSystem } from '../runtime/fs'
+import type { ImageProcessor } from '../runtime/image'
+import type { Logger } from '../runtime/logger'
+import type { ModuleLoader } from '../runtime/modules'
+import type { FileEvent, Watcher } from '../runtime/watcher'
 import type { ResolvedConfig } from './config'
 import type { BuildResult, Driver, RunContext } from './driver'
 import type { Engine } from './engine'
 import type { Loader } from './loader'
 import type { Pipeline } from './pipeline'
 import type { Scheduler } from './scheduler'
-import type { SchemaContext } from './schema/context'
 
 export interface BuildOptions {
   signal?: AbortSignal
@@ -60,7 +61,12 @@ export interface CreateBuilderOptions {
 }
 
 export interface BuilderDeps extends CreateBuilderOptions {
-  runtime: Runtime
+  fs: FileSystem
+  modules: ModuleLoader
+  contextStorage: ContextStorage<SchemaContext>
+  logger: Logger
+  image: ImageProcessor
+  watch: (paths: string[]) => Watcher
 }
 
 interface Session {
@@ -81,20 +87,20 @@ interface WatchState {
   unsubscribe: () => void
 }
 
-const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Promise<Session> => {
-  const config = await resolveConfig(runtime, { cwd: options.cwd, configPath: options.configPath })
-  const loaders = createLoaderRegistry(options.loaders ?? [])
-  const { fs, image } = runtime
+const loadSession = async (deps: BuilderDeps): Promise<Session> => {
+  const { fs, image, logger, modules } = deps
+  const config = await resolveConfig({ fs, modules }, { cwd: deps.cwd, configPath: deps.configPath })
+  const loaders = createLoaderRegistry(deps.loaders ?? [])
   const pipeline = createPipeline({ config, loaders, fs, image })
   const engine = createEngine()
-  const context = await createRunContext({ engine, pipeline, config, runtime, cwd: options.cwd })
+  const context = await createRunContext({ engine, pipeline, config, runtime: { fs, logger }, cwd: deps.cwd })
   const driver = createDriver({ context })
   return { config, engine, pipeline, context, driver }
 }
 
 /**
- * Composition root (Pure DI): assembles runtime + config + engine + pipeline into a
- * Builder. No DI framework — the Runtime object is the container, wired here.
+ * Composition root (Pure DI): assembles explicit runtime capabilities + config +
+ * engine + pipeline into a Builder. No DI framework or broad runtime container.
  *
  * State lives in three closures captured here, each with a single owner:
  *  - `session`: the loaded config + engine + pipeline. Lazy on first build();
@@ -106,11 +112,12 @@ const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Pro
  *  - `watchState`: only present while a watch is running. Bundled so close()
  *    can't drop half of it.
  */
-export const createBuilder = ({ runtime, ...options }: BuilderDeps): Builder => {
+export const createBuilder = (deps: BuilderDeps): Builder => {
+  const { contextStorage, fs, watch: createWatch } = deps
   // Install the runtime's context storage once, so schema transforms can
   // propagate the SchemaContext through zod's async callbacks. The port is
   // type-erased at the runtime boundary; narrow it here to SchemaContext.
-  installContextStorage(runtime.contextStorage as ContextStorage<SchemaContext>)
+  installContextStorage(contextStorage)
 
   let session: Session | undefined
   let activeLayout: 'split' | 'single' = 'split'
@@ -133,7 +140,7 @@ export const createBuilder = ({ runtime, ...options }: BuilderDeps): Builder => 
 
   /** Load (or reload) the session. Pass `force` to replace an existing one. */
   const ensureSession = async (force = false): Promise<Session> => {
-    if (force || session === undefined) session = await loadSession(runtime, options)
+    if (force || session === undefined) session = await loadSession(deps)
     return session
   }
 
@@ -165,7 +172,6 @@ export const createBuilder = ({ runtime, ...options }: BuilderDeps): Builder => 
 
   const watch = async (watchOptions: WatchOptions = {}, buildOptions?: BuildOptions): Promise<WatchHandle> =>
     serialize(async () => {
-      if (runtime.watch === undefined) fail('watch', 'watch is not available: runtime has no watch support')
       // A second watch() call replaces the previous subscription instead of
       // leaking it — calling watch() twice on the same builder is unusual but
       // shouldn't strand a chokidar instance. Because the whole flow runs
@@ -175,7 +181,7 @@ export const createBuilder = ({ runtime, ...options }: BuilderDeps): Builder => 
       const current = await ensureSession()
       if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
       const initial = await current.driver.runBuild(activeLayout)
-      const watcher = runtime.watch([current.config.root, current.config.configPath])
+      const watcher = createWatch([...new Set([current.config.root, current.config.configPath, ...current.config.configDependencies])])
       const scheduler = createScheduler({
         run: async events => {
           const result = await apply(events)
@@ -198,8 +204,8 @@ export const createBuilder = ({ runtime, ...options }: BuilderDeps): Builder => 
 
   const clean = async (): Promise<void> => {
     const current = await ensureSession()
-    await runtime.fs.remove(current.config.output.data, { recursive: true })
-    await runtime.fs.remove(current.config.output.assets, { recursive: true })
+    await fs.remove(current.config.output.data, { recursive: true })
+    await fs.remove(current.config.output.assets, { recursive: true })
     // Drop the persisted manifest state too — the on-disk file was just
     // wiped, so the in-memory bookkeeping must match. Otherwise the next
     // build would try to "reconcile" files that no longer exist.

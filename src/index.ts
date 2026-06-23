@@ -1,6 +1,13 @@
 import { createBuilder, VeliteError } from './core'
 import { join } from './core/util/path'
-import { createNodeRuntime } from './runtime/adapters/node'
+import {
+  createChokidarWatcher,
+  createJitiModuleLoader,
+  createLogger,
+  createNodeContextStorage,
+  createNodeFileSystem,
+  createSharpImageProcessor
+} from './runtime/adapters/node'
 
 import type { Builder, BuildResult, WatchHandle } from './core'
 import type { LogLevel } from './runtime'
@@ -35,8 +42,16 @@ const enforceStrict = (result: BuildResult, strict: boolean | undefined): void =
 /** Create a durable Node builder. Advanced/stateful entry; also the DI seam. */
 export const builder = (options: BuildEntryOptions = {}): Builder => {
   const cwd = options.cwd ?? process.cwd()
-  const runtime = createNodeRuntime({ logLevel: options.logLevel })
-  return createBuilder({ runtime, cwd, configPath: resolveConfigOption(cwd, options.config) })
+  return createBuilder({
+    cwd,
+    configPath: resolveConfigOption(cwd, options.config),
+    fs: createNodeFileSystem(),
+    modules: createJitiModuleLoader({}),
+    contextStorage: createNodeContextStorage(),
+    logger: createLogger({ level: options.logLevel ?? 'info' }),
+    image: createSharpImageProcessor(),
+    watch: createChokidarWatcher
+  })
 }
 
 /**
@@ -137,4 +152,4 @@ export type {
 } from './core'
 // Runtime port types — sourced directly from src/runtime (core re-exports are
 // gone; the port types are provided by the runtime layer, not the core layer).
-export type { FileEvent, FileSystem, ImageProcessor, Logger, LogLevel, ModuleLoader, Runtime, Watcher } from './runtime'
+export type { FileEvent, FileSystem, ImageProcessor, Logger, LogLevel, ModuleLoader, Watcher } from './runtime'

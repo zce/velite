@@ -110,6 +110,8 @@ export interface ResolvedConfig {
   root: string
   /** Absolute path to the config file (empty when synthetic). */
   configPath: string
+  /** Extra local files loaded while evaluating the config; watch mode treats them as config inputs. */
+  configDependencies: string[]
   output: { data: string; assets: string; base: string; name: string; format: 'esm' | 'cjs' }
   collections: ResolvedCollection[]
   /** Global markdown rendering options (carried through from {@link UserConfig}). */
@@ -247,18 +249,17 @@ export const resolveConfig = async (runtime: ConfigRuntime, options: ResolveConf
     fail('config', `config file not found in '${cwd}' (searched ${candidates.join(', ')} up to ${depth} parent directories)`)
   }
 
-  const loaded = await runtime.modules.load(configPath)
-  // Modules may expose the config as `default` or as the namespace itself.
-  const exports = loaded.exports as { default?: unknown } | unknown
-  const raw = typeof exports === 'object' && exports !== null && 'default' in exports ? exports.default : exports
+  const { exports, dependencies } = await runtime.modules.load(configPath)
 
-  const issues = validateConfig(raw)
+  const issues = validateConfig(exports)
   if (issues.length > 0) throw new ConfigError(issues)
 
-  const config = raw as UserConfig
+  const config = exports as UserConfig
+  const configDependencies = [...new Set(dependencies)].filter(dep => dep !== configPath)
   return {
     root: join(cwd, config.root ?? 'content'),
     configPath,
+    configDependencies,
     output: {
       data: join(cwd, config.output?.data ?? '.velite'),
       assets: join(cwd, config.output?.assets ?? 'public/static'),

@@ -10,10 +10,11 @@ import { isVeliteError } from '../src/core/diagnostic'
 import { join } from '../src/core/util/path'
 import { nodeContextStorage, silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
+import { noopImageProcessor, noopWatch } from './helpers/runtime'
 
 import type { UserConfig } from '../src/core/config'
-import type { Runtime } from '../src/runtime'
 import type { ImageProcessor } from '../src/runtime/image'
+import type { TestRuntime } from './helpers/runtime'
 
 const CWD = '/proj'
 const DATA_DIR = join(CWD, '.velite')
@@ -32,20 +33,21 @@ const setup = (
   config: UserConfig,
   files: Record<string, string | Uint8Array>,
   image: ImageProcessor | null = stubImage
-): { runtime: Runtime; fs: MemoryFileSystem } => {
+): { runtime: TestRuntime; fs: MemoryFileSystem } => {
   const fs = new MemoryFileSystem()
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
-  const runtime: Runtime = {
+  const runtime: TestRuntime = {
     contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
-    logger: silentLogger
+    logger: silentLogger,
+    image: image ?? noopImageProcessor,
+    watch: noopWatch
   }
-  if (image !== null) runtime.image = image
   return { runtime, fs }
 }
 
-const build = (runtime: Runtime) => createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
+const build = (runtime: TestRuntime) => createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
@@ -105,7 +107,7 @@ test('assets: a dropped asset reference is reconciled away on rebuild (no orphan
     [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
     [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
   })
-  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   const first = await builder.build({ layout: 'single' })
   equal(first.diagnostics.length, 0, JSON.stringify(first.diagnostics))
   const firstAsset = first.written.find(p => p.startsWith(ASSETS_DIR))!
@@ -132,14 +134,15 @@ test('assets: orphan reconciliation survives across builder instances (persisted
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify(mkConfig(true).entries))
   const mkBuilder = () => {
     const { config } = mkConfig(true)
-    const runtime: Runtime = {
+    const runtime: TestRuntime = {
       contextStorage: nodeContextStorage,
       fs,
       image: stubImage,
       modules: { load: async () => ({ exports: config, dependencies: [] }) },
-      logger: silentLogger
+      logger: silentLogger,
+      watch: noopWatch
     }
-    return createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+    return createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   }
 
   const first = mkBuilder()
@@ -176,7 +179,7 @@ test('prepare === false reconciles both data and previously written assets', asy
     [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
     [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
   })
-  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   const first = await builder.build({ layout: 'single' })
   const firstAsset = first.written.find(p => p.startsWith(ASSETS_DIR))!
   ok(firstAsset, 'asset written on first build')

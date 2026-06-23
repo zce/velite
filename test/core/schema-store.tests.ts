@@ -7,9 +7,10 @@ import { context, createSessionStore } from '../../src/core/schema/context'
 import { join } from '../../src/core/util/path'
 import { nodeContextStorage, silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
+import { noopImageProcessor, noopWatch } from '../helpers/runtime'
 
 import type { UserConfig } from '../../src/core/config'
-import type { Runtime } from '../../src/runtime'
+import type { TestRuntime } from '../helpers/runtime'
 
 test('SessionStore: get/has/getOrCreate share state by key (no set)', () => {
   const store = createSessionStore()
@@ -44,13 +45,15 @@ test('SchemaContext.store: is shared across records within one build', async () 
   const CWD = '/proj'
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }, { title: 'C' }]))
-  const runtime: Runtime = {
+  const runtime: TestRuntime = {
     contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
-    logger: silentLogger
+    logger: silentLogger,
+    image: noopImageProcessor,
+    watch: noopWatch
   }
-  const result = await createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
+  const result = await createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
   equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
   const posts = JSON.parse(new TextDecoder().decode(await fs.read(join(CWD, '.velite/posts.json')))) as Array<{ title: string }>
   deepEqual(

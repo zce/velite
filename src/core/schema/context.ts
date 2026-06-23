@@ -192,9 +192,9 @@ export interface RunWithContextInput {
 const schemaContext = createContext<SchemaContext>('SchemaContext')
 
 /**
- * Composition-root hook: install the runtime's context storage. Called once
- * by `createBuilder` with the `Runtime.contextStorage` (type-erased at the
- * port boundary, narrowed here to the `SchemaContext` it actually carries).
+ * Composition-root hook: install the context storage. Called once by
+ * `createBuilder` with the type-erased runtime port, narrowed here to the
+ * `SchemaContext` it actually carries.
  *
  * Internal — not part of the public package barrel.
  */

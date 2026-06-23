@@ -10,9 +10,10 @@ import { createBuilder, s } from '../../src/core'
 import { join } from '../../src/core/util/path'
 import { nodeContextStorage, silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
+import { noopImageProcessor, noopWatch } from '../helpers/runtime'
 
 import type { PrepareCollections, PrepareContext, PrepareHook, UserConfig } from '../../src/core/config'
-import type { Runtime } from '../../src/runtime'
+import type { TestRuntime } from '../helpers/runtime'
 
 const CWD = '/proj'
 const DATA_DIR = join(CWD, '.velite')
@@ -22,20 +23,22 @@ const baseConfig: UserConfig = {
   collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
 }
 
-const setup = (prepare: PrepareHook | undefined): { runtime: Runtime; fs: MemoryFileSystem } => {
+const setup = (prepare: PrepareHook | undefined): { runtime: TestRuntime; fs: MemoryFileSystem } => {
   const config: UserConfig = { ...baseConfig, prepare }
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
-  const runtime: Runtime = {
+  const runtime: TestRuntime = {
     contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
-    logger: silentLogger
+    logger: silentLogger,
+    image: noopImageProcessor,
+    watch: noopWatch
   }
   return { runtime, fs }
 }
 
-const build = (runtime: Runtime) => createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
+const build = (runtime: TestRuntime) => createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
@@ -122,7 +125,7 @@ test('prepare: single collections expose the single object, not an array', async
   let received: unknown
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/options/a.json'), JSON.stringify({ name: 'velite' }))
-  const runtime: Runtime = {
+  const runtime: TestRuntime = {
     contextStorage: nodeContextStorage,
     fs,
     modules: {
@@ -136,7 +139,9 @@ test('prepare: single collections expose the single object, not an array', async
         dependencies: []
       })
     },
-    logger: silentLogger
+    logger: silentLogger,
+    image: noopImageProcessor,
+    watch: noopWatch
   }
   await build(runtime)
   deepEqual(received, { name: 'velite' })
@@ -179,7 +184,7 @@ test('prepare: false return reconciles a previous successful build (no stale dat
     return calls === 2 ? false : undefined
   }
   const { runtime, fs } = setup(prepare)
-  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   await builder.build({ layout: 'single' })
   // first (void) build wrote posts.json
   deepEqual((await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ title: string }>, [{ title: 'A' }, { title: 'B' }])
@@ -201,13 +206,15 @@ test('prepare: false reconciles stale output across separate builder instances (
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
   const mkBuilder = (prepare?: PrepareHook) => {
     const config: UserConfig = { ...baseConfig, prepare }
-    const runtime: Runtime = {
+    const runtime: TestRuntime = {
       contextStorage: nodeContextStorage,
       fs,
       modules: { load: async () => ({ exports: config, dependencies: [] }) },
-      logger: silentLogger
+      logger: silentLogger,
+      image: noopImageProcessor,
+      watch: noopWatch
     }
-    return createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+    return createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   }
   // First builder: normal write
   const first = mkBuilder()

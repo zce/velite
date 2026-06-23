@@ -32,7 +32,7 @@ export interface PipelineDeps {
   config: ResolvedConfig
   loaders: LoaderRegistry
   fs: FileSystem
-  image?: ImageProcessor
+  image: ImageProcessor
 }
 
 /**

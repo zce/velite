@@ -3,7 +3,7 @@
 // this barrel. Everything else is imported directly from the owning module.
 //
 // Not re-exported here (and why):
-// - Runtime port types (`Runtime`, `FileSystem`, etc.) — belong to
+// - Runtime port types (`FileSystem`, `Logger`, etc.) — belong to
 //   `src/runtime/`; imported directly by `src/index.ts`.
 // - Engine types (`Engine`, `Derivation`, etc.) — internal implementation,
 //   not part of any public surface.

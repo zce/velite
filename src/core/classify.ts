@@ -12,13 +12,14 @@ type ChangeKind = 'config' | 'content' | 'ignore'
  */
 export const classifyEvent = (
   event: FileEvent,
-  options: { cwd: string; configPath: string; contentRoot: string; outputDir: string; assetsDir: string }
+  options: { cwd: string; configPath: string; configDependencies: readonly string[]; contentRoot: string; outputDir: string; assetsDir: string }
 ): ChangeKind => {
   const { absPath } = event
-  const { cwd, configPath, contentRoot, outputDir, assetsDir } = options
+  const { cwd, configPath, configDependencies, contentRoot, outputDir, assetsDir } = options
   const normalized = normalize(absPath)
 
   if (normalized === normalize(configPath)) return 'config'
+  if (configDependencies.some(dep => normalized === normalize(dep))) return 'config'
   if (normalized.startsWith(normalize(outputDir) + '/') || normalized === normalize(outputDir)) {
     return 'ignore'
   }
@@ -27,7 +28,6 @@ export const classifyEvent = (
   }
   const root = normalize(contentRoot)
   if (normalized.startsWith(root + '/') || normalized === root) return 'content'
-  // Config dependencies outside content root (future): treat as config for now if under cwd
   if (normalized.startsWith(normalize(cwd) + '/')) return 'ignore'
   return 'ignore'
 }

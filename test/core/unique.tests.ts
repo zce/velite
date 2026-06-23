@@ -9,9 +9,10 @@ import { createBuilder, s } from '../../src/core'
 import { join } from '../../src/core/util/path'
 import { nodeContextStorage, silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
+import { noopImageProcessor, noopWatch } from '../helpers/runtime'
 
 import type { UserConfig } from '../../src/core/config'
-import type { Runtime } from '../../src/runtime'
+import type { TestRuntime } from '../helpers/runtime'
 
 const CWD = '/proj'
 
@@ -22,19 +23,21 @@ const config: UserConfig = {
   }
 }
 
-const setup = (files: Record<string, string>): { runtime: Runtime; fs: MemoryFileSystem } => {
+const setup = (files: Record<string, string>): { runtime: TestRuntime; fs: MemoryFileSystem } => {
   const fs = new MemoryFileSystem()
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
-  const runtime: Runtime = {
+  const runtime: TestRuntime = {
     contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
-    logger: silentLogger
+    logger: silentLogger,
+    image: noopImageProcessor,
+    watch: noopWatch
   }
   return { runtime, fs }
 }
 
-const build = (runtime: Runtime) => createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build()
+const build = (runtime: TestRuntime) => createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build()
 
 const post = (slug: string, title = slug): string => `---\ntitle: ${title}\nslug: ${slug}\n---\nbody`
 
@@ -81,7 +84,14 @@ test('uniqueCheck: distinct groups do not conflict', async () => {
   const fs = new MemoryFileSystem()
   fs.put(abs('content/posts/a.md'), post('shared-slug', 'A'))
   fs.put(abs('content/notes/b.md'), post('shared-slug', 'B'))
-  const runtime: Runtime = { contextStorage: nodeContextStorage, fs, modules: { load: async () => ({ exports: cfg, dependencies: [] }) }, logger: silentLogger }
+  const runtime: TestRuntime = {
+    contextStorage: nodeContextStorage,
+    fs,
+    modules: { load: async () => ({ exports: cfg, dependencies: [] }) },
+    logger: silentLogger,
+    image: noopImageProcessor,
+    watch: noopWatch
+  }
   const result = await build(runtime)
   const dupes = result.diagnostics.filter(d => d.message.includes('duplicate unique value'))
   equal(dupes.length, 0, 'same value in different groups is not a conflict')
@@ -92,7 +102,7 @@ test('uniqueCheck: incremental — changing one record clears the conflict', asy
     [abs('content/posts/a.md')]: post('hello-world', 'A'),
     [abs('content/posts/b.md')]: post('hello-world', 'B')
   })
-  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
   const first = await builder.build()
   const firstDupes = first.diagnostics.filter(d => d.message.includes('duplicate unique value'))
@@ -113,7 +123,7 @@ test('uniqueCheck: incremental — backdating (re-setting equal content) keeps t
     [abs('content/posts/a.md')]: post('hello-world', 'A'),
     [abs('content/posts/b.md')]: post('hello-world', 'B')
   })
-  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   const first = await builder.build()
   const firstDupes = first.diagnostics.filter(d => d.message.includes('duplicate unique value'))
   equal(firstDupes.length, 2)

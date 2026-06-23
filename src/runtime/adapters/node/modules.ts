@@ -11,32 +11,29 @@ export interface JitiModuleLoaderDeps {
 }
 
 export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import.meta.url }: JitiModuleLoaderDeps = {}): ModuleLoader => {
-  // Lazy jiti instance scoped to this module instance. Keeping the cache inside
-  // the factory closure avoids hidden process-wide loader state.
-  let jiti: ReturnType<typeof createJiti> | undefined
-
-  const getJiti = (): ReturnType<typeof createJiti> => {
-    if (jiti == null) {
-      jiti = createJiti(baseUrl, {
-        interopDefault: true,
-        moduleCache: false,
-        alias: {
-          [packageName]: fileURLToPath(import.meta.resolve(packageName))
-        }
-      })
-    }
-    return jiti
-  }
+  const createLoader = (): ReturnType<typeof createJiti> =>
+    createJiti(baseUrl, {
+      interopDefault: true,
+      alias: {
+        [packageName]: fileURLToPath(import.meta.resolve(packageName))
+      }
+    })
 
   /**
    * Module loader adapter using jiti to import TS/JS modules at runtime (no
-   * separate build step). Returns the full module namespace so callers can pick
-   * between `default` and named exports.
+   * separate build step). A fresh jiti instance per load keeps config reloads
+   * fresh; its per-load cache is still used to discover local files pulled in
+   * during evaluation for watch-mode dependency tracking. `default: true`
+   * returns the effective export value, matching Velite config loading.
    */
   return {
     async load(absPath) {
-      const exports = await getJiti().import(absPath)
-      return { exports, dependencies: [] }
+      const jiti = createLoader()
+      const before = new Set(Object.keys(jiti.cache))
+      const exports = await jiti.import(absPath, { default: true })
+      const after = new Set(Object.keys(jiti.cache))
+      const dependencies = [...after].filter(dep => !before.has(dep))
+      return { exports, dependencies }
     }
   }
 }

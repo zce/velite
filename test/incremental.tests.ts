@@ -5,10 +5,11 @@ import { createBuilder, s } from '../src/core'
 import { join } from '../src/core/util/path'
 import { nodeContextStorage, silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
+import { noopImageProcessor, noopWatch } from './helpers/runtime'
 
 import type { UserConfig } from '../src/core/config'
-import type { Runtime } from '../src/runtime'
 import type { FileEvent } from '../src/runtime/watcher'
+import type { TestRuntime } from './helpers/runtime'
 
 const CWD = '/proj'
 const ROOT = join(CWD, 'content')
@@ -21,21 +22,23 @@ const config: UserConfig = {
 const file = (name: string, data: unknown): string => join(ROOT, `posts/${name}.json`)
 const body = (items: Array<{ title: string }>): string => JSON.stringify(items)
 
-const setup = (): { runtime: Runtime; fs: MemoryFileSystem } => {
+const setup = (): { runtime: TestRuntime; fs: MemoryFileSystem } => {
   const fs = new MemoryFileSystem()
   fs.put(file('a'), body([{ title: 'A' }]))
   fs.put(file('b'), body([{ title: 'B' }]))
   fs.put(file('c'), body([{ title: 'C' }]))
-  const runtime: Runtime = {
+  const runtime: TestRuntime = {
     contextStorage: nodeContextStorage,
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
-    logger: silentLogger
+    logger: silentLogger,
+    image: noopImageProcessor,
+    watch: noopWatch
   }
   return { runtime, fs }
 }
 
-const newBuilder = (runtime: Runtime) => createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+const newBuilder = (runtime: TestRuntime) => createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
 const entries = (result: { output: { collections: Record<string, { entries: Array<{ data: unknown }> }> } }): unknown[] =>
   result.output.collections.posts!.entries.map(e => e.data)

@@ -7,16 +7,16 @@ import type { MarkdownOptions } from './content/markdown'
 import type { MdxOptions } from './content/mdx'
 import type { Diagnostic } from './diagnostic'
 import type { ProjectInfo } from './schema/context'
-import type { Schema } from './schema/s'
+import type { Infer, Schema } from './schema/s'
 
 /** A collection definition as written by the user. */
-export interface CollectionDef<S extends Schema = Schema> {
+export interface CollectionDef<S extends Schema = Schema, Single extends boolean = boolean> {
   /** Glob pattern(s), relative to the content root. */
   pattern: string | string[]
   /** Patterns to exclude. */
   exclude?: string | string[]
   /** Single-item output (one entry) instead of a list. */
-  single?: boolean
+  single?: Single
   /** Generated TypeScript type name (defaults to the collection key). */
   typeName?: string
   /** Per-entry schema. */
@@ -28,10 +28,17 @@ export interface CollectionDef<S extends Schema = Schema> {
  * data array (list collections) or single data object (single collections).
  * Mutating the arrays or their elements mutates the underlying entries.
  */
-export type PrepareCollections = Record<string, unknown[] | unknown>
+export type CollectionData<C extends CollectionDef> = C extends CollectionDef<infer S, boolean> ? Infer<S> : unknown
+
+export type PrepareCollections<C extends Record<string, CollectionDef> = Record<string, CollectionDef>> = string extends keyof C
+  ? Record<string, unknown[] | unknown>
+  : { [K in keyof C]: C[K] extends { single: true } ? CollectionData<C[K]> : CollectionData<C[K]>[] }
 
 /** Result of the `prepare` hook: continue (void), skip output (`false`), or replace the collections. */
-export type PrepareResult = void | false | { collections: PrepareCollections; diagnostics?: Diagnostic[] }
+export type PrepareResult<C extends Record<string, CollectionDef> = Record<string, CollectionDef>> =
+  | void
+  | false
+  | { collections: PrepareCollections<C>; diagnostics?: Diagnostic[] }
 
 /** A `T | Promise<T>` helper (kept local to avoid importing the old loaders). */
 type Promisable<T> = T | Promise<T>
@@ -46,7 +53,10 @@ type Promisable<T> = T | Promise<T>
  * wholesale (returning a new `{ collections, diagnostics }`), or skip default
  * output (returning `false`).
  */
-export type PrepareHook = (collections: PrepareCollections, context: PrepareContext) => Promisable<PrepareResult>
+export type PrepareHook<C extends Record<string, CollectionDef> = Record<string, CollectionDef>> = (
+  collections: PrepareCollections<C>,
+  context: PrepareContext
+) => Promisable<PrepareResult<C>>
 
 /** Context passed to the `prepare` hook. */
 export interface PrepareContext {
@@ -55,7 +65,7 @@ export interface PrepareContext {
   readonly diagnostics: readonly Diagnostic[]
 }
 
-export interface UserConfig {
+export interface UserConfig<C extends Record<string, CollectionDef> = Record<string, CollectionDef>> {
   /** Content root, relative to the project (default 'content'). */
   root?: string
   output?: {
@@ -76,13 +86,13 @@ export interface UserConfig {
     format?: 'esm' | 'cjs'
   }
   /** Collections keyed by name (the name is also the output data key). */
-  collections: Record<string, CollectionDef>
+  collections: C
   /** Global markdown rendering options; per-schema options override these. */
   markdown?: MarkdownOptions
   /** Global MDX compiler options; per-schema options override these. */
   mdx?: MdxOptions
   /** Output-oriented result-processing hook, applied between emit and write. */
-  prepare?: PrepareHook
+  prepare?: PrepareHook<C>
 }
 
 interface ResolvedCollection {
@@ -111,10 +121,10 @@ export interface ResolvedConfig {
 }
 
 /** Identity helper for type inference and editor support. No runtime effect. */
-export const defineConfig = (config: UserConfig): UserConfig => config
+export const defineConfig = <C extends Record<string, CollectionDef>>(config: UserConfig<C>): UserConfig<C> => config
 
 /** Identity helper for a single collection, for type inference. */
-export const defineCollection = <S extends Schema>(def: CollectionDef<S>): CollectionDef<S> => def
+export const defineCollection = <D extends CollectionDef>(def: D): D => def
 
 /**
  * Thrown by `resolveConfig` when the loaded config fails shape validation.

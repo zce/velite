@@ -1,22 +1,32 @@
-import { nodeContextStorage } from './contextual'
-import { nodeFileSystem } from './fs'
-import { sharpImageProcessor } from './image'
-import { consoleLogger } from './logger'
-import { jitiModuleLoader } from './modules'
+import { createNodeContextStorage } from './contextual'
+import { createNodeFileSystem } from './fs'
+import { createSharpImageProcessor } from './image'
+import { createLogger } from './logger'
+import { createJitiModuleLoader } from './modules'
 import { createChokidarWatcher } from './watcher'
 
 import type { Runtime } from '../../index'
+import type { LogLevel } from '../../logger'
 
-/** Default Node runtime: the wired-up set of runtime adapters. */
-export const nodeRuntime: Runtime = {
-  fs: nodeFileSystem,
-  modules: jitiModuleLoader,
-  contextStorage: nodeContextStorage,
-  logger: consoleLogger,
-  image: sharpImageProcessor,
-  watch: createChokidarWatcher
+export interface NodeRuntimeDeps {
+  logLevel?: LogLevel
 }
 
-export { nodeContextStorage } from './contextual'
+export const createNodeRuntime = ({ logLevel: loggerLevel }: NodeRuntimeDeps = {}): Runtime => ({
+  fs: createNodeFileSystem(),
+  modules: createJitiModuleLoader({}),
+  contextStorage: createNodeContextStorage(),
+  logger: createLogger({ level: loggerLevel ?? 'info' }),
+  image: createSharpImageProcessor(),
+  watch: createChokidarWatcher
+})
+
+/** Default Node runtime: the wired-up set of runtime adapters. */
+export const nodeRuntime: Runtime = createNodeRuntime({ logLevel: 'info' })
+
+export { createNodeContextStorage, nodeContextStorage } from './contextual'
+export { createNodeFileSystem, nodeFileSystem } from './fs'
+export { createSharpImageProcessor, sharpImageProcessor } from './image'
 export { createLogger, setLogLevel, silentLogger } from './logger'
 export type { LogLevel } from './logger'
+export { createJitiModuleLoader, jitiModuleLoader } from './modules'

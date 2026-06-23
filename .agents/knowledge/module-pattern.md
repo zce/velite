@@ -4,25 +4,35 @@ Velite uses explicit factory dependency injection for modules that own dependenc
 
 This is a hard rule for source architecture, but it is not a rule that every `.ts` file must be a factory.
 
-## Canonical helper shape
+## Canonical factory shape
 
-Use this shape when adding a shared helper for module factories:
+Use explicit exported types plus a plain factory function. Do not add an identity helper such as `defineModule()` unless it enforces a real invariant that plain TypeScript cannot express.
 
 ```ts
-export type ModuleFactory<TDeps, TModule> = (deps: TDeps) => TModule
+export interface XxxDeps {
+  dependency: Dependency
+}
 
-export type InferModule<TFactory> = TFactory extends (...args: never[]) => infer TModule ? TModule : never
+export interface Xxx {
+  run(input: Input): Promise<Output>
+}
 
-export type InferDeps<TFactory> = TFactory extends (deps: infer TDeps) => unknown ? TDeps : never
-
-export const defineModule = <TFactory extends ModuleFactory<any, any>>(factory: TFactory): TFactory => factory
+export const createXxx = ({ dependency }: XxxDeps): Xxx => {
+  return {
+    async run(input) {
+      return dependency.execute(input)
+    }
+  }
+}
 ```
 
-`defineModule()` must preserve the exact factory type passed to it. Do not widen the result to a generic `(deps) => module` shape if that loses useful inference.
+If the module already has an accurate domain type, use that name instead of adding a `Module` suffix. Example: `BuilderDeps` + `Builder` + `createBuilder()`.
+
+Zero-dependency factories may omit a deps parameter. Do not invent empty deps types solely for visual symmetry.
 
 ## Required factory modules
 
-Use `createXxxModule(deps)` or `defineModule(deps => module)` for modules that are any of the following:
+Use `createXxx(deps)` for modules that are any of the following:
 
 - Dependency-bearing: uses filesystem, logger, image processor, module loader, watcher, config loader, network client, clock, random source, or other replaceable capability.
 - Stateful: owns cache, manifest, engine state, scheduler state, watcher state, locks, mutable session state, or lifecycle handles.

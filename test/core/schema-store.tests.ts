@@ -50,7 +50,7 @@ test('SchemaContext.store: is shared across records within one build', async () 
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger
   }
-  const result = await createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
+  const result = await createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
   equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
   const posts = JSON.parse(new TextDecoder().decode(await fs.read(join(CWD, '.velite/posts.json')))) as Array<{ title: string }>
   deepEqual(

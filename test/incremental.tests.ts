@@ -35,7 +35,7 @@ const setup = (): { runtime: Runtime; fs: MemoryFileSystem } => {
   return { runtime, fs }
 }
 
-const newBuilder = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+const newBuilder = (runtime: Runtime) => createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
 const entries = (result: { output: { collections: Record<string, { entries: Array<{ data: unknown }> }> } }): unknown[] =>
   result.output.collections.posts!.entries.map(e => e.data)

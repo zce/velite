@@ -45,7 +45,7 @@ const setup = (
   return { runtime, fs }
 }
 
-const build = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
+const build = (runtime: Runtime) => createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
@@ -105,7 +105,7 @@ test('assets: a dropped asset reference is reconciled away on rebuild (no orphan
     [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
     [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
   })
-  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   const first = await builder.build({ layout: 'single' })
   equal(first.diagnostics.length, 0, JSON.stringify(first.diagnostics))
   const firstAsset = first.written.find(p => p.startsWith(ASSETS_DIR))!
@@ -139,7 +139,7 @@ test('assets: orphan reconciliation survives across builder instances (persisted
       modules: { load: async () => ({ exports: config, dependencies: [] }) },
       logger: silentLogger
     }
-    return createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+    return createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   }
 
   const first = mkBuilder()
@@ -176,7 +176,7 @@ test('prepare === false reconciles both data and previously written assets', asy
     [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
     [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
   })
-  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   const first = await builder.build({ layout: 'single' })
   const firstAsset = first.written.find(p => p.startsWith(ASSETS_DIR))!
   ok(firstAsset, 'asset written on first build')

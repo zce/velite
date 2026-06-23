@@ -1,6 +1,6 @@
 import { createBuilder, VeliteError } from './core'
 import { join } from './core/util/path'
-import { nodeRuntime, setLogLevel } from './runtime/adapters/node'
+import { createNodeRuntime } from './runtime/adapters/node'
 
 import type { Builder, BuildResult, WatchHandle } from './core'
 import type { LogLevel } from './runtime'
@@ -26,10 +26,6 @@ const resolveConfigOption = (cwd: string, explicit: string | undefined): string 
   return join(cwd, explicit)
 }
 
-const applyShellOptions = (options: BuildEntryOptions): void => {
-  if (options.logLevel !== undefined) setLogLevel(options.logLevel)
-}
-
 const enforceStrict = (result: BuildResult, strict: boolean | undefined): void => {
   if (strict !== true) return
   if (!result.diagnostics.some(d => d.level === 'error')) return
@@ -39,7 +35,8 @@ const enforceStrict = (result: BuildResult, strict: boolean | undefined): void =
 /** Create a durable Node builder. Advanced/stateful entry; also the DI seam. */
 export const builder = (options: BuildEntryOptions = {}): Builder => {
   const cwd = options.cwd ?? process.cwd()
-  return createBuilder(nodeRuntime, { cwd, configPath: resolveConfigOption(cwd, options.config) })
+  const runtime = createNodeRuntime({ logLevel: options.logLevel })
+  return createBuilder({ runtime, cwd, configPath: resolveConfigOption(cwd, options.config) })
 }
 
 /**
@@ -47,7 +44,6 @@ export const builder = (options: BuildEntryOptions = {}): Builder => {
  * completes (no watcher); use {@link watch} to keep listening for changes.
  */
 export const build = async (options: BuildEntryOptions = {}): Promise<BuildResult> => {
-  applyShellOptions(options)
   const layout = options.layout ?? (process.env.NODE_ENV === 'production' ? 'single' : 'split')
   const instance = builder(options)
   try {
@@ -66,7 +62,6 @@ export const build = async (options: BuildEntryOptions = {}): Promise<BuildResul
  * also disposes the builder.
  */
 export const watch = async (options: BuildEntryOptions = {}): Promise<WatchHandle> => {
-  applyShellOptions(options)
   const layout = options.layout ?? (process.env.NODE_ENV === 'production' ? 'single' : 'split')
   const instance = builder(options)
   try {

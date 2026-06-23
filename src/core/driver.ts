@@ -49,6 +49,24 @@ export interface BuildResult {
 
 export type ApplyResult = 'config-reload' | 'content' | 'none'
 
+export interface Driver {
+  runBuild(layout?: 'split' | 'single'): Promise<BuildResult>
+  runIncremental(layout?: 'split' | 'single'): Promise<BuildResult>
+  applyChanges(events: FileEvent[]): Promise<ApplyResult>
+}
+
+export interface DriverDeps {
+  context: RunContext
+}
+
+export interface RunContextDeps {
+  engine: Engine
+  pipeline: Pipeline
+  config: ResolvedConfig
+  runtime: DriverRuntime
+  cwd: string
+}
+
 const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
 
 /** Absolute path of the velite-owned manifest under the data output directory. */
@@ -116,7 +134,7 @@ const rebuildOutput = (output: LogicalOutput, collections: PrepareCollections): 
 }
 
 /** Walk the content root and feed the tree snapshot as an engine input. */
-export const refreshTree = async (context: RunContext): Promise<TreeFile[]> => {
+const refreshTree = async (context: RunContext): Promise<TreeFile[]> => {
   const { engine, config, runtime } = context
   const include = [...new Set(config.collections.flatMap(c => c.include))]
   const exclude = [...new Set(config.collections.flatMap(c => c.exclude))]
@@ -133,7 +151,7 @@ export const refreshTree = async (context: RunContext): Promise<TreeFile[]> => {
 }
 
 /** Read all current source files into engine inputs (full build). */
-export const readSources = async (context: RunContext): Promise<void> => {
+const readSources = async (context: RunContext): Promise<void> => {
   const { engine, pipeline, config, runtime } = context
   const seen = new Set<string>()
   const pool = createPool(8)
@@ -305,20 +323,20 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
 }
 
 /** Execute one full build run: I/O in, pure pipeline, I/O out. */
-export const runBuild = async (context: RunContext, layout: 'split' | 'single' = 'split'): Promise<BuildResult> => {
+const runBuild = async (context: RunContext, layout: 'split' | 'single' = 'split'): Promise<BuildResult> => {
   await refreshTree(context)
   await readSources(context)
   return emitAndWrite(context, layout)
 }
 
 /** Re-emit after inputs were patched (incremental). Skips full tree walk and bulk read. */
-export const runIncremental = async (context: RunContext, layout: 'split' | 'single' = 'split'): Promise<BuildResult> => emitAndWrite(context, layout)
+const runIncremental = async (context: RunContext, layout: 'split' | 'single' = 'split'): Promise<BuildResult> => emitAndWrite(context, layout)
 
 /**
  * Apply file events to engine inputs. Returns whether a config reload, content
  * rebuild, or no action is needed.
  */
-export const applyChanges = async (context: RunContext, events: FileEvent[]): Promise<ApplyResult> => {
+const applyChanges = async (context: RunContext, events: FileEvent[]): Promise<ApplyResult> => {
   const { engine, config, runtime } = context
   let configReload = false
   let content = false
@@ -392,13 +410,7 @@ export const applyChanges = async (context: RunContext, events: FileEvent[]): Pr
  * `output.data` / `output.assets` is dropped, so a corrupted/tampered manifest
  * can never make the next build delete files Velite did not write.
  */
-export const createRunContext = async (
-  engine: Engine,
-  pipeline: Pipeline,
-  config: ResolvedConfig,
-  runtime: DriverRuntime,
-  cwd: string
-): Promise<RunContext> => {
+export const createRunContext = async ({ engine, pipeline, config, runtime, cwd }: RunContextDeps): Promise<RunContext> => {
   const persisted = await loadManifest(runtime.fs, join(config.output.data, MANIFEST_FILENAME), config.output.data, config.output.assets)
   return {
     engine,
@@ -411,3 +423,9 @@ export const createRunContext = async (
     assetManifest: new Set(persisted.assets)
   }
 }
+
+export const createDriver = ({ context }: DriverDeps): Driver => ({
+  runBuild: layout => runBuild(context, layout),
+  runIncremental: layout => runIncremental(context, layout),
+  applyChanges: events => applyChanges(context, events)
+})

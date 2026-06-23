@@ -26,7 +26,7 @@ const setup = (config: UserConfig, files: Record<string, string>): { runtime: Ru
 }
 
 const build = (runtime: Runtime, layout: 'split' | 'single' = 'single') =>
-  createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout })
+  createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
@@ -200,7 +200,7 @@ test('build: unchanged rebuild skips writes via manifest (single layout)', async
   const { runtime } = setup(config, {
     [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
   })
-  const instance = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const instance = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   const first = await instance.build({ layout: 'single' })
   ok(first.written.length > 0)
   // A second identical build (same instance → carries the manifest) writes nothing.
@@ -217,7 +217,7 @@ test('build: stale output from a previous layout is deleted when switching layou
   const { runtime, fs } = setup(config, {
     [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
   })
-  const instance = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const instance = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   // First build: single layout writes posts.json.
   await instance.build({ layout: 'single' })
   ok(await exists(fs, join(DATA_DIR, 'posts.json')))

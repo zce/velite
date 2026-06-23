@@ -1,6 +1,6 @@
 import { resolveConfig } from './config'
 import { fail } from './diagnostic'
-import { applyChanges, createRunContext, runBuild, runIncremental } from './driver'
+import { createDriver, createRunContext } from './driver'
 import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
 import { createPipeline } from './pipeline'
@@ -11,7 +11,7 @@ import type { Runtime } from '../runtime'
 import type { ContextStorage } from '../runtime/contextual'
 import type { FileEvent } from '../runtime/watcher'
 import type { ResolvedConfig } from './config'
-import type { BuildResult, RunContext } from './driver'
+import type { BuildResult, Driver, RunContext } from './driver'
 import type { Engine } from './engine'
 import type { Loader } from './loader'
 import type { Pipeline } from './pipeline'
@@ -59,11 +59,16 @@ export interface CreateBuilderOptions {
   loaders?: Loader[]
 }
 
+export interface BuilderDeps extends CreateBuilderOptions {
+  runtime: Runtime
+}
+
 interface Session {
   config: ResolvedConfig
   engine: Engine
   pipeline: Pipeline
   context: RunContext
+  driver: Driver
 }
 
 /**
@@ -78,10 +83,13 @@ interface WatchState {
 
 const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Promise<Session> => {
   const config = await resolveConfig(runtime, { cwd: options.cwd, configPath: options.configPath })
+  const loaders = createLoaderRegistry(options.loaders ?? [])
+  const { fs, image } = runtime
+  const pipeline = createPipeline({ config, loaders, fs, image })
   const engine = createEngine()
-  const pipeline = createPipeline(config, createLoaderRegistry(options.loaders ?? []), { image: runtime.image, fs: runtime.fs })
-  const context = await createRunContext(engine, pipeline, config, runtime, options.cwd)
-  return { config, engine, pipeline, context }
+  const context = await createRunContext({ engine, pipeline, config, runtime, cwd: options.cwd })
+  const driver = createDriver({ context })
+  return { config, engine, pipeline, context, driver }
 }
 
 /**
@@ -98,7 +106,7 @@ const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Pro
  *  - `watchState`: only present while a watch is running. Bundled so close()
  *    can't drop half of it.
  */
-export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): Builder => {
+export const createBuilder = ({ runtime, ...options }: BuilderDeps): Builder => {
   // Install the runtime's context storage once, so schema transforms can
   // propagate the SchemaContext through zod's async callbacks. The port is
   // type-erased at the runtime boundary; narrow it here to SchemaContext.
@@ -140,18 +148,18 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
     serialize(async () => {
       const current = await ensureSession()
       if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
-      return runBuild(current.context, activeLayout)
+      return current.driver.runBuild(activeLayout)
     })
 
   const apply = async (events: FileEvent[]): Promise<BuildResult | undefined> =>
     serialize(async () => {
       const current = await ensureSession()
-      const result = await applyChanges(current.context, events)
+      const result = await current.driver.applyChanges(events)
       if (result === 'config-reload') {
         const reloaded = await ensureSession(true)
-        return runBuild(reloaded.context, activeLayout)
+        return reloaded.driver.runBuild(activeLayout)
       }
-      if (result === 'content') return runIncremental(current.context, activeLayout)
+      if (result === 'content') return current.driver.runIncremental(activeLayout)
       return undefined
     })
 
@@ -166,12 +174,15 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
       closeWatch()
       const current = await ensureSession()
       if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
-      const initial = await runBuild(current.context, activeLayout)
+      const initial = await current.driver.runBuild(activeLayout)
       const watcher = runtime.watch([current.config.root, current.config.configPath])
-      const scheduler = createScheduler(async events => {
-        const result = await apply(events)
-        if (result !== undefined) watchOptions.onRebuild?.(result)
-      }, watchOptions.debounceMs)
+      const scheduler = createScheduler({
+        run: async events => {
+          const result = await apply(events)
+          if (result !== undefined) watchOptions.onRebuild?.(result)
+        },
+        debounceMs: watchOptions.debounceMs
+      })
       const unsubscribe = watcher.subscribe(event => scheduler.push([event]))
       watchState = { scheduler, unsubscribe }
       return {

@@ -40,7 +40,7 @@ test('Builder.watch(): runs the initial build exactly once and exposes its resul
     logger: silentLogger,
     watch: () => ({ subscribe: () => () => {} })
   }
-  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   const handle = await builder.watch({}, { layout: 'single' })
 
   // Initial build ran exactly once; handle carries its BuildResult.

@@ -14,11 +14,16 @@ export interface Scheduler {
   dispose(): void
 }
 
+export interface SchedulerDeps {
+  run(events: FileEvent[]): Promise<void>
+  debounceMs?: number
+}
+
 /**
  * Serial rebuild queue with debouncing. While a rebuild runs, new events
  * accumulate; when it finishes, another rebuild starts if the queue is non-empty.
  */
-export const createScheduler = (run: (events: FileEvent[]) => Promise<void>, debounceMs = 50): Scheduler => {
+export const createScheduler = ({ run, debounceMs = 50 }: SchedulerDeps): Scheduler => {
   let queue: FileEvent[] = []
   let running = false
   let timer: ReturnType<typeof setTimeout> | undefined

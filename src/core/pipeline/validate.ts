@@ -21,13 +21,13 @@ export const buildProjectInfo = (config: ResolvedConfig): ProjectInfo => {
 }
 
 /**
- * The runtime slice the validate derivation needs: file reads for absolute-path
- * image schemas, and image processing for the same path. Both are optional
- * (`readFile` is required if any `s.image({ absoluteRoot })` is used; `image`
- * gives blur/probe). The driver wires these from the `Runtime` bundle.
+ * The runtime capabilities the validate derivation needs. Keep dependencies at
+ * adapter-object granularity (`fs`, `image`) instead of wiring individual
+ * methods; function-level DI makes the pipeline harder to read without adding a
+ * useful test seam here.
  */
 interface ValidateRuntime {
-  fs: Pick<FileSystem, 'read'>
+  fs: FileSystem
   image?: ImageProcessor
 }
 

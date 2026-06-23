@@ -5,7 +5,7 @@ import { glob } from 'tinyglobby'
 import type { FileSystem } from '../../fs'
 
 /** Node filesystem adapter. Uses tinyglobby for directory walking. */
-export const nodeFileSystem: FileSystem = {
+export const createNodeFileSystem = (): FileSystem => ({
   async read(absPath) {
     return readFile(absPath)
   },
@@ -28,4 +28,6 @@ export const nodeFileSystem: FileSystem = {
   async remove(absPath, options) {
     await rm(absPath, { force: true, recursive: options?.recursive ?? false })
   }
-}
+})
+
+export const nodeFileSystem: FileSystem = createNodeFileSystem()

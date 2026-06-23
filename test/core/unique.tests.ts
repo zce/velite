@@ -34,7 +34,7 @@ const setup = (files: Record<string, string>): { runtime: Runtime; fs: MemoryFil
   return { runtime, fs }
 }
 
-const build = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build()
+const build = (runtime: Runtime) => createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build()
 
 const post = (slug: string, title = slug): string => `---\ntitle: ${title}\nslug: ${slug}\n---\nbody`
 
@@ -92,7 +92,7 @@ test('uniqueCheck: incremental — changing one record clears the conflict', asy
     [abs('content/posts/a.md')]: post('hello-world', 'A'),
     [abs('content/posts/b.md')]: post('hello-world', 'B')
   })
-  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
   const first = await builder.build()
   const firstDupes = first.diagnostics.filter(d => d.message.includes('duplicate unique value'))
@@ -113,7 +113,7 @@ test('uniqueCheck: incremental — backdating (re-setting equal content) keeps t
     [abs('content/posts/a.md')]: post('hello-world', 'A'),
     [abs('content/posts/b.md')]: post('hello-world', 'B')
   })
-  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   const first = await builder.build()
   const firstDupes = first.diagnostics.filter(d => d.message.includes('duplicate unique value'))
   equal(firstDupes.length, 2)

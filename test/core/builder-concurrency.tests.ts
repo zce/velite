@@ -57,7 +57,7 @@ test('Builder: build() critical section is strictly serialized (max inflight = 1
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger
   }
-  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
   const tasks = Array.from({ length: 5 }, () => builder.build({ layout: 'single' }))
   await Promise.all(tasks)
@@ -91,7 +91,7 @@ test('Builder: concurrent watch() invocations are serialized, no watcher leak', 
       }
     }
   }
-  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
   // Two simultaneous watch() calls. Without serialization, both could pass
   // closeWatch() then both create watchers and the second would overwrite
@@ -139,7 +139,7 @@ test('Builder: build() and apply() share the same serialization lock', async () 
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger
   }
-  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
 
   // Interleave build() and apply() with content events. Each apply() seeds
   // a new source file so applyChanges → runIncremental → emitAndWrite runs

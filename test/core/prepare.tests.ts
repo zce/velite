@@ -35,7 +35,7 @@ const setup = (prepare: PrepareHook | undefined): { runtime: Runtime; fs: Memory
   return { runtime, fs }
 }
 
-const build = (runtime: Runtime) => createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
+const build = (runtime: Runtime) => createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') }).build({ layout: 'single' })
 
 const readJson = async (fs: MemoryFileSystem, path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await fs.read(path)))
 
@@ -179,7 +179,7 @@ test('prepare: false return reconciles a previous successful build (no stale dat
     return calls === 2 ? false : undefined
   }
   const { runtime, fs } = setup(prepare)
-  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const builder = createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   await builder.build({ layout: 'single' })
   // first (void) build wrote posts.json
   deepEqual((await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ title: string }>, [{ title: 'A' }, { title: 'B' }])
@@ -207,7 +207,7 @@ test('prepare: false reconciles stale output across separate builder instances (
       modules: { load: async () => ({ exports: config, dependencies: [] }) },
       logger: silentLogger
     }
-    return createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+    return createBuilder({ runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   }
   // First builder: normal write
   const first = mkBuilder()

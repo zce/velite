@@ -3,7 +3,6 @@ import { parseArgs } from 'node:util'
 
 import { name, version } from '../package.json'
 import { build, watch } from './index'
-import { setLogLevel } from './runtime/adapters/node'
 
 import type { LogLevel } from './runtime'
 
@@ -64,13 +63,6 @@ Options:
 values.watch = positionals[0] === 'dev' || values.watch
 
 const logLevel: LogLevel = values.silent ? 'silent' : values.verbose ? 'debug' : 'info'
-
-// Set the log level so the builder's logger starts at the right threshold.
-// `build()`/`watch()` in `src/index.ts` also call `setLogLevel` on the
-// `nodeRuntime` logger, but we set it here first so error messages from the
-// config-loading phase (before the builder is wired) are also subject to the
-// user's preference.
-setLogLevel(logLevel)
 
 const runBuild = async (): Promise<void> => {
   await build({ config: values.config, clean: values.clean, strict: values.strict, logLevel })

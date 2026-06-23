@@ -34,7 +34,7 @@ const DEFAULT_BLUR_QUALITY = 1
  * otherwise the defaults match the canonical contract in
  * `src/core/pipeline/asset.ts`.
  */
-export const sharpImageProcessor: ImageProcessor = {
+export const createSharpImageProcessor = (): ImageProcessor => ({
   async probe(data) {
     const { default: sharp } = await import('sharp')
     const { width, height, format } = await sharp(data).metadata()
@@ -58,4 +58,6 @@ export const sharpImageProcessor: ImageProcessor = {
     const blurImage = await img.resize(blurWidth, blurHeight).webp({ quality }).toBuffer()
     return `data:image/webp;base64,${blurImage.toString('base64')}`
   }
-}
+})
+
+export const sharpImageProcessor: ImageProcessor = createSharpImageProcessor()

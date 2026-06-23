@@ -28,16 +28,11 @@ export interface Pipeline {
   asset: Derivation<AssetKey, AssetResult>
 }
 
-/**
- * Runtime capabilities the pipeline actually uses. Bundled separately from
- * domain config (`ResolvedConfig`, `LoaderRegistry`) to keep the dependency
- * boundary explicit — mirrors `DriverRuntime` in `driver.ts`.
- */
-export interface PipelineRuntime {
-  /** Image processing for asset derivation (sharp-backed on Node). */
+export interface PipelineDeps {
+  config: ResolvedConfig
+  loaders: LoaderRegistry
+  fs: FileSystem
   image?: ImageProcessor
-  /** Thin filesystem read access for absolute-path image schemas. */
-  fs: Pick<FileSystem, 'read'>
 }
 
 /**
@@ -45,15 +40,15 @@ export interface PipelineRuntime {
  * loader registry. Config/schemas are captured here (not engine inputs): a
  * config change creates a fresh builder/engine epoch, so they never need hashing.
  *
- * Runtime capabilities are passed via a separate `PipelineRuntime` bag to keep
- * the dependency boundary explicit (parallel to `DriverRuntime` in `driver.ts`).
+ * Runtime capabilities are direct second-level dependencies: coarse enough to
+ * avoid function-level wiring noise, explicit enough to keep the boundary clear.
  */
-export const createPipeline = (config: ResolvedConfig, loaders: LoaderRegistry, runtime: PipelineRuntime): Pipeline => {
+export const createPipeline = ({ config, loaders, fs, image }: PipelineDeps): Pipeline => {
   const matchers = new Map<string, Matcher>(config.collections.map(c => [c.name, createMatcher(c.include, c.exclude)]))
   const sources = createSourcesDerivation(config, matchers)
   const load = createLoadDerivation(loaders)
-  const asset = createAssetDerivation(config, runtime.image)
-  const validate = createValidateDerivation(config, load, asset, { fs: runtime.fs, image: runtime.image })
+  const asset = createAssetDerivation(config, image)
+  const validate = createValidateDerivation(config, load, asset, { fs, image })
   const collect = createCollectDerivation(config, sources, validate)
   const uniqueCheck = createUniqueCheckDerivation(config, sources, validate)
   const emit = createEmitDerivation(config, collect, uniqueCheck)

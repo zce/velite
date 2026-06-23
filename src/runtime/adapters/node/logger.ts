@@ -37,12 +37,16 @@ const formatDiagnostic = (d: Diagnostic): string => {
  */
 export type LeveledLogger = Logger & { set(level: LogLevel): void }
 
+export interface LoggerDeps {
+  level?: LogLevel
+}
+
 /**
  * Create a console logger writing at `level`. The returned logger also exposes
  * an internal `set` method so the shell can react to `--silent` / `--debug`
  * without re-creating the logger.
  */
-export const createLogger = (level: LogLevel = 'info'): LeveledLogger => {
+export const createLogger = ({ level = 'info' }: LoggerDeps = {}): LeveledLogger => {
   let current = LEVELS[level]
   const print = (type: LogType, message: string): void => {
     if (current > LEVELS[type]) return
@@ -78,7 +82,7 @@ export const silentLogger: Logger = {
 }
 
 /** Default console logger used by the Node runtime. */
-export const consoleLogger: LeveledLogger = createLogger('info')
+export const consoleLogger: LeveledLogger = createLogger({ level: 'info' })
 
 /** Adjust the default console logger's level at runtime (CLI `--silent`/`--verbose`). */
 export const setLogLevel = (level: LogLevel): void => {

@@ -90,6 +90,7 @@ interface WatchState {
 const loadSession = async (deps: BuilderDeps): Promise<Session> => {
   const { fs, image, logger, modules } = deps
   const config = await resolveConfig({ fs, modules }, { cwd: deps.cwd, configPath: deps.configPath })
+  logger.info(`using config '${config.configPath}'`)
   const loaders = createLoaderRegistry(deps.loaders ?? [])
   const pipeline = createPipeline({ config, loaders, fs, image })
   const engine = createEngine()
@@ -155,7 +156,10 @@ export const createBuilder = (deps: BuilderDeps): Builder => {
     serialize(async () => {
       const current = await ensureSession()
       if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
-      return current.driver.runBuild(activeLayout)
+      deps.logger.info('building...')
+      const result = await current.driver.runBuild(activeLayout)
+      deps.logger.info('build finished')
+      return result
     })
 
   const apply = async (events: FileEvent[]): Promise<BuildResult | undefined> =>
@@ -164,9 +168,15 @@ export const createBuilder = (deps: BuilderDeps): Builder => {
       const result = await current.driver.applyChanges(events)
       if (result === 'config-reload') {
         const reloaded = await ensureSession(true)
-        return reloaded.driver.runBuild(activeLayout)
+        const rebuilt = await reloaded.driver.runBuild(activeLayout)
+        deps.logger.info('build finished')
+        return rebuilt
       }
-      if (result === 'content') return current.driver.runIncremental(activeLayout)
+      if (result === 'content') {
+        const rebuilt = await current.driver.runIncremental(activeLayout)
+        deps.logger.info('rebuild finished')
+        return rebuilt
+      }
       return undefined
     })
 
@@ -180,6 +190,7 @@ export const createBuilder = (deps: BuilderDeps): Builder => {
       closeWatch()
       const current = await ensureSession()
       if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
+      deps.logger.info(`watching for changes in '${current.config.root}'`)
       const initial = await current.driver.runBuild(activeLayout)
       const watcher = createWatch([...new Set([current.config.root, current.config.configPath, ...current.config.configDependencies])])
       const scheduler = createScheduler({

@@ -15,7 +15,7 @@ import { createBuilder, s } from '../src/core'
 import { join } from '../src/core/util/path'
 import { nodeContextStorage, silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
-import { noopImageProcessor } from './helpers/runtime'
+import { createCapturedLogger, noopImageProcessor } from './helpers/runtime'
 
 import type { PrepareHook, UserConfig } from '../src/core/config'
 import type { TestRuntime } from './helpers/runtime'
@@ -97,5 +97,41 @@ test('Builder.watch(): watches config dependencies and classifies their events a
   equal(loadCalls, 2, 'config dependency change reloads the config session')
 
   await handle.close()
+  await builder.dispose()
+})
+
+test('Builder.apply(): logs content rebuilds separately from config reloads', async () => {
+  const CWD = '/proj'
+  const configPath = join(CWD, 'velite.config.ts')
+  const configDependency = join(CWD, 'velite.shared.ts')
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
+  }
+  const fs = new MemoryFileSystem()
+  fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }]))
+  fs.put(join(CWD, 'content/posts/b.json'), JSON.stringify([{ title: 'B' }]))
+  fs.put(configPath, '// config')
+  fs.put(configDependency, '// shared config dependency')
+  const { logger, logs } = createCapturedLogger()
+  const runtime: TestRuntime = {
+    contextStorage: nodeContextStorage,
+    fs,
+    modules: { load: async () => ({ exports: config, dependencies: [configPath, configDependency] }) },
+    logger,
+    image: noopImageProcessor,
+    watch: () => ({ subscribe: () => () => {} })
+  }
+
+  const builder = createBuilder({ ...runtime, cwd: CWD, configPath })
+  await builder.build({ layout: 'single' })
+  await builder.apply([{ type: 'add', absPath: join(CWD, 'content/posts/b.json') }])
+  await builder.apply([{ type: 'change', absPath: configDependency }])
+
+  const messages = logs.map(log => log.message)
+  ok(messages.some(message => message.includes(`changed: '${join(CWD, 'content/posts/b.json')}', rebuilding`)))
+  ok(messages.some(message => message.includes('rebuild finished')))
+  ok(messages.some(message => message.includes(`config changed: '${configDependency}', reloading`)))
+
   await builder.dispose()
 })

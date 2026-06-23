@@ -6,7 +6,7 @@ import { isVeliteError } from '../src/core/diagnostic'
 import { join } from '../src/core/util/path'
 import { nodeContextStorage, silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
-import { noopImageProcessor, noopWatch } from './helpers/runtime'
+import { createCapturedLogger, noopImageProcessor, noopWatch } from './helpers/runtime'
 
 import type { UserConfig } from '../src/core/config'
 import type { TestRuntime } from './helpers/runtime'
@@ -229,6 +229,27 @@ test('build: stale output from a previous layout is deleted when switching layou
   equal(await exists(fs, join(DATA_DIR, 'posts.json')), false)
   ok(await exists(fs, join(DATA_DIR, 'collections/posts.js')))
   instance.dispose()
+})
+
+test('build: logs the essential build lifecycle and output summary', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
+  }
+  const { runtime } = setup(config, {
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A' }])
+  })
+  const { logger, logs } = createCapturedLogger()
+  runtime.logger = logger
+
+  await build(runtime)
+
+  const messages = logs.map(log => log.message)
+  ok(messages.some(message => message.includes(`using config '${join(CWD, 'velite.config.ts')}'`)))
+  ok(messages.some(message => message.includes(`building from '${join(CWD, 'content')}'`)))
+  ok(messages.some(message => message.includes('resolved 1 posts')))
+  ok(messages.some(message => message.includes('output 1 data file')))
+  ok(messages.some(message => message.includes('build finished')))
 })
 
 const exists = async (fs: MemoryFileSystem, path: string): Promise<boolean> =>

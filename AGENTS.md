@@ -52,6 +52,13 @@ Velite — a tool that turns Markdown / MDX, YAML, JSON into a type-safe data la
 - Schema cross-file state uses the effects model (collect → validate → commit), not direct mutation
 - `context()` returns the full schema context (project, file, record, store, assetCache, assetStore, collectEffect) — built-in and user schemas have the same capability boundary
 
+## Module organization
+
+- For source architecture changes, read `.agents/knowledge/architecture.md`, `.agents/knowledge/module-pattern.md`, and `.agents/knowledge/anti-patterns.md` first.
+- Dependency-bearing modules, stateful modules, lifecycle-managed modules, runtime adapters, and composition modules must use explicit factory DI. Dependencies must be visible, typed, and wired at a composition root.
+- Do not introduce IoC containers, service locators, decorator injection, runtime auto-registration, or hidden singleton services unless explicitly requested.
+- Do not force factory wrappers onto pure functions, type-only modules, constants, error classes, schema builders, identity helpers, or public facade functions unless they gain external dependencies, lifecycle state, or a replaceable capability boundary.
+
 ## Code style
 
 - Prettier: no semicolons, single quotes, no trailing commas, 160 char width

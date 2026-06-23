@@ -52,3 +52,5 @@ When unsure, list recent sessions (`ls -1t sessions/`) and ask.
 - Decisions with rationale that aren't obvious from the code
 
 Each file should be short, factual, and named by topic (e.g. `schema-patterns.md`, `testing-notes.md`).
+
+These files are mandatory project guidance for future source changes, not optional reading. When a task touches architecture, module boundaries, runtime context, or error handling, read the relevant `knowledge/` file before editing source code or AGENTS guidance.

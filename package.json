@@ -41,12 +41,9 @@
       "src/index.ts",
       "src/cli.ts"
     ],
-    "format": "esm",
-    "platform": "node",
-    "target": "node22",
-    "dts": true,
-    "treeshake": true,
-    "clean": true
+    "deps": {
+      "onlyBundle": false
+    }
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged"

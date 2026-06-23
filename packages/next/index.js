@@ -39,14 +39,14 @@ export const createNextPlugin = (pluginOptions = {}) => {
     // start velite
     process.env.__VELITE_STARTED = '1'
 
-    const velite = await import('velite')
+    const { build, watch } = await import('velite')
 
     if (isDev) {
       // dev: run an initial build, then keep watching for changes
-      await velite.watch({ ...pluginOptions, clean: false })
+      await watch({ ...pluginOptions, clean: false })
     } else {
       // build / typegen: one-shot production build
-      await velite.build({ ...pluginOptions, clean: true })
+      await build({ ...pluginOptions, clean: true })
     }
 
     return nextConfig

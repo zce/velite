@@ -43,7 +43,8 @@
     ],
     "deps": {
       "onlyBundle": false
-    }
+    },
+    "hash": false
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged"

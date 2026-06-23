@@ -24,8 +24,8 @@ export const createCollectDerivation = (
     const entries: Entry[] = []
     const diagnostics: Diagnostic[] = []
     const effects: Effect[] = []
-    for (const source of found) {
-      const validated = await context.get(validate, { collection: name, path: source.path })
+    const validatedSources = await Promise.all(found.map(source => context.get(validate, { collection: name, path: source.path })))
+    for (const validated of validatedSources) {
       entries.push(...validated.entries)
       diagnostics.push(...validated.diagnostics)
       effects.push(...validated.effects)

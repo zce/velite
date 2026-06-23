@@ -27,6 +27,7 @@ export interface AssetReferenceEffect {
   readonly owner: string
   readonly assetPath: string
   readonly publicUrl: string
+  readonly resolved: boolean
   readonly isImage: boolean
 }
 

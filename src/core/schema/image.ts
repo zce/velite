@@ -83,8 +83,8 @@ export const image = ({ absoluteRoot, blur, outputName }: ImageSchemaOptions = {
       const absSourcePath = join(dirname(file.path), stripQueryAndHash(value))
       const assetKey = assetKeyOf(absSourcePath, project.root)
       const template = outputName ?? project.output.name
-      const result = await asset(assetKey, { template, blur })
-      collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, isImage: true })
+      const result = await asset(assetKey, { template, blur, metadata: true })
+      collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, resolved: result.resolved, isImage: true })
       return {
         src: result.publicUrl,
         width: result.width,

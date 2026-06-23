@@ -199,31 +199,37 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   // Collect unique asset references (by assetKey) and feed their bytes.
   const assetBytes = new Map<string, Uint8Array>()
   const assetReadDiagnostics: Diagnostic[] = []
-  const seenKeys = new Set<string>()
+  const assetRefs = new Map<string, string>()
+  let hasUnresolvedAssets = false
   for (const effect of emitted.effects) {
     if (effect.type !== 'asset') continue
+    if (!effect.resolved) hasUnresolvedAssets = true
     const assetKey = assetKeyOf(effect.assetPath, config.root)
-    if (seenKeys.has(assetKey)) continue
-    seenKeys.add(assetKey)
-    try {
-      const bytes = await runtime.fs.read(effect.assetPath)
-      assetBytes.set(assetKey, bytes)
-      engine.set(assetInput(assetKey), bytes)
-    } catch (err) {
-      assetReadDiagnostics.push(
-        diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${effect.assetPath}`, {
-          stage: 'asset',
-          file: effect.assetPath,
-          cause: err
-        })
-      )
-    }
+    if (assetRefs.has(assetKey)) continue
+    assetRefs.set(assetKey, effect.assetPath)
   }
+  await Promise.all(
+    Array.from(assetRefs, async ([assetKey, assetPath]) => {
+      try {
+        const bytes = await runtime.fs.read(assetPath)
+        assetBytes.set(assetKey, bytes)
+        engine.set(assetInput(assetKey), bytes)
+      } catch (err) {
+        assetReadDiagnostics.push(
+          diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${assetPath}`, {
+            stage: 'asset',
+            file: assetPath,
+            cause: err
+          })
+        )
+      }
+    })
+  )
 
   // Pass 2: re-emit with real asset data (only when at least one asset was fed;
   // if every read failed, pass 2 would reproduce placeholders and the fatal
   // diagnostics below discard the output anyway).
-  if (assetBytes.size > 0) {
+  if (hasUnresolvedAssets && assetBytes.size > 0) {
     emitted = await engine.get(pipeline.emit, null)
   }
 
@@ -272,6 +278,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   const written: string[] = []
   const desiredAssets = new Set<string>()
   const assetWriteDiagnostics: Diagnostic[] = []
+  const assetWrites: Promise<void>[] = []
   for (const effect of emitted.effects) {
     if (effect.type !== 'asset') continue
     const assetKey = assetKeyOf(effect.assetPath, config.root)
@@ -281,20 +288,26 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
     if (outputName.length === 0) continue
     const dest = join(config.output.assets, outputName)
     if (desiredAssets.has(dest)) continue
-    try {
-      await runtime.fs.write(dest, bytes)
-      desiredAssets.add(dest)
-      written.push(dest)
-    } catch (err) {
-      assetWriteDiagnostics.push(
-        diagnostic('error', 'ASSET_FAILED', `failed to write asset: ${dest}`, {
-          stage: 'asset',
-          file: effect.assetPath,
-          cause: err
-        })
+    desiredAssets.add(dest)
+    assetWrites.push(
+      runtime.fs.write(dest, bytes).then(
+        () => {
+          written.push(dest)
+        },
+        err => {
+          desiredAssets.delete(dest)
+          assetWriteDiagnostics.push(
+            diagnostic('error', 'ASSET_FAILED', `failed to write asset: ${dest}`, {
+              stage: 'asset',
+              file: effect.assetPath,
+              cause: err
+            })
+          )
+        }
       )
-    }
+    )
   }
+  await Promise.all(assetWrites)
 
   const finalDiagnostics = [...diagnostics, ...assetWriteDiagnostics]
   runtime.logger.report(finalDiagnostics)

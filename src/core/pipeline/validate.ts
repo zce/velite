@@ -90,7 +90,7 @@ export const createValidateDerivation = (
       const project = buildProjectInfo(config)
       const absPath = join(config.root, path)
       const demandAsset = (assetKey: string, request?: AssetRequest): Promise<AssetResult> =>
-        context.get(asset, { assetKey, template: request?.template ?? config.output.name, blur: request?.blur })
+        context.get(asset, { assetKey, template: request?.template ?? config.output.name, blur: request?.blur, metadata: request?.metadata })
       const probeImage = createProbeImage(runtime.image)
       const readFile = (p: string): Promise<Uint8Array> => runtime.fs.read(p)
 

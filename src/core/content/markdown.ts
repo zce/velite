@@ -80,7 +80,8 @@ export const processMarkdown = async (source: string, options: MarkdownOptions =
   const enableGfm = options.gfm ?? true
   const removeComments = options.removeComments ?? true
 
-  const tree = parseMarkdown(source)
+  const needsReferenceTree = options.toc === true || (options.excerpt !== undefined && options.excerpt > 0) || options.references === true
+  const tree = needsReferenceTree ? parseMarkdown(source) : undefined
 
   const remarkPlugins: PluggableList = []
   if (enableGfm) remarkPlugins.push(remarkGfm)
@@ -101,8 +102,8 @@ export const processMarkdown = async (source: string, options: MarkdownOptions =
     .process(source)
 
   const result: MarkdownResult = { html: String(file) }
-  if (options.toc) result.toc = extractToc(tree)
-  if (options.excerpt && options.excerpt > 0) result.excerpt = extractText(tree, options.excerpt)
-  if (options.references) result.references = findReferences(tree)
+  if (options.toc) result.toc = extractToc(tree!)
+  if (options.excerpt && options.excerpt > 0) result.excerpt = extractText(tree!, options.excerpt)
+  if (options.references) result.references = findReferences(tree!)
   return result
 }

@@ -52,7 +52,7 @@ export const file = ({ allowNonRelativePath = true, outputName }: FileSchemaOpti
       const assetKey = assetKeyOf(absSourcePath, project.root)
       const template = outputName ?? project.output.name
       const result = await asset(assetKey, { template })
-      collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, isImage: false })
+      collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, resolved: result.resolved, isImage: false })
       return result.publicUrl
     } catch (err) {
       addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })

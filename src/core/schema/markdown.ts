@@ -52,7 +52,7 @@ export const markdown = (options: MarkdownSchemaOptions = {}): Schema<string> =>
           const absSourcePath = join(dirname(file.path), stripQueryAndHash(url))
           const assetKey = assetKeyOf(absSourcePath, project.root)
           const result = await asset(assetKey, { template: project.output.name })
-          collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, isImage: false })
+          collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, resolved: result.resolved, isImage: false })
           return result.publicUrl
         }
       }

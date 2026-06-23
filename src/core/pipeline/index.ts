@@ -47,7 +47,7 @@ export const createPipeline = ({ config, loaders, fs, image }: PipelineDeps): Pi
   const matchers = new Map<string, Matcher>(config.collections.map(c => [c.name, createMatcher(c.include, c.exclude)]))
   const sources = createSourcesDerivation(config, matchers)
   const load = createLoadDerivation(loaders)
-  const asset = createAssetDerivation(config, image)
+  const asset = createAssetDerivation(config, image, fs)
   const validate = createValidateDerivation(config, load, asset, { fs, image })
   const collect = createCollectDerivation(config, sources, validate)
   const uniqueCheck = createUniqueCheckDerivation(config, sources, validate)

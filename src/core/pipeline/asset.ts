@@ -27,9 +27,9 @@
 
 import { EngineError } from '../engine'
 import { hash } from '../util/hash'
-import { extname, relative } from '../util/path'
+import { extname, join, relative } from '../util/path'
 
-import type { ImageProcessor } from '../../runtime'
+import type { FileSystem, ImageProcessor } from '../../runtime'
 import type { ResolvedConfig } from '../config'
 import type { Derivation } from '../engine'
 
@@ -37,6 +37,8 @@ import type { Derivation } from '../engine'
 export interface AssetResult {
   /** Public url of the asset (base + content-hashed name once bytes are known). */
   publicUrl: string
+  /** Whether the result was derived from real bytes instead of a placeholder. */
+  resolved: boolean
   /** Image width (0 when no bytes / no processor / probe failed). */
   width: number
   /** Image height (0 when no bytes / no processor / probe failed). */
@@ -70,6 +72,7 @@ export interface AssetKey {
   assetKey: string
   template: string
   blur?: BlurOptions
+  metadata?: boolean
 }
 
 /** Engine input id holding the raw bytes of the asset identified by `assetKey`. */
@@ -122,6 +125,7 @@ export const publicUrlOf = (assetKey: string, template: string, bytes: Uint8Arra
 
 const placeholder = (key: AssetKey, config: ResolvedConfig): AssetResult => ({
   publicUrl: publicUrlOf(key.assetKey, key.template, undefined, config),
+  resolved: false,
   width: 0,
   height: 0,
   format: '',
@@ -147,7 +151,18 @@ const placeholder = (key: AssetKey, config: ResolvedConfig): AssetResult => ({
  * resolution depends on image processing and nothing else, so the dependency
  * is spelled out at the factory edge.
  */
-export const createAssetDerivation = (config: ResolvedConfig, image: ImageProcessor): Derivation<AssetKey, AssetResult> => ({
+const resolvedFile = (key: AssetKey, config: ResolvedConfig, bytes: Uint8Array): AssetResult => ({
+  publicUrl: publicUrlOf(key.assetKey, key.template, bytes, config),
+  resolved: true,
+  width: 0,
+  height: 0,
+  format: '',
+  blurDataURL: '',
+  blurWidth: 0,
+  blurHeight: 0
+})
+
+export const createAssetDerivation = (config: ResolvedConfig, image: ImageProcessor, fs: FileSystem): Derivation<AssetKey, AssetResult> => ({
   name: 'asset',
   key: k => {
     const blur = k.blur === undefined ? '' : `${k.blur.width ?? ''}|${k.blur.height ?? ''}|${k.blur.quality ?? ''}`
@@ -155,18 +170,26 @@ export const createAssetDerivation = (config: ResolvedConfig, image: ImageProces
     // file stays plain text to git/file/diff tooling. The delimiter just
     // needs to be a character that cannot appear in template / blur /
     // assetKey values.
-    return `${k.template}\u0000${blur}\u0000${k.assetKey}`
+    return `${k.metadata === true ? 'image' : 'file'}\u0000${k.template}\u0000${blur}\u0000${k.assetKey}`
   },
   async compute(context, key) {
     let bytes: Uint8Array
     try {
       bytes = context.input<Uint8Array>(assetInput(key.assetKey))
     } catch (err) {
-      if (err instanceof EngineError && err.code === 'missing-input') return placeholder(key, config)
-      throw err
+      if (err instanceof EngineError && err.code === 'missing-input') {
+        try {
+          bytes = await fs.read(join(config.root, key.assetKey))
+        } catch {
+          return placeholder(key, config)
+        }
+      } else {
+        throw err
+      }
     }
 
     const publicUrl = publicUrlOf(key.assetKey, key.template, bytes, config)
+    if (key.metadata !== true) return resolvedFile(key, config, bytes)
     // Probe + blur can fail on corrupt / unsupported images (e.g. some SVGs
     // without intrinsic size, truncated downloads). Degrade to zero metadata
     // rather than crashing the build — the public url is still valid (it's
@@ -179,11 +202,11 @@ export const createAssetDerivation = (config: ResolvedConfig, image: ImageProces
         const requestedWidth = key.blur?.width ?? BLUR_WIDTH
         const blurHeight = key.blur?.height ?? Math.max(1, Math.round((requestedWidth * height) / width))
         const blurDataURL = await image.blurDataURL(bytes, { width, height }, { width: requestedWidth, height: blurHeight, quality: key.blur?.quality })
-        return { publicUrl, width, height, format: probed.format, blurDataURL, blurWidth: requestedWidth, blurHeight }
+        return { publicUrl, resolved: true, width, height, format: probed.format, blurDataURL, blurWidth: requestedWidth, blurHeight }
       }
-      return { publicUrl, width, height, format: probed.format, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
+      return { publicUrl, resolved: true, width, height, format: probed.format, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
     } catch {
-      return { publicUrl, width: 0, height: 0, format: '', blurDataURL: '', blurWidth: 0, blurHeight: 0 }
+      return { publicUrl, resolved: true, width: 0, height: 0, format: '', blurDataURL: '', blurWidth: 0, blurHeight: 0 }
     }
   }
 })

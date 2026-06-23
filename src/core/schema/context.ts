@@ -84,6 +84,8 @@ export interface AssetRequest {
   template?: string
   /** Override the global blur dimensions/quality. */
   blur?: BlurOptions
+  /** Probe image metadata. `s.file()` and linked files only need the public URL. */
+  metadata?: boolean
 }
 
 /**

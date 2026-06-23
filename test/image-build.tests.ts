@@ -221,6 +221,62 @@ test('s.file: resolves a content-relative file to a content-hashed public url', 
   ok(result.written.some(p => p.startsWith(ASSETS_DIR)))
 })
 
+test('s.file: full build parses a record once while resolving a content-relative asset', async () => {
+  let parseCount = 0
+  const config: UserConfig = {
+    root: 'content',
+    collections: {
+      posts: {
+        pattern: 'posts/*.json',
+        schema: s.object({
+          title: s.string().transform(value => {
+            parseCount++
+            return value
+          }),
+          doc: s.file()
+        })
+      }
+    }
+  }
+  const { runtime } = setup(config, {
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ title: 'A', doc: './report.pdf' }]),
+    [join(CWD, 'content/posts/report.pdf')]: new Uint8Array([0x25, 0x50, 0x44, 0x46])
+  })
+
+  const result = await build(runtime)
+
+  equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
+  equal(parseCount, 1)
+})
+
+test('s.file: does not probe non-image assets', async () => {
+  let probes = 0
+  const image: ImageProcessor = {
+    probe: async () => {
+      probes++
+      return { width: 100, height: 50, format: 'png' }
+    },
+    blurDataURL: async () => 'data:image/webp;base64,AAA'
+  }
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ doc: s.file() }) } }
+  }
+  const { runtime } = setup(
+    config,
+    {
+      [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ doc: './report.pdf' }]),
+      [join(CWD, 'content/posts/report.pdf')]: new Uint8Array([0x25, 0x50, 0x44, 0x46])
+    },
+    image
+  )
+
+  const result = await build(runtime)
+
+  equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
+  equal(probes, 0)
+})
+
 test('s.file: non-relative paths pass through unchanged (no asset copy)', async () => {
   const config: UserConfig = {
     root: 'content',

@@ -71,10 +71,13 @@ export const watch = async (options: BuildEntryOptions = {}): Promise<WatchHandl
   const instance = builder(options)
   try {
     if (options.clean === true) await instance.clean()
-    const initial = await instance.build({ layout })
-    enforceStrict(initial, options.strict)
-    const inner = await instance.watch()
+    // Builder.watch() performs the single initial build and returns its
+    // BuildResult on the handle — we use it for strict-mode handling here
+    // instead of running a second build through the public facade.
+    const inner = await instance.watch({}, { layout })
+    enforceStrict(inner.initial, options.strict)
     return {
+      initial: inner.initial,
       close: async () => {
         await inner.close()
         await instance.dispose()
@@ -88,6 +91,9 @@ export const watch = async (options: BuildEntryOptions = {}): Promise<WatchHandl
 
 export { context, createBuilder, defineCollection, defineConfig, defineLoader, defineSchema, s, VeliteError } from './core'
 export type {
+  AssetReferenceEffect,
+  AssetRequest,
+  AssetResult,
   BlurOptions,
   Builder,
   BuildOptions,
@@ -95,14 +101,20 @@ export type {
   CollectionDef,
   CollectionResult,
   ContentFile,
+  ContentRecord,
   Diagnostic,
+  Effect,
   Entry,
   ExcerptSchemaOptions,
   FileSchemaOptions,
   ImageData,
+  ImageMetadata,
   ImageSchemaOptions,
   Infer,
+  LoadedItem,
   Loader,
+  LoaderInput,
+  LoaderResult,
   LogicalOutput,
   MarkdownOptions,
   MarkdownSchemaOptions,
@@ -114,11 +126,15 @@ export type {
   PrepareContext,
   PrepareHook,
   PrepareResult,
+  ProjectCollectionInfo,
+  ProjectInfo,
   ResolvedConfig,
   Schema,
   SchemaContext,
   SchemaNamespace,
+  SessionStore,
   TocItem,
+  UniqueEffect,
   UserConfig,
   VeliteErrorCode,
   WatchHandle,

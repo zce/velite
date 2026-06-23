@@ -38,7 +38,7 @@ export type { Diagnostic, DiagnosticCode, DiagnosticLevel, DiagnosticStage, Veli
 export type { BuildResult } from './driver'
 
 export { defineLoader } from './loader'
-export type { Loader, LoaderInput, LoaderResult, LoadedItem } from './loader'
+export type { LoadedItem, Loader, LoaderInput, LoaderResult } from './loader'
 
 export type { CollectionResult, Entry } from './model'
 
@@ -46,21 +46,31 @@ export type { LogicalOutput } from './output/logical'
 
 export { context, defineSchema, s } from './schema'
 export type {
+  AssetReferenceEffect,
+  AssetRequest,
+  AssetResult,
   BlurOptions,
   ContentFile,
+  ContentRecord,
+  Effect,
   ExcerptSchemaOptions,
   FileSchemaOptions,
   ImageData,
+  ImageMetadata,
   ImageSchemaOptions,
   Infer,
   MarkdownSchemaOptions,
   MdxSchemaOptions,
   Metadata,
   PathSchemaOptions,
+  ProjectCollectionInfo,
+  ProjectInfo,
   Schema,
   SchemaContext,
   SchemaNamespace,
-  TocItem
+  SessionStore,
+  TocItem,
+  UniqueEffect
 } from './schema'
 
 export type { MarkdownOptions } from './content/markdown'

@@ -61,7 +61,7 @@ test('resolveConfig: uses an explicit configPath and exposes it on the result', 
   const { runtime } = setupAt(configPath, { default: baseConfig })
   const resolved = await resolveConfig(runtime, { cwd: '/proj', configPath })
   assert.equal(resolved.configPath, configPath)
-  assert.equal(resolved.root, '/proj')
+  assert.equal(resolved.root, '/proj/content')
   assert.equal(resolved.collections.length, 1)
 })
 
@@ -106,9 +106,9 @@ const resolveWith = async (cfg: UserConfig, cwd = '/proj'): Promise<Awaited<Retu
   return resolveConfig(runtime, { cwd, configPath })
 }
 
-test('resolveConfig: applies defaults: root=".", data=".velite"', async () => {
+test('resolveConfig: applies defaults: root="content", data=".velite"', async () => {
   const resolved = await resolveWith(defineConfig({ collections: { posts: { pattern: 'posts/*.md', schema: s.object({ title: s.string() }) } } }))
-  assert.equal(resolved.root, '/proj')
+  assert.equal(resolved.root, '/proj/content')
   assert.equal(resolved.output.data, '/proj/.velite')
 })
 

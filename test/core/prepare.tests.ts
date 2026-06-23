@@ -152,8 +152,11 @@ test('prepare: receives a context with project metadata and diagnostics', async 
   ok(received !== undefined)
   ok(received!.project.root.length > 0)
   equal(received!.project.configPath, join(CWD, 'velite.config.ts'))
-  equal(received!.project.collections.length, 1)
-  equal(received!.project.collections[0]!.name, 'posts')
+  // project.collections is now the same Record<string, ProjectCollectionInfo>
+  // shape used by SchemaContext.project — keyed by collection name.
+  ok(received!.project.collections.posts !== undefined)
+  equal(received!.project.collections.posts!.single, false)
+  ok(typeof received!.project.output.data === 'string')
   ok(Array.isArray(received!.diagnostics))
 })
 
@@ -165,4 +168,60 @@ test('prepare: async hook is awaited', async () => {
   const { runtime } = setup(prepare)
   const result = await build(runtime)
   ok(result.written.some(p => p.endsWith('posts.json')))
+})
+
+test('prepare: false return reconciles a previous successful build (no stale data)', async () => {
+  // Engine memoizes by content digest, so the second build must change the
+  // source for emit (and thus prepare) to re-run.
+  let calls = 0
+  const prepare: PrepareHook = () => {
+    calls++
+    return calls === 2 ? false : undefined
+  }
+  const { runtime, fs } = setup(prepare)
+  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  await builder.build({ layout: 'single' })
+  // first (void) build wrote posts.json
+  deepEqual((await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ title: string }>, [{ title: 'A' }, { title: 'B' }])
+  // change the source so the second build re-runs emit (and thus prepare)
+  fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A2' }, { title: 'B2' }]))
+  const second = await builder.build({ layout: 'single' })
+  equal(second.written.length, 0, 'nothing written when prepare returns false')
+  await readJson(fs, join(DATA_DIR, 'posts.json')).then(
+    () => ok(false, 'posts.json should have been reconciled away'),
+    () => ok(true, 'stale posts.json removed')
+  )
+})
+
+test('prepare: false reconciles stale output across separate builder instances (persisted manifest)', async () => {
+  // Two distinct builders against the same fs simulate the one-shot
+  // `build()` facade running across processes: state survives via the
+  // persisted manifest under `output.data/.manifest.json`.
+  const fs = new MemoryFileSystem()
+  fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
+  const mkBuilder = (prepare?: PrepareHook) => {
+    const config: UserConfig = { ...baseConfig, prepare }
+    const runtime: Runtime = {
+      contextStorage: nodeContextStorage,
+      fs,
+      modules: { load: async () => ({ exports: config, dependencies: [] }) },
+      logger: silentLogger
+    }
+    return createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  }
+  // First builder: normal write
+  const first = mkBuilder()
+  await first.build({ layout: 'single' })
+  deepEqual((await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ title: string }>, [{ title: 'A' }, { title: 'B' }])
+  await first.dispose()
+  // Second builder (fresh instance, fresh in-memory state): prepare returns false
+  // → must still wipe the stale posts.json the first builder wrote.
+  const second = mkBuilder(() => false)
+  const result = await second.build({ layout: 'single' })
+  equal(result.written.length, 0)
+  await readJson(fs, join(DATA_DIR, 'posts.json')).then(
+    () => ok(false, 'posts.json should have been reconciled across builders'),
+    () => ok(true, 'stale posts.json removed across builders')
+  )
+  await second.dispose()
 })

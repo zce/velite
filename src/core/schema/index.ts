@@ -2,9 +2,11 @@ export { defineSchema, s } from './s'
 export type { Infer, Schema, SchemaNamespace } from './s'
 
 export { context } from './context'
-export type { ContentFile, SchemaContext } from './context'
+export type { AssetRequest, ContentFile, ContentRecord, ImageMetadata, ProjectCollectionInfo, ProjectInfo, SchemaContext, SessionStore } from './context'
 
-export type { BlurOptions } from '../pipeline/asset'
+export type { AssetReferenceEffect, Effect, UniqueEffect } from './effects'
+
+export type { AssetResult, BlurOptions } from '../pipeline/asset'
 export type { FileSchemaOptions } from './file'
 export type { ImageData, ImageSchemaOptions } from './image'
 export type { MarkdownSchemaOptions } from './markdown'

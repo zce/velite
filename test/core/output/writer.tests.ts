@@ -226,6 +226,6 @@ test('layout switch: single → split deletes the old {name}.json', async () => 
   assert.ok(mem.files.has('/out/collections/posts.js'))
 })
 
-test('emptyManifest helper yields no files', () => {
-  assert.deepEqual(emptyManifest(), { files: {} })
+test('emptyManifest helper yields no files and no assets', () => {
+  assert.deepEqual(emptyManifest(), { files: {}, assets: [] })
 })

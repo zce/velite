@@ -1,5 +1,5 @@
 import { diagnostic } from '../diagnostic'
-import { createContentFile, resolveBody, runWithContext } from '../schema/context'
+import { createContentFile, createSessionStore, resolveBody, runWithContext } from '../schema/context'
 import { join } from '../util/path'
 
 import type { FileSystem, ImageProcessor } from '../../runtime'
@@ -12,7 +12,7 @@ import type { AssetKey, AssetResult, BlurOptions } from './asset'
 import type { Loaded, Validated, ValidateKey } from './types'
 
 /** Build the read-only project snapshot exposed to schemas from the resolved config. */
-const buildProjectInfo = (config: ResolvedConfig): ProjectInfo => {
+export const buildProjectInfo = (config: ResolvedConfig): ProjectInfo => {
   const collections: Record<string, ProjectCollectionInfo> = {}
   for (const c of config.collections) {
     collections[c.name] = { pattern: c.include, single: c.single, schema: c.schema }
@@ -74,49 +74,56 @@ export const createValidateDerivation = (
   load: Derivation<string, Loaded>,
   asset: Derivation<AssetKey, AssetResult>,
   runtime: ValidateRuntime
-): Derivation<ValidateKey, Validated> => ({
-  name: 'validate',
-  async compute(context, { collection, path }) {
-    const loaded = await context.get(load, path)
-    const col = config.collections.find(c => c.name === collection)
-    const entries: Entry[] = []
-    const effects: Effect[] = []
-    const diagnostics = [...loaded.diagnostics]
-    if (col === undefined) return { entries, effects, diagnostics }
+): Derivation<ValidateKey, Validated> => {
+  // One store per validate derivation = per build session (recreated on
+  // config-reload, when loadSession rebuilds the pipeline). Shared across
+  // rebuilds so custom schemas can lazily initialise session-scoped state.
+  const store = createSessionStore()
+  return {
+    name: 'validate',
+    async compute(context, { collection, path }) {
+      const loaded = await context.get(load, path)
+      const col = config.collections.find(c => c.name === collection)
+      const entries: Entry[] = []
+      const effects: Effect[] = []
+      const diagnostics = [...loaded.diagnostics]
+      if (col === undefined) return { entries, effects, diagnostics }
 
-    const project = buildProjectInfo(config)
-    const absPath = join(config.root, path)
-    const demandAsset = (assetKey: string, request?: AssetRequest): Promise<AssetResult> =>
-      context.get(asset, { assetKey, template: request?.template ?? config.output.name, blur: request?.blur })
-    const probeImage = createProbeImage(runtime.image)
-    const readFile = (p: string): Promise<Uint8Array> => runtime.fs.read(p)
+      const project = buildProjectInfo(config)
+      const absPath = join(config.root, path)
+      const demandAsset = (assetKey: string, request?: AssetRequest): Promise<AssetResult> =>
+        context.get(asset, { assetKey, template: request?.template ?? config.output.name, blur: request?.blur })
+      const probeImage = createProbeImage(runtime.image)
+      const readFile = (p: string): Promise<Uint8Array> => runtime.fs.read(p)
 
-    for (let index = 0; index < loaded.entries.length; index++) {
-      const raw = loaded.entries[index]!
-      const body = resolveBody(raw.data, raw.meta)
-      const file = createContentFile(raw.source, absPath, body)
-      const key = raw.key === '' ? undefined : typeof raw.key === 'number' ? String(raw.key) : raw.key
-      const record = { id: raw.id, ...(key != null ? { key } : {}), index }
+      for (let index = 0; index < loaded.entries.length; index++) {
+        const raw = loaded.entries[index]!
+        const body = resolveBody(raw.data, raw.meta)
+        const file = createContentFile(raw.source, absPath, body)
+        const key = raw.key === '' ? undefined : typeof raw.key === 'number' ? String(raw.key) : raw.key
+        const record = { id: raw.id, ...(key != null ? { key } : {}), index }
 
-      const parsed = await runWithContext({ project, file, record, collectEffect: e => effects.push(e), asset: demandAsset, readFile, probeImage }, () =>
-        col.schema.safeParseAsync(raw.data)
-      )
+        const parsed = await runWithContext(
+          { project, file, record, store, collectEffect: e => effects.push(e), asset: demandAsset, readFile, probeImage },
+          () => col.schema.safeParseAsync(raw.data)
+        )
 
-      if (parsed.success) {
-        entries.push({ id: raw.id, source: path, data: parsed.data })
-      } else {
-        for (const issue of parsed.error.issues) {
-          diagnostics.push(
-            diagnostic('error', 'SCHEMA_INVALID', issue.message, {
-              stage: 'schema',
-              file: path,
-              collection,
-              path: issue.path as (string | number)[]
-            })
-          )
+        if (parsed.success) {
+          entries.push({ id: raw.id, source: path, data: parsed.data })
+        } else {
+          for (const issue of parsed.error.issues) {
+            diagnostics.push(
+              diagnostic('error', 'SCHEMA_INVALID', issue.message, {
+                stage: 'schema',
+                file: path,
+                collection,
+                path: issue.path as (string | number)[]
+              })
+            )
+          }
         }
       }
+      return { entries, effects, diagnostics }
     }
-    return { entries, effects, diagnostics }
   }
-})
+}

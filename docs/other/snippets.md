@@ -17,7 +17,6 @@ const timestamp = () =>
       const stats = await stat(file.path)
       return stats.mtime.toISOString()
     })
-)
 
 // use it in your schema
 const posts = defineCollection({
@@ -47,7 +46,6 @@ const timestamp = () =>
       const { stdout } = await execAsync(`git log -1 --format=%cd ${file.path}`)
       return new Date(stdout || Date.now()).toISOString()
     })
-)
 
 // use it in your schema
 const posts = defineCollection({
@@ -62,7 +60,7 @@ const posts = defineCollection({
 ## Remote Image with BlurDataURL Schema
 
 ```ts
-import { getImageMetadata, s } from 'velite'
+import { context, s } from 'velite'
 
 import type { ImageData } from 'velite'
 
@@ -74,10 +72,11 @@ export const remoteImage = () =>
     try {
       const response = await fetch(value)
       const blob = await response.blob()
-      const buffer = await blob.arrayBuffer()
-      const metadata = await getImageMetadata(Buffer.from(buffer))
-      if (metadata == null) throw new Error(`Failed to get image metadata: ${value}`)
-      return { src: value, ...metadata }
+      const bytes = new Uint8Array(await blob.arrayBuffer())
+      const metadata = await context().probeImage(bytes)
+      if (metadata.width === 0 || metadata.height === 0) throw new Error(`Failed to get image metadata: ${value}`)
+      const { width, height, blurDataURL, blurWidth, blurHeight } = metadata
+      return { src: value, width, height, blurDataURL, blurWidth, blurHeight }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       ctx.addIssue({ fatal: true, code: 'custom', message })
@@ -174,12 +173,14 @@ const compileMdx = async (source: string): Promise<string> => {
 
 ## Next.js Integration
 
+> The maintained `@velite/plugin-next` package already wraps the pattern below. Reach for this snippet only if you need a fully inlined webpack plugin.
+
 ::: code-group
 
 ```js [CommonJS]
 /** @type {import('next').NextConfig} */
 module.exports = {
-  // othor next config here...
+  // other next config here...
   webpack: config => {
     config.plugins.push(new VeliteWebpackPlugin())
     return config
@@ -188,7 +189,7 @@ module.exports = {
 
 class VeliteWebpackPlugin {
   static started = false
-  constructor(/** @type {import('velite').BuildOptions} */ options = {}) {
+  constructor(/** @type {import('velite').BuildEntryOptions} */ options = {}) {
     this.options = options
   }
   apply(/** @type {import('webpack').Compiler} */ compiler) {
@@ -198,21 +199,26 @@ class VeliteWebpackPlugin {
       if (VeliteWebpackPlugin.started) return
       VeliteWebpackPlugin.started = true
       const dev = compiler.options.mode === 'development'
-      this.options.watch = this.options.watch ?? dev
-      this.options.clean = this.options.clean ?? !dev
-      const { build } = await import('velite')
-      await build(this.options) // start velite
+      const options = { clean: !dev, ...this.options }
+      const velite = await import('velite')
+      // dev: keep a watcher running so files rebuild on change.
+      // prod: do a one-shot build and resolve.
+      if (dev) {
+        await velite.watch(options)
+      } else {
+        await velite.build(options)
+      }
     })
   }
 }
 ```
 
 ```js [ESM]
-import { build } from 'velite'
+import { build, watch } from 'velite'
 
 /** @type {import('next').NextConfig} */
 export default {
-  // othor next config here...
+  // other next config here...
   webpack: config => {
     config.plugins.push(new VeliteWebpackPlugin())
     return config
@@ -221,7 +227,7 @@ export default {
 
 class VeliteWebpackPlugin {
   static started = false
-  constructor(/** @type {import('velite').BuildOptions} */ options = {}) {
+  constructor(/** @type {import('velite').BuildEntryOptions} */ options = {}) {
     this.options = options
   }
   apply(/** @type {import('webpack').Compiler} */ compiler) {
@@ -231,9 +237,14 @@ class VeliteWebpackPlugin {
       if (VeliteWebpackPlugin.started) return
       VeliteWebpackPlugin.started = true
       const dev = compiler.options.mode === 'development'
-      this.options.watch = this.options.watch ?? dev
-      this.options.clean = this.options.clean ?? !dev
-      await build(this.options) // start velite
+      const options = { clean: !dev, ...this.options }
+      // dev: keep a watcher running so files rebuild on change.
+      // prod: do a one-shot build and resolve.
+      if (dev) {
+        await watch(options)
+      } else {
+        await build(options)
+      }
     })
   }
 }

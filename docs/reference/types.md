@@ -25,18 +25,44 @@ interface ImageData {
 ## Loader
 
 ```ts
+/** Input handed to a loader: a source's identity plus its decoded content. */
+interface LoaderInput {
+  /** Content-root-relative POSIX source path (relative to `config.root`). */
+  path: string
+  bytes: Uint8Array
+  text: string
+}
+
+/** One parsed item before schema validation. */
+interface LoadedItem {
+  /** Stable key within the source (loader-provided, or array index fallback). */
+  key: string | number
+  data: unknown
+  meta?: Record<string, unknown>
+}
+
+interface LoaderResult {
+  items: LoadedItem[]
+  diagnostics?: Diagnostic[]
+}
+
 /**
- * A loader turns a source file into one or more raw records.
+ * Turns a source's content into one or more raw items. Pure and side-effect free:
+ * no schema validation, no output writing, no filesystem access.
  */
 interface Loader {
-  /** File test regexp or predicate. @example /\.md$/ */
-  test: RegExp | ((source: LoaderSource) => boolean)
-  /** Load raw records from a source. */
-  load: (source: LoaderSource, context: LoaderContext) => Promisable<LoaderResult>
+  name: string
+  /**
+   * Match by file extension (with dot, e.g. '.json') or a custom predicate.
+   * The predicate receives the same content-root-relative POSIX path that
+   * `LoaderInput.path` carries.
+   */
+  match: string[] | ((path: string) => boolean)
+  load(input: LoaderInput): LoaderResult
 }
 ```
 
-See [Custom Loaders](../guide/custom-loader.md) for the full `LoaderSource`, `LoaderContext`, `LoaderResult` and `LoaderRecord` shapes.
+Use [`defineLoader()`](./api.md#defineloader) for the recommended identity helper. See [Custom Loaders](../guide/custom-loader.md) for end-to-end examples.
 
 ## ContentFile
 
@@ -72,12 +98,30 @@ interface ContentRecord {
 
 ```ts
 interface ProjectInfo {
-  /** Content root directory. */
+  /** Absolute content root directory (POSIX). */
   readonly root: string
-  /** Resolved config file path. */
+  /** Absolute config file path. */
   readonly configPath: string
-  /** Resolved collections. */
-  readonly collections: Collections
+  /** Resolved collections keyed by collection name. */
+  readonly collections: Readonly<Record<string, ProjectCollectionInfo>>
+  /** Resolved output settings (data dir, assets dir, base url, name template). */
+  readonly output: {
+    readonly data: string
+    readonly assets: string
+    readonly base: string
+    readonly name: string
+  }
+  readonly markdown?: MarkdownOptions
+  readonly mdx?: MdxOptions
+}
+
+interface ProjectCollectionInfo {
+  /** Glob include patterns relative to the content root. */
+  readonly pattern: readonly string[]
+  /** Single-item output (one entry) instead of a list. */
+  readonly single: boolean
+  /** Per-entry schema. */
+  readonly schema: unknown
 }
 ```
 
@@ -91,14 +135,87 @@ interface SchemaContext {
   readonly file: ContentFile
   /** Current record being parsed. */
   readonly record: ContentRecord
-  /** Session-scoped store for advanced custom schemas. */
+  /** Builder/session-scoped store for advanced custom schemas. */
   readonly store: SessionStore
+  /** Declare a schema effect (unique registration, asset reference, etc.). */
+  readonly collectEffect: (effect: Effect) => void
+  /**
+   * Resolve an asset by its key (content-root-relative POSIX source path,
+   * i.e. relative to `context().project.root`). Returns the memoized
+   * {@link AssetResult}: `publicUrl` is always available; image metadata is
+   * zero until the driver feeds the asset's bytes in pass 2.
+   */
+  readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
+  /** Read an asset's bytes directly (used by `s.image({ absoluteRoot })`). */
+  readonly readFile: (absPath: string) => Promise<Uint8Array>
+  /** Probe + blur an image's bytes directly, returning width/height/blurDataURL/etc. */
+  readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
+}
+
+interface AssetRequest {
+  /** Override the global `output.name` template for this asset. */
+  template?: string
+  /** Override the global blur dimensions/quality. */
+  blur?: BlurOptions
+}
+
+interface ImageMetadata {
+  width: number
+  height: number
+  format: string
+  blurDataURL: string
+  blurWidth: number
+  blurHeight: number
 }
 ```
 
-Use [`context()`](./api.md#context) inside custom schema callbacks to access `SchemaContext`.
+Use [`context()`](./api.md#context) inside custom schema callbacks to access `SchemaContext`. All fields are available to built-in and user-defined schemas alike — there is no internal-only tier.
 
-`SchemaContext` is the public schema-time view for the current build or watch rebuild. Internally Velite keeps a larger build session with the dependency graph, caches, diagnostics, schema effects and output state, but that session is not a public extension point.
+The asset key passed to `context().asset()` is the **content-root-relative POSIX source path** of the asset — i.e. the path relative to `context().project.root` (the value of `root` in your config, default `content/`). It is the same key `s.image()` / `s.file()` derive internally from a content-relative `src`.
+
+## AssetResult
+
+```ts
+interface AssetResult {
+  /** Public url of the asset (base + content-hashed name once bytes are known). */
+  publicUrl: string
+  /** Image width (0 when no bytes / no processor / probe failed). */
+  width: number
+  /** Image height (0 when no bytes / no processor / probe failed). */
+  height: number
+  /** Detected image format (empty string when unknown / non-image). */
+  format: string
+  /** Blur placeholder data URL (empty string when unavailable). */
+  blurDataURL: string
+  blurWidth: number
+  blurHeight: number
+}
+```
+
+Returned by `context().asset()`. The first pass through emit sees the placeholder shape (zero metadata, key-derived `publicUrl`); the driver then feeds the asset bytes and the second pass recomputes the real values.
+
+## Effect
+
+```ts
+type Effect = UniqueEffect | AssetReferenceEffect
+
+interface UniqueEffect {
+  readonly type: 'unique'
+  readonly owner: string
+  readonly group: string
+  readonly value: string
+}
+
+interface AssetReferenceEffect {
+  readonly type: 'asset'
+  readonly owner: string
+  readonly assetPath: string
+  readonly publicUrl: string
+  readonly isImage: boolean
+}
+```
+
+Effects are how schemas declare cross-file intent without mutating shared state mid-parse. Built-in schemas like `s.unique()` and `s.image()` emit these; custom schemas can do the same through `context().collectEffect(...)`. The pipeline collects each record's effects and validates them as a set after parse, so concurrent record validation stays deterministic.
 
 ## SessionStore
 
@@ -110,50 +227,73 @@ interface SessionStore {
 }
 ```
 
-`SessionStore` belongs to the current build session: it is shared across rebuilds inside a watch session, destroyed at the end of a one-shot build, and reset on config reload. There is deliberately no `set()` — built-in cross-file schemas use the internal schema-effects model so concurrent validation stays deterministic. Use `context().store` when a custom schema needs lazily-initialized shared state.
+`SessionStore` is **builder/session-scoped**: a single store is created once per build session and shared across every `Builder.build()`, `apply()`, and watch rebuild on that builder. It is replaced wholesale only when the config reloads (which tears the pipeline down), and dropped when the builder is disposed. There is deliberately no `set()` — built-in cross-file schemas use the internal schema-effects model so concurrent validation stays deterministic. Custom schemas that need lazily-initialized shared state should use `getOrCreate()` and manage their own invalidation: stored state survives rebuilds, so anything derived from content (e.g. an aggregate count) must either re-derive on every call or be invalidated explicitly when the underlying content changes.
 
-## VeliteSchema
+## Schema
 
 ```ts
-type VeliteSchema<Output = unknown, Input = unknown> = z.ZodType<Output, Input>
+type Schema<T = unknown> = z.ZodType<T>
 ```
 
-## InferSchema
+The package re-exports this as the public alias for `z.ZodType` so user code can express schemas without importing zod directly.
+
+## Infer
 
 ```ts
-type InferSchema<TSchema extends VeliteSchema> = z.infer<TSchema>
+type Infer<TSchema extends Schema> = z.infer<TSchema>
 ```
 
-Infer the output type of a Velite schema. Use `InferSchema` (not lowercase `infer`, which clashes with the TypeScript keyword).
+Infer the validated output type of a Velite schema. Lower-case `infer` is taken by the TypeScript keyword; `Infer` is the exported name.
 
-## Collection
+## CollectionDef
 
 ```ts
-interface Collection<TSchema extends VeliteSchema = VeliteSchema> {
-  /** Generated TypeScript type name. */
-  typeName: string
+interface CollectionDef<TSchema extends Schema = Schema> {
   /** Glob pattern(s) relative to `root`, supporting `!negation`. */
   pattern: string | string[]
-  /** Whether the result is a single record instead of an array. */
+  /** Extra exclude patterns. */
+  exclude?: string | string[]
+  /** Single-item output (one entry) instead of a list. */
   single?: boolean
+  /** Generated TypeScript type name (defaults to the collection key). */
+  typeName?: string
   /** Schema validating and transforming each record. */
   schema: TSchema
 }
 ```
 
+The user-facing collection definition handed to [`defineCollection()`](./api.md#definecollection) or written inline in `UserConfig.collections`.
+
+## CollectionResult
+
+```ts
+type CollectionResult<TSchema extends Schema, TSingle extends boolean | undefined> = TSingle extends true ? Infer<TSchema> : Array<Infer<TSchema>>
+```
+
+The validated runtime shape for a single collection — an array for list collections, a single object for `single: true` collections.
+
 ## BuildResult
 
 ```ts
-type CollectionResult<TCollection extends Collection> = TCollection['single'] extends true
-  ? InferSchema<TCollection['schema']>
-  : Array<InferSchema<TCollection['schema']>>
-
-type BuildResult<TCollections extends Collections> = {
-  [K in keyof TCollections]: CollectionResult<TCollections[K]>
+interface BuildResult {
+  /** Logical output: per-collection entries after schema validation and prepare. */
+  readonly output: LogicalOutput
+  /** Diagnostics surfaced during the build run (errors, warnings, info). */
+  readonly diagnostics: readonly Diagnostic[]
+  /** Absolute paths of output files written this run (unchanged files are skipped). */
+  readonly written: readonly string[]
 }
 ```
 
-`BuildResult` is the strongly typed per-collection data shape passed to the `prepare` hook.
+`BuildResult` is the value resolved by [`build()`](./api.md#build) and passed to the `onRebuild` callback of the lower-level `Builder.watch()`. Schema-level errors are non-fatal and surface through `diagnostics`; non-schema fatal errors reject the promise with a [`VeliteError`](./api.md#veliteerror) instead.
+
+## PrepareCollections
+
+```ts
+type PrepareCollections = Record<string, unknown[] | unknown>
+```
+
+The friendly view of the build output passed to the [`prepare`](../guide/config.md#prepare) hook: a record keyed by collection name. List collections expose an array of validated records; `single: true` collections expose the single record directly. The hook may mutate values in place, return a `{ collections, diagnostics }` replacement, or return `false` to suppress all default output (Velite reconciles its own previously-written data and asset files to empty in that case — caller-written files are untouched).
 
 ## PrepareContext
 

@@ -4,7 +4,7 @@
 >
 > Refer to [Velite Schemas](velite-schemas.md) for more information about built-in schema.
 
-Velite supports custom schema. A schema is a plain JavaScript function that returns a [Zod](https://zod.dev) schema object. There is no `defineSchema` helper — the factory function itself is the schema definition.
+Velite supports custom schema. A schema is a plain JavaScript function that returns a [Zod](https://zod.dev) schema object. Use `defineSchema` as an identity helper for type inference when defining reusable custom schemas.
 
 Generally, I divide the schema into two categories: one for data validation and the other for data transformation.
 
@@ -45,14 +45,14 @@ export const title = () => s.string().transform(value => value.toUpperCase())
 // ...
 ```
 
-When you need an explicit output type, use the `VeliteSchema` helper type:
+When you need an explicit output type, use the `Schema` helper type:
 
 ```ts
 import { s } from 'velite'
 
-import type { VeliteSchema } from 'velite'
+import type { Schema } from 'velite'
 
-export const readingTime = (): VeliteSchema<number> => s.string().transform(value => computeReadingTime(value))
+export const readingTime = (): Schema<number> => s.string().transform(value => computeReadingTime(value))
 ```
 
 ### Example
@@ -114,6 +114,14 @@ interface SchemaContext {
   readonly file: ContentFile
   readonly record: ContentRecord
   readonly store: SessionStore
+  /** Emit a schema effect (e.g. asset reference, uniqueness constraint). */
+  readonly collectEffect: (effect: Effect) => void
+  /** Demand an asset derivation (copy + hash + optional image metadata). */
+  readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
+  /** Read a file's raw bytes by absolute path. */
+  readonly readFile: (absPath: string) => Promise<Uint8Array>
+  /** Probe image metadata (dimensions, format, blur placeholder). */
+  readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
 }
 ```
 
@@ -167,7 +175,7 @@ export const safeTransform = () =>
 
 ### Reference
 
-- `context()` returns `{ project: ProjectInfo, file: ContentFile, record: ContentRecord, store: SessionStore }`.
+- `context()` returns `{ project: ProjectInfo, file: ContentFile, record: ContentRecord, store: SessionStore, collectEffect, asset, readFile, probeImage }`.
 - `ctx.addIssue()` accepts `{ fatal?: boolean, code: string, message: string }`.
 - See [`ContentFile`](../reference/types.md#contentfile) for file metadata structure.
 - See [Lifecycle](./lifecycle.md) for schema context and session store lifetime details.

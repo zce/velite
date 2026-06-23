@@ -31,13 +31,20 @@ export interface WatchOptions {
 }
 
 export interface WatchHandle {
+  /** Initial build result. The watcher runs exactly one build before subscribing. */
+  initial: BuildResult
   close(): Promise<void>
 }
 
 /** The durable build instance. Holds the engine (= incremental database). */
 export interface Builder {
   build(options?: BuildOptions): Promise<BuildResult>
-  watch(options?: WatchOptions): Promise<WatchHandle>
+  /**
+   * Run the single initial build and start watching. The handle carries the
+   * initial {@link BuildResult} so callers don't run a second build for
+   * strict-mode handling or logging.
+   */
+  watch(options?: WatchOptions, build?: BuildOptions): Promise<WatchHandle>
   /** Apply file events to the engine and return an incremental rebuild (or undefined if the events change nothing). */
   apply(events: FileEvent[]): Promise<BuildResult | undefined>
   /** Remove the configured output directories. Idempotent on missing dirs. */
@@ -72,8 +79,8 @@ interface WatchState {
 const loadSession = async (runtime: Runtime, options: CreateBuilderOptions): Promise<Session> => {
   const config = await resolveConfig(runtime, { cwd: options.cwd, configPath: options.configPath })
   const engine = createEngine()
-  const pipeline = createPipeline(config, createLoaderRegistry(options.loaders ?? []), runtime.image, runtime.fs)
-  const context = createRunContext(engine, pipeline, config, runtime)
+  const pipeline = createPipeline(config, createLoaderRegistry(options.loaders ?? []), { image: runtime.image, fs: runtime.fs })
+  const context = await createRunContext(engine, pipeline, config, runtime, options.cwd)
   return { config, engine, pipeline, context }
 }
 
@@ -101,6 +108,21 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
   let activeLayout: 'split' | 'single' = 'split'
   let watchState: WatchState | undefined
 
+  /**
+   * Internal mutex so concurrent `build()`/`apply()` calls don't race on
+   * `RunContext.manifest`, `assetManifest`, the tree shadow copy, or the
+   * underlying engine inputs. Watch rebuilds also flow through `apply()` and
+   * are scheduler-debounced, but a programmatic caller invoking
+   * `build()`/`apply()` from multiple turns is the case this prevents. The
+   * promise chain auto-shrinks once each await completes.
+   */
+  let runLock: Promise<unknown> = Promise.resolve()
+  const serialize = <R>(run: () => Promise<R>): Promise<R> => {
+    const next = runLock.then(run, run)
+    runLock = next.catch(() => {})
+    return next
+  }
+
   /** Load (or reload) the session. Pass `force` to replace an existing one. */
   const ensureSession = async (force = false): Promise<Session> => {
     if (force || session === undefined) session = await loadSession(runtime, options)
@@ -114,45 +136,49 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
     watchState = undefined
   }
 
-  const build = async (buildOptions?: BuildOptions): Promise<BuildResult> => {
-    const current = await ensureSession()
-    if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
-    return runBuild(current.context, activeLayout)
-  }
-
-  const apply = async (events: FileEvent[]): Promise<BuildResult | undefined> => {
-    const current = await ensureSession()
-    const result = await applyChanges(current.context, events, {
-      cwd: options.cwd,
-      configPath: current.config.configPath
+  const build = async (buildOptions?: BuildOptions): Promise<BuildResult> =>
+    serialize(async () => {
+      const current = await ensureSession()
+      if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
+      return runBuild(current.context, activeLayout)
     })
-    if (result === 'config-reload') {
-      const reloaded = await ensureSession(true)
-      return runBuild(reloaded.context, activeLayout)
-    }
-    if (result === 'content') return runIncremental(current.context, activeLayout)
-    return undefined
-  }
 
-  const watch = async (watchOptions: WatchOptions = {}): Promise<WatchHandle> => {
-    if (runtime.watch === undefined) fail('watch', 'watch is not available: runtime has no watch support')
-    // A second watch() call replaces the previous subscription instead of
-    // leaking it — calling watch() twice on the same builder is unusual but
-    // shouldn't strand a chokidar instance.
-    closeWatch()
-    await build()
-    const current = session!
-    const watcher = runtime.watch([current.config.root, current.config.configPath])
-    const scheduler = createScheduler(async events => {
-      const result = await apply(events)
-      if (result !== undefined) watchOptions.onRebuild?.(result)
-    }, watchOptions.debounceMs)
-    const unsubscribe = watcher.subscribe(event => scheduler.push([event]))
-    watchState = { scheduler, unsubscribe }
-    return {
-      close: async () => closeWatch()
-    }
-  }
+  const apply = async (events: FileEvent[]): Promise<BuildResult | undefined> =>
+    serialize(async () => {
+      const current = await ensureSession()
+      const result = await applyChanges(current.context, events)
+      if (result === 'config-reload') {
+        const reloaded = await ensureSession(true)
+        return runBuild(reloaded.context, activeLayout)
+      }
+      if (result === 'content') return runIncremental(current.context, activeLayout)
+      return undefined
+    })
+
+  const watch = async (watchOptions: WatchOptions = {}, buildOptions?: BuildOptions): Promise<WatchHandle> =>
+    serialize(async () => {
+      if (runtime.watch === undefined) fail('watch', 'watch is not available: runtime has no watch support')
+      // A second watch() call replaces the previous subscription instead of
+      // leaking it — calling watch() twice on the same builder is unusual but
+      // shouldn't strand a chokidar instance. Because the whole flow runs
+      // inside the same `serialize()` critical section as `build()`/`apply()`,
+      // two concurrent watch() calls can't interleave their setup either.
+      closeWatch()
+      const current = await ensureSession()
+      if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
+      const initial = await runBuild(current.context, activeLayout)
+      const watcher = runtime.watch([current.config.root, current.config.configPath])
+      const scheduler = createScheduler(async events => {
+        const result = await apply(events)
+        if (result !== undefined) watchOptions.onRebuild?.(result)
+      }, watchOptions.debounceMs)
+      const unsubscribe = watcher.subscribe(event => scheduler.push([event]))
+      watchState = { scheduler, unsubscribe }
+      return {
+        initial,
+        close: async () => closeWatch()
+      }
+    })
 
   const dispose = async (): Promise<void> => {
     closeWatch()
@@ -163,6 +189,11 @@ export const createBuilder = (runtime: Runtime, options: CreateBuilderOptions): 
     const current = await ensureSession()
     await runtime.fs.remove(current.config.output.data, { recursive: true })
     await runtime.fs.remove(current.config.output.assets, { recursive: true })
+    // Drop the persisted manifest state too — the on-disk file was just
+    // wiped, so the in-memory bookkeeping must match. Otherwise the next
+    // build would try to "reconcile" files that no longer exist.
+    current.context.manifest = { files: {} }
+    current.context.assetManifest = new Set()
   }
 
   return {

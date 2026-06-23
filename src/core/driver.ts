@@ -1,8 +1,8 @@
 import { classifyEvent } from './classify'
 import { codeFromDiagnostics, diagnostic, hasFatalDiagnostic, VeliteError } from './diagnostic'
-import { emptyManifest } from './output/manifest'
+import { loadManifest, MANIFEST_FILENAME, saveManifest } from './output/manifest'
 import { writeOutput } from './output/writer'
-import { assetInput, assetKeyOf, fileInput, TREE } from './pipeline'
+import { assetInput, assetKeyOf, buildProjectInfo, fileInput, TREE } from './pipeline'
 import { join, relative } from './util/path'
 import { createPool } from './util/pool'
 
@@ -13,7 +13,7 @@ import type { PrepareCollections, PrepareContext, ResolvedConfig } from './confi
 import type { Diagnostic } from './diagnostic'
 import type { Engine } from './engine'
 import type { LogicalOutput } from './output/logical'
-import type { OutputManifest } from './output/manifest'
+import type { DataManifest, OutputManifest } from './output/manifest'
 import type { Pipeline, TreeFile } from './pipeline'
 
 /**
@@ -31,9 +31,13 @@ export interface RunContext {
   pipeline: Pipeline
   config: ResolvedConfig
   runtime: DriverRuntime
+  /** Project working directory (where the user runs velite). */
+  cwd: string
   /** Shadow copy of the tree input, kept in sync with the engine. */
   tree: TreeFile[]
-  manifest: OutputManifest
+  manifest: DataManifest
+  /** Asset dest paths written in the previous successful run (reconcile set). */
+  assetManifest: Set<string>
 }
 
 export interface BuildResult {
@@ -46,6 +50,29 @@ export interface BuildResult {
 export type ApplyResult = 'config-reload' | 'content' | 'none'
 
 const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+
+/** Absolute path of the velite-owned manifest under the data output directory. */
+const manifestPath = (config: ResolvedConfig): string => join(config.output.data, MANIFEST_FILENAME)
+
+/** Persist the current data+asset manifest to disk so cross-process builds can reconcile. */
+const persistManifest = async (context: RunContext): Promise<void> => {
+  const manifest: OutputManifest = { files: context.manifest.files, assets: [...context.assetManifest] }
+  await saveManifest(context.runtime.fs, manifestPath(context.config), manifest)
+}
+
+/** Remove every velite-tracked data file from the previous manifest, then reset it. */
+const reconcileDataToEmpty = async (context: RunContext): Promise<void> => {
+  for (const file of Object.keys(context.manifest.files)) await context.runtime.fs.remove(file)
+  context.manifest = { files: {} }
+}
+
+/** Remove assets tracked in the previous manifest but absent from `desired`, then store `desired`. */
+const reconcileAssetsTo = async (context: RunContext, desired: Set<string>): Promise<void> => {
+  for (const dest of context.assetManifest) {
+    if (!desired.has(dest)) await context.runtime.fs.remove(dest)
+  }
+  context.assetManifest = desired
+}
 
 /**
  * Build the prepare hook's friendly view of the output: collection name → data
@@ -184,17 +211,23 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   // Apply the user-facing `prepare` hook between emit and any writes. The hook
   // sees a friendly `{ collections, diagnostics }` view (name → data array, or
   // single object) and may mutate in place (void), replace (new collections),
-  // or suppress output (`false`). Runs before the asset copy so `false`
-  // genuinely writes nothing.
+  // or suppress output (`false`). A `false` return means the caller takes over
+  // output: velite writes nothing new AND reconciles its own previous output
+  // (data + assets) to empty, so a prior successful build's files cannot be
+  // served as current. Only velite-tracked files (the manifests) are removed;
+  // caller-written files are left untouched.
   let output: LogicalOutput = emitted.output
   if (config.prepare !== undefined) {
     const prepareContext: PrepareContext = {
-      project: { root: config.root, configPath: config.configPath, collections: config.collections },
+      project: buildProjectInfo(config),
       diagnostics
     }
     const view = buildPrepareCollections(output)
     const prepared = await config.prepare(view, prepareContext)
     if (prepared === false) {
+      await reconcileDataToEmpty(context)
+      await reconcileAssetsTo(context, new Set())
+      await persistManifest(context)
       runtime.logger?.report(diagnostics)
       return { output, diagnostics, written: [] }
     }
@@ -213,7 +246,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   // pass 2's effects; the output name is the url with the base prefix stripped.
   // Only assets successfully read are written.
   const written: string[] = []
-  const writtenAssets = new Set<string>()
+  const desiredAssets = new Set<string>()
   const assetWriteDiagnostics: Diagnostic[] = []
   for (const effect of emitted.effects) {
     if (effect.type !== 'asset') continue
@@ -221,11 +254,12 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
     const bytes = assetBytes.get(assetKey)
     if (bytes === undefined) continue
     const outputName = effect.publicUrl.slice(config.output.base.length)
-    if (outputName.length === 0 || writtenAssets.has(outputName)) continue
-    writtenAssets.add(outputName)
+    if (outputName.length === 0) continue
     const dest = join(config.output.assets, outputName)
+    if (desiredAssets.has(dest)) continue
     try {
       await runtime.fs.write(dest, bytes)
+      desiredAssets.add(dest)
       written.push(dest)
     } catch (err) {
       assetWriteDiagnostics.push(
@@ -262,6 +296,11 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   context.manifest = manifest
   written.push(...dataWritten)
 
+  // Reconcile asset output after a successful commit: drop orphaned hashed
+  // assets from the previous run, then record the current desired set.
+  await reconcileAssetsTo(context, desiredAssets)
+  await persistManifest(context)
+
   return { output, diagnostics: finalDiagnostics, written }
 }
 
@@ -279,16 +318,17 @@ export const runIncremental = async (context: RunContext, layout: 'split' | 'sin
  * Apply file events to engine inputs. Returns whether a config reload, content
  * rebuild, or no action is needed.
  */
-export const applyChanges = async (context: RunContext, events: FileEvent[], options: { cwd: string; configPath: string }): Promise<ApplyResult> => {
+export const applyChanges = async (context: RunContext, events: FileEvent[]): Promise<ApplyResult> => {
   const { engine, config, runtime } = context
   let configReload = false
   let content = false
 
   const classifyOpts = {
-    cwd: options.cwd,
-    configPath: options.configPath,
+    cwd: context.cwd,
+    configPath: config.configPath,
     contentRoot: config.root,
-    outputDir: config.output.data
+    outputDir: config.output.data,
+    assetsDir: config.output.assets
   }
 
   for (const event of events) {
@@ -344,12 +384,30 @@ export const applyChanges = async (context: RunContext, events: FileEvent[], opt
   return 'none'
 }
 
-/** Create a fresh run context (empty tree/manifest). */
-export const createRunContext = (engine: Engine, pipeline: Pipeline, config: ResolvedConfig, runtime: DriverRuntime): RunContext => ({
-  engine,
-  pipeline,
-  config,
-  runtime,
-  tree: [],
-  manifest: emptyManifest()
-})
+/**
+ * Create a fresh run context. Loads the previous build's manifest from
+ * `output.data/.manifest.json` so that one-shot `build()` invocations across
+ * processes can still reconcile stale data and orphan asset copies. Loaded
+ * paths are validated against the configured output roots — any entry outside
+ * `output.data` / `output.assets` is dropped, so a corrupted/tampered manifest
+ * can never make the next build delete files Velite did not write.
+ */
+export const createRunContext = async (
+  engine: Engine,
+  pipeline: Pipeline,
+  config: ResolvedConfig,
+  runtime: DriverRuntime,
+  cwd: string
+): Promise<RunContext> => {
+  const persisted = await loadManifest(runtime.fs, join(config.output.data, MANIFEST_FILENAME), config.output.data, config.output.assets)
+  return {
+    engine,
+    pipeline,
+    config,
+    runtime,
+    cwd,
+    tree: [],
+    manifest: { files: persisted.files },
+    assetManifest: new Set(persisted.assets)
+  }
+}

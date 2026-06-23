@@ -106,13 +106,6 @@ The directory of the assets, relative to resolved config file. This directory sh
 
 The public base path of the assets. This option is used to generate the asset URLs. It should be the same as the `base` option of the app and end with a slash.
 
-### `output.clean`
-
-- Type: `boolean`
-- Default: `false`
-
-Whether to clean the output directories before build.
-
 ### `output.format`
 
 - Type: `'esm' | 'cjs'`
@@ -168,7 +161,7 @@ const site = defineCollection({
 
 ### `collections[key].schema`
 
-- Type: `VeliteSchema`, See [Schema](../guide/velite-schemas.md) for more information.
+- Type: `Schema`, See [Schema](../guide/velite-schemas.md) for more information.
 
 The schema of the collection.
 
@@ -189,6 +182,9 @@ const posts = defineCollection({
 - Default: `[]`, built-in loaders: `'json'`, `'yaml'`, `'matter'`
 
 The file loaders. You can use it to load files that are not supported by Velite. For more information, see [Custom Loaders](../guide/custom-loader.md).
+
+> [!NOTE]
+> Loaders are configured per-collection via `collections[key].loader`, not at the top level of `defineConfig`.
 
 ## `markdown`
 
@@ -262,15 +258,15 @@ More options, see [MDX Compile Options](https://mdxjs.com/packages/mdx/#compileo
 
 ## `prepare`
 
-- Type: `(data: BuildResult<Collections>, context: PrepareContext) => Promisable<void | false | BuildResult<Collections>>`
+- Type: `(collections: PrepareCollections, context: PrepareContext) => Promisable<PrepareResult>`
 
-The output-oriented `prepare` hook, executed after schema validation and collection aggregation, before the default output is written. It receives the complete logical build result and may:
+Where `PrepareCollections = Record<string, unknown[] | unknown>` and `PrepareResult = void | false | { collections: PrepareCollections; diagnostics?: Diagnostic[] }`.
 
-- mutate the result in place and return `void` (the mutations are kept);
-- return a new `BuildResult` to replace the current result;
+The output-oriented `prepare` hook, executed after schema validation and collection aggregation, before the default output is written. It receives the collections map and may:
+
+- mutate the collections in place and return `void` (the mutations are kept);
+- return a new `{ collections, diagnostics }` object to replace the current result;
 - return `false` to skip the default data output (assets are still emitted).
-
-Partial patch return values are not supported. Adding new top-level collection keys inside `prepare` is possible but is not a type-safe 1.0 contract.
 
 ```js
 export default defineConfig({

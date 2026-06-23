@@ -27,7 +27,12 @@ const sourcePath = s
 interface SchemaContext {
   readonly project: ProjectInfo
   readonly file: ContentFile
+  readonly record: ContentRecord
   readonly store: SessionStore
+  readonly collectEffect: (effect: Effect) => void
+  readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
+  readonly readFile: (absPath: string) => Promise<Uint8Array>
+  readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
 }
 ```
 

@@ -30,7 +30,8 @@
   ],
   "scripts": {
     "build": "tsc && tsdown",
-    "test": "node --import jiti/register --test 'test/**/*.tests.ts'",
+    "test": "pnpm build && node --import jiti/register --test 'test/**/*.tests.ts'",
+    "test:src": "node --import jiti/register --test 'test/api-contract.tests.ts' 'test/build.tests.ts' 'test/image-build.tests.ts' 'test/incremental.tests.ts' 'test/runtime-neutral.tests.ts' 'test/watch-initial-build.tests.ts' 'test/core/**/*.tests.ts' 'test/runtime/**/*.tests.ts'",
     "docs:dev": "cd docs && pnpm dev",
     "docs:build": "cd docs && pnpm build",
     "format": "prettier . --write"

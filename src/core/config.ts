@@ -6,6 +6,7 @@ import type { ModuleLoader } from '../runtime/modules'
 import type { MarkdownOptions } from './content/markdown'
 import type { MdxOptions } from './content/mdx'
 import type { Diagnostic } from './diagnostic'
+import type { ProjectInfo } from './schema/context'
 import type { Schema } from './schema/s'
 
 /** A collection definition as written by the user. */
@@ -49,16 +50,13 @@ export type PrepareHook = (collections: PrepareCollections, context: PrepareCont
 
 /** Context passed to the `prepare` hook. */
 export interface PrepareContext {
-  readonly project: {
-    readonly root: string
-    readonly configPath: string
-    readonly collections: readonly ResolvedCollection[]
-  }
+  /** Stable, read-only project snapshot. Same shape exposed via {@link SchemaContext.project}. */
+  readonly project: ProjectInfo
   readonly diagnostics: readonly Diagnostic[]
 }
 
 export interface UserConfig {
-  /** Content root, relative to the project (default '.'). */
+  /** Content root, relative to the project (default 'content'). */
   root?: string
   output?: {
     /** Directory for generated data, relative to the project (default '.velite'). */
@@ -249,7 +247,7 @@ export const resolveConfig = async (runtime: ConfigRuntime, options: ResolveConf
 
   const config = raw as UserConfig
   return {
-    root: join(cwd, config.root ?? '.'),
+    root: join(cwd, config.root ?? 'content'),
     configPath,
     output: {
       data: join(cwd, config.output?.data ?? '.velite'),

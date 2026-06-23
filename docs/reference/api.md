@@ -17,14 +17,14 @@ import { build } from 'velite'
 ### Signature
 
 ```ts
-const build: <T extends Collections = Collections>(options?: BuildOptions) => Promise<BuildResult<T>>
+const build: (options?: BuildEntryOptions) => Promise<BuildResult>
 ```
 
 ### Parameters
 
 #### `options`
 
-- Type: `BuildOptions`, See [BuildOptions](#buildoptions).
+- Type: `BuildEntryOptions`, See [BuildEntryOptions](#buildentryoptions).
 
 Options for build.
 
@@ -62,48 +62,39 @@ If true, throws an error and terminates the process if any schema validation fai
 
 Working directory for embedded calls and config discovery.
 
-#### `options.logger`
+#### `options.layout`
 
-- Type: `Logger`
+- Type: `'split' | 'single'`
+- Default: `split` in development, `single` in production (`NODE_ENV=production`)
 
-Inject a custom logger (framework integrations / tests). Diagnostics remain the structured error model.
-
-#### `options.signal`
-
-- Type: `AbortSignal`
-
-Abort the in-flight build run. An aborted run never commits candidate state.
+Physical output layout. `split` writes one file per record (dev-friendly); `single` writes one file per collection (production).
 
 ### Returns
 
-- Type: `Promise<BuildResult<T>>`, See [BuildResult](./types.md#buildresult).
+- Type: `Promise<BuildResult>`, See [BuildResult](./types.md#buildresult).
 
-The build result. On failure the promise rejects with a [`VeliteError`](#veliteerror) carrying the structured diagnostics.
+The build result (`output`, `diagnostics`, `written`). On failure the promise rejects with a [`VeliteError`](#veliteerror) carrying the structured diagnostics.
 
 ### Types
 
-#### BuildOptions
+#### BuildEntryOptions
 
 ```ts
-interface BuildOptions {
-  /** Config file path (relative to cwd). Auto-discovered when omitted. */
+interface BuildEntryOptions {
+  /** Config file path (relative to cwd or absolute). Auto-discovered when omitted. */
   config?: string
+  /** Output layout. @default 'split' in dev, 'single' in production */
+  layout?: 'split' | 'single'
   /** Clean output directories before build. @default false */
   clean?: boolean
-  /** Throw on any schema validation failure. @default false */
+  /** Throw a VeliteError on any error-level diagnostic. @default false */
   strict?: boolean
-  /** Log level. @default 'info' */
+  /** Console logger verbosity. @default 'info' */
   logLevel?: LogLevel
-  /** Working directory for embedded calls. @default process.cwd() */
+  /** Working directory for embedded calls and config discovery. @default process.cwd() */
   cwd?: string
-  /** Inject a custom logger. */
-  logger?: Logger
-  /** Abort the in-flight build run. */
-  signal?: AbortSignal
 }
 ```
-
-Pass a collections type parameter when you want a strongly typed programmatic build result.
 
 ## `watch`
 
@@ -118,37 +109,70 @@ import { watch } from 'velite'
 ### Signature
 
 ```ts
-const watch: <TCollections extends Collections = Collections>(options?: WatchOptions) => Promise<Watcher<TCollections>>
+const watch: (options?: BuildEntryOptions) => Promise<WatchHandle>
 ```
 
 ### Parameters
 
 #### `options`
 
-- Type: `WatchOptions`, extends [BuildOptions](#buildoptions).
+- Type: `BuildEntryOptions`, See [BuildEntryOptions](#buildentryoptions).
 
-Options for the initial build and watcher.
-
-#### `options.onBuild`
-
-- Type: `(event: WatchBuildEvent) => void | Promise<void>`
-
-Observer callback invoked after each build run (initial and rebuilds). This is an integration-friendly observer, not a pipeline hook.
+Options for the initial build and watcher. Accepts the same options as [`build`](#build).
 
 ### Returns
 
-- Type: `Promise<Watcher<TCollections>>`.
+- Type: `Promise<WatchHandle>`.
 
-The watcher handle.
+The watcher handle. The single initial build runs before `watch()` resolves, and its result is exposed on `handle.initial` so callers don't trigger a second build. Closing the handle disposes the underlying builder.
 
 ```ts
-interface Watcher<TCollections extends Collections = Collections> {
-  readonly closed: boolean
+interface WatchHandle {
+  /** Result of the one initial build run before the watcher subscribed. */
+  initial: BuildResult
   close(): Promise<void>
 }
 ```
 
-`close()` stops accepting new file events and waits for the in-flight build run to finish or roll back before returning.
+## `defineConfig`
+
+Identity helper for the top-level Velite config. Returns its input unchanged; exists so editors can infer types from a typed config literal without a manual `satisfies UserConfig`.
+
+```ts
+import { defineConfig } from 'velite'
+
+const defineConfig: (config: UserConfig) => UserConfig
+```
+
+## `defineCollection`
+
+Identity helper for a single collection definition. Pairs with `defineConfig` for tighter per-collection type inference.
+
+```ts
+import { defineCollection } from 'velite'
+
+const defineCollection: <S extends Schema>(def: CollectionDef<S>) => CollectionDef<S>
+```
+
+## `defineLoader`
+
+Identity helper for a custom loader. See [Custom Loaders](../guide/custom-loader.md) for end-to-end examples.
+
+```ts
+import { defineLoader } from 'velite'
+
+const defineLoader: <L extends Loader>(loader: L) => L
+```
+
+## `defineSchema`
+
+Identity helper for a reusable custom schema. Useful when extracting a schema definition that the type inference cannot follow back to its declaration.
+
+```ts
+import { defineSchema } from 'velite'
+
+const defineSchema: <S extends Schema>(schema: S) => S
+```
 
 ## `context`
 
@@ -177,7 +201,7 @@ The schema context contains the project info, current file, current record, and 
 The error type thrown by `build()` / `watch()` when a build run fails, and by internal `fail()` / `assert()` calls for invariant violations.
 
 ```ts
-type VeliteErrorCode = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch' | 'internal' | 'unknown' | (string & {})
+type VeliteErrorCode = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch' | 'internal' | 'unknown'
 
 class VeliteError<T = unknown> extends Error {
   readonly code: VeliteErrorCode

@@ -12,13 +12,12 @@
 
 import { hash } from '../util/hash'
 import { join, relative } from '../util/path'
-import { emptyManifest } from './manifest'
 import { planWrites } from './plan'
 
 import type { FileSystem } from '../../runtime/fs'
 import type { CollectionMeta } from './declaration'
 import type { LogicalOutput } from './logical'
-import type { OutputManifest } from './manifest'
+import type { DataManifest } from './manifest'
 
 const encoder = new TextEncoder()
 
@@ -41,8 +40,10 @@ interface WriteDeps {
 interface WriteResult {
   /** Output files written this run (unchanged files are skipped). */
   written: string[]
-  manifest: OutputManifest
+  manifest: DataManifest
 }
+
+const EMPTY_PREVIOUS: DataManifest = { files: {} }
 
 /**
  * Reconcile logical output against the previous manifest: plan the physical
@@ -50,7 +51,7 @@ interface WriteResult {
  * outputs that no longer exist. Unchanged content (same path + digest) is
  * skipped.
  */
-export const writeOutput = async (output: LogicalOutput, deps: WriteDeps, previous: OutputManifest = emptyManifest()): Promise<WriteResult> => {
+export const writeOutput = async (output: LogicalOutput, deps: WriteDeps, previous: DataManifest = EMPTY_PREVIOUS): Promise<WriteResult> => {
   const configRelPath = deps.configPath === '' ? 'velite.config.ts' : relative(deps.dir, deps.configPath)
   const writes = planWrites(
     {
@@ -63,7 +64,7 @@ export const writeOutput = async (output: LogicalOutput, deps: WriteDeps, previo
     deps.layout === 'split'
   )
 
-  const manifest: OutputManifest = { files: {} }
+  const manifest: DataManifest = { files: {} }
   const desired = new Set<string>()
   const written: string[] = []
 

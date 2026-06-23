@@ -71,7 +71,12 @@ The `context()` function returns:
 {
   project: ProjectInfo
   file: ContentFile
+  record: ContentRecord
   store: SessionStore
+  collectEffect: (effect: Effect) => void
+  asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
+  readFile: (absPath: string) => Promise<Uint8Array>
+  probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
 }
 ```
 
@@ -192,7 +197,7 @@ export default defineConfig({
 The public entry exports Zod-related type helpers for schema typing:
 
 ```ts
-import type { infer, VeliteSchema } from 'velite'
+import type { Infer, Schema } from 'velite'
 ```
 
 Use `context()` for Velite parser metadata instead of relying on `ZodMeta`.

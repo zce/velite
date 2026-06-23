@@ -96,6 +96,109 @@ test('s.image: the asset file is copied into the assets output directory', async
   deepEqual(Array.from(await fs.read(assetPath)), Array.from(PNG_BYTES))
 })
 
+test('assets: a dropped asset reference is reconciled away on rebuild (no orphan)', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image().optional() }) } }
+  }
+  const { runtime, fs } = setup(config, {
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
+    [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+  })
+  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const first = await builder.build({ layout: 'single' })
+  equal(first.diagnostics.length, 0, JSON.stringify(first.diagnostics))
+  const firstAsset = first.written.find(p => p.startsWith(ASSETS_DIR))!
+  ok(firstAsset, 'asset written on first build')
+  // drop the asset reference and rebuild on the same builder
+  fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{}]))
+  const second = await builder.build({ layout: 'single' })
+  equal(second.diagnostics.length, 0, JSON.stringify(second.diagnostics))
+  await fs.read(firstAsset).then(
+    () => ok(false, `orphaned asset should have been removed: ${firstAsset}`),
+    () => ok(true, 'orphaned asset removed')
+  )
+})
+
+test('assets: orphan reconciliation survives across builder instances (persisted manifest)', async () => {
+  // Mirrors the public one-shot `build()` path: each call disposes its
+  // builder, so cross-build state must come from the persisted manifest.
+  const mkConfig = (covered: boolean): { config: UserConfig; entries: unknown[] } => ({
+    config: { root: 'content', collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image().optional() }) } } },
+    entries: covered ? [{ cover: './cover.png' }] : [{}]
+  })
+  const fs = new MemoryFileSystem()
+  fs.put(join(CWD, 'content/posts/cover.png'), PNG_BYTES)
+  fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify(mkConfig(true).entries))
+  const mkBuilder = () => {
+    const { config } = mkConfig(true)
+    const runtime: Runtime = {
+      contextStorage: nodeContextStorage,
+      fs,
+      image: stubImage,
+      modules: { load: async () => ({ exports: config, dependencies: [] }) },
+      logger: silentLogger
+    }
+    return createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  }
+
+  const first = mkBuilder()
+  const firstResult = await first.build({ layout: 'single' })
+  const firstAsset = firstResult.written.find(p => p.startsWith(ASSETS_DIR))!
+  ok(firstAsset, 'asset written on first build')
+  await first.dispose()
+
+  // Drop the asset reference, build with a fresh builder.
+  fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify(mkConfig(false).entries))
+  const second = mkBuilder()
+  const secondResult = await second.build({ layout: 'single' })
+  equal(secondResult.diagnostics.length, 0)
+  await fs.read(firstAsset).then(
+    () => ok(false, `orphaned asset must be reconciled across builders: ${firstAsset}`),
+    () => ok(true, 'orphaned asset removed across builders')
+  )
+  await second.dispose()
+})
+
+test('prepare === false reconciles both data and previously written assets', async () => {
+  // Same builder, two builds: first writes an asset + data; second returns
+  // false from prepare → both the data file AND the asset must be gone.
+  let calls = 0
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ cover: s.image() }) } },
+    prepare: () => {
+      calls++
+      return calls === 2 ? false : undefined
+    }
+  }
+  const { runtime, fs } = setup(config, {
+    [join(CWD, 'content/posts/a.json')]: JSON.stringify([{ cover: './cover.png' }]),
+    [join(CWD, 'content/posts/cover.png')]: PNG_BYTES
+  })
+  const builder = createBuilder(runtime, { cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const first = await builder.build({ layout: 'single' })
+  const firstAsset = first.written.find(p => p.startsWith(ASSETS_DIR))!
+  ok(firstAsset, 'asset written on first build')
+  ok(
+    first.written.some(p => p.endsWith('posts.json')),
+    'data written on first build'
+  )
+
+  // Change source so emit (and prepare) re-runs.
+  fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ cover: './cover.png' }, { cover: './cover.png' }]))
+  const second = await builder.build({ layout: 'single' })
+  equal(second.written.length, 0, 'nothing written when prepare returns false')
+  await fs.read(firstAsset).then(
+    () => ok(false, `asset should have been reconciled away on prepare=false: ${firstAsset}`),
+    () => ok(true, 'asset removed when prepare returns false')
+  )
+  await fs.read(join(DATA_DIR, 'posts.json')).then(
+    () => ok(false, 'posts.json should have been reconciled away on prepare=false'),
+    () => ok(true, 'data removed when prepare returns false')
+  )
+})
+
 test('s.file: resolves a content-relative file to a content-hashed public url', async () => {
   const config: UserConfig = {
     root: 'content',

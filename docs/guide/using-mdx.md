@@ -314,17 +314,17 @@ const compileMdx = async (source: string, path: string, options: CompileOptions)
 
 export const mdxBundle = (options: MdxOptions = {}) =>
   s.custom<string>().transform<string>(async (value, ctx) => {
-    const { file, config } = context()
+    const { file, project } = context()
     value = value ?? file.content
     if (value == null) {
       ctx.addIssue({ fatal: true, code: 'custom', message: 'The content is empty' })
       return null as never
     }
 
-    const enableGfm = options.gfm ?? config.mdx?.gfm ?? true
-    const enableMinify = options.minify ?? config.mdx?.minify ?? true
-    const removeComments = options.removeComments ?? config.mdx?.removeComments ?? true
-    const outputFormat = options.outputFormat ?? config.mdx?.outputFormat ?? 'function-body'
+    const enableGfm = options.gfm ?? project.mdx?.gfm ?? true
+    const enableMinify = options.minify ?? project.mdx?.minify ?? true
+    const removeComments = options.removeComments ?? project.mdx?.removeComments ?? true
+    const outputFormat = options.outputFormat ?? project.mdx?.outputFormat ?? 'function-body'
 
     const remarkPlugins = [] as PluggableList
     const rehypePlugins = [] as PluggableList
@@ -333,10 +333,10 @@ export const mdxBundle = (options: MdxOptions = {}) =>
     if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
     if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
     if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
-    if (config.mdx?.remarkPlugins != null) remarkPlugins.push(...config.mdx.remarkPlugins) // apply global remark plugins
-    if (config.mdx?.rehypePlugins != null) rehypePlugins.push(...config.mdx.rehypePlugins) // apply global rehype plugins
+    if (project.mdx?.remarkPlugins != null) remarkPlugins.push(...project.mdx.remarkPlugins) // apply global remark plugins
+    if (project.mdx?.rehypePlugins != null) rehypePlugins.push(...project.mdx.rehypePlugins) // apply global rehype plugins
 
-    const compilerOptions = { ...config.mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
+    const compilerOptions = { ...project.mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
 
     try {
       return await compileMdx(value, file.path, compilerOptions)

@@ -6,16 +6,16 @@
 // transforms via the runtime's `ContextStorage` port, so a schema calls
 // `context()` and gets the state for the record currently being parsed.
 //
-// The core never imports `node:async_hooks` directly — the `ContextStorage`
-// implementation is injected once at the composition root (`createBuilder`)
-// via `installContextStorage`. The Node adapter wraps `AsyncLocalStorage`;
-// other runtimes supply their own.
+// Uses `createContext` from `src/runtime/contextual` — the standard ambient
+// context pattern. The composition root (`createBuilder`) calls
+// `schemaContext.install()` once with the runtime's storage adapter.
 
 import { raw as hastRaw } from 'hast-util-raw'
 import { toString } from 'hast-util-to-string'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 
+import { createContext } from '../../runtime/contextual'
 import { fail } from '../diagnostic'
 
 import type { Nodes } from 'hast'
@@ -49,7 +49,7 @@ export interface ContentFile {
 }
 
 /** Identity of the record currently being parsed within a multi-record source. */
-interface ContentRecord {
+export interface ContentRecord {
   /** Stable record id (`sourceId#key`). */
   readonly id: string
   /** Loader-provided record key, when available. */
@@ -96,13 +96,16 @@ export interface SchemaContext {
   readonly project: ProjectInfo
   readonly file: ContentFile
   readonly record: ContentRecord
+  /** Session-scoped store for advanced custom schemas (shared across rebuilds, reset on config reload). */
+  readonly store: SessionStore
   /** Declare a schema effect (unique registration, asset reference, etc.). */
   readonly collectEffect: (effect: Effect) => void
   /**
-   * Resolve an asset by its key (project-root-relative source path). Demands the
-   * engine's asset derivation, returning a memoized {@link AssetResult}. The
-   * returned `publicUrl` is always available (derivable from the key); image
-   * metadata is zero until the driver feeds the asset's bytes in pass 2.
+   * Resolve an asset by its key (content-root-relative POSIX source path,
+   * i.e. relative to `project.root`). Demands the engine's asset derivation,
+   * returning a memoized {@link AssetResult}. The returned `publicUrl` is
+   * always available (derivable from the key); image metadata is zero until
+   * the driver feeds the asset's bytes in pass 2.
    *
    * `request.template` lets a single schema invocation pick a different
    * filename template than the global `project.output.name`. `request.blur`
@@ -136,32 +139,66 @@ export interface ImageMetadata {
   blurHeight: number
 }
 
+/**
+ * Session-scoped key/value store for advanced custom schemas.
+ *
+ * Belongs to the current build session: shared across rebuilds inside a watch
+ * session, destroyed at the end of a one-shot build, and reset on config reload.
+ * There is deliberately no `set()` — built-in cross-file schemas use the
+ * internal effects model so concurrent validation stays deterministic. Use
+ * {@link SchemaContext.store} when a custom schema needs lazily-initialised
+ * shared state.
+ */
+export interface SessionStore {
+  get<T>(key: string | symbol): T | undefined
+  has(key: string | symbol): boolean
+  getOrCreate<T>(key: string | symbol, create: () => T): T
+}
+
+/** Create a fresh session-scoped store (one per build session). Internal — reached via {@link SchemaContext.store}. */
+export const createSessionStore = (): SessionStore => {
+  const map = new Map<string | symbol, unknown>()
+  return {
+    get: <T>(key: string | symbol): T | undefined => map.get(key) as T | undefined,
+    has: (key: string | symbol): boolean => map.has(key),
+    getOrCreate: <T>(key: string | symbol, create: () => T): T => {
+      if (map.has(key)) return map.get(key) as T
+      const value = create()
+      map.set(key, value)
+      return value
+    }
+  }
+}
+
 export interface RunWithContextInput {
   readonly project: ProjectInfo
   readonly file: ContentFile
   readonly record: ContentRecord
+  readonly store: SessionStore
   readonly collectEffect: (effect: Effect) => void
   readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
   readonly readFile: (absPath: string) => Promise<Uint8Array>
   readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
 }
 
-let storage: ContextStorage<SchemaContext> | undefined
+// Architecture note (architecture.md "Allowed Exception"): the runtime context
+// is the one intentional piece of hidden global state in core. Zod's transform
+// signature `(value, ctx) => ...` forbids passing ambient context explicitly,
+// so a late-bound ContextStorage is the thinnest possible escape hatch.
+// The composition root (`createBuilder`) installs it exactly once per process.
+// This is metadata-only (SchemaContext carries file/record/assetResolver),
+// never services — consistent with the `ctx()` rule in runtime-context.md.
+
+const schemaContext = createContext<SchemaContext>('SchemaContext')
 
 /**
  * Composition-root hook: install the runtime's context storage. Called once
  * by `createBuilder` with the `Runtime.contextStorage` (type-erased at the
  * port boundary, narrowed here to the `SchemaContext` it actually carries).
- * Subsequent `runWithContext` / `context()` calls use it.
  *
  * Internal — not part of the public package barrel.
  */
-export const installContextStorage = (s: ContextStorage<SchemaContext>): void => {
-  storage = s
-}
-
-const MISSING_STORAGE = 'Schema context storage is not installed — createBuilder() must run before parsing.'
-const MISSING_CONTEXT = 'Missing schema context — are you calling context() outside of a schema parse?'
+export const installContextStorage = (storage: ContextStorage<SchemaContext>): void => schemaContext.install(storage)
 
 /**
  * Get the schema context for the current record parse.
@@ -169,25 +206,26 @@ const MISSING_CONTEXT = 'Missing schema context — are you calling context() ou
  * @throws `VeliteError` (`internal`) when called outside of a schema parse.
  */
 export const context = (): SchemaContext => {
-  if (storage === undefined) fail('internal', MISSING_STORAGE)
-  const ctx = storage.get()
-  if (ctx == null) fail('internal', MISSING_CONTEXT)
-  return ctx
+  try {
+    return schemaContext.get()
+  } catch {
+    fail('internal', 'Missing schema context — are you calling context() outside of a schema parse?')
+  }
 }
 
 /** Run `run` inside a schema context for a single record parse. */
 export const runWithContext = <R>(input: RunWithContextInput, run: () => R): R => {
-  if (storage === undefined) fail('internal', MISSING_STORAGE)
   const ctx: SchemaContext = {
     project: input.project,
     file: input.file,
     record: input.record,
+    store: input.store,
     collectEffect: input.collectEffect,
     asset: input.asset,
     readFile: input.readFile,
     probeImage: input.probeImage
   }
-  return storage.run(ctx, run)
+  return schemaContext.run(ctx, run)
 }
 
 /**

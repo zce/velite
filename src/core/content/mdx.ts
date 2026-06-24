@@ -1,28 +1,30 @@
-// MDX rendering: source -> compiled JavaScript module string.
+// MDX rendering: source -> compiled JavaScript module string, plus the same
+// markdown-derived facets (toc / excerpt / references) that processMarkdown
+// returns. MDX-only differences:
+//
+//   - the public `code` is the result of MDX compilation, which needs the raw
+//     source text (mdast can't represent JSX / expressions);
+//   - everything else is derived from `parseMarkdown(source)`, the same
+//     markdown helper processMarkdown uses, so the result shape is identical
+//     up to `code` vs `html`.
 //
 // `@mdx-js/mdx` and `terser` are runtime dependencies (external, not bundled)
 // loaded via dynamic import so they are only pulled in when MDX is actually
 // used. Both are allowed in core: neither is in the runtime-neutral guard's
 // FORBIDDEN list (node: / sharp / chokidar / tinyglobby / jiti), and dynamic
 // imports are invisible to that guard's static-import scan anyway.
-//
-// Asset copying (remarkCopyLinkedFiles) is intentionally NOT wired here — M5.
-//
-// Built from the z-labs `src/core/content/mdx.ts` reference, enriched with the
-// current velite's `gfm` / `removeComments` / `minify` / `outputFormat` /
-// plugin passthrough options.
 
 import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 
 import { remarkCopyLinkedFiles } from './asset-links'
-import { findReferences, parseMarkdown } from './reference'
+import { extractText, extractToc, findReferences, parseMarkdown } from './reference'
 
 import type { CompileOptions } from '@mdx-js/mdx'
-import type { Root } from 'mdast'
+import type { Root as Mdast } from 'mdast'
 import type { PluggableList } from 'unified'
 import type { ProcessAsset } from './asset-links'
-import type { ContentReference } from './reference'
+import type { ContentReference, TocItem } from './reference'
 
 /** MDX compiler options. */
 export interface MdxOptions {
@@ -55,15 +57,26 @@ export interface MdxOptions {
   processAsset?: ProcessAsset
 }
 
-/** Result of compiling MDX source. */
+/**
+ * Result of compiling MDX source. Mirrors `MarkdownResult` except the primary
+ * payload is the compiled `code` instead of rendered `html` — the derived
+ * facets (toc / excerpt / references) come from the same markdown parse
+ * helper and have identical semantics.
+ */
 export interface MdxResult {
   /** Compiled MDX module source (JavaScript). */
   code: string
+  toc?: TocItem[]
+  excerpt?: string
   references?: ContentReference[]
 }
 
 /** Options for {@link processMdx}. */
 export interface ProcessMdxOptions extends MdxOptions {
+  /** Include a table of contents from headings. */
+  toc?: boolean
+  /** Max plain-text excerpt length (0 / undefined = omit). */
+  excerpt?: number
   /** Collect local image/link references from the body. */
   references?: boolean
   /** Source path hint passed to the compiler (vfile path). */
@@ -71,7 +84,7 @@ export interface ProcessMdxOptions extends MdxOptions {
 }
 
 /** Remove `/* ... *​/` comments from mdx flow expressions. */
-const remarkRemoveComments = () => (tree: Root) => {
+const remarkRemoveComments = () => (tree: Mdast) => {
   visit(tree, ['mdxFlowExpression'], (node, index, parent) => {
     if (parent == null || index == null) return
     if ((node as { value?: string }).value?.match(/\/\*([\s\S]*?)\*\//g)) {
@@ -88,6 +101,13 @@ export const processMdx = async (source: string, options: ProcessMdxOptions = {}
   const enableMinify = options.minify ?? true
   const outputFormat = options.outputFormat ?? 'function-body'
   const development = options.development ?? false
+
+  // The remark/rehype plugins toc/excerpt/references derive from are run
+  // against the source markdown — JSX nodes are foreign to remark-parse and
+  // are surfaced as html nodes, which the helpers ignore. This is sufficient
+  // for the facets we expose and avoids a second compile pass.
+  const needsTree = options.toc === true || (options.excerpt !== undefined && options.excerpt > 0) || options.references === true
+  const tree = needsTree ? parseMarkdown(source) : undefined
 
   const remarkPlugins: PluggableList = []
   if (enableGfm) remarkPlugins.push(remarkGfm)
@@ -122,6 +142,8 @@ export const processMdx = async (source: string, options: ProcessMdxOptions = {}
   }
 
   const result: MdxResult = { code }
-  if (options.references) result.references = findReferences(parseMarkdown(source))
+  if (options.toc) result.toc = extractToc(tree!)
+  if (options.excerpt && options.excerpt > 0) result.excerpt = extractText(tree!, options.excerpt)
+  if (options.references) result.references = findReferences(tree!)
   return result
 }

@@ -75,6 +75,15 @@ test('processMdx: collects references when requested', async () => {
   assert.ok(references!.some(r => r.kind === 'image' && r.url === './img.png'))
 })
 
+test('processMdx: returns toc and excerpt alongside code', async () => {
+  const { code, toc, excerpt } = await processMdx('# Title\n\n## Sub\n\nA short body.', { toc: true, excerpt: 50, minify: false })
+  assert.ok(code.length > 0)
+  assert.equal(toc?.length, 2)
+  assert.equal(toc?.[0]?.title, 'Title')
+  assert.equal(toc?.[1]?.slug, 'sub')
+  assert.ok(typeof excerpt === 'string' && excerpt.length > 0)
+})
+
 test('extractToc: returns flat heading entries with slugs', () => {
   const tree = parseMarkdown('# Hello World\n\n## Sub Section')
   const toc = extractToc(tree)

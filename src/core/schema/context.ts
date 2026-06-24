@@ -12,10 +12,10 @@
 
 import { raw as hastRaw } from 'hast-util-raw'
 import { toString } from 'hast-util-to-string'
+import { fromMarkdown } from 'mdast-util-from-markdown'
 import { toHast } from 'mdast-util-to-hast'
 
 import { createContext } from '../../runtime/contextual'
-import { parseMarkdown } from '../content/reference'
 import { fail } from '../diagnostic'
 
 import type { Nodes } from 'hast'
@@ -250,14 +250,14 @@ export const createContentFile = (id: string, path: string, content?: string): C
     get mdast(): Root | undefined {
       if (mdastCache != null) return mdastCache
       if (content == null) return undefined
-      mdastCache = Object.freeze(parseMarkdown(content))
+      mdastCache = fromMarkdown(content)
       return mdastCache
     },
     get hast(): Nodes | undefined {
       if (hastCache != null) return hastCache
       const mdast = this.mdast
       if (mdast == null) return undefined
-      hastCache = Object.freeze(hastRaw(toHast(mdast, { allowDangerousHtml: true })))
+      hastCache = hastRaw(toHast(mdast, { allowDangerousHtml: true }))
       return hastCache
     },
     get plain(): string | undefined {

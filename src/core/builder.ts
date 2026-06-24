@@ -140,8 +140,8 @@ export const createBuilder = (deps: BuilderDeps): Builder => {
   }
 
   /** Load (or reload) the session. Pass `force` to replace an existing one. */
-  const ensureSession = async (force = false): Promise<Session> => {
-    if (force || session === undefined) session = await loadSession(deps)
+  const ensureSession = (force = false): Session | Promise<Session> => {
+    if (force || session === undefined) return loadSession(deps).then(s => (session = s))
     return session
   }
 

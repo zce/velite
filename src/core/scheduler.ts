@@ -27,6 +27,7 @@ export const createScheduler = ({ run, debounceMs = 50 }: SchedulerDeps): Schedu
   let queue: FileEvent[] = []
   let running = false
   let timer: ReturnType<typeof setTimeout> | undefined
+  let scheduled = false
   let disposed = false
 
   const drain = async (): Promise<void> => {
@@ -40,17 +41,27 @@ export const createScheduler = ({ run, debounceMs = 50 }: SchedulerDeps): Schedu
       }
     } finally {
       running = false
-      if (queue.length > 0 && !disposed) void drain()
+      if (queue.length > 0 && !disposed) schedule()
     }
   }
 
   const schedule = (): void => {
-    if (disposed) return
-    if (timer !== undefined) clearTimeout(timer)
-    timer = setTimeout(() => {
-      timer = undefined
-      void drain()
-    }, debounceMs)
+    if (disposed || scheduled) return
+    if (debounceMs > 0) {
+      if (timer !== undefined) clearTimeout(timer)
+      timer = setTimeout(() => {
+        timer = undefined
+        scheduled = false
+        void drain()
+      }, debounceMs)
+    } else {
+      // Zero debounce: use microtask to avoid setTimeout's ~1ms minimum delay.
+      scheduled = true
+      void Promise.resolve().then(() => {
+        scheduled = false
+        void drain()
+      })
+    }
   }
 
   return {
@@ -62,6 +73,7 @@ export const createScheduler = ({ run, debounceMs = 50 }: SchedulerDeps): Schedu
     dispose() {
       disposed = true
       if (timer !== undefined) clearTimeout(timer)
+      scheduled = false
       queue = []
     }
   }

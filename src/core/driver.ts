@@ -14,6 +14,7 @@ import type { Diagnostic } from './diagnostic'
 import type { Engine } from './engine'
 import type { LogicalOutput } from './output/logical'
 import type { DataManifest, OutputManifest } from './output/manifest'
+import type { EntryJsonCache } from './output/writer'
 import type { Pipeline, TreeFile } from './pipeline'
 import type { Emitted } from './pipeline/types'
 
@@ -43,6 +44,8 @@ export interface RunContext {
   sourceCollections: Map<string, Set<string>>
   changedPaths?: Set<string>
   patchedCollections?: Set<string>
+  /** Entry JSON string cache for single layout incremental builds. */
+  entryJsonCache: EntryJsonCache
 }
 
 export interface BuildResult {
@@ -408,7 +411,11 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
   if (hasFatalDiagnostic(finalDiagnostics)) {
     throw new VeliteError(codeFromDiagnostics(finalDiagnostics), { diagnostics: finalDiagnostics })
   }
-  const { written: dataWritten, manifest } = await writeOutput(
+  const {
+    written: dataWritten,
+    manifest,
+    entryJsonCache: updatedCache
+  } = await writeOutput(
     output,
     {
       fs: runtime.fs,
@@ -419,11 +426,13 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
       format: config.output.format,
       pretty: layout === 'split',
       changedCollections: patched === undefined ? undefined : context.patchedCollections,
-      changedSources: patched === undefined ? undefined : context.changedPaths
+      changedSources: patched === undefined ? undefined : context.changedPaths,
+      entryJsonCache: context.entryJsonCache
     },
     context.manifest
   )
   context.manifest = manifest
+  context.entryJsonCache = updatedCache
   rememberEmitted(context, { output, effects: emitted.effects, diagnostics: finalDiagnostics })
   written.push(...dataWritten)
   const dataFileCount = Object.keys(output.collections).length
@@ -557,7 +566,8 @@ export const createRunContext = async ({ engine, pipeline, config, runtime, cwd 
     tree: [],
     manifest: { files: persisted.files },
     assetManifest: new Set(persisted.assets),
-    sourceCollections: new Map()
+    sourceCollections: new Map(),
+    entryJsonCache: { jsons: new Map(), digests: new Map() }
   }
 }
 

@@ -1,30 +1,20 @@
-// MDX rendering: source -> compiled JavaScript module string, plus the same
-// markdown-derived facets (toc / excerpt / references) that processMarkdown
-// returns. MDX-only differences:
+// MDX rendering: source -> compiled JavaScript module string.
 //
-//   - the public `code` is the result of MDX compilation, which needs the raw
-//     source text (mdast can't represent JSX / expressions);
-//   - everything else is derived from `parseMarkdown(source)`, the same
-//     markdown helper processMarkdown uses, so the result shape is identical
-//     up to `code` vs `html`.
-//
-// `@mdx-js/mdx` and `terser` are runtime dependencies (external, not bundled)
-// loaded via dynamic import so they are only pulled in when MDX is actually
-// used. Both are allowed in core: neither is in the runtime-neutral guard's
-// FORBIDDEN list (node: / sharp / chokidar / tinyglobby / jiti), and dynamic
-// imports are invisible to that guard's static-import scan anyway.
+// MDX-specific: `@mdx-js/mdx` and `terser` are runtime dependencies (external,
+// not bundled) loaded via dynamic import so they are only pulled in when MDX is
+// actually used. Both are allowed in core: neither is in the runtime-neutral
+// guard's FORBIDDEN list (node: / sharp / chokidar / tinyglobby / jiti), and
+// dynamic imports are invisible to that guard's static-import scan anyway.
 
 import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 
 import { remarkCopyLinkedFiles } from './asset-links'
-import { extractText, extractToc, findReferences, parseMarkdown } from './reference'
 
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root as Mdast } from 'mdast'
 import type { PluggableList } from 'unified'
 import type { ProcessAsset } from './asset-links'
-import type { ContentReference, TocItem } from './reference'
 
 /** MDX compiler options. */
 export interface MdxOptions {
@@ -57,28 +47,8 @@ export interface MdxOptions {
   processAsset?: ProcessAsset
 }
 
-/**
- * Result of compiling MDX source. Mirrors `MarkdownResult` except the primary
- * payload is the compiled `code` instead of rendered `html` — the derived
- * facets (toc / excerpt / references) come from the same markdown parse
- * helper and have identical semantics.
- */
-export interface MdxResult {
-  /** Compiled MDX module source (JavaScript). */
-  code: string
-  toc?: TocItem[]
-  excerpt?: string
-  references?: ContentReference[]
-}
-
 /** Options for {@link processMdx}. */
 export interface ProcessMdxOptions extends MdxOptions {
-  /** Include a table of contents from headings. */
-  toc?: boolean
-  /** Max plain-text excerpt length (0 / undefined = omit). */
-  excerpt?: number
-  /** Collect local image/link references from the body. */
-  references?: boolean
   /** Source path hint passed to the compiler (vfile path). */
   path?: string
 }
@@ -94,56 +64,48 @@ const remarkRemoveComments = () => (tree: Mdast) => {
   })
 }
 
-/** Compile MDX source to a JavaScript module string. */
-export const processMdx = async (source: string, options: ProcessMdxOptions = {}): Promise<MdxResult> => {
-  const enableGfm = options.gfm ?? true
-  const removeComments = options.removeComments ?? true
-  const enableMinify = options.minify ?? true
-  const outputFormat = options.outputFormat ?? 'function-body'
-  const development = options.development ?? false
-
-  // The remark/rehype plugins toc/excerpt/references derive from are run
-  // against the source markdown — JSX nodes are foreign to remark-parse and
-  // are surfaced as html nodes, which the helpers ignore. This is sufficient
-  // for the facets we expose and avoids a second compile pass.
-  const needsTree = options.toc === true || (options.excerpt !== undefined && options.excerpt > 0) || options.references === true
-  const tree = needsTree ? parseMarkdown(source) : undefined
-
+/**
+ * Compile MDX source to a JavaScript module string.
+ *
+ * Always parses from source with the full plugin chain (GFM, custom remark/
+ * rehype plugins). Callers that only need a CommonMark mdast tree for
+ * toc/excerpt/reference extraction should use `parseMarkdown()` directly.
+ */
+export const processMdx = async (source: string, options: ProcessMdxOptions = {}): Promise<string> => {
   const remarkPlugins: PluggableList = []
-  if (enableGfm) remarkPlugins.push(remarkGfm)
-  if (removeComments) remarkPlugins.push(remarkRemoveComments)
+  if (options.gfm ?? true) remarkPlugins.push(remarkGfm)
+  if (options.removeComments ?? true) remarkPlugins.push(remarkRemoveComments)
   if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins)
   if (options.processAsset != null) remarkPlugins.push([remarkCopyLinkedFiles, options.processAsset])
 
   const rehypePlugins: PluggableList = []
   if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
 
-  const compilerOptions: CompileOptions = {
-    development,
-    outputFormat,
-    remarkPlugins,
-    rehypePlugins
-  }
-
   const { compile } = await import('@mdx-js/mdx')
-  const compiled = await compile({ value: source, ...(options.path != null ? { path: options.path } : {}) }, compilerOptions)
+  const compiled = await compile(
+    { value: source, path: options.path },
+    {
+      development: options.development ?? false,
+      outputFormat: options.outputFormat ?? 'function-body',
+      remarkPlugins,
+      rehypePlugins
+    }
+  )
   let code = String(compiled)
 
-  if (enableMinify) {
+  if (options.minify ?? true) {
     const { minify } = await import('terser')
-    const minified = await minify(code, {
-      module: true,
-      compress: true,
-      keep_classnames: true,
-      mangle: { keep_fnames: true },
-      parse: { bare_returns: true }
-    })
-    code = minified.code ?? code
+    code =
+      (
+        await minify(code, {
+          module: true,
+          compress: true,
+          keep_classnames: true,
+          mangle: { keep_fnames: true },
+          parse: { bare_returns: true }
+        })
+      ).code ?? code
   }
 
-  const result: MdxResult = { code }
-  if (options.toc) result.toc = extractToc(tree!)
-  if (options.excerpt && options.excerpt > 0) result.excerpt = extractText(tree!, options.excerpt)
-  if (options.references) result.references = findReferences(tree!)
-  return result
+  return code
 }

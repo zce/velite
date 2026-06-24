@@ -55,8 +55,7 @@ export const mdx = (options: MdxSchemaOptions = {}): Schema<string> =>
         development: options.development ?? g?.development ?? false,
         remarkPlugins: [...(options.remarkPlugins ?? []), ...(g?.remarkPlugins ?? [])],
         rehypePlugins: [...(options.rehypePlugins ?? []), ...(g?.rehypePlugins ?? [])],
-        path: file.path,
-        references: false
+        path: file.path
       }
       if (copyLinkedFiles) {
         merged.processAsset = async (url: string): Promise<string> => {
@@ -68,8 +67,7 @@ export const mdx = (options: MdxSchemaOptions = {}): Schema<string> =>
         }
       }
       try {
-        const { code } = await processMdx(body, merged)
-        return code
+        return await processMdx(body, merged)
       } catch (err) {
         addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
         return null as never

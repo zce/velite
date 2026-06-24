@@ -1,16 +1,14 @@
 // Markdown reference helpers: AST parsing, reference discovery, plain-text
 // extraction and table-of-contents extraction.
 //
-// Runtime-agnostic: depends only on `unified` / `remark-parse` / `remark-gfm`
-// / `unist-util-visit` (all pure, bundled devDeps). No node: builtins, no I/O.
+// Runtime-agnostic: depends only on `mdast-util-from-markdown` and
+// `unist-util-visit` (all pure, bundled devDeps). No node: builtins, no I/O.
 //
-// Ported from the z-labs `src/core/content/reference.ts` reference implementation
-// and kept as the single source of truth for toc/excerpt/reference extraction
-// shared by the content builtins and the public content API.
+// `parseMarkdown` returns a CommonMark mdast tree — no GFM, no plugins.
+// It is the shared base parse for toc/excerpt/references; schemas that need
+// their own plugin pipeline (e.g. s.markdown with gfm) re-parse independently.
 
-import remarkGfm from 'remark-gfm'
-import remarkParse from 'remark-parse'
-import { unified } from 'unified'
+import { fromMarkdown } from 'mdast-util-from-markdown'
 import { visit } from 'unist-util-visit'
 
 import type { Root } from 'mdast'
@@ -82,5 +80,5 @@ export const extractToc = (tree: Root): TocItem[] => {
   return items
 }
 
-/** Parse markdown source into an mdast tree (no html conversion). */
-export const parseMarkdown = (source: string): Root => unified().use(remarkParse).use(remarkGfm).parse(source) as Root
+/** Parse markdown source into a CommonMark mdast tree (no GFM, no plugins). */
+export const parseMarkdown = (source: string): Root => fromMarkdown(source)

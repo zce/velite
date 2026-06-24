@@ -6,7 +6,7 @@ import { dirname, join, stripQueryAndHash } from '../util/path'
 import { context } from './context'
 
 import type { PluggableList } from 'unified'
-import type { MarkdownOptions, MarkdownSource } from '../content/markdown'
+import type { MarkdownOptions } from '../content/markdown'
 import type { Schema } from './s'
 
 /** Options for the {@link markdown} schema. */
@@ -39,11 +39,6 @@ export const markdown = (options: MarkdownSchemaOptions = {}): Schema<string> =>
         addIssue({ code: 'custom', message: 'The content is empty' })
         return ''
       }
-      // SSOT: when the schema is parsing the file's own body, reuse the
-      // lazily-parsed `file.mdast` so processMarkdown / toc / excerpt /
-      // references share a single parse. An explicit `value` overrides the
-      // body and is parsed fresh.
-      const source: MarkdownSource = value === undefined && file.mdast !== undefined ? file.mdast : body
       const g = project.markdown
       const copyLinkedFiles = options.copyLinkedFiles ?? g?.copyLinkedFiles ?? true
       const merged: MarkdownOptions = {
@@ -62,8 +57,7 @@ export const markdown = (options: MarkdownSchemaOptions = {}): Schema<string> =>
         }
       }
       try {
-        const { html } = await processMarkdown(source, merged)
-        return html
+        return await processMarkdown(body, merged)
       } catch (err) {
         addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
         return null as never

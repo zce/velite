@@ -135,6 +135,30 @@ test('engine/removal: bumps revision and invalidates dependents when an input is
   await rejects(engine.get(read, null), EngineError)
 })
 
+test('engine/backdating: a still-missing input dependency does not recompute on unrelated revisions', async () => {
+  const engine = createEngine()
+  const fallbackFn = mock.fn((ctx: Context) => {
+    try {
+      return ctx.input<number>('missing')
+    } catch (err) {
+      if (err instanceof EngineError && err.code === 'missing-input') return 0
+      throw err
+    }
+  })
+  const fallback: Derivation<null, number> = { name: 'fallback', compute: fallbackFn }
+
+  equal(await engine.get(fallback, null), 0)
+  equal(fallbackFn.mock.calls.length, 1)
+
+  engine.set('unrelated', 1)
+  equal(await engine.get(fallback, null), 0)
+  equal(fallbackFn.mock.calls.length, 1, 'unchanged missing state should be backdated')
+
+  engine.set('missing', 42)
+  equal(await engine.get(fallback, null), 42)
+  equal(fallbackFn.mock.calls.length, 2, 'setting the missing input must invalidate the fallback')
+})
+
 test('engine/cycle: rejects a dependency cycle instead of hanging', async () => {
   const engine = createEngine()
   const a: Derivation<null, number> = { name: 'a', compute: ctx => ctx.get(b, null) }

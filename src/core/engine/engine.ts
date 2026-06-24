@@ -66,6 +66,7 @@ interface Entry {
   verifiedAt: Revision
   changedAt: Revision
   lastUsed: Revision
+  stale: boolean
 }
 
 const KEY_SEPARATOR = '\0'
@@ -77,6 +78,7 @@ const hashValue = (value: unknown): string => hash(value instanceof Uint8Array ?
 export const createEngine = (): Engine => {
   const inputs = new Map<InputId, InputSlot>()
   const memos = new Map<string, Entry>()
+  const reverseDeps = new Map<string, Set<string>>()
   const running = new Map<string, Promise<unknown>>()
   let revision: Revision = 0
 
@@ -84,17 +86,52 @@ export const createEngine = (): Engine => {
 
   const digestOf = (derivation: Derivation<unknown, unknown>, value: unknown): string => (derivation.hash ? derivation.hash(value) : hashValue(value))
 
+  const tokenOf = (dep: Dependency): string => (dep.kind === 'input' ? 'i' + dep.id : 'd' + dep.memoKey)
+
+  const markStale = (token: string): void => {
+    const dependents = reverseDeps.get(token)
+    if (dependents === undefined) return
+    for (const memoKey of dependents) {
+      const entry = memos.get(memoKey)
+      if (entry === undefined || entry.stale) continue
+      entry.stale = true
+      markStale('d' + memoKey)
+    }
+  }
+
+  const replaceDeps = (memoKey: string, entry: Entry, deps: Dependency[]): void => {
+    for (const dep of entry.deps) {
+      const token = tokenOf(dep)
+      const dependents = reverseDeps.get(token)
+      if (dependents === undefined) continue
+      dependents.delete(memoKey)
+      if (dependents.size === 0) reverseDeps.delete(token)
+    }
+    for (const dep of deps) {
+      const token = tokenOf(dep)
+      let dependents = reverseDeps.get(token)
+      if (dependents === undefined) {
+        dependents = new Set()
+        reverseDeps.set(token, dependents)
+      }
+      dependents.add(memoKey)
+    }
+    entry.deps = deps
+  }
+
   const set = <V>(id: InputId, value: V): void => {
     const digest = hashValue(value)
     const prev = inputs.get(id)
     if (prev && prev.hash === digest) return
     revision++
     inputs.set(id, { value, hash: digest, changedAt: revision })
+    markStale('i' + id)
   }
 
   const remove = (id: InputId): void => {
     if (!inputs.delete(id)) return
     revision++
+    markStale('i' + id)
   }
 
   /** Whether any tracked dependency of `entry` changed since it was verified. */
@@ -102,11 +139,15 @@ export const createEngine = (): Engine => {
     for (const dep of entry.deps) {
       if (dep.kind === 'input') {
         const slot = inputs.get(dep.id)
-        if (slot === undefined || slot.changedAt > entry.verifiedAt) return true
+        if (slot === undefined) {
+          if (dep.missing) continue
+          return true
+        }
+        if (dep.missing || slot.changedAt > entry.verifiedAt) return true
       } else {
         const depEntry = memos.get(dep.memoKey)
         if (depEntry === undefined) return true
-        await demand(depEntry.derivation, depEntry.key, stack)
+        if (depEntry.stale) await demand(depEntry.derivation, depEntry.key, stack)
         const refreshed = memos.get(dep.memoKey)
         if (refreshed === undefined || refreshed.changedAt > entry.verifiedAt) return true
       }
@@ -114,7 +155,7 @@ export const createEngine = (): Engine => {
     return false
   }
 
-  const recompute = async (entry: Entry, computeStack: Set<string>, isFirst: boolean): Promise<void> => {
+  const recompute = async (memoKey: string, entry: Entry, computeStack: Set<string>, isFirst: boolean): Promise<void> => {
     const deps: Dependency[] = []
     const seen = new Set<string>()
     const record = (token: string, dep: Dependency): void => {
@@ -129,8 +170,8 @@ export const createEngine = (): Engine => {
         return demand(derivation as Derivation<unknown, unknown>, key, computeStack) as Promise<never>
       },
       input: <V>(id: InputId): V => {
-        record('i' + id, { kind: 'input', id })
         const slot = inputs.get(id)
+        record('i' + id, { kind: 'input', id, missing: slot === undefined })
         if (slot === undefined) throw new EngineError('missing-input', `input not set: ${id}`)
         return slot.value as V
       }
@@ -141,9 +182,10 @@ export const createEngine = (): Engine => {
     if (isFirst || digest !== entry.hash) entry.changedAt = revision
     entry.value = value
     entry.hash = digest
-    entry.deps = deps
+    replaceDeps(memoKey, entry, deps)
     entry.verifiedAt = revision
     entry.lastUsed = revision
+    entry.stale = false
   }
 
   const evaluate = async (derivation: Derivation<unknown, unknown>, key: unknown, memoKey: string, stack: Set<string>): Promise<unknown> => {
@@ -158,11 +200,12 @@ export const createEngine = (): Engine => {
         deps: [],
         verifiedAt: 0,
         changedAt: 0,
-        lastUsed: revision
+        lastUsed: revision,
+        stale: false
       }
       memos.set(memoKey, entry)
       try {
-        await recompute(entry, childStack, true)
+        await recompute(memoKey, entry, childStack, true)
       } catch (err) {
         memos.delete(memoKey)
         throw err
@@ -171,10 +214,11 @@ export const createEngine = (): Engine => {
     }
     existing.lastUsed = revision
     if (existing.verifiedAt === revision) return existing.value
-    if (await isDirty(existing, childStack)) {
-      await recompute(existing, childStack, false)
+    if (existing.stale && (await isDirty(existing, childStack))) {
+      await recompute(memoKey, existing, childStack, false)
     } else {
       existing.verifiedAt = revision
+      existing.stale = false
     }
     return existing.value
   }

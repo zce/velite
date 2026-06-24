@@ -6,7 +6,7 @@ import { dirname, join, stripQueryAndHash } from '../util/path'
 import { context } from './context'
 
 import type { PluggableList } from 'unified'
-import type { MarkdownOptions } from '../content/markdown'
+import type { MarkdownOptions, MarkdownSource } from '../content/markdown'
 import type { Schema } from './s'
 
 /** Options for the {@link markdown} schema. */
@@ -40,13 +40,14 @@ export const markdown = (options: MarkdownSchemaOptions = {}): Schema<string> =>
         return ''
       }
       const g = project.markdown
-      const copyLinkedFiles = options.copyLinkedFiles ?? g?.copyLinkedFiles ?? true
+      const userRemarkPlugins = [...(options.remarkPlugins ?? []), ...(g?.remarkPlugins ?? [])]
       const merged: MarkdownOptions = {
         gfm: options.gfm ?? g?.gfm ?? true,
         removeComments: options.removeComments ?? g?.removeComments ?? true,
-        remarkPlugins: [...(options.remarkPlugins ?? []), ...(g?.remarkPlugins ?? [])],
+        remarkPlugins: userRemarkPlugins,
         rehypePlugins: [...(options.rehypePlugins ?? []), ...(g?.rehypePlugins ?? [])]
       }
+      const copyLinkedFiles = options.copyLinkedFiles ?? g?.copyLinkedFiles ?? true
       if (copyLinkedFiles) {
         merged.processAsset = async (url: string): Promise<string> => {
           const absSourcePath = join(dirname(file.path), stripQueryAndHash(url))
@@ -56,8 +57,16 @@ export const markdown = (options: MarkdownSchemaOptions = {}): Schema<string> =>
           return result.publicUrl
         }
       }
+      // SSOT: reuse the lazily-cached file.mdast when:
+      // 1. No explicit field value (value === undefined)
+      // 2. GFM is enabled (file.mdast is GFM-parsed; gfm: false needs fresh parse)
+      // 3. No custom plugins (custom plugins transform the mdast differently
+      //    than the shared base parse, so we must re-parse from source)
+      const hasCustomPlugins = userRemarkPlugins.length > 0 || merged.rehypePlugins!.length > 0 || merged.processAsset != null
+      const useCache = value === undefined && (merged.gfm ?? true) && !hasCustomPlugins && file.mdast !== undefined
+      const source: MarkdownSource = useCache ? file.mdast! : body
       try {
-        return await processMarkdown(body, merged)
+        return await processMarkdown(source, merged)
       } catch (err) {
         addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
         return null as never

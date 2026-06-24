@@ -31,6 +31,13 @@ test('processMarkdown: preserves raw html when present', async () => {
   assert.ok(html.includes('<div class="x">raw</div>'), html)
 })
 
+test('processMarkdown: can render from an existing mdast tree (SSOT)', async () => {
+  const tree = parseMarkdown('# Parsed once\n\nA paragraph.')
+  const html = await processMarkdown(tree)
+  assert.ok(html.includes('<h1>Parsed once</h1>'))
+  assert.ok(html.includes('<p>A paragraph.</p>'))
+})
+
 test('processMdx: compiles mdx source to a non-empty javascript module', async () => {
   const code = await processMdx('# Hello', { minify: false })
   assert.ok(code.length > 0)
@@ -67,15 +74,15 @@ test('findReferences: only collects local urls', () => {
   assert.ok(refs.every(r => !r.url.startsWith('https://') && !r.url.startsWith('#')))
 })
 
-test('parseMarkdown: returns a CommonMark mdast root', () => {
+test('parseMarkdown: returns a GFM-aware mdast root', () => {
   const tree = parseMarkdown('# Hi')
   assert.equal(tree.type, 'root')
   assert.equal((tree as { children: { type: string }[] }).children[0]!.type, 'heading')
 })
 
-test('parseMarkdown: parses without GFM (plain fromMarkdown)', () => {
+test('parseMarkdown: parses with GFM (delete node)', () => {
   const tree = parseMarkdown('~~done~~')
   const para = (tree as { children: { type: string }[] }).children[0]!
   assert.equal(para.type, 'paragraph')
-  assert.equal((para as { children: { type: string; value: string }[] }).children[0]!.type, 'text')
+  assert.equal((para as { children: { type: string }[] }).children[0]!.type, 'delete')
 })

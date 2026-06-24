@@ -1,14 +1,16 @@
 // Markdown reference helpers: AST parsing, reference discovery, plain-text
 // extraction and table-of-contents extraction.
 //
-// Runtime-agnostic: depends only on `mdast-util-from-markdown` and
-// `unist-util-visit` (all pure, bundled devDeps). No node: builtins, no I/O.
+// Runtime-agnostic: depends only on `unified` / `remark-parse` / `remark-gfm`
+// / `unist-util-visit` (all pure, bundled devDeps). No node: builtins, no I/O.
 //
-// `parseMarkdown` returns a CommonMark mdast tree — no GFM, no plugins.
-// It is the shared base parse for toc/excerpt/references; schemas that need
-// their own plugin pipeline (e.g. s.markdown with gfm) re-parse independently.
+// `parseMarkdown` returns a GFM-aware mdast tree. It is the shared parse for
+// toc/excerpt/references AND for `s.markdown()` (which runs remark-rehype
+// directly on the tree, skipping the parse phase).
 
-import { fromMarkdown } from 'mdast-util-from-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkParse from 'remark-parse'
+import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
 
 import type { Root } from 'mdast'
@@ -80,5 +82,5 @@ export const extractToc = (tree: Root): TocItem[] => {
   return items
 }
 
-/** Parse markdown source into a CommonMark mdast tree (no GFM, no plugins). */
-export const parseMarkdown = (source: string): Root => fromMarkdown(source)
+/** Parse markdown source into a GFM-aware mdast tree (no plugins, no html). */
+export const parseMarkdown = (source: string): Root => unified().use(remarkParse).use(remarkGfm).parse(source) as Root

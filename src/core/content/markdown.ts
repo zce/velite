@@ -14,8 +14,18 @@ import { visit } from 'unist-util-visit'
 
 import { rehypeCopyLinkedFiles } from './asset-links'
 
+import type { Root as Mdast } from 'mdast'
 import type { PluggableList } from 'unified'
 import type { ProcessAsset } from './asset-links'
+
+/**
+ * A Markdown source: either a raw string, or a pre-parsed mdast tree.
+ *
+ * When a tree is passed, the remark/rehype pipeline runs directly on it
+ * (skipping the parse phase). Use `parseMarkdown()` from `reference.ts` to
+ * obtain a GFM-aware mdast tree from a string.
+ */
+export type MarkdownSource = string | Mdast
 
 /** Markdown rendering options. */
 export interface MarkdownOptions {
@@ -43,7 +53,7 @@ export interface MarkdownOptions {
 }
 
 /** Remove html comments (`<!-- ... -->`) from the mdast tree. */
-const remarkRemoveComments = () => (tree: import('mdast').Root) => {
+const remarkRemoveComments = () => (tree: Mdast) => {
   visit(tree, 'html', (node, index, parent) => {
     if (parent == null || index == null) return
     if (node.value.match(/<!--([\s\S]*?)-->/g)) {
@@ -54,14 +64,17 @@ const remarkRemoveComments = () => (tree: import('mdast').Root) => {
 }
 
 /**
- * Convert markdown source to HTML through the remark/rehype pipeline.
+ * Convert markdown to HTML through the remark/rehype pipeline.
  *
- * Always parses from source with the full plugin chain (GFM, custom remark/
- * rehype plugins). Callers that only need a CommonMark mdast tree for
- * toc/excerpt/reference extraction should use `parseMarkdown()` directly
- * and call `extractToc` / `extractText` / `findReferences` individually.
+ * When `source` is a string, the full pipeline runs (parse + transform +
+ * stringify). When it is an already-parsed mdast tree, the parse phase is
+ * skipped and the pipeline runs directly on a structured clone of the tree
+ * (so the caller's tree is never mutated by remark/rehype plugins).
+ *
+ * SSOT: callers that already have an mdast tree (e.g. from the lazily-cached
+ * `file.mdast`) should pass it directly to avoid a redundant parse.
  */
-export const processMarkdown = async (source: string, options: MarkdownOptions = {}): Promise<string> => {
+export const processMarkdown = async (source: MarkdownSource, options: MarkdownOptions = {}): Promise<string> => {
   const remarkPlugins: PluggableList = []
   if (options.gfm ?? true) remarkPlugins.push(remarkGfm)
   if (options.removeComments ?? true) remarkPlugins.push(remarkRemoveComments)
@@ -71,6 +84,14 @@ export const processMarkdown = async (source: string, options: MarkdownOptions =
   if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
   if (options.processAsset != null) rehypePlugins.push([rehypeCopyLinkedFiles, options.processAsset])
 
+  if (typeof source !== 'string') {
+    // Tree mode: skip parse, run remark/rehype transforms directly.
+    // The tree is cloned so plugins that mutate don't affect the caller's cache.
+    const pipeline = unified().use(remarkPlugins).use(remarkRehype, { allowDangerousHtml: true }).use(rehypeRaw).use(rehypePlugins).use(rehypeStringify)
+    return String(pipeline.stringify(await pipeline.run(structuredClone(source))))
+  }
+
+  // String mode: full parse + transform + stringify.
   return String(
     await unified()
       .use(remarkParse)

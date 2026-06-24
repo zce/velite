@@ -48,6 +48,15 @@ test('processMarkdown: returns toc, excerpt and references when requested', asyn
   assert.ok(result.references!.some(r => r.kind === 'link' && r.url === './page.md'))
 })
 
+test('processMarkdown: can render from an existing mdast tree', async () => {
+  const tree = parseMarkdown('# Parsed once\n\nA paragraph.')
+  const { html, toc, excerpt } = await processMarkdown(tree, { toc: true, excerpt: 50 })
+
+  assert.ok(html.includes('<h1>Parsed once</h1>'))
+  assert.equal(toc?.[0]?.title, 'Parsed once')
+  assert.equal(excerpt, 'Parsed once A paragraph.')
+})
+
 test('processMdx: compiles mdx source to a non-empty javascript module', async () => {
   const { code } = await processMdx('# Hello', { minify: false })
   assert.ok(code.length > 0)

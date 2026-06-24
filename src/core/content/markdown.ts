@@ -56,6 +56,14 @@ export interface MarkdownOptions {
   processAsset?: ProcessAsset
 }
 
+/**
+ * A Markdown source: either a raw string, or a pre-parsed mdast tree. Passing
+ * a tree lets callers (e.g. the schema layer) reuse a single parse across
+ * `processMarkdown` / toc / excerpt / references and avoid re-parsing the
+ * same body multiple times.
+ */
+export type MarkdownSource = string | Mdast
+
 /** Result of rendering markdown source. */
 export interface MarkdownResult {
   html: string
@@ -76,12 +84,13 @@ const remarkRemoveComments = () => (tree: Mdast) => {
 }
 
 /** Convert markdown source to HTML with optional toc, excerpt and reference discovery. */
-export const processMarkdown = async (source: string, options: MarkdownOptions = {}): Promise<MarkdownResult> => {
+export const processMarkdown = async (source: MarkdownSource, options: MarkdownOptions = {}): Promise<MarkdownResult> => {
   const enableGfm = options.gfm ?? true
   const removeComments = options.removeComments ?? true
 
-  const needsReferenceTree = options.toc === true || (options.excerpt !== undefined && options.excerpt > 0) || options.references === true
-  const tree = needsReferenceTree ? parseMarkdown(source) : undefined
+  const isTree = typeof source !== 'string'
+  const needsTree = options.toc === true || (options.excerpt !== undefined && options.excerpt > 0) || options.references === true
+  const tree = isTree ? source : needsTree ? parseMarkdown(source) : undefined
 
   const remarkPlugins: PluggableList = []
   if (enableGfm) remarkPlugins.push(remarkGfm)
@@ -92,16 +101,20 @@ export const processMarkdown = async (source: string, options: MarkdownOptions =
   if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
   if (options.processAsset != null) rehypePlugins.push([rehypeCopyLinkedFiles, options.processAsset])
 
-  const file = await unified()
+  const processor = unified()
     .use(remarkParse)
     .use(remarkPlugins)
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeRaw)
     .use(rehypePlugins)
     .use(rehypeStringify)
-    .process(source)
 
-  const result: MarkdownResult = { html: String(file) }
+  // When `source` is a tree, we run remark/rehype transforms over a structured
+  // clone so plugins that mutate (e.g. rehypeCopyLinkedFiles) don't affect the
+  // shared mdast cache on the content file.
+  const html = isTree ? String(processor.stringify(await processor.run(structuredClone(source)))) : String(await processor.process(source))
+
+  const result: MarkdownResult = { html }
   if (options.toc) result.toc = extractToc(tree!)
   if (options.excerpt && options.excerpt > 0) result.excerpt = extractText(tree!, options.excerpt)
   if (options.references) result.references = findReferences(tree!)

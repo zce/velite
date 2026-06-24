@@ -249,6 +249,59 @@ test('s.file: full build parses a record once while resolving a content-relative
   equal(parseCount, 1)
 })
 
+test('assets: incremental content-only changes do not recopy unchanged assets', async () => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string(), doc: s.file() }) } }
+  }
+  const postPath = join(CWD, 'content/posts/a.json')
+  const assetPath = join(CWD, 'content/posts/report.pdf')
+  const { runtime, fs } = setup(config, {
+    [postPath]: JSON.stringify([{ title: 'A', doc: './report.pdf' }]),
+    [assetPath]: new Uint8Array([0x25, 0x50, 0x44, 0x46])
+  })
+  const reads: string[] = []
+  const writes: string[] = []
+  const countedFs: TestRuntime['fs'] = {
+    read: async path => {
+      reads.push(path)
+      return fs.read(path)
+    },
+    stat: path => fs.stat(path),
+    walk: (root, options) => fs.walk(root, options),
+    write: async (path, data) => {
+      writes.push(path)
+      await fs.write(path, data)
+    },
+    remove: path => fs.remove(path)
+  }
+  const builder = createBuilder({ ...runtime, fs: countedFs, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
+  const first = await builder.build({ layout: 'single' })
+  equal(first.diagnostics.length, 0, JSON.stringify(first.diagnostics))
+  ok(
+    first.written.some(path => path.startsWith(ASSETS_DIR)),
+    'initial build writes the asset'
+  )
+
+  reads.length = 0
+  writes.length = 0
+  fs.put(postPath, JSON.stringify([{ title: 'A updated', doc: './report.pdf' }]))
+  const second = await builder.apply([{ type: 'change', absPath: postPath }])
+
+  ok(second !== undefined, 'content change rebuilds')
+  equal(second.diagnostics.length, 0, JSON.stringify(second.diagnostics))
+  deepEqual(
+    reads.filter(path => path === assetPath),
+    [],
+    'unchanged asset should not be reread on a content-only rebuild'
+  )
+  deepEqual(
+    writes.filter(path => path.startsWith(ASSETS_DIR)),
+    [],
+    'unchanged asset should not be rewritten on a content-only rebuild'
+  )
+})
+
 test('s.file: does not probe non-image assets', async () => {
   let probes = 0
   const image: ImageProcessor = {

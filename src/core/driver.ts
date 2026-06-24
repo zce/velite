@@ -15,6 +15,7 @@ import type { Engine } from './engine'
 import type { LogicalOutput } from './output/logical'
 import type { DataManifest, OutputManifest } from './output/manifest'
 import type { Pipeline, TreeFile } from './pipeline'
+import type { Emitted } from './pipeline/types'
 
 /**
  * Runtime capabilities the driver actually touches at build time. Stated
@@ -38,6 +39,10 @@ export interface RunContext {
   manifest: DataManifest
   /** Asset dest paths written in the previous successful run (reconcile set). */
   assetManifest: Set<string>
+  lastEmitted?: Emitted
+  sourceCollections: Map<string, Set<string>>
+  changedPaths?: Set<string>
+  patchedCollections?: Set<string>
 }
 
 export interface BuildResult {
@@ -187,16 +192,75 @@ const readSources = async (context: RunContext): Promise<void> => {
  * Asset read failures become fatal `ASSET_FAILED` diagnostics rather than
  * crashing the build.
  */
-const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Promise<BuildResult> => {
+const rememberEmitted = (context: RunContext, emitted: Emitted): void => {
+  context.lastEmitted = emitted
+  const sourceCollections = new Map<string, Set<string>>()
+  for (const [name, collection] of Object.entries(emitted.output.collections)) {
+    for (const entry of collection.entries) {
+      let collections = sourceCollections.get(entry.source)
+      if (collections === undefined) {
+        collections = new Set()
+        sourceCollections.set(entry.source, collections)
+      }
+      collections.add(name)
+    }
+  }
+  context.sourceCollections = sourceCollections
+}
+
+const hasUniqueEffect = (emitted: Emitted): boolean => emitted.effects.some(effect => effect.type === 'unique')
+
+const tryPatchEmitted = async (context: RunContext): Promise<Emitted | undefined> => {
+  const previous = context.lastEmitted
+  const changedPaths = context.changedPaths
+  if (previous === undefined || changedPaths === undefined || changedPaths.size === 0) return undefined
+  if (context.config.prepare !== undefined || previous.diagnostics.length > 0 || hasUniqueEffect(previous)) return undefined
+
+  const collections: Emitted['output']['collections'] = { ...previous.output.collections }
+  let effects = previous.effects
+  const diagnostics: Emitted['diagnostics'] = []
+  const patchedCollections = new Set<string>()
+
+  for (const path of changedPaths) {
+    const collectionNames = context.sourceCollections.get(path)
+    if (collectionNames === undefined || collectionNames.size === 0) return undefined
+    for (const collectionName of collectionNames) {
+      const meta = context.config.collections.find(collection => collection.name === collectionName)
+      if (meta === undefined || meta.single) return undefined
+      const current = collections[collectionName]
+      if (current === undefined || current.mode !== 'list') return undefined
+
+      const validated = await context.engine.get(context.pipeline.validate, { collection: collectionName, path })
+      if (validated.diagnostics.length > 0 || validated.effects.some(effect => effect.type === 'unique')) return undefined
+      diagnostics.push(...validated.diagnostics)
+
+      const removedOwners = new Set<string>(current.entries.filter(entry => entry.source === path).map(entry => entry.id))
+      const entries = current.entries.filter(entry => entry.source !== path)
+      entries.push(...validated.entries)
+      entries.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      collections[collectionName] = { ...current, entries }
+      effects = effects.filter(effect => !removedOwners.has(effect.owner))
+      effects.push(...validated.effects)
+      patchedCollections.add(collectionName)
+    }
+  }
+
+  context.patchedCollections = patchedCollections
+  return { output: { collections }, effects, diagnostics }
+}
+
+const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', patched?: Emitted): Promise<BuildResult> => {
   const { engine, pipeline, config, runtime } = context
 
   // Pass 1: discover asset references via the schema parse.
-  let emitted = await engine.get(pipeline.emit, null)
+  let emitted = patched ?? (await engine.get(pipeline.emit, null))
   for (const [name, collection] of Object.entries(emitted.output.collections)) {
     runtime.logger.debug(`resolved ${collection.entries.length} ${name}`)
   }
 
-  // Collect unique asset references (by assetKey) and feed their bytes.
+  // Collect unresolved asset references (by assetKey) and feed their bytes.
+  // Resolved assets already have a stable content-hashed URL from the asset
+  // derivation's lazy read path; only placeholders need the second pass.
   const assetBytes = new Map<string, Uint8Array>()
   const assetReadDiagnostics: Diagnostic[] = []
   const assetRefs = new Map<string, string>()
@@ -205,6 +269,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
     if (effect.type !== 'asset') continue
     if (!effect.resolved) hasUnresolvedAssets = true
     const assetKey = assetKeyOf(effect.assetPath, config.root)
+    if (effect.resolved) continue
     if (assetRefs.has(assetKey)) continue
     assetRefs.set(assetKey, effect.assetPath)
   }
@@ -225,7 +290,6 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
       }
     })
   )
-
   // Pass 2: re-emit with real asset data (only when at least one asset was fed;
   // if every read failed, pass 2 would reproduce placeholders and the fatal
   // diagnostics below discard the output anyway).
@@ -235,6 +299,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
 
   // Diagnostics known before the prepare hook: schema/unique (from emit) + asset
   // read failures. Asset *write* failures happen during the copy below.
+  const preparedAssetReadDiagnostics = assetReadDiagnostics.length
   let diagnostics = [...emitted.diagnostics, ...assetReadDiagnostics]
 
   // Apply the user-facing `prepare` hook between emit and any writes. The hook
@@ -278,17 +343,44 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   const written: string[] = []
   const desiredAssets = new Set<string>()
   const assetWriteDiagnostics: Diagnostic[] = []
-  const assetWrites: Promise<void>[] = []
+  const assetsToWrite: Array<{ assetKey: string; assetPath: string; dest: string }> = []
+  const assetWriteReads = new Map<string, string>()
   for (const effect of emitted.effects) {
     if (effect.type !== 'asset') continue
-    const assetKey = assetKeyOf(effect.assetPath, config.root)
-    const bytes = assetBytes.get(assetKey)
-    if (bytes === undefined) continue
     const outputName = effect.publicUrl.slice(config.output.base.length)
     if (outputName.length === 0) continue
     const dest = join(config.output.assets, outputName)
     if (desiredAssets.has(dest)) continue
     desiredAssets.add(dest)
+    if (context.assetManifest.has(dest)) continue
+    const assetKey = assetKeyOf(effect.assetPath, config.root)
+    assetsToWrite.push({ assetKey, assetPath: effect.assetPath, dest })
+    if (!assetWriteReads.has(assetKey)) assetWriteReads.set(assetKey, effect.assetPath)
+  }
+
+  await Promise.all(
+    Array.from(assetWriteReads, async ([assetKey, assetPath]) => {
+      if (assetBytes.has(assetKey)) return
+      try {
+        const bytes = await runtime.fs.read(assetPath)
+        assetBytes.set(assetKey, bytes)
+      } catch (err) {
+        assetReadDiagnostics.push(
+          diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${assetPath}`, {
+            stage: 'asset',
+            file: assetPath,
+            cause: err
+          })
+        )
+      }
+    })
+  )
+  diagnostics.push(...assetReadDiagnostics.slice(preparedAssetReadDiagnostics))
+
+  const assetWrites: Promise<void>[] = []
+  for (const { assetKey, assetPath, dest } of assetsToWrite) {
+    const bytes = assetBytes.get(assetKey)
+    if (bytes === undefined) continue
     assetWrites.push(
       runtime.fs.write(dest, bytes).then(
         () => {
@@ -299,7 +391,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
           assetWriteDiagnostics.push(
             diagnostic('error', 'ASSET_FAILED', `failed to write asset: ${dest}`, {
               stage: 'asset',
-              file: effect.assetPath,
+              file: assetPath,
               cause: err
             })
           )
@@ -316,7 +408,6 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
   if (hasFatalDiagnostic(finalDiagnostics)) {
     throw new VeliteError(codeFromDiagnostics(finalDiagnostics), { diagnostics: finalDiagnostics })
   }
-
   const { written: dataWritten, manifest } = await writeOutput(
     output,
     {
@@ -326,11 +417,14 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
       configPath: config.configPath,
       collections: config.collections,
       format: config.output.format,
-      pretty: layout === 'split'
+      pretty: layout === 'split',
+      changedCollections: patched === undefined ? undefined : context.patchedCollections,
+      changedSources: patched === undefined ? undefined : context.changedPaths
     },
     context.manifest
   )
   context.manifest = manifest
+  rememberEmitted(context, { output, effects: emitted.effects, diagnostics: finalDiagnostics })
   written.push(...dataWritten)
   const dataFileCount = Object.keys(output.collections).length
   runtime.logger.debug(`output ${dataFileCount} data ${dataFileCount === 1 ? 'file' : 'files'}`)
@@ -348,11 +442,18 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single'): Pr
 const runBuild = async (context: RunContext, layout: 'split' | 'single' = 'split'): Promise<BuildResult> => {
   await refreshTree(context)
   await readSources(context)
+  context.changedPaths = undefined
   return emitAndWrite(context, layout)
 }
 
 /** Re-emit after inputs were patched (incremental). Skips full tree walk and bulk read. */
-const runIncremental = async (context: RunContext, layout: 'split' | 'single' = 'split'): Promise<BuildResult> => emitAndWrite(context, layout)
+const runIncremental = async (context: RunContext, layout: 'split' | 'single' = 'split'): Promise<BuildResult> => {
+  const patched = await tryPatchEmitted(context)
+  const result = await emitAndWrite(context, layout, patched)
+  context.changedPaths = undefined
+  context.patchedCollections = undefined
+  return result
+}
 
 /**
  * Apply file events to engine inputs. Returns whether a config reload, content
@@ -362,6 +463,8 @@ const applyChanges = async (context: RunContext, events: FileEvent[]): Promise<A
   const { engine, config, runtime } = context
   let configReload = false
   let content = false
+  let changedPaths: Set<string> | undefined = new Set()
+  let treeChanged = false
 
   const classifyOpts = {
     cwd: context.cwd,
@@ -394,6 +497,8 @@ const applyChanges = async (context: RunContext, events: FileEvent[]): Promise<A
       engine.remove(assetInput(assetKey))
       context.tree = context.tree.filter(f => f.path !== rel)
       content = true
+      changedPaths = undefined
+      treeChanged = true
       continue
     }
 
@@ -402,26 +507,32 @@ const applyChanges = async (context: RunContext, events: FileEvent[]): Promise<A
       const entry: TreeFile = { path: rel, absPath: event.absPath, stat }
       const index = context.tree.findIndex(f => f.path === rel)
       if (index >= 0) context.tree[index] = entry
-      else context.tree.push(entry)
-      sortTree(context.tree)
-      engine.set(TREE, context.tree)
+      else {
+        context.tree.push(entry)
+        sortTree(context.tree)
+        treeChanged = true
+      }
       const bytes = await runtime.fs.read(event.absPath)
       engine.set(fileInput(rel), bytes)
       // Feed the asset input too: the file may be an asset source referenced by
       // a schema. Over-inclusive but correct — unused inputs are never demanded.
       engine.set(assetInput(assetKey), bytes)
+      if (changedPaths !== undefined && event.type === 'change') changedPaths.add(rel)
+      else changedPaths = undefined
       content = true
     } catch {
       // Race: file disappeared between event and read — treat as unlink.
       engine.remove(fileInput(rel))
       engine.remove(assetInput(assetKey))
       context.tree = context.tree.filter(f => f.path !== rel)
-      engine.set(TREE, context.tree)
       content = true
+      changedPaths = undefined
+      treeChanged = true
     }
   }
 
-  if (content) engine.set(TREE, context.tree)
+  if (treeChanged) engine.set(TREE, context.tree)
+  context.changedPaths = content ? changedPaths : undefined
   if (configReload) return 'config-reload'
   if (content) return 'content'
   return 'none'
@@ -445,7 +556,8 @@ export const createRunContext = async ({ engine, pipeline, config, runtime, cwd 
     cwd,
     tree: [],
     manifest: { files: persisted.files },
-    assetManifest: new Set(persisted.assets)
+    assetManifest: new Set(persisted.assets),
+    sourceCollections: new Map()
   }
 }
 

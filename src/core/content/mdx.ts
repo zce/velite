@@ -51,6 +51,12 @@ export interface MdxOptions {
 export interface ProcessMdxOptions extends MdxOptions {
   /** Source path hint passed to the compiler (vfile path). */
   path?: string
+  /**
+   * Pre-parsed MDX mdast tree. When provided, the MDX processor skips the
+   * parse step and goes directly to run + compile. Callers that parse once
+   * and need both toc/excerpt and compiled code can pass the tree here.
+   */
+  mdast?: Mdast
 }
 
 /** Remove `/* ... *​/` comments from mdx flow expressions. */
@@ -67,9 +73,14 @@ const remarkRemoveComments = () => (tree: Mdast) => {
 /**
  * Compile MDX source to a JavaScript module string.
  *
- * Always parses from source with the full plugin chain (GFM, custom remark/
- * rehype plugins). Callers that only need a CommonMark mdast tree for
- * toc/excerpt/reference extraction should use `parseMarkdown()` directly.
+ * Uses `createProcessor` from `@mdx-js/mdx` for a clean three-phase pipeline:
+ *
+ *   1. `processor.parse(source)`  → mdast  (skipped when `options.mdast` is provided)
+ *   2. `processor.run(mdast)`     → estree
+ *   3. `processor.stringify(estree)` → JS string
+ *
+ * Callers that only need a CommonMark mdast tree for toc/excerpt/reference
+ * extraction should use `parseMarkdown()` directly.
  */
 export const processMdx = async (source: string, options: ProcessMdxOptions = {}): Promise<string> => {
   const remarkPlugins: PluggableList = []
@@ -81,17 +92,19 @@ export const processMdx = async (source: string, options: ProcessMdxOptions = {}
   const rehypePlugins: PluggableList = []
   if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins)
 
-  const { compile } = await import('@mdx-js/mdx')
-  const compiled = await compile(
-    { value: source, path: options.path },
-    {
-      development: options.development ?? false,
-      outputFormat: options.outputFormat ?? 'function-body',
-      remarkPlugins,
-      rehypePlugins
-    }
-  )
-  let code = String(compiled)
+  const { createProcessor } = await import('@mdx-js/mdx')
+  const processor = createProcessor({
+    development: options.development ?? false,
+    outputFormat: options.outputFormat ?? 'function-body',
+    remarkPlugins,
+    rehypePlugins
+  })
+
+  const mdast = options.mdast ?? processor.parse(source)
+  // @ts-expect-error — @mdx-js/mdx type declares HeadTree as Program but the
+  // processor actually accepts mdast Root at runtime (parse → run → stringify).
+  const estree = await processor.run(mdast)
+  let code = String(processor.stringify(estree))
 
   if (options.minify ?? true) {
     const { minify } = await import('terser')

@@ -106,3 +106,17 @@ Load a subdirectory's `AGENTS.md` when you are about to work primarily in that d
 | Planning, research, or session management | `.agents/AGENTS.md`  |
 
 Skip if you are only passing through (e.g. a quick grep or single-file read).
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as GitHub issues in `zce/velite` (uses `gh` CLI). See `.agents/issue-tracker.md`.
+
+### Triage labels
+
+Five default canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `.agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` + `adr/`. See `.agents/domain.md`.

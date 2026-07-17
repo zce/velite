@@ -1,7 +1,7 @@
 # Define cache identity, lifetime, and concurrency semantics
 
 Status: needs-triage
-GitHub: #395
+Origin: #395 (deleted from GitHub)
 Created: 2026-07-15T12:06:50Z
 Type: grilling
 

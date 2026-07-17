@@ -1,7 +1,7 @@
 # Preserve VFile path and state across MDX processing phases
 
 Status: needs-triage
-GitHub: #404
+Origin: #404 (deleted from GitHub)
 Created: 2026-07-16T02:25:18Z
 Labels: bug
 
@@ -19,4 +19,4 @@ Either preserve one path-aware branch VFile across all supported phases or remov
 
 ## Design context
 
-The supported phase split is being evaluated in [Choose the shared processing and cache architecture](https://github.com/zce/velite/issues/392) and [Define plugin execution and isolation semantics](https://github.com/zce/velite/issues/393). Research evidence is recorded in [Establish the safe reuse boundaries of Unified and MDX processors](https://github.com/zce/velite/issues/388).
+The supported phase split is being evaluated in [Choose the shared processing and cache architecture](05-choose-the-shared-processing-and-cache-architecture.md) and [Define plugin execution and isolation semantics](06-define-plugin-execution-and-isolation-semantics.md). Research evidence is recorded in [Establish the safe reuse boundaries of Unified and MDX processors](01-establish-the-safe-reuse-boundaries-of-unified-and-mdx-proce.md).

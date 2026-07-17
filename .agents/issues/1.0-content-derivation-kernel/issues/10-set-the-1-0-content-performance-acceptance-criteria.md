@@ -1,7 +1,7 @@
 # Set the 1.0 content performance acceptance criteria
 
 Status: needs-triage
-GitHub: #397
+Origin: #397 (deleted from GitHub)
 Created: 2026-07-15T12:06:55Z
 Type: grilling
 

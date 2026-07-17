@@ -1,7 +1,7 @@
 # Rewrite linked HTML asset properties independently
 
 Status: needs-triage
-GitHub: #403
+Origin: #403 (deleted from GitHub)
 Created: 2026-07-16T02:25:18Z
 Labels: bug
 
@@ -21,4 +21,4 @@ Track and rewrite each `{node, property}` occurrence independently. Each source 
 
 ## Design context
 
-Plugin and effect semantics are being designed in [Define plugin execution and isolation semantics](https://github.com/zce/velite/issues/393) and [Define asset effects, diagnostics, and failure semantics](https://github.com/zce/velite/issues/396).
+Plugin and effect semantics are being designed in [Define plugin execution and isolation semantics](06-define-plugin-execution-and-isolation-semantics.md) and [Define asset effects, diagnostics, and failure semantics](09-define-asset-effects-diagnostics-and-failure-semantics.md).

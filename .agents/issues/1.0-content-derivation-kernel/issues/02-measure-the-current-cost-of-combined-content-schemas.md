@@ -1,7 +1,7 @@
 # Measure the current cost of combined content schemas
 
 Status: needs-triage
-GitHub: #389
+Origin: #389 (deleted from GitHub)
 Created: 2026-07-15T12:06:37Z
 Type: task
 

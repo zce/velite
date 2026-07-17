@@ -1,7 +1,7 @@
 # Process linked assets in inline MDX JSX elements
 
 Status: needs-triage
-GitHub: #401
+Origin: #401 (deleted from GitHub)
 Created: 2026-07-16T02:25:18Z
 Labels: bug
 
@@ -21,4 +21,4 @@ Apply the same static string-attribute handling to both flow and text MDX JSX el
 
 ## Design context
 
-The broader plugin contract is being decided in [Define plugin execution and isolation semantics](https://github.com/zce/velite/issues/393), part of [Design the 1.0 shared content derivation kernel](https://github.com/zce/velite/issues/387).
+The broader plugin contract is being decided in [Define plugin execution and isolation semantics](06-define-plugin-execution-and-isolation-semantics.md), part of [Design the 1.0 shared content derivation kernel](../map.md).

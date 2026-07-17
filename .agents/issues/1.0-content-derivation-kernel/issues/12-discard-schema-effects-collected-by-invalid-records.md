@@ -1,7 +1,7 @@
 # Discard schema effects collected by invalid records
 
 Status: needs-triage
-GitHub: #399
+Origin: #399 (deleted from GitHub)
 Created: 2026-07-16T02:25:17Z
 Labels: bug
 
@@ -23,4 +23,4 @@ Invalid records can currently cause asset work or participate in cross-record un
 
 ## Design context
 
-The broader transaction and failure contract is being decided in [Define asset effects, diagnostics, and failure semantics](https://github.com/zce/velite/issues/396), part of [Design the 1.0 shared content derivation kernel](https://github.com/zce/velite/issues/387). This defect exists independently of the selected 1.0 architecture.
+The broader transaction and failure contract is being decided in [Define asset effects, diagnostics, and failure semantics](09-define-asset-effects-diagnostics-and-failure-semantics.md), part of [Design the 1.0 shared content derivation kernel](../map.md). This defect exists independently of the selected 1.0 architecture.

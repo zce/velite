@@ -1,7 +1,7 @@
 # Establish the safe reuse boundaries of Unified and MDX processors
 
 Status: resolved
-GitHub: #388
+Origin: #388 (deleted from GitHub)
 Created: 2026-07-15T12:06:35Z
 Type: research
 

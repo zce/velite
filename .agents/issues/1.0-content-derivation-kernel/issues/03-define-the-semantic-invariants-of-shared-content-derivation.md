@@ -1,7 +1,7 @@
 # Define the semantic invariants of shared content derivation
 
 Status: needs-triage
-GitHub: #390
+Origin: #390 (deleted from GitHub)
 Created: 2026-07-15T12:06:39Z
 Type: grilling
 

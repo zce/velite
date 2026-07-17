@@ -1,7 +1,7 @@
 # Choose the public composition model for content derivations
 
 Status: needs-triage
-GitHub: #391
+Origin: #391 (deleted from GitHub)
 Created: 2026-07-15T12:06:41Z
 Type: prototype
 

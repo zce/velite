@@ -1,7 +1,7 @@
 # Make s.toc derive from an explicit input value
 
 Status: needs-triage
-GitHub: #400
+Origin: #400 (deleted from GitHub)
 Created: 2026-07-16T02:25:18Z
 Labels: bug
 
@@ -19,4 +19,4 @@ When an explicit value is provided, derive the TOC from that value. Use the file
 
 ## Design context
 
-The long-term relationship between value transforms and file derivations is being decided in [Define the semantic invariants of shared content derivation](https://github.com/zce/velite/issues/390) and [Choose the public composition model for content derivations](https://github.com/zce/velite/issues/391). This issue records the current contract violation without prescribing the 1.0 public model.
+The long-term relationship between value transforms and file derivations is being decided in [Define the semantic invariants of shared content derivation](03-define-the-semantic-invariants-of-shared-content-derivation.md) and [Choose the public composition model for content derivations](04-choose-the-public-composition-model-for-content-derivations.md). This issue records the current contract violation without prescribing the 1.0 public model.

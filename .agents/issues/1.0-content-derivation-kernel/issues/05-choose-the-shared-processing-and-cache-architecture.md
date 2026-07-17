@@ -1,7 +1,7 @@
 # Choose the shared processing and cache architecture
 
 Status: needs-triage
-GitHub: #392
+Origin: #392 (deleted from GitHub)
 Created: 2026-07-15T12:06:44Z
 Type: prototype
 

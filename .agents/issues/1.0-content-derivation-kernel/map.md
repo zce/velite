@@ -1,7 +1,7 @@
 # Design the 1.0 shared content derivation kernel
 
 Status: open
-GitHub: #387
+Origin: #387 (deleted from GitHub)
 Created: 2026-07-15T12:06:06Z
 
 ---
@@ -20,7 +20,7 @@ Correctness and predictable semantics are hard constraints; optimize representat
 
 ## Decisions so far
 
-- [Establish the safe reuse boundaries of Unified and MDX processors](https://github.com/zce/velite/issues/388) - Reuse only format/config-matched pristine parse trees; clone tree and VFile per transforming branch, with processor concurrency remaining plugin-dependent.
+- [Establish the safe reuse boundaries of Unified and MDX processors](01-establish-the-safe-reuse-boundaries-of-unified-and-mdx-proce.md) - Reuse only format/config-matched pristine parse trees; clone tree and VFile per transforming branch, with processor concurrency remaining plugin-dependent.
 
 ## Not yet specified
 

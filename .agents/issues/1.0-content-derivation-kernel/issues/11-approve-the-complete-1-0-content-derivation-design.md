@@ -1,7 +1,7 @@
 # Approve the complete 1.0 content derivation design
 
 Status: needs-triage
-GitHub: #398
+Origin: #398 (deleted from GitHub)
 Created: 2026-07-15T12:06:57Z
 Type: grilling
 

@@ -1,7 +1,7 @@
 # Define plugin execution and isolation semantics
 
 Status: needs-triage
-GitHub: #393
+Origin: #393 (deleted from GitHub)
 Created: 2026-07-15T12:06:46Z
 Type: grilling
 

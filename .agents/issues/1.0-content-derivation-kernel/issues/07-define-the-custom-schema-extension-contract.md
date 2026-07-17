@@ -1,7 +1,7 @@
 # Define the custom schema extension contract
 
 Status: needs-triage
-GitHub: #394
+Origin: #394 (deleted from GitHub)
 Created: 2026-07-15T12:06:48Z
 Type: grilling
 

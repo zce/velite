@@ -1,7 +1,7 @@
 # Remove comments without dropping surrounding content
 
 Status: needs-triage
-GitHub: #402
+Origin: #402 (deleted from GitHub)
 Created: 2026-07-16T02:25:18Z
 Labels: bug
 
@@ -21,4 +21,4 @@ Remove only comment syntax and preserve all non-comment content, with explicit b
 
 ## Design context
 
-Ordering and mutation isolation are being decided in [Define plugin execution and isolation semantics](https://github.com/zce/velite/issues/393).
+Ordering and mutation isolation are being decided in [Define plugin execution and isolation semantics](06-define-plugin-execution-and-isolation-semantics.md).

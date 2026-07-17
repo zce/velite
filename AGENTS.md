@@ -111,7 +111,7 @@ Skip if you are only passing through (e.g. a quick grep or single-file read).
 
 ### Issue tracker
 
-Issues live as GitHub issues in `zce/velite` (uses `gh` CLI). See `.agents/issue-tracker.md`.
+Issues live as local markdown files under `.agents/issues/<feature>/`. See `.agents/issue-tracker.md`.
 
 ### Triage labels
 

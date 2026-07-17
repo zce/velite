@@ -1,0 +1,100 @@
+# Module Architecture
+
+Velite uses explicit factory dependency injection for modules that own dependencies, lifecycle, state, or replaceable capabilities. This is a hard rule for source architecture, but it is not a rule that every `.ts` file must be a factory.
+
+## Canonical factory shape
+
+Use explicit exported types plus a plain factory function. Do not add an identity helper such as `defineModule()` unless it enforces a real invariant that plain TypeScript cannot express.
+
+```ts
+export interface XxxDeps {
+  dependency: Dependency
+}
+
+export interface Xxx {
+  run(input: Input): Promise<Output>
+}
+
+export const createXxx = ({ dependency }: XxxDeps): Xxx => {
+  return {
+    async run(input) {
+      return dependency.execute(input)
+    }
+  }
+}
+```
+
+If the module already has an accurate domain type, use that name instead of adding a `Module` suffix. Example: `BuilderDeps` + `Builder` + `createBuilder()`. Zero-dependency factories may omit a deps parameter. Do not invent empty deps types solely for visual symmetry.
+
+## When a factory is required
+
+Use `createXxx(deps)` for modules that are any of the following:
+
+- **Dependency-bearing**: uses filesystem, logger, image processor, module loader, watcher, config loader, network client, clock, random source, or other replaceable capability.
+- **Stateful**: owns cache, manifest, engine state, scheduler state, watcher state, locks, mutable session state, or lifecycle handles.
+- **Lifecycle-managed**: needs `dispose()`, `close()`, `clean()`, subscription teardown, or explicit initialization.
+- **Composition-oriented**: wires multiple lower-level modules into a larger API.
+- **Runtime adapter**: binds platform-specific implementations to runtime interfaces.
+
+Dependencies must be visible and typed at the factory boundary. Do not create infrastructure dependencies inside a business module unless that module directly owns them.
+
+## Composition roots
+
+Concrete dependency wiring belongs in a dedicated composition root. Good examples:
+
+- Public entry facades that assemble a runtime and call a builder factory.
+- Runtime adapter modules that assemble platform capabilities.
+- Builder or pipeline factories that compose smaller derivations or services from explicit inputs.
+
+Composition roots may create default instances for public convenience, but the underlying capability should still be replaceable in tests.
+
+The composition roots in this repo: `createBuilder` (`src/core/builder.ts`), `createPipeline` (`src/core/pipeline/index.ts`), the public `builder` facade (`src/index.ts`), `createRunContext` + `createDriver` (`src/core/driver.ts`), and `createScheduler` (`src/core/scheduler.ts`).
+
+## Allowed direct exports
+
+Do not wrap these in factories unless they later gain dependencies, lifecycle state, or a replaceable capability boundary:
+
+- Pure functions and deterministic utilities (`src/core/util/`).
+- Type-only modules, interfaces, and type aliases.
+- Constants, symbols, and input keys.
+- Error classes and assertion helpers.
+- Schema builders, schema namespaces, and identity helpers such as `defineConfig` or `defineCollection`.
+- Public facade functions that delegate to an internal composition root.
+
+## Dependency and input separation
+
+Keep construction dependencies separate from operation inputs.
+
+```ts
+// Correct
+const users = createUserModule({ db, logger })
+await users.getUser({ userId })
+
+// Incorrect
+await getUser({ db, logger, userId })
+```
+
+Dependencies and business inputs have different lifecycles and should not share the same parameter object.
+
+## Prohibited patterns
+
+The following are prohibited unless explicitly requested:
+
+| Pattern                   | Example                                      | Reason                                      |
+| ------------------------- | -------------------------------------------- | ------------------------------------------- |
+| DI containers             | `container.resolve(...)`                     | hidden dependencies, hard tracing           |
+| Service locator           | `services.user.getUser(...)`                 | dependencies become invisible               |
+| Singleton modules         | `export const userService = ...`             | harder testing and lifecycle control        |
+| Decorator-based injection | `@injectable()` / `@inject()`                | requires runtime metadata and hidden wiring |
+| Runtime auto-registration | `loadModules()` / `scanDirectory()`          | dependencies become implicit                |
+| Shared utility buckets    | `common` / `shared` / `utils`                | accumulate unrelated responsibilities       |
+| Hidden global state       | `globalThis.xxx`, module-level mutable state | unless intentionally process-wide           |
+| Dependency mixing         | `execute({ db, logger, userId })`            | different lifecycles conflated              |
+
+Prefer domain-oriented modules over utility buckets.
+
+## Allowed exception: ambient schema context
+
+`context()` (`src/core/schema/context.ts`) is the one intentional piece of hidden global state in core. Zod's transform callback signature `(value, ctx) => ...` forbids passing ambient context explicitly, so a late-bound `ContextStorage` (`src/runtime/contextual.ts`) is the thinnest possible escape hatch. The composition root (`createBuilder`) installs it exactly once per process. See `schema-context.md` for what it carries and the rules for using it.
+
+It must only expose execution-scoped metadata (the current `SchemaContext`), never services. This is metadata-only, consistent with the explicit-over-magic principle: explicit imports, explicit dependencies, explicit construction, static typing. Avoid runtime scanning, automatic registration, decorators, reflection, and hidden global containers.

@@ -146,3 +146,150 @@ All prior Ticket 11 blockers are superseded:
 - Tickets 21 and 22 fix process-host ownership, Builder isolation, immutable VFile seed continuity, parser responsibility, and the absence of a no-share marker.
 
 The complete design is therefore approved for handoff to a later implementation-planning flow. This ticket does not perform that planning.
+
+## Final reapproval after concept convergence
+
+### Authority and verdict
+
+This section is the current and complete Ticket 11 answer. The earlier approval text remains decision history only and is superseded wherever it conflicts with this section or the final concept-convergence resolutions in Tickets 18, 23, 24, and 25.
+
+The review covered the effective non-superseded contracts in Tickets 03-10 and 18-25, the authoritative map, and the concrete acceptance artifacts linked by Ticket 25. Current product implementation was not used as the final design oracle.
+
+**The Velite 1.0 shared content derivation kernel is reapproved for implementation planning with no known design blocker.**
+
+This is approval for a later implementation-planning handoff only. It does not create implementation tickets, slice implementation work, choose implementation representations, implement product code, or constitute implementation or release acceptance.
+
+### Minimal kernel
+
+The complete design requires no more than these 12 semantic concepts. They do not imply 12 classes, factories, files, or independently testable object identities.
+
+1. **Derivation family:** Content Input selection, one Markdown/MDX dialect-profile root, and exactly three finite sibling projections.
+2. **Record content derivation:** exact record-local parse sharing and isolated demand execution.
+3. **Leased schema execution:** one state-poor process host, distinct public/private views, and capabilities that reject use after run settlement.
+4. **Effect transaction:** declarative effects promoted only from valid records and cross-file-valid candidates.
+5. **Diagnostic finalization:** complete detached immutable diagnostics plus the sole append-only prepare channel.
+6. **Pipeline epoch:** one resolved configuration and its schemas, engine, store, adapters, and real resources.
+7. **BuilderCoordinator:** operation admission, watch replay, epoch activation/supersession, current logical and physical truth, publication authorization, and disposal.
+8. **Generation:** complete immutable candidate and committed logical snapshots.
+9. **Publication:** immutable physical projection, atomic current pointer, manifests, and cold recovery.
+10. **Retirement:** current/predecessor protection, one finite first cleanup attempt, and persistent retry authority.
+11. **Migration contract:** action-level user consequences, safe automation boundaries, and independent migration oracles.
+12. **Acceptance protocol:** fixed baseline and A/B/C attribution, content-addressed raw evidence, formulas, cross-checked structural oracles, and an external independent verdict.
+
+### Complete public contract
+
+The public contract leaves no implementation-time behavior choice:
+
+- Direct `s.markdown(options)` and `s.mdx(options)` returns are immutable dialect/profile roots and ordinary schemas. Each exposes exactly `toc()`, `excerpt(options?)`, and `metadata()` as the finite built-in projection family. Ordinary Zod wrappers need not preserve root methods.
+- Top-level `s.toc`, `s.excerpt`, and `s.metadata`, `TocOptions`, `original`, `.project()`, a generic projection protocol, public broker/content capability, public AST/VFile/cache controls, and root `createBuilder` are absent with no compatibility getter, proxy, shim, dialect guesser, or subpath.
+- Every root/projection independently selects `explicit string ?? ContentFile.content`. Exact empty/missing input, whitespace, and non-empty no-visible-text behavior is complete. Excerpt, TOC, and metadata use Ticket 20's exact independent algorithms.
+- Custom schemas remain arbitrary black-box Zod schemas. They own their selected input, parser, AST, VFile, cache, I/O, mutation, and external side effects. Velite does not infer their selected input or grant shared derivation state.
+- `SchemaContext` retains its eight public fields. `collectEffect(effect, context)` accepts only Ticket 23's complete declaration surface. Custom occurrence is exactly `singleton`, `source-index`, or `key`; controlled source ranges remain private.
+- `Diagnostic` is the sole exported normalized diagnostic model. Ticket 23's narrow `DiagnosticValue`, complete provenance, total normalizer, structural equality/order, detachment, and runtime immutability are final. There is no public host taxonomy or dedicated Proxy detector.
+- `addDiagnostic(PrepareDiagnosticInput)` is the sole prepare diagnostic channel. `PrepareResult.diagnostics` is absent. The sink is append-only, synchronously snapshots input, and closes at hook settlement.
+- Strict is durable and runs after prepare finalization and before staging. `BuildOptions.signal` is absent. `prepare(false)` commits logical truth and an empty Publication only after every gate passes.
+- `BuildResult.diagnostics` and `BuildResult.operationalDiagnostics` are distinct recursively immutable snapshots. A normal operation returns only after its finite first cleanup attempt and total result construction.
+- External readers receive only the current-plus-direct-predecessor Publication window and must reacquire before a second successful pointer advance. No public or private managed-reader acquisition protocol is part of 1.0.
+
+Unsupported untyped calls do not become compatibility promises merely because JavaScript can express them.
+
+### Sole authorities and deep seams
+
+The following ownership is unique:
+
+- The process-owned `SchemaContextHost` propagates active schema execution and checks active-run state. It owns no Builder, epoch, Generation, Publication, content derivation, cache, cleanup, reader, migration, acceptance, or registry state.
+- Each record owns one record content derivation lifetime, one effect transaction, and branch-local mutable state. Invalid records discard effects but retain applicable diagnostics, so effect promotion and diagnostic finalization remain separate authorities.
+- One pipeline epoch owns its resolved config, schemas, engine, `SessionStore`, derivation factory, profile namespace, and only resources that actually exist.
+- One Builder-local `BuilderCoordinator` is the sole logical authority for operation admission, active/warming/draining epochs, watch replay checkpoints, current Generation, current/direct-predecessor Publication, publication authorization, expected bases, commit ordering, synchronous install, cleanup sequencing, disposal state, and derived wait set.
+- A Driver produces a complete immutable candidate only. Writers, manifest codecs, filesystem adapters, watcher/scheduler adapters, and the atomic-pointer adapter execute narrow capabilities and own no current truth. Atomic pointer replacement is the external commit linearization primitive, not a second logical authority.
+- Ticket 25's `EvidenceProtocol` is the design acceptance authority. A release-phase core `EvidenceBundle` retains content-addressed evidence. A separate `IndependentVerdict` recalculates from that bundle and never participates in its root hash.
+
+No public registry exists. No process-global registry owns Builder, epoch, Generation, Publication, content derivation, transaction, reader, cleanup, migration, or instrumentation state. The process host is an ambient propagation adapter, not a registry or service locator.
+
+### Lifecycle and publication result
+
+The final lifecycle contract is coherent:
+
+- Record derivation retains fulfilled or rejected matching parse work through record close, performs parse-once coalescing, and rejects late mutation after close.
+- VFile state continuity crosses the shared parse seam by value; one transforming branch preserves one VFile identity across its own phases; sibling branch mutation remains isolated.
+- Epochs use `warming -> active` or `warming/active -> draining -> disposed`. Epoch supersession revokes old-epoch publication authority.
+- Builder state is `open -> disposing -> disposed`. Admission before disposal retains ordinary authority while disposal waits; presentation after disposal is rejected. Disposal wait membership derives from actual admitted work and real resources rather than another registry.
+- A staged candidate with an incomplete replay checkpoint is stale and must catch up, rebuild, and restage outside the final critical section.
+- Full, patch, watch, and reload use the same candidate and publication predicates. Failed operations preserve last-successful Generation and Publication.
+- Atomic pointer success precedes synchronous no-`await` Generation/Publication/epoch install. Confirmed pointer success cannot be reclassified.
+- Current and direct predecessor remain manifest-protected. Shared blobs remain protected while either manifest references them. No reader pin or wall-clock rule participates.
+- Cleanup snapshots one finite plan, awaits one terminal first attempt, persists retry authority, creates immutable operational diagnostics, and then returns a total immutable result. Cold recovery uses sealed current/predecessor/backlog metadata; unknown residue requires explicit clean.
+- Late settlement cannot reinstall engine state, append effects/diagnostics, reopen a sink, publish stale output, alter cleanup authority, or cross Builder ownership.
+
+Correctness, branch isolation, record atomicity, last-successful truth, atomic publication, crash recovery, late-settlement fencing, parallel Builder isolation, migration safety, and independent recalculation are preserved.
+
+### Migration result
+
+Ticket 18's canonical inventory contains only `MIG-*` user actions. Broad groups carry no class; every action occurs exactly once and has exactly one `Auto`, `Detect`, or `Manual` class, exact entry point/consequence, artifact kinds, sole owner per artifact kind, independent oracle, and failure condition. The invariant is mechanically checkable.
+
+Root composition/dialect and TOC each use grouped actions rather than user-invisible module splits. `.project()` is `NEG-PROJECTION` negative evidence, not migration. The revision adapter is `ACC-REVISION-ADAPTER` acceptance infrastructure, not migration. Prepare-hook and general Diagnostic-consumer consequences remain distinct and share `OR-DIAGNOSTIC-V1`. External-reader migration describes only the predecessor window. No old `BC-*` identifier is a compatibility alias.
+
+### Evidence result
+
+Ticket 25 is no longer a schema-of-schema promise. The checked-in `evidence-schema.v1.json` and `evidence-protocol.v1.json` instantiate:
+
+- UTF-8 RFC 8785 JCS and exact non-JSON byte rules;
+- SHA-256 artifact, tree, protocol, core-bundle, and verdict domains;
+- a core manifest with no own root and no IndependentVerdict;
+- closed schemas for protocol, core bundle, external verdict, artifact manifest, retained payloads, raw measurements, structural witnesses, derived report, and calculator inputs/outputs;
+- a retained-field dictionary with source, type, requiredness, validation, meaning, recalculation use, and omission behavior;
+- exact workloads and fixtures;
+- a complete stable gate registry with typed paths, class, phase, owner, formula/oracle, pass/fail/invalid, rerun eligibility, and retained outputs;
+- exact fixed baseline, A/B/C roles, harness-only adapter, host, pairing, retention, and single-rerun policy; and
+- dimensionless ratio, reduction, and normalized allowed-delta margins with no millisecond percentage-point ambiguity.
+
+Private instrumentation is write-only corroborating evidence. Structural hard gates cross-check semantic values, controlled adapters, persisted manifests, state predicates, counters, retention, or exports. Event-name presence cannot pass a hard gate. Bundle-only independent recalculation uses no checkout, live Builder, private object identity, mutable registry, directory enumeration, or candidate-private helper.
+
+Design approval requires these executable contracts, not fabricated implementation results. Actual builds, fixtures, measurements, core bundles, reports, and external verdicts remain mandatory post-implementation release evidence.
+
+### Implementation phases and freedoms
+
+The following names are implementation phases, representations, or acceptance labels rather than stable kernel concepts, modules, interfaces, registries, or object identities:
+
+- parse slot representation;
+- pristine artifact, VFile seed, and shared parse snapshot representation or separate type/module names;
+- `SchemaRunner`, `SchemaRunContext`, schema-run lease object, and content-capability wrapper representation;
+- staging transaction object;
+- private publication-authorization revision fields and admitted-operation record representation;
+- replay-checkpoint storage representation;
+- protected-set calculation;
+- cleanup worker and optional trash-rename structure;
+- private instrumentation transport and structural event names; and
+- protocol artifact-family helper types inside the one versioned EvidenceProtocol.
+
+Implementations may choose maps, collision-safe hashing, clone, ownership transfer, copy-on-write, persistent trees, freeze/copy strategies, scheduling, codecs, platform atomic-pointer adapters, and internal file/type names. They must preserve parse-once, rejected-parse retention through record close, VFile continuity by value, same VFile identity within one transforming branch, sibling mutation isolation, active-run late-call rejection, effect atomicity, atomic pointer, last-successful truth, crash recovery, epoch supersession, parallel Builder isolation, and every public/evidence oracle.
+
+### Effective supersessions
+
+The final design explicitly carries these supersessions:
+
+- Ticket 07 and Ticket 20 supersede Ticket 04's generic `.project()` reservation and any top-level projection compatibility implication.
+- Ticket 08 and Ticket 22 supersede any parse sharing based on root identity, hash alone, mutable pristine sharing, or a no-share marker while demoting slot/seed representation names.
+- Ticket 23 supersedes Ticket 09's fabricated custom selected-input/actual-path provenance, public custom source range, hidden diagnostic root-cause/subject/fingerprint identity, mutable prepare diagnostics, and facade-owned strict timing.
+- Ticket 24 supersedes Ticket 09's non-atomic publication generality and makes strict, Generation, Publication, cleanup, recovery, and result order executable.
+- Ticket 25 supersedes Ticket 10's moving/ambiguous baseline, combined-demand shorthand, repeated improvement floor, ambiguous millisecond gate shorthand, and generic boundary-unit wording.
+- Ticket 18 supersedes its earlier broad `BC-*` inventory, multi-class rows, `.project()` migration item, acceptance-adapter migration item, broad diagnostic taxonomy, and managed-reader migration text.
+- Ticket 23's final convergence supersedes its earlier public custom source-range and host-value taxonomy, including the dedicated Proxy detector.
+- Ticket 24's final convergence supersedes the separate generation-publication owner, lifecycle coordinator, stable authorization mechanism objects, protected-manifest registry, managed-reader leases/pins, reader-blocked disposal, and committed-but-no-result defense.
+- Ticket 25's final convergence supersedes its earlier meta-requirements, uninstantiated test-oracle numbering, verdict-in-bundle ambiguity, event-only acceptance possibility, reader-pin fixtures, and diagnostic host taxonomy fixtures.
+- This section supersedes Ticket 11's earlier reapproval wording wherever it retained those removed concepts.
+
+All other non-conflicting correctness and public-contract decisions remain in force. No superseded clause is a current compatibility or acceptance contract.
+
+### Blocker and contradiction closure
+
+The four hard blockers from the independent minimalism review are closed:
+
+1. The concrete pre-implementation evidence schemas, field mappings, stable gates, canonical bytes, and hash algorithms now exist as authoritative artifacts.
+2. The core EvidenceBundle root is non-circular, and IndependentVerdict is outside that hash domain.
+3. Migration classification is action-level and mechanically exactly-one.
+4. Public custom source-position and fabricated selected-input authority are removed.
+
+The complete cross-ticket review found no remaining hard contradiction and no new contradiction introduced by the convergence. Diagnostic/effect, publication/lifecycle, migration, and evidence contracts use the same current terms, owners, phases, and negative surfaces. There is no managed-reader hypothetical seam, public registry, process-global coordination registry, compatibility shim, product revision adapter, public broker, AST/VFile/cache control, generation registry, reader registry, transaction registry, or instrumentation registry.
+
+The Velite 1.0 shared content derivation kernel is reapproved for implementation planning with no known design blocker.

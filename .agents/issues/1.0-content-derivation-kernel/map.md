@@ -1,6 +1,6 @@
 # Design the 1.0 shared content derivation kernel
 
-Status: open
+Status: resolved
 Origin: #387 (deleted from GitHub)
 Created: 2026-07-15T12:06:06Z
 
@@ -34,18 +34,22 @@ Correctness and predictable semantics are hard constraints; optimize representat
 - [Define schema run storage ownership](issues/21-define-schema-run-storage-ownership.md) - Let the default Node runtime own one process-wide propagation-and-lease host while internal Builders receive narrow runners and retain independent record, epoch, and disposal lifecycles.
 - [Reconcile parse sharing and VFile continuity](issues/22-reconcile-parse-sharing-and-vfile-continuity.md) - Preserve parse-once sharing through an internal immutable VFile seed, materialize isolated branch VFiles with logical state continuity, and require deterministic reentrant parser plugins without a no-share marker.
 - [Finalize the built-in projection contract](issues/20-finalize-the-built-in-projection-contract.md) - Fix the complete excerpt code-point/ellipsis contract, Velite-owned Unicode TOC slug semantics with duplicate slugs unchanged, and an independently calculable metadata regex and frozen range oracle.
-- [Complete effect and diagnostic transaction seams](issues/23-complete-effect-and-diagnostic-transaction-seams.md) - Fix one recursively immutable public diagnostic shape, deterministic tagged context/cause normalization, and the sole validated append-only prepare sink without exposing transaction or broker state.
-- [Define generation publication and epoch lifecycle](issues/24-define-generation-publication-and-epoch-lifecycle.md) - Await one manifest-bounded first cleanup attempt before immutable results, retire through private reader pins plus a one-predecessor external window, and preserve pre-disposal admitted publication authority while disposal drains.
-- [Define content schema migration guidance](issues/18-define-content-schema-migration-guidance.md) - Keep a stable complete breaking-change inventory and separate Ticket 11's executable pre-implementation evidence contract from mandatory post-implementation migration and release artifacts.
-- [Make performance acceptance executable](issues/25-make-performance-acceptance-executable.md) - Preserve the fixed protocol and gates while separating Ticket 11's executable pre-implementation evidence contract from post-implementation release bundles and independently recalculated verdicts.
-- [Approve the complete 1.0 content derivation design](issues/11-approve-the-complete-1-0-content-derivation-design.md) - Approve the reconciled public contract, private seams, lifecycle, migration, and executable pre-implementation evidence contract for handoff to implementation planning without entering planning or release acceptance.
+- [Complete effect and diagnostic transaction seams](issues/23-complete-effect-and-diagnostic-transaction-seams.md) - Limit custom occurrences to singleton/source-index/key, keep controlled source ranges private, use one narrow immutable DiagnosticValue oracle, and retain the sole append-only prepare sink with record-atomic effects.
+- [Define generation publication and epoch lifecycle](issues/24-define-generation-publication-and-epoch-lifecycle.md) - Use one BuilderCoordinator for admission, epochs, replay checkpoints, current Generation/Publication, commit ordering, cleanup, and disposal; retain the external predecessor window without a managed-reader seam.
+- [Define content schema migration guidance](issues/18-define-content-schema-migration-guidance.md) - Use canonical action-level MIG identifiers with exactly one Auto/Detect/Manual class per action; keep negative surfaces and acceptance-only infrastructure outside user migration.
+- [Make performance acceptance executable](issues/25-make-performance-acceptance-executable.md) - Instantiate one versioned EvidenceProtocol and content-addressed core EvidenceBundle contract with an external IndependentVerdict, exact gates/formulas/fields, and cross-checked private witnesses.
+- [Approve the complete 1.0 content derivation design](issues/11-approve-the-complete-1-0-content-derivation-design.md) - Reapprove the 12-concept minimal kernel with one Builder authority, explicit supersessions, no known design blocker, and handoff only to a later implementation-planning flow.
 
 ## Not yet specified
 
-- The final implementation-plan slicing depends on the selected kernel boundaries and remains beyond the current visible frontier.
+- None within this map; the design destination is reached.
 
 ## Out of scope
 
 - Implementing or migrating the selected design; hand off to an execution-planning flow once the design is complete.
 - Core redesigns without a direct, evidenced benefit to content derivation correctness, performance, simplicity, or extensibility.
 - Preserving pre-1.0 APIs through compatibility shims by default.
+
+## Final handoff
+
+The design map is resolved. The Velite 1.0 shared content derivation kernel is reapproved for a later implementation-planning flow; this map creates no implementation plan or implementation tickets.

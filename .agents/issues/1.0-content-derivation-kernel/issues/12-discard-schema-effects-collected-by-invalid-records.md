@@ -33,8 +33,8 @@ The broader transaction and failure contract is being decided in [Define asset e
 
 **Disposition:** `subsumed-by-design`.
 
-**Design coverage:** Decision 09 defines record-atomic transaction semantics: validation commits values and effects only when the entire record is valid, and an invalid record discards every effect from all of its fields. This is also migration item BC-7 in decision 18.
+**Design coverage:** Decision 09 defines record-atomic transaction semantics: validation commits values and effects only when the entire record is valid, and an invalid record discards every effect from all of its fields. This is also migration action `MIG-EFFECT-TRANSACTION` in decision 18.
 
 **Implementation constraint:** The 1.0 validate derivation in `src/core/pipeline/validate.ts` (or its replacement validation module) must collect effects in a record-local accumulator while `safeParseAsync()` runs and merge them into the source/build candidate only after the complete record succeeds. If any field invalidates the record, no asset, uniqueness, or other effect from that record may be committed.
 
-**Acceptance test:** Validate a record whose schema collects an asset effect and then fails another field. Assert that the record is invalid, its diagnostic is retained, and its effect is absent from the source-level result. Also assert that an otherwise identical valid record commits its effect. This test implements decision 09 and BC-7 from decision 18.
+**Acceptance test:** Validate a record whose schema collects an asset effect and then fails another field. Assert that the record is invalid, its diagnostic is retained, and its effect is absent from the source-level result. Also assert that an otherwise identical valid record commits its effect. This test implements decision 09 and `MIG-EFFECT-TRANSACTION` from decision 18.

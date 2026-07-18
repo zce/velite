@@ -742,3 +742,173 @@ No other resolved ticket must be reopened. Ticket 23's `Diagnostic` model is reu
 The generation publication module remains a deep Builder-local module behind a narrow Driver-facing and managed-reader seam. Generation registries, global reader registries, transaction services, publication brokers, process-wide lifecycle managers, service locators, and public cleanup handles remain absent. No object identity, Promise completion order, cleanup task insertion order, directory enumeration, wall-clock grace period, or best-effort filesystem behavior is a public oracle.
 
 No product code, documentation, examples, tests, benchmark implementation, knowledge file, prototype, report, implementation ticket, implementation spec, or implementation plan was created or changed while resolving this decision.
+
+## Final concept-convergence resolution
+
+### Authority and supersession
+
+This section is the current and complete Ticket 24 contract. Earlier sections remain decision history only. This section supersedes every conflicting reference to a separate generation-publication owner, lifecycle coordinator, admission ledger, publication-fence capability, publication term, watermark authority, protected-manifest registry, managed-reader seam, reader pin, reader-blocked disposal condition, or public committed-but-no-result protocol.
+
+The retained invariants are unchanged: complete immutable candidates, strict and fatal gates before staging, record and cross-file effect finalization, last-successful truth, atomic pointer publication, synchronous logical install, crash recovery, current-plus-direct-predecessor external-reader safety, shared-blob protection, one finite awaited first cleanup attempt, retryable cleanup backlog, late-settlement fencing, epoch supersession, Builder disposal, and parallel Builder isolation.
+
+### Final domain vocabulary
+
+- A **pipeline epoch** owns one resolved configuration and its schemas, pipeline, engine, `SessionStore`, content-derivation factory, profile namespace, and any real epoch-local pools or locks.
+- A **GenerationCandidate** is the complete immutable logical candidate produced after record validation, cross-file validation, prepare finalization, effect finalization, diagnostic finalization, and canonical ordering. It includes immutable publication intent and its expected logical and physical bases.
+- A **Generation** is the current committed in-memory record, effect, diagnostic, logical-output, owner-index, and patch-index truth.
+- A **Publication** is the validated physical projection selected by the configured atomic pointer. It consists of a collision-resistant `PublicationId`, sealed descriptor, data manifest, asset-reference manifest, published-file manifest, and predecessor/recovery metadata. A recovered Publication does not fabricate a Generation.
+- A **cleanup plan** is one finite canonical post-commit attempt snapshot. A **cleanup backlog** is persisted or reconstructible retry and deletion authority that may outlive an operation or process.
+- An **admitted operation** is a private coordinator-owned record containing Builder identity, operation ordinal, kind, target epoch, expected Generation base, expected Publication, applicable replay checkpoint, one-shot publication-attempt state, and settlement state. These are private fields and predicates, not independently injectable services, registries, tokens, or stable module identities.
+
+### Sole Builder authority
+
+`createBuilder()` creates exactly one Builder-local deep module named conceptually `BuilderCoordinator`. The public Builder facade delegates build, apply, watch, reload, clean, and disposal behavior to it.
+
+`BuilderCoordinator` is the sole authority for:
+
+- operation admission;
+- Builder state `open -> disposing -> disposed`;
+- warming, active, draining, and disposed epoch transitions;
+- the Builder-owned watch replay log and per-operation replay checkpoints;
+- current committed Generation;
+- current and direct-predecessor Publication;
+- recovered Publication and validated cleanup backlog;
+- publication authorization and expected-base validation;
+- publication and cleanup mutation ordering;
+- synchronous Generation, Publication, epoch, and committed-checkpoint installation after pointer success;
+- operational-diagnostic snapshot timing; and
+- the disposal completion predicate and its derived wait set.
+
+An epoch owns its internal resources but does not admit Builder operations, authorize publication, or install current state. A Driver receives immutable operation input and any required immutable base snapshot and returns one complete immutable `GenerationCandidate`. It receives no publication capability and cannot stage, commit, replace current state, activate an epoch, retire output, or schedule authoritative cleanup.
+
+Writers stage bytes and return immutable staging results. Manifest codecs encode, decode, and validate values. Filesystem, cleanup, watcher, scheduler, image, and atomic-pointer adapters execute requested effects. None owns or determines current Generation, current Publication, predecessor status, publication authorization, cleanup authority, or disposal truth.
+
+This is one semantic authority, not a requirement for one source file or class. Internal helper functions and adapters remain explicit dependencies of the coordinator implementation.
+
+### Admission and publication authorization
+
+Admission linearizes when `BuilderCoordinator`, while state is `open`, creates the private admitted-operation record and binds it to its target epoch. Method invocation, Promise creation, scheduler enqueue, callback execution, and completion order are not admission.
+
+Immediately before staging, and again immediately before pointer replacement, the coordinator validates:
+
+1. the operation was admitted by this coordinator while it was open;
+2. the operation has not settled or consumed its publication attempt;
+3. the candidate belongs to that operation and target epoch;
+4. the target epoch remains publication-eligible and has not been superseded;
+5. the expected Generation base remains current;
+6. the expected physical Publication remains current;
+7. the applicable replay checkpoint is complete; and
+8. the staged descriptor, manifests, paths, and required blobs still validate.
+
+Builder state `disposing` does not invalidate an operation admitted before disposal. Epoch supersession, stale logical base, stale physical base, incomplete replay checkpoint, consumed authorization, or another failed ordinary predicate returns an immutable `superseded`, `stale`, or `abandoned` control outcome. Wrong-Builder records, impossible repeated publication, invalid state transitions, or implementation-owned use after terminal disposal remain `VeliteError('internal')`.
+
+No captured Driver, writer, codec, adapter, candidate, staging reference, callback, or old epoch can create a new admitted operation or reacquire publication authority.
+
+### Candidate, publication, cleanup, and result sequence
+
+A successful full, patch, initial-watch, rebuild, or reload operation follows this exact order:
+
+1. Admit the operation and capture its target epoch, expected Generation base, expected Publication, and applicable replay checkpoint.
+2. Invoke the epoch Driver and receive one complete immutable GenerationCandidate.
+3. Apply fatal and durable strict policy to the finalized immutable diagnostics.
+4. Validate expected bases and operation eligibility before staging.
+5. Stage through the writer and validate the sealed descriptor, manifests, normalized paths, and content identities.
+6. Enter the coordinator's serialized publication-and-cleanup mutation order.
+7. Revalidate authorization, bases, checkpoint completeness, descriptor, manifests, and every required content-addressed blob after earlier cleanup and immediately before pointer replacement.
+8. Atomically replace the configured pointer using the expected current `PublicationId`.
+9. Without an intervening `await`, install the committed Generation and new current Publication. Move the prior current Publication to direct predecessor. For reload, install the active epoch and committed replay checkpoint and move the prior active epoch to draining in the same coordinator transition.
+10. Mark the operation's publication attempt consumed and release the state critical section. Commitment is now irrevocable.
+11. Snapshot one finite canonical cleanup plan from the Publication displaced beyond direct predecessor, validated transition authority, and validated retry backlog.
+12. Await exactly one first cleanup attempt. Every selected item reaches `deleted`, `absent`, `failed`, `timeout`, or `partially-deleted`.
+13. Persist or reconstruct backlog authority for failed, timed-out, and partially deleted items.
+14. Form a fresh recursively immutable `operationalDiagnostics` snapshot from post-commit facts observed before result construction.
+15. Construct `BuildResult` as a total synchronous detached projection over committed normalized values.
+16. Return without further I/O, serialization, or user callback.
+
+Pointer replacement and cleanup deletion are serialized by the coordinator. A later candidate may derive or stage concurrently, but no cleanup deletion may interleave its final blob validation and pointer replacement. Every later candidate revalidates all required blobs after earlier cleanup and immediately before its pointer replacement.
+
+The first attempt is finite because its membership is snapshotted before execution; it does not wait for the backlog to become empty. A cleanup adapter may report `timeout` only after mutation has settled or cancellation is confirmed and no hidden mutation remains. Successful or absent items leave the backlog. Failed, timed-out, and partially deleted items remain. Later retries are separately admitted operations, recalculate protection at retry time, and never mutate an earlier result.
+
+`BuildResult.diagnostics` is the committed prepare-finalized snapshot. `BuildResult.operationalDiagnostics` is a distinct immutable snapshot. Cleanup, logger, reporting, or evidence-retention failure cannot change committed diagnostics, writes, logical output, current pointer, current Generation, or operation success.
+
+`BuildResult` construction is infallible within the public protocol: it performs no I/O, serialization, logging, callback invocation, or user code. There is no public committed-but-no-result variant and no operational diagnostic for an impossible result-construction invariant. An implementation violation is a product bug; confirmed pointer commit remains committed truth.
+
+### Full, patch, strict, and `prepare(false)`
+
+Full and incremental operations produce the same complete candidate and use the same authorization and commit sequence. A patch starts from its expected current Generation, removes complete old owner state, installs complete valid replacement owner state, reruns simultaneous cross-file validation, and canonicalizes the full candidate. A failed or stale patch changes nothing and must retain or replay complete dirtiness before a later patch.
+
+Fatal and strict policy run after prepare/effect/diagnostic finalization and before staging for every full, manual, initial-watch, rebuild, patch, and reload operation. A rejected operation publishes and deletes nothing and preserves the previous Generation and Publication.
+
+A clean `prepare(false)` operation commits a new Generation and an explicitly empty current Publication. The prior current Publication becomes the protected direct predecessor. It is no longer externally current, but it is not retirement-eligible until another successful pointer advance displaces it beyond the predecessor window. `BuildResult.output` reflects committed logical output and `written` is empty.
+
+### Watch replay and epoch lifecycle
+
+The BuilderCoordinator owns one sequenced replay log. Each candidate records the greatest event sequence it incorporated. During final authorization, the coordinator captures the current accepted checkpoint. If a relevant event exists after the candidate checkpoint, the staged candidate is stale and is abandoned; catch-up, rebuild, and restaging happen before a later authorization attempt. No event replay, candidate mutation, or restaging occurs inside the final pointer-replacement critical section.
+
+Watch coverage is ready before the initial snapshot. During reload, old and warming coverage overlap. A relevant configuration event invalidates the warming epoch. A failed load, warming build, catch-up, policy gate, staging, authorization, or pointer replacement leaves the old active tuple unchanged.
+
+A successful reload installs the new Generation, Publication, active epoch, and committed replay checkpoint synchronously after pointer success, then moves the old epoch to draining. Epoch supersession revokes old-epoch publication eligibility. Already admitted old work may settle but cannot mutate memo state, effects, diagnostics, assets, cleanup state, or current truth after its lifecycle guard closes.
+
+Epoch states remain:
+
+```text
+warming -> active
+warming -> draining -> disposed
+active  -> draining -> disposed
+```
+
+An epoch owns only real resources. If no pool or lock exists, no pool/lock seam or lifecycle object is required.
+
+### External readers and manifest-derived protection
+
+Velite 1.0 has no managed-reader acquisition seam, reader lease, reader pin, reader registry, or reader-blocked disposal state.
+
+An external reader obtains a supported snapshot by atomically resolving the configured current pointer and reading only paths validated by that Publication's descriptor. A Publication observed while current remains physically protected through at most one subsequent successful pointer advance. The reader must reacquire before the second advance. There is no indefinite path, opened-handle, duration, wall-clock grace, arbitrary cross-process lifetime, or persisted reader protocol.
+
+Protection is derived exclusively from the validated manifests of current Publication and direct predecessor. It is not an independently owned object or registry.
+
+A Publication directory becomes retirement-eligible only when it is neither current nor direct predecessor, its descriptor and paths validate under Velite-owned roots, and a committed transition or validated backlog authorizes retirement. A content-addressed blob becomes retirement-eligible only when neither current nor direct-predecessor Publication references the same identity and digest, its path validates under the Velite-owned blob root, and committed transition or validated backlog authority exists.
+
+Shared blobs remain protected while referenced by either protected Publication. Source path, file presence, discovery history, directory enumeration, one unvalidated manifest comparison, object identity, and wall-clock age are never deletion authority.
+
+### Recovery, residue, and explicit clean
+
+Cold recovery reads only the configured pointer and sealed current descriptor. It validates current Publication, direct predecessor, and cleanup backlog metadata without fabricating a Generation. The first normal build still performs full derivation.
+
+Corrupt, escaped, missing, inconsistent, or unverifiable metadata authorizes neither publication nor deletion. Orphan staging directories, unidentified blobs, and unknown trash are never promoted or deleted by ordinary cleanup. They remain residue until explicit clean.
+
+Validated partial deletion and backlog entries retry idempotently. A crash after pointer success but before first cleanup remains recoverable because committed metadata carries predecessor and retry authority. Explicit clean is a separately admitted destructive operator assertion with path-containment validation. It is not ordinary retirement or backlog processing.
+
+### Builder disposal and derived wait set
+
+The first `dispose()` atomically changes `open` to `disposing`, closes admission, and stores one shared settlement Promise. Concurrent and later disposal calls return that Promise.
+
+Operations admitted before disposal retain ordinary publication authority subject to epoch, expected-base, replay-checkpoint, and one-shot authorization predicates. Operations presented after disposal linearizes are rejected before derivation, staging, or publication. Disposal is not epoch supersession and does not revoke a pre-disposal operation solely because Builder state is `disposing`.
+
+Disposal does not use an independently mutable ledger or wait registry. Its wait set is derived from coordinator-owned state:
+
+- unsettled operations admitted before disposal, including their first cleanup and result settlement;
+- the current watch close, admitted scheduler callbacks, and admitted replay work;
+- cleanup attempts or retries admitted before disposal;
+- warming, active, and draining epochs and their actual resources; and
+- non-terminal adapter operations owned by those operations.
+
+Persisted inactive cleanup backlog does not block disposal. No reader condition can block disposal because no managed-reader seam exists. A never-settling plugin or non-terminal adapter operation may keep disposal pending indefinitely. No timeout, forced release, false terminal success, or public hard cancellation is fabricated.
+
+Disposal must not supersede an epoch while a pre-disposal admitted operation still requires that epoch's publication eligibility. Once publication-capable admitted work settles, remaining epochs drain and dispose. After `disposed`, only repeated idempotent disposal or close observation is allowed; no captured reference can recreate operation, epoch, replay, cleanup, or publication authority.
+
+### Parallel Builder isolation and negative surfaces
+
+Parallel Builders own separate coordinators, admitted-operation records, operation ordinals, epochs, Generations, Publications, replay logs, cleanup plans, backlogs, active cleanup attempts, and disposal Promises. The process-wide `SchemaContextHost` owns none of them. Concurrent writers deliberately targeting the same physical output root remain unsupported without an explicit runtime cross-writer exclusion adapter; no process-global in-memory registry or lock pretends to solve cross-process coordination.
+
+The following are representation choices, not stable modules or test identities: staging transaction object, authorization record layout, private epoch revision fields, replay-checkpoint representation, admitted-operation storage, protection calculation, trash-rename strategy, cleanup worker structure, and private instrumentation transport.
+
+No root declaration, runtime export, export-map subpath, public context, reflection-visible public object, or process-global mutable object exposes Generation, Publication, BuilderCoordinator, operation records, staging state, manifests as authority, replay state, epoch state, cleanup authority, or instrumentation.
+
+### Acceptance oracle and cross-ticket effect
+
+Acceptance must cross-check semantic Generation values, controlled adapter calls, persisted pointer/descriptor/manifests, replay checkpoints, cleanup backlog, and coordinator state predicates. Event-name presence alone is insufficient.
+
+Acceptance fails on competing logical owners; Driver/writer commit authority; stale or superseded pointer change; event loss; candidate mutation in the final critical section; mixed/partial publication; pre-commit cleanup; deletion without validated manifest authority; loss of current/predecessor/shared blobs; reclassification of confirmed commitment; result before first-attempt terminality; post-result mutation; post-disposal admission; late old-epoch mutation; cross-Builder state; any managed-reader product seam; or any public/process-global registry.
+
+Ticket 18 must describe only the external predecessor window and supported disposal behavior. Ticket 25 must observe this semantic authority through private write-only witnesses plus adapters/manifests/state and must remove reader-acquire, pin, separate publication-owner, and mechanism-identity gates. Ticket 11 must treat all demoted mechanism names as implementation freedom while preserving every observable invariant above.

@@ -697,3 +697,271 @@ No new cross-ticket hard contradiction was found in this diagnostic oracle. Tick
 The content broker, diagnostic normalizer, Proxy detector, effect and diagnostic transactions, mutable collectors, registries, owner/source enrichers, sink state, leases, publication candidate, generation owner, and lifecycle state remain private or absent. No public broker, diagnostic registry, mutable channel, generic transaction service, instrumentation service, or service locator is introduced.
 
 No product code, documentation, examples, tests, benchmark implementation, knowledge file, prototype, report, implementation ticket, implementation spec, or implementation plan was created or changed while resolving this decision.
+
+## Final concept-convergence resolution
+
+### Authority and supersession
+
+This section is the current and complete Ticket 23 contract. Earlier sections remain decision history only. This section supersedes every conflicting earlier effect-occurrence, selected-input-provenance, diagnostic-value, comparator, prepare-validation, acceptance-fixture, and private-capability clause in this ticket.
+
+In particular:
+
+- public custom `source-position` is removed;
+- selected Content Input is not system-supplied provenance for an arbitrary custom schema;
+- the previous symbol, accessor, Date, Map, Set, binary, class, host, Proxy, and reflection-failure public tag taxonomy is removed;
+- no dedicated Proxy-detection capability exists;
+- the earlier `ImmutableDiagnostic`, `ImmutableDiagnosticValue`, `DiagnosticArrayItem`, `DiagnosticBinaryKind`, and `DiagnosticOpaqueKind` names are not 1.0 exports; and
+- diagnostic equality and ordering no longer depend on Ticket 09's hidden root-cause identity, subject key, or fingerprint language.
+
+The retained invariants are unchanged: complete truthful top-level diagnostic provenance, deterministic equality and ordering, recursive detachment and runtime immutability, no original references or stacks, the sole append-only prepare sink, record-atomic effect promotion, symmetric uniqueness failure, exact-duplicate collapse only, and no public broker, transaction, normalizer, comparator, detector, registry, or lifecycle state.
+
+### Complete public TypeScript surface
+
+The following is the final public effect, diagnostic, and prepare surface. Names referenced from the existing public schema context, such as `ProjectInfo`, `ContentFile`, `ContentRecord`, `SessionStore`, `AssetRequest`, `AssetResult`, `ImageMetadata`, `BlurOptions`, `CollectionDef`, and `PrepareCollections`, retain their independently approved definitions.
+
+```ts
+export type StableOccurrence =
+  | { readonly kind: 'singleton' }
+  | { readonly kind: 'source-index'; readonly index: number }
+  | { readonly kind: 'key'; readonly key: string }
+
+export interface EffectDeclarationContext {
+  readonly path: readonly (string | number)[]
+  readonly declaration: number
+  readonly occurrence: StableOccurrence
+}
+
+export interface UniqueEffectDeclaration {
+  readonly type: 'unique'
+  readonly group: string
+  readonly value: string
+}
+
+export interface AssetReferenceEffectDeclaration {
+  readonly type: 'asset'
+  readonly source: string
+  readonly output: {
+    readonly base: string
+    readonly template: string
+  }
+  readonly metadata: boolean
+  readonly blur?: {
+    readonly width?: number
+    readonly height?: number
+    readonly quality?: number
+  }
+}
+
+export type SchemaEffectDeclaration = UniqueEffectDeclaration | AssetReferenceEffectDeclaration
+
+export interface SchemaContext {
+  readonly project: ProjectInfo
+  readonly file: ContentFile
+  readonly record: ContentRecord
+  readonly store: SessionStore
+  readonly collectEffect: (effect: SchemaEffectDeclaration, context: EffectDeclarationContext) => void
+  readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
+  readonly readFile: (absPath: string) => Promise<Uint8Array>
+  readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
+}
+
+export type DiagnosticLevel = 'error' | 'warn' | 'info'
+
+export type DiagnosticStage = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch'
+
+export type DiagnosticOrigin = { readonly kind: 'core' } | { readonly kind: 'prepare-hook'; readonly key: string } | { readonly kind: 'velite' }
+
+export interface DiagnosticCollectionProvenance {
+  readonly order: number
+  readonly id: string
+}
+
+export interface DiagnosticSourceProvenance {
+  readonly path: string
+}
+
+export interface DiagnosticRecordProvenance {
+  readonly index: number
+  readonly id: string
+}
+
+export interface DiagnosticRequestProvenance {
+  readonly kind: string
+  readonly declaration: number
+  readonly projection?: string
+  readonly occurrence?: StableOccurrence
+}
+
+export type DiagnosticProvenance =
+  | { readonly scope: 'project' }
+  | {
+      readonly scope: 'collection'
+      readonly collection: DiagnosticCollectionProvenance
+    }
+  | {
+      readonly scope: 'source'
+      readonly collection?: DiagnosticCollectionProvenance
+      readonly source: DiagnosticSourceProvenance
+    }
+  | {
+      readonly scope: 'record'
+      readonly collection: DiagnosticCollectionProvenance
+      readonly source: DiagnosticSourceProvenance
+      readonly record: DiagnosticRecordProvenance
+      readonly path?: readonly (string | number)[]
+      readonly request?: DiagnosticRequestProvenance
+    }
+
+export interface DiagnosticPoint {
+  readonly line?: number
+  readonly column?: number
+  readonly offset?: number
+}
+
+export interface DiagnosticPosition {
+  readonly start: DiagnosticPoint
+  readonly end?: DiagnosticPoint
+}
+
+export type DiagnosticValue =
+  | null
+  | boolean
+  | string
+  | number
+  | { readonly type: 'undefined' }
+  | {
+      readonly type: 'number'
+      readonly value: 'negative-infinity' | 'negative-zero' | 'nan' | 'positive-infinity'
+    }
+  | { readonly type: 'bigint'; readonly value: string }
+  | readonly DiagnosticValue[]
+  | {
+      readonly type: 'record'
+      readonly entries: readonly (readonly [string, DiagnosticValue])[]
+    }
+  | {
+      readonly type: 'error'
+      readonly name: string
+      readonly message: string
+      readonly code?: DiagnosticValue
+      readonly cause?: DiagnosticValue
+    }
+  | { readonly type: 'circular' }
+  | { readonly type: 'opaque' }
+
+export interface Diagnostic {
+  readonly level: DiagnosticLevel
+  readonly code: string
+  readonly message: string
+  readonly stage: DiagnosticStage
+  readonly origin: DiagnosticOrigin
+  readonly provenance: DiagnosticProvenance
+  readonly position?: DiagnosticPosition
+  readonly context?: DiagnosticValue
+  readonly cause?: DiagnosticValue
+}
+
+export interface PrepareDiagnosticInput {
+  readonly key: string
+  readonly level: DiagnosticLevel
+  readonly code: string
+  readonly message: string
+  readonly cause?: unknown
+}
+
+export interface PrepareContext {
+  readonly project: ProjectInfo
+  readonly diagnostics: readonly Diagnostic[]
+  readonly addDiagnostic: (diagnostic: PrepareDiagnosticInput) => void
+}
+
+export type PrepareResult<C extends Record<string, CollectionDef> = Record<string, CollectionDef>> =
+  | void
+  | false
+  | { readonly collections: PrepareCollections<C> }
+
+export type PrepareHook<C extends Record<string, CollectionDef> = Record<string, CollectionDef>> = (
+  collections: PrepareCollections<C>,
+  context: PrepareContext
+) => PrepareResult<C> | Promise<PrepareResult<C>>
+```
+
+`number` in `DiagnosticValue` denotes only finite numbers other than negative zero. Exceptional numeric values use the explicit number tag.
+
+### Effect declaration and authority oracle
+
+Velite supplies collection order and identity, source-file identity, record source index and identity, and system owner. A custom schema owns its selected input. Velite neither observes nor validates which arbitrary Zod value the custom callback selected and therefore supplies no selected-input provenance for a custom declaration.
+
+`path` is a caller-declared record-rooted semantic declaration path, not a Zod issue path or selected-input claim. A string segment is non-empty. A number segment and `declaration` are non-negative safe integers. Inputs are synchronously detached.
+
+`source-index` is a caller-owned semantic assertion. Velite validates only that `index` is a non-negative safe integer. `key` is a non-empty caller-owned semantic key preserved byte-for-byte without trimming or Unicode normalization. `singleton` asserts at most one semantic payload at that declaration site. Exact repeated declarations collapse; the same effective identity with a different normalized payload invalidates the record.
+
+An untyped JavaScript declaration containing any other occurrence kind is malformed, contributes no effect, and emits the deterministic schema-stage declaration diagnostic. There is no custom source-range fallback.
+
+A unique `group` is non-empty; `value` is any string and is preserved byte-for-byte. An asset `source` is a non-empty canonical content-root-relative POSIX path with no leading slash, backslash, empty segment, `.` segment, or `..` segment. `output.base` and `output.template` are non-empty. Blur width and height, when present, are positive safe integers; quality, when present, is an integer from 1 through 100. Unknown fields, accessors, inherited declaration fields, and caller-authored owner, collection, source-file, record, selected-input, request, publication, or resolved-output provenance are malformed.
+
+Velite-controlled roots and projections may retain a private authoritative half-open source range `[start, end)` in their exact selected Content Input, where both offsets are non-negative safe integers and `end >= start`. They may use a private deterministic structural locator when no range exists. Neither private representation is a member of `StableOccurrence`, accepted by custom `collectEffect`, exported, or treated as a custom selected-input claim.
+
+Every record owns one fresh effect transaction. Custom declarations are detached before insertion. Controlled branch outcomes remain branch-local until accepted. Invalid, abandoned, or disposed records promote no effects, including successful sibling effects. Cross-file uniqueness is simultaneous and symmetric: every participant in a `(group, value)` conflict becomes invalid, receives its associated diagnostic, and loses its complete record effect candidate. No source, insertion, or completion order selects a winner.
+
+Exact effect duplicates collapse only by kind, system owner, complete effective provenance, and normalized semantic payload. Canonical effect order compares collection order/identity, source path, record source index/identity, semantic path, declaration, occurrence, controlled private request/source locator when applicable, kind, and normalized payload. No append, call, visitation, cache-hit, or Promise-completion ordinal participates.
+
+### Diagnostic validation oracle
+
+Every produced diagnostic contains exactly the declared own string fields and no own symbol fields. Only `position`, `context`, `cause`, and the explicitly optional nested fields may be absent.
+
+Collection order, record index, request declaration, path number segments, offsets, and `source-index` are non-negative safe integers. Lines and columns are positive safe integers. IDs, source paths, request kinds, projections when present, diagnostic codes, and prepare keys are non-empty. Messages may be empty. Source paths are normalized project-relative POSIX paths.
+
+A `DiagnosticPoint` contains at least one coordinate. Offsets are zero-based; lines and columns are one-based. If both endpoints contain offsets, `end.offset >= start.offset`. If both contain lines, `end.line >= start.line`; when the lines are equal and both columns exist, `end.column >= start.column`. If both offset and line comparisons are available, both must hold. Coordinates absent from either endpoint impose no ordering condition. Thus a later line may validly have a smaller column.
+
+A producer uses the most specific provenance it can truthfully supply. Project-wide facts use project scope. No producer fabricates collection, source, record, path, request, occurrence, or position data. A controlled private source range may become public `DiagnosticPosition` only when the producing branch truthfully maps it to the named source.
+
+### Complete normalization oracle
+
+Normalization is the following total operation over an input value:
+
+1. `null`, booleans, and strings are preserved exactly.
+2. A finite number other than negative zero is preserved as a number.
+3. `undefined`, `NaN`, positive infinity, negative infinity, negative zero, and bigint use exactly the declared tags. Bigint uses canonical base-10 `BigInt.prototype.toString(10)`.
+4. Symbol values, functions, Date, Map, Set, RegExp, Promise, weak collections, ArrayBuffer, SharedArrayBuffer, DataView, typed arrays, class instances, host objects, and every other unsupported value normalize to `{ type: 'opaque' }`.
+5. An array becomes a detached dense readonly array of the same length. Each own data index is recursively normalized. A hole becomes `{ type: 'undefined' }`. An accessor index becomes `{ type: 'opaque' }` without invocation. Non-index, non-enumerable, and symbol properties are ignored. Failure of required reflection for the array makes the whole array opaque.
+6. An object whose observed prototype is exactly the captured current-realm ordinary Object prototype or `null` becomes `{ type: 'record', entries }`. Own enumerable string data properties are recursively normalized. An own enumerable accessor becomes an opaque value without invocation. Entries are sorted by UTF-16 code-unit key order. Ordinary and null-prototype inputs intentionally normalize equally. Non-enumerable and symbol properties are ignored. Failure of required reflection makes the whole object opaque.
+7. A current-realm Error or subclass is recognized only when ordinary prototype traversal reaches the captured `%Error.prototype%` without failure. `name` is the first string data descriptor named `name` found on that chain, otherwise `Error`. `message` is an own string data value, otherwise `''`. Own data properties `code` and `cause` are recursively normalized; accessor-valued `code` or `cause` becomes opaque. Every other field is ignored. `stack` is never read, exported, compared, or fingerprinted. Failure of required reflection makes the whole value opaque.
+8. Ancestor detection precedes compound traversal. A reference to any current ancestor becomes `{ type: 'circular' }`. A non-ancestor repeated reference is normalized independently at every occurrence. Alias identity is never retained.
+9. No `toJSON`, getter, setter, iterator method, string conversion, user method, Error stack, constructor name, function name, host name, or original object identity is used.
+10. There is no dedicated Proxy detector and no Proxy-specific result. A value that presents a non-throwing ordinary reflective shape is normalized according to that observed shape; a required reflective operation that throws or becomes inconsistent makes the value opaque. Velite does not claim hostile-code sandboxing or a system-verifiable Proxy brand.
+11. Every output array, tuple, tag, record entry, diagnostic, provenance value, position, path, occurrence, and top-level diagnostic array is detached and recursively runtime immutable before exposure.
+
+This oracle has no implementation-time taxonomy choice. All unsupported categories converge to one opaque value.
+
+### Equality and canonical ordering
+
+`DiagnosticValue` equality is recursive structural equality. A hash may select candidates only when collisions are resolved by complete structural comparison.
+
+The value rank is: `null`, boolean, string, finite number, undefined tag, exceptional-number tag, bigint tag, array, record, error, circular, opaque. Booleans order `false` before `true`. Strings and record keys compare by UTF-16 code unit. Finite numbers compare numerically. Exceptional numbers order `negative-infinity`, `negative-zero`, `nan`, `positive-infinity`. Bigints compare by mathematical integer value. Arrays compare item-by-item then by length. Records compare their sorted entry sequences by key then value. Errors compare `name`, `message`, optional `code`, and optional `cause`, with a missing optional field before a present field. All circular markers compare equal. All opaque markers compare equal.
+
+Path segments compare positionally; numbers compare numerically, strings by UTF-16 code unit, and a number sorts before a string. A strict prefix sorts first. Stable occurrences rank `singleton`, `source-index`, `key`; indexes compare numerically and keys by UTF-16 code unit.
+
+Diagnostic provenance ranks project, collection, source, record. Nested fields compare in written field order. Missing optional fields sort before present fields. Positions compare start then end; points compare line, column, offset with a missing coordinate before a present coordinate. Origin ranks core, prepare-hook, velite; prepare-hook keys compare by UTF-16 code unit.
+
+Canonical diagnostic order is lexicographic by complete provenance, optional position, stage rank, level rank, origin, code, message, optional context, and optional cause. Stage rank is the written `DiagnosticStage` order. Level rank is error, warn, info.
+
+Exact diagnostic identity contains every public field. No hidden root-cause identity, subject key, fingerprint, source locator, call ordinal, completion ordinal, insertion order, or hash may distinguish two publicly equal diagnostics.
+
+### Sole prepare sink
+
+`addDiagnostic()` is the sole prepare diagnostic channel. `PrepareResult.diagnostics` does not exist.
+
+A hook declaration is accepted when ordinary reflection reports an Object-prototype or null-prototype record containing exactly own data properties `key`, `level`, `code`, `message`, and optional `cause`. Unknown string keys, symbol keys, accessors, inherited fields, invalid levels, or empty key/code are malformed. Reflection failure is malformed. No Proxy detector is used; a non-throwing value that presents exactly the accepted ordinary shape is validated by that shape.
+
+The cause is normalized, detached, and snapshotted before `addDiagnostic()` returns. Velite supplies `stage: 'prepare'`, `{ kind: 'prepare-hook', key }`, and project provenance. Exact same-key declarations collapse. Reusing a key with a different normalized payload yields one Velite-authored fatal prepare conflict diagnostic and selects no winner. Reversing call or completion order yields the same set and order.
+
+The sink closes synchronously when the hook return value or Promise settles. A later call throws the documented lifecycle-misuse error synchronously, appends nothing, and cannot affect this or a later build. The hook cannot mutate, replace, remove, reorder, downgrade, or impersonate a core diagnostic. `prepare(false)` records output suppression only and bypasses no fatal, strict, staging, or publication gate.
+
+### Acceptance and cross-ticket effect
+
+Acceptance fails if a supported public type accepts any custom source-range occurrence; if custom effect identity claims a Velite-observed selected input; if any removed host taxonomy remains in `DiagnosticValue`; if a dedicated Proxy detector exists; if normalization retains an original reference or Error stack; if diagnostic equality uses a hidden field; if prepare has another diagnostic channel; if an invalid record retains a sibling effect; or if a uniqueness conflict selects a winner.
+
+Acceptance passes only when source and built declarations expose the complete surface above, runtime own keys agree, an independent test-owned normalizer and comparator reproduce every fixture without candidate-private imports, reversed record/hook completion preserves exact results, recursive mutation cannot alter observations, custom occurrences are limited to `singleton`, `source-index`, and `key`, controlled ranges remain private, and record-atomic plus symmetric uniqueness traces pass.
+
+This resolution supersedes conflicting Ticket 09 diagnostic identity/order wording and narrows Ticket 09 selected-input and source-occurrence provenance to Velite-controlled branches. Ticket 18 and Ticket 25 must use this exact surface and oracle. Ticket 24 receives finalized immutable diagnostics and effects; the `BuilderCoordinator` is the sole strict/publication/lifecycle authority and cannot reopen either transaction.

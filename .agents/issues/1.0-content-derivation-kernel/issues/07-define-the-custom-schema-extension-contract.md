@@ -28,7 +28,7 @@ This deliberately gives up custom AST-based parse sharing in 1.0. The evidenced 
 A custom schema continues to receive exactly the normal Zod value and callback context plus the existing ambient `context()` contract:
 
 - Its input is the value selected by normal Zod composition. A file-derived custom schema may explicitly implement the established `value ?? context().file.content` fallback, but Velite does not infer this on its behalf.
-- It may read the existing project, file, and record source context and use the existing asset, diagnostic, store, and declarative-effect facilities under their ordinary custom-schema semantics.
+- It may read the existing project, file, and record source context and use the existing asset, store, and declarative-effect facilities under their ordinary custom-schema semantics. Validation diagnostics remain Zod issues reported through `addIssue()`.
 - It may be synchronous or asynchronous and reports validation diagnostics through Zod. Existing declarative effects remain available through `SchemaContext`; their commit, ordering, and deduplication semantics remain for the dedicated effects decision.
 - It owns any parser, AST, VFile, processor, cache, mutable closure state, I/O, and external side effects that it creates. Velite does not coordinate or share those resources through the Content Artifact Broker.
 - Dialect applicability is the custom schema author's contract. A reusable schema may expose separate Markdown and MDX factories or accept an explicit dialect option, but Velite adds no recipe-level dialect discriminator or compile-time root compatibility check.

@@ -49,7 +49,7 @@ interface ContentBranchOutcome<T> {
 }
 ```
 
-`value` exists only on success and `failure` only on failure. The concrete representation may use a discriminated union instead of optional properties. Request provenance identifies the controlled recipe and stable request ordinal; owner provenance identifies collection, source, record identity/index; source provenance identifies the selected Content Input and source path; field provenance carries the full schema path; projection provenance identifies the root/sibling projection and any source occurrence relevant to it. A normalized VFile message retains its original reason, position, rule/source metadata, severity, and cause without exposing a mutable branch VFile.
+`value` exists only on success and `failure` only on failure. The concrete representation may use a discriminated union instead of optional properties. For Velite-controlled content outcomes, request provenance identifies the controlled recipe and stable request ordinal; owner provenance identifies collection, source, and record identity/index; source provenance identifies the selected Content Input and source path; field provenance carries the controlled semantic path; projection provenance identifies the root/sibling projection and any private authoritative source occurrence relevant to it. Arbitrary custom schemas receive only the truthful declaration contract finalized by Ticket 23 and no system-observed selected-input provenance. A normalized VFile message retains its original reason, position, rule/source metadata, severity, and cause without exposing a mutable branch VFile.
 
 Branch outcomes, diagnostics, effects, and projection results are never memoized. A matching rejected pristine parse remains memoized only as the shared root cause in its record broker. Every demanding field still receives its own associated failure outcome and diagnostic path.
 
@@ -71,7 +71,7 @@ Branch outcomes, diagnostics, effects, and projection results are never memoized
 
 An exception is classified by responsibility, not merely by where it was caught. Expected malformed user content, user plugin failure, or unavailable user asset becomes diagnostic data. A state that cannot occur under the Velite implementation contract is an internal invariant failure. Plugin-owned direct I/O, global mutation, randomness, closure state, and other external side effects remain outside Velite's rollback guarantees.
 
-Schema errors remain non-fatal unless the public facade's `strict` policy upgrades them. That policy must be applied before publication: a strict-upgraded run is a failed build and commits no new data, effects, manifest, or asset references. The driver may collect all diagnostics first, but the facade policy remains the authority for this upgrade.
+Schema errors remain non-fatal unless the durable Builder policy upgrades them. The BuilderCoordinator applies that policy after immutable diagnostic finalization and before staging: a strict-upgraded run is a failed build and commits no new data, effects, manifest, or asset references. The public facade only converts an already rejected operation into the public error form.
 
 A shared parse failure has one retained immutable root cause in the matching parse slot and one field-associated diagnostic for every demand. Each association carries its own schema path, request, projection, record, and source provenance. Programmatic diagnostic results must not deduplicate those associations. A presentation layer may visually group them under one root cause, but it must still expose every affected field.
 
@@ -132,22 +132,7 @@ This order is recomputed after full builds and patches. It never uses Promise co
 
 #### Diagnostics
 
-A diagnostic's identity consists of its stable code, stage, severity, complete source/owner/field/request association, source position when available, and underlying root-cause identity. Exact duplicates with the same association may collapse. Diagnostics for different fields, records, source occurrences, or demands never collapse merely because they share a message or cause.
-
-Canonical diagnostic order is ascending by:
-
-1. collection configuration order and identity, with project-wide diagnostics using a fixed leading sentinel;
-2. source path;
-3. record source index and stable record identity;
-4. schema path;
-5. projection/request declaration ordinal and source position;
-6. pipeline stage rank: `config`, `discover`, `load`, `schema`, `asset`, `prepare`, `output`, `watch`;
-7. severity rank: `error`, `warn`, `info`;
-8. diagnostic code;
-9. normalized asset/output path or another stable subject key;
-10. stable message and cause fingerprint as the final tie-breaker.
-
-Opaque error object identity, stack traces, and Promise completion order are not ordering keys. Presentation may group diagnostics, but the structured result remains in this canonical order with full provenance.
+Ticket 23's final public `Diagnostic` surface is the complete identity, equality, and ordering authority. Exact identity contains every public field and no hidden root-cause, subject, fingerprint, source-locator, insertion, or completion field. Canonical order compares complete truthful provenance, optional position, stage, severity, origin, code, message, context, and cause by Ticket 23's written comparator. Diagnostics for different public associations never collapse merely because they share a message or cause. Presentation may group diagnostics, but structured results retain the complete public values and canonical order.
 
 ### Asset and output commit rules
 
@@ -164,13 +149,13 @@ Asset handling has six separate phases:
 
 Speculative reads, probes, hashes, and immutable cache results may be retained according to their owning computation's normal lifetime even if a record or build fails; they carry no committed reference. Missing/unreadable assets are fatal asset diagnostics. Corrupt or unsupported image probing, or failure to produce a requested blur, is instead a field-scoped schema error: returning fabricated zero dimensions is not a successful `s.image()` result, but another valid record need not make the entire non-strict build fail.
 
-Velite must finish all fatal diagnostic collection, prepare processing, facade strict policy, and required output staging before publishing new data or manifests or deleting old outputs. Non-content-addressed files must be staged or otherwise protected by an equivalent atomic-generation mechanism. Immutable content-addressed blobs may be written before the final publication gate because an unreferenced blob cannot make candidate data current; if the build fails, such a blob may remain as harmless garbage for later collection. No failed build may publish a reference to it.
+Velite must finish all fatal diagnostic collection, prepare processing, BuilderCoordinator strict policy, and required output staging before publishing new data or manifests or deleting old outputs. Non-content-addressed files must be staged or otherwise protected by an equivalent atomic-generation mechanism. Immutable content-addressed blobs may be written before the final publication gate because an unreferenced blob cannot make candidate data current; if the build fails, such a blob may remain as harmless garbage for later collection. No failed build may publish a reference to it.
 
 If one of several asset writes fails, the new data and manifests are not published, no old committed output is deleted, and the previous successful generation remains usable. Successfully staged or content-addressed blobs from the failed attempt may remain unreferenced. Cleanup is driven only by the references in the newly committed manifest, never by discovery or write history. Stale cleanup occurs after publication as retryable garbage collection; cleanup failure must not roll back or misreport the already committed generation.
 
 The `prepare` hook receives a mutable candidate output view and readonly core diagnostics. It may transform the candidate output and append new diagnostics, but it cannot delete, replace, mutate, or downgrade core diagnostics. Hook diagnostics become immutable members of the same canonical diagnostic set. A thrown/rejected hook becomes a fatal `prepare` diagnostic. Output transformations do not invent schema effects; assets introduced solely by arbitrary hook code are the hook author's responsibility unless a future explicit interface says otherwise.
 
-`prepare(false)` suppresses Velite's default data and asset publication only. It cannot bypass a core or hook fatal diagnostic and cannot turn a strict-upgraded build into success. On a clean successful run it commits the new internal record/effect generation while committing an empty Velite-owned published-output/reference generation, then makes prior Velite-tracked outputs eligible for cleanup. On a failed run it leaves the previous successful output generation untouched. Hook-owned external I/O is outside this transaction guarantee.
+`prepare(false)` suppresses Velite's default data and asset publication only. It cannot bypass a core or hook fatal diagnostic and cannot turn a strict-upgraded build into success. On a clean successful run it commits the new internal record/effect Generation and an empty Publication; the prior current Publication becomes the protected direct predecessor and is not retirement-eligible until a later successful pointer advance displaces it. On a failed run it leaves the previous successful Generation and Publication untouched. Hook-owned external I/O is outside this transaction guarantee.
 
 ### Partial-failure scenarios
 

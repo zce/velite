@@ -791,3 +791,135 @@ This final resolution preserves the historical answer as decision history and su
 Ticket 18's two-phase evidence contract is now consistent with this ticket. Tickets 20, 23, and 24 are carried forward without reopening their settled public composition, diagnostic/effect, generation, reader, cleanup, or disposal decisions. No new cross-ticket hard contradiction was found.
 
 No product code, documentation, examples, tests, benchmark implementation, knowledge file, prototype, report, implementation ticket, specification, or implementation plan was created or changed while resolving this ticket.
+
+## Final concept-convergence resolution
+
+### Authority and supersession
+
+This section and its linked acceptance artifacts are the current and complete Ticket 25 contract. Earlier sections remain decision history only. This section supersedes every conflicting meta-schema requirement, uninstantiated gate list, event-name-only oracle, circular or unspecified bundle-root clause, broad boundary-unit phrase, managed-reader fixture, diagnostic host taxonomy fixture, and pre/post-implementation phase ambiguity in this ticket.
+
+The retained protocol decisions are unchanged: fixed first-kernel baseline, accepted-release comparison thereafter, A/B/C attribution, harness-only revision adapter, pinned host, paired raw measurements, exact formulas, one controlled rerun, complete raw retention, structural hard gates, independent semantic oracles, bundle-only recalculation, and separate design and release phases.
+
+### Authoritative design artifacts
+
+The pre-implementation acceptance contract is instantiated by exactly these authoritative artifacts:
+
+- [`evidence-schema.v1.json`](../artifacts/acceptance/evidence-schema.v1.json) - one closed JSON Schema 2020-12 bundle defining `EvidenceProtocol`, core `EvidenceBundle`, external `IndependentVerdict`, the artifact manifest entry, raw measurements, structural witnesses, semantic evidence, export evidence, run control, derived reports, and every retained artifact payload.
+- [`evidence-protocol.v1.json`](../artifacts/acceptance/evidence-protocol.v1.json) - the concrete versioned `velite-content-derivation-acceptance/1` protocol instance containing canonical bytes, hash domains, phase policy, fixed baseline, A/B/C roles, adapter restrictions, host and pairing policy, sole-rerun policy, typed path syntax, artifact kinds, retained-field dictionary, exact workload and fixture descriptors, formulas, complete stable gate registry, result rules, and negative surfaces.
+
+These files are design contracts. They are not benchmark implementation, generated fixtures, measured evidence, a core bundle, a producer report, or an independent release verdict. Those are post-implementation release artifacts validated by the design contracts.
+
+No additional protocol manifest, gate-registry schema, retained-field schema, workload schema, fixture schema, raw schema, witness schema, report schema, or verdict schema may become an independent acceptance authority. Such shapes are sections or `$defs` of the one versioned protocol contract.
+
+### Three-object evidence model
+
+The final evidence model has exactly three conceptual objects:
+
+1. **EvidenceProtocol** is the immutable design-phase authority. Its canonical bytes and SHA-256 identity fix all schemas, retained fields, workloads, fixtures, formulas, stable gates, owners, phases, rerun rules, and negative surfaces.
+2. **EvidenceBundle** is the release-phase content-addressed core manifest. It references every retained raw, semantic, structural, export, environment, calculator-source, producer-report, and producer-verdict artifact by schema, coordinates, byte size, dependencies, CAS path, and content hash.
+3. **IndependentVerdict** is an external bundle-only recalculation attestation. It references the protocol hash and completed core bundle root, records every consumed artifact/hash and gate result, and is never contained by or required to calculate the core bundle root.
+
+Derived reports and producer verdicts are recalculable core-bundle artifacts, not truth authority. Raw evidence, independently executable structural/semantic oracles, and the external recalculation decide acceptance.
+
+### Canonical bytes and hash domains
+
+JSON uses UTF-8 RFC 8785 JSON Canonicalization Scheme bytes with no BOM or trailing bytes. JSON-sequence records each use JCS followed by one LF in schema-defined stable order, including the final LF. Text retains exact UTF-8 bytes with no newline normalization. Binary retains exact bytes. Directory trees use the JCS array specified by the protocol. Numeric JSON is finite I-JSON; durations, byte counts, indexes, and counters are safe integers in their declared domains.
+
+Every retained hash uses SHA-256 and the exact domain prefix and byte concatenation in `EvidenceProtocol.hashDomains`. Git object identities remain explicitly tagged Git identities and never substitute for retained SHA-256 source-tree, distribution-tree, artifact, or bundle identities.
+
+The core `EvidenceBundle` manifest contains no `bundleRoot`, `bundleRootHash`, self artifact, or `IndependentVerdict`. Its root is calculated from the canonical core manifest bytes:
+
+```text
+SHA256(
+  UTF8("velite-evidence-bundle-v1") || 0x00 ||
+  JCS(EvidenceBundle manifest)
+)
+```
+
+The manifest commits every core artifact indirectly through its ordered artifact entries, coordinates, dependency hashes, CAS paths, byte sizes, and content hashes. `IndependentVerdict` is stored outside the bundle hash domain and only references the resulting root. Artifact kind `independent-verdict` is forbidden in the core manifest schema.
+
+### Concrete schemas and typed paths
+
+The schema artifact directly defines, rather than asks implementation to define:
+
+- artifact manifest entries and dependency integrity;
+- baseline, dependency bridge, host, fixture, adapter, run-control, raw measurement, RSS, semantic, structural, export, derived-report, calculator-source, and producer-verdict payloads;
+- core bundle manifest with no self root;
+- independent verdict input/output, consumed artifacts, discrepancies, gate results, and final classification; and
+- a closed recursive JSON value where retained reports need generic calculated values.
+
+The protocol's retained-field dictionary maps every artifact field family to exact type, source, requiredness, validation, meaning, recalculation use, and omission result. Typed gate inputs use the fixed `P#`, `M#`, `A[...]#`, and `V#` selectors. A selector must resolve exactly once unless the schema-declared `*` sequence is explicit; zero, duplicate, hash-mismatched, or type-mismatched selection is invalid.
+
+### Stable gate registry
+
+`EvidenceProtocol.gates` is the complete stable registry. Every entry is instantiated with:
+
+- one stable ID;
+- `hard`, `target`, or `advisory` class;
+- `design` or `release` phase;
+- one accountable owner;
+- exact typed input paths;
+- an exact formula or structural oracle;
+- exhaustive pass, fail, and invalid rules, plus fixed inapplicability where relevant;
+- explicit rerun eligibility; and
+- retained output paths.
+
+Design gates prove closed schemas, field and gate coverage, non-circular hash domains, phase separation, baseline/A/B/C/host/adapter determinism, independent oracles, cross-checked structural evidence, unit-correct rerun boundaries, and complete negative surfaces.
+
+Release gates cover schema/hash/retention integrity, baseline/bridge/host/adapter/fixture validity, pairing/rerun/calculator reproducibility, semantic values, parse sharing, VFile continuity and branch isolation, rejected-parse retention, narrow diagnostics, prepare/effect transactions, asset behavior, one Builder authority, atomic publication, cleanup/result ordering, external predecessor protection, recovery/residue, watch/reload, admission/disposal, parallel Builder isolation, optional-pool lifecycle or absence, public/private surfaces, every numeric hard gate, targets, and advisories.
+
+No prose-only test-oracle numbering is a second gate registry. Ticket 20, Ticket 23, Ticket 24, and migration requirements map into these semantic gate IDs.
+
+### Numeric and boundary formulas
+
+All formulas are exact protocol entries. Numeric hard thresholds include:
+
+- primary full time ratio `<= 1.05` for each dialect;
+- combined full time ratio `<= 1.03` for each dialect;
+- plugin/asset full time ratio `<= 1.05`;
+- mixed full time ratio `<= 1.05`;
+- no-op and incremental exact median delta `candidate_ms - reference_ms <= max(0.10 * reference_ms, 2)`;
+- paired peak-RSS ratio `<= 1.10` for Markdown combined, MDX combined, plugin/assets, mixed, and 20,000 stress;
+- 20,000 full time ratio `<= 1.10`;
+- first-kernel static-projection overhead reduction `>= 0.30` per dialect with both overheads strictly positive; and
+- positive early and `late <= 1.25 * early` time/RSS affine slopes, plus stress completion and zero-retention predicates.
+
+Boundary/noise units are no longer overloaded:
+
+- a ratio gate uses `abs(gate_ratio - limit_ratio)`, a dimensionless ratio margin;
+- a reduction gate uses `abs(reduction - required_reduction)`, a dimensionless reduction margin; and
+- a millisecond delta gate uses `abs(delta_ms - allowance_ms) / allowance_ms`, a dimensionless normalized margin relative to its exact allowed delta.
+
+Each boundary predicate uses `<= 0.02` in its own dimensionless domain. No millisecond gate is described in percentage points.
+
+### Pass, fail, invalid, inapplicable, and rerun
+
+A gate passes when all required inputs are valid and its predicate is true. It fails when valid evidence demonstrates a false predicate, a worker crash/timeout/OOM/wrong count, incomplete declared structural coverage, semantic mismatch, lifecycle violation, or prohibited surface. It is invalid when required evidence is missing, malformed, hash-inconsistent, contradictory, non-unique, or cannot support a conclusion. The one-time improvement gates are inapplicable for later accepted-release comparisons.
+
+Any hard invalid makes the final result invalid. Otherwise any hard fail makes the final result fail. Otherwise the result passes. Target and advisory results never override hard results. A missing structural report is invalid; a complete report stating `coverage.complete = false` is a hard failure.
+
+Exactly one complete same-protocol rerun is available only for the enumerated performance-noise reasons. Baseline, bridge, host, schema, hash, fixture, adapter, worker, semantic, structural, publication, lifecycle, export, and retention failures are not noise-rerunnable. Both batches remain retained. Protocol, host, seed, workload, fixture, threshold, and formula remain fixed.
+
+### Structural evidence and instrumentation
+
+Product instrumentation is a private write-only witness injected at explicit internal factories. It exposes no query interface, report object, registry, stable object identity, or public/debug operation. The harness owns storage, aggregation, and validation outside product state.
+
+Event names and event presence are never sufficient hard-gate oracles. Every structural gate cross-checks at least one independent semantic value, controlled adapter call, persisted manifest, state predicate, counter, retention snapshot, or export observation. The structural witness schema retains all of those channels and declares coverage explicitly.
+
+The final lifecycle fixtures observe one BuilderCoordinator semantic authority, not separate publication and epoch owners. They require operation admission, immutable candidate production, staging result, authorization acceptance/rejection with reason, atomic-pointer adapter result, synchronous Generation/Publication/epoch install, replay-checkpoint comparison, first cleanup and backlog update, result settlement, and disposal transition. Private representation names are not gate identities.
+
+Reader evidence covers only current-plus-direct-predecessor protection, manifest-derived generation/blob eligibility, shared blobs, recovery, residue, and explicit clean. There is no reader acquisition, lease, pin, pin-blocked retirement, or reader-blocked disposal fixture.
+
+Diagnostic evidence uses Ticket 23's narrow `DiagnosticValue`, three public custom occurrence variants, private controlled source ranges, one generic opaque representation, no host taxonomy, and no dedicated Proxy detector.
+
+### Independent verdict
+
+The independent calculator accepts only the schema artifact, `EvidenceProtocol`, core `EvidenceBundle`, and CAS bytes referenced by the manifest. It may not access a checkout, network, clock, environment variable, directory enumeration, live Builder, product-private helper, mutable statistics object, or candidate module.
+
+It revalidates every schema and hash, recomputes every statistic from raw samples, re-executes every structural oracle from semantic/adapters/manifests/state/counters/retention evidence, treats producer reports as comparison inputs only, records every discrepancy, and emits `IndependentVerdict` outside the core bundle. Any unresolved discrepancy makes the verdict invalid.
+
+### Cross-ticket effect
+
+Ticket 18's harness adapter has no migration action ID. Ticket 23 supplies the complete diagnostic/effect oracle. Ticket 24 supplies the one-coordinator publication/lifecycle oracle and external predecessor window. Ticket 11 may reapprove design readiness from these concrete design artifacts without requiring fabricated release measurements, but implementation and release acceptance still require the actual core bundle and external independent verdict.
+
+No compatibility shim, product benchmark interface, public/process-global registry, implementation ticket, implementation plan, benchmark implementation, measured result, or release verdict is created by this resolution.

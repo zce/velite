@@ -45,7 +45,12 @@ const entries = (result: { output: { collections: Record<string, { entries: Arra
   result.output.collections.posts!.entries.map(e => e.data)
 
 const diagSummary = (result: { diagnostics: Array<{ code: string; file?: string }> }): string[] =>
-  result.diagnostics.map(d => `${d.code}:${d.file ?? ''}`).sort()
+  result.diagnostics
+    .map(
+      d =>
+        `${d.code}:${d.provenance.scope === 'source' ? (d.provenance as { source: { path: string } }).source.path : d.provenance.scope === 'record' ? (d.provenance as { source: { path: string } }).source.path : ''}`
+    )
+    .sort()
 
 test('incremental ≡ full: modify/add/delete produce the same output as a clean full build', async () => {
   const { runtime, fs } = setup()

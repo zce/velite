@@ -66,12 +66,19 @@ export const createUniqueCheckDerivation = (
     const diagnostics: Diagnostic[] = []
     for (const bucket of buckets.values()) {
       if (bucket.owners.size <= 1) continue
-      for (const [owner, collection] of bucket.owners) {
+      for (const [owner, collectionRaw] of bucket.owners) {
+        const collection = collectionRaw ?? ''
+        const collectionOrder = config.collections.findIndex(c => c.name === collection)
+        const sourcePath = owner.split('#')[0] ?? ''
         diagnostics.push(
           diagnostic('error', 'SCHEMA_INVALID', `duplicate unique value "${bucket.value}" in group "${bucket.group}"`, {
             stage: 'schema',
-            collection,
-            recordId: owner
+            provenance: {
+              scope: 'record',
+              collection: { order: collectionOrder, id: collection },
+              source: { path: sourcePath },
+              record: { index: 0, id: owner }
+            }
           })
         )
       }

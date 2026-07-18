@@ -159,20 +159,23 @@ const splitPatterns = (pattern: string | string[] | undefined, exclude: string |
 /** Validate a raw config value's shape. Returns diagnostics (does not throw). */
 export const validateConfig = (config: unknown): Diagnostic[] => {
   if (typeof config !== 'object' || config === null) {
-    return [diagnostic('error', 'CONFIG_INVALID', 'config must be an object')]
+    return [diagnostic('error', 'CONFIG_INVALID', 'config must be an object', { stage: 'config' })]
   }
   const collections = (config as UserConfig).collections
   if (typeof collections !== 'object' || collections === null) {
-    return [diagnostic('error', 'CONFIG_INVALID', 'config.collections must be an object')]
+    return [diagnostic('error', 'CONFIG_INVALID', 'config.collections must be an object', { stage: 'config' })]
   }
   const issues: Diagnostic[] = []
+  let order = 0
   for (const [name, def] of Object.entries(collections)) {
+    const provenance = { scope: 'collection' as const, collection: { order, id: name } }
     if (def == null || (def as CollectionDef).pattern == null) {
-      issues.push(diagnostic('error', 'CONFIG_INVALID', `collection "${name}" is missing a pattern`, { collection: name }))
+      issues.push(diagnostic('error', 'CONFIG_INVALID', `collection "${name}" is missing a pattern`, { stage: 'config', provenance }))
     }
     if (def == null || (def as CollectionDef).schema == null) {
-      issues.push(diagnostic('error', 'CONFIG_INVALID', `collection "${name}" is missing a schema`, { collection: name }))
+      issues.push(diagnostic('error', 'CONFIG_INVALID', `collection "${name}" is missing a schema`, { stage: 'config', provenance }))
     }
+    order++
   }
   return issues
 }

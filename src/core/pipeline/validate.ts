@@ -182,9 +182,13 @@ export const createValidateDerivation = (
             diagnostics.push(
               diagnostic('error', 'SCHEMA_INVALID', issue.message, {
                 stage: 'schema',
-                file: path,
-                collection,
-                path: issue.path as (string | number)[]
+                provenance: {
+                  scope: 'record',
+                  collection: { order: collectionOrder, id: collection },
+                  source: { path },
+                  record: { index, id: raw.id },
+                  path: issue.path as (string | number)[]
+                }
               })
             )
           }

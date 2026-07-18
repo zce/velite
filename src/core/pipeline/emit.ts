@@ -9,7 +9,7 @@ import type { Collected, Emitted, UniqueChecked } from './types'
 
 const UNIQUE_SEPARATOR = '\0'
 
-const uniqueDiagnostics = (effects: readonly Effect[], collectionByOwner: ReadonlyMap<string, string>): Diagnostic[] => {
+const uniqueDiagnostics = (config: ResolvedConfig, effects: readonly Effect[], collectionByOwner: ReadonlyMap<string, string>): Diagnostic[] => {
   const buckets = new Map<string, { value: string; group: string; owners: Set<string> }>()
   for (const effect of effects) {
     if (effect.type !== 'unique') continue
@@ -26,11 +26,13 @@ const uniqueDiagnostics = (effects: readonly Effect[], collectionByOwner: Readon
   for (const bucket of buckets.values()) {
     if (bucket.owners.size <= 1) continue
     for (const owner of bucket.owners) {
+      const collection = collectionByOwner.get(owner) ?? ''
+      const collectionOrder = config.collections.findIndex(c => c.name === collection)
+      const sourcePath = owner.split('#')[0] ?? ''
       diagnostics.push(
         diagnostic('error', 'SCHEMA_INVALID', `duplicate unique value "${bucket.value}" in group "${bucket.group}"`, {
           stage: 'schema',
-          collection: collectionByOwner.get(owner),
-          recordId: owner
+          provenance: { scope: 'record', collection: { order: collectionOrder, id: collection }, source: { path: sourcePath }, record: { index: 0, id: owner } }
         })
       )
     }
@@ -63,7 +65,7 @@ export const createEmitDerivation = (
       diagnostics.push(...collected.diagnostics)
       effects.push(...collected.effects)
     }
-    diagnostics.push(...uniqueDiagnostics(effects, collectionByOwner))
+    diagnostics.push(...uniqueDiagnostics(config, effects, collectionByOwner))
     return { output: { collections }, effects, diagnostics }
   }
 })

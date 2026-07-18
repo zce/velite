@@ -28,12 +28,20 @@ test('validateConfig: collection missing pattern yields a diagnostic', () => {
   const diags = validateConfig({ collections: { posts: { schema: s.string() } } })
   const codes = diags.map(d => d.code)
   assert.ok(codes.includes('CONFIG_INVALID'))
-  assert.ok(diags.some(d => d.collection === 'posts' && d.message.includes('pattern')))
+  assert.ok(
+    diags.some(
+      d => d.provenance.scope === 'collection' && (d.provenance as { collection: { id: string } }).collection.id === 'posts' && d.message.includes('pattern')
+    )
+  )
 })
 
 test('validateConfig: collection missing schema yields a diagnostic', () => {
   const diags = validateConfig({ collections: { posts: { pattern: '*.md' } } })
-  assert.ok(diags.some(d => d.collection === 'posts' && d.message.includes('schema')))
+  assert.ok(
+    diags.some(
+      d => d.provenance.scope === 'collection' && (d.provenance as { collection: { id: string } }).collection.id === 'posts' && d.message.includes('schema')
+    )
+  )
 })
 
 test('validateConfig: valid config yields no diagnostics', () => {

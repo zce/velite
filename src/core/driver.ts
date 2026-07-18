@@ -286,7 +286,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
         assetReadDiagnostics.push(
           diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${assetPath}`, {
             stage: 'asset',
-            file: assetPath,
+            provenance: { scope: 'source', source: { path: relative(config.root, assetPath) } },
             cause: err
           })
         )
@@ -371,7 +371,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
         assetReadDiagnostics.push(
           diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${assetPath}`, {
             stage: 'asset',
-            file: assetPath,
+            provenance: { scope: 'source', source: { path: relative(config.root, assetPath) } },
             cause: err
           })
         )
@@ -394,7 +394,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
           assetWriteDiagnostics.push(
             diagnostic('error', 'ASSET_FAILED', `failed to write asset: ${dest}`, {
               stage: 'asset',
-              file: assetPath,
+              provenance: { scope: 'source', source: { path: relative(config.root, assetPath) } },
               cause: err
             })
           )

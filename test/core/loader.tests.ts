@@ -35,8 +35,10 @@ test('jsonLoader: invalid JSON yields a LOADER_FAILED diagnostic', () => {
   assert.equal(result.items.length, 0)
   assert.equal(result.diagnostics?.length, 1)
   assert.equal(result.diagnostics![0]!.code, 'LOADER_FAILED')
-  assert.equal(result.diagnostics![0]!.file, 'bad.json')
-  assert.equal(result.diagnostics![0]!.level, 'error')
+  const d = result.diagnostics![0]!
+  assert.equal(d.provenance.scope, 'source')
+  assert.equal((d.provenance as { source: { path: string } }).source.path, 'bad.json')
+  assert.equal(d.level, 'error')
 })
 
 test('yamlLoader: top-level sequence yields one item per element keyed by index', () => {
@@ -58,7 +60,8 @@ test('yamlLoader: invalid YAML yields a LOADER_FAILED diagnostic', () => {
   const result = yamlLoader.load(input('bad.yaml', '\t\ta: [unclosed'))
   assert.equal(result.items.length, 0)
   assert.equal(result.diagnostics![0]!.code, 'LOADER_FAILED')
-  assert.equal(result.diagnostics![0]!.file, 'bad.yaml')
+  const d = result.diagnostics![0]!
+  assert.equal((d.provenance as { source: { path: string } }).source.path, 'bad.yaml')
 })
 
 test('matterLoader: with frontmatter merges meta fields with content', () => {
@@ -80,7 +83,8 @@ test('matterLoader: invalid frontmatter yields a LOADER_FAILED diagnostic', () =
   const result = matterLoader.load(input('bad.md', '---\n: : : bad\n---\nbody\n'))
   assert.equal(result.items.length, 0)
   assert.equal(result.diagnostics![0]!.code, 'LOADER_FAILED')
-  assert.equal(result.diagnostics![0]!.file, 'bad.md')
+  const d = result.diagnostics![0]!
+  assert.equal((d.provenance as { source: { path: string } }).source.path, 'bad.md')
 })
 
 test('createLoaderRegistry: resolves builtin loaders by extension', () => {

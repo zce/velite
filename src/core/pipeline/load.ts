@@ -18,7 +18,10 @@ export const createLoadDerivation = (loaders: LoaderRegistry): Derivation<string
     const bytes = context.input<Uint8Array>(fileInput(path))
     const loader = loaders.resolve(path)
     if (loader === undefined) {
-      return { entries: [], diagnostics: [diagnostic('error', 'LOADER_FAILED', `no loader for ${path}`, { stage: 'load', file: path })] }
+      return {
+        entries: [],
+        diagnostics: [diagnostic('error', 'LOADER_FAILED', `no loader for ${path}`, { stage: 'load', provenance: { scope: 'source', source: { path } } })]
+      }
     }
     const result = loader.load({ path, bytes, text: decoder.decode(bytes) })
     const entries: RawEntry[] = result.items.map(item => ({

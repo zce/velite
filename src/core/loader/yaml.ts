@@ -16,7 +16,13 @@ export const yamlLoader: Loader = {
     } catch (cause) {
       return {
         items: [],
-        diagnostics: [diagnostic('error', 'LOADER_FAILED', `invalid YAML: ${(cause as Error).message}`, { file: path, cause })]
+        diagnostics: [
+          diagnostic('error', 'LOADER_FAILED', `invalid YAML: ${(cause as Error).message}`, {
+            stage: 'load',
+            provenance: { scope: 'source', source: { path } },
+            cause
+          })
+        ]
       }
     }
     return toItems(parsed)

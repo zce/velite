@@ -4,20 +4,33 @@ import { test } from 'node:test'
 import { codeFromDiagnostics, diagnostic, fail, hasFatalDiagnostic, isVeliteError, VeliteError } from '../../src/core/diagnostic'
 
 test('diagnostic() factory builds a diagnostic with level/code/message and extra fields', () => {
-  const d = diagnostic('error', 'LOADER_FAILED', 'invalid JSON', { file: 'a.json', stage: 'load', recordId: 'a.json#0', cause: new Error('x') })
+  const d = diagnostic('error', 'LOADER_FAILED', 'invalid JSON', {
+    stage: 'load',
+    origin: { kind: 'core' },
+    provenance: { scope: 'source', source: { path: 'a.json' } },
+    cause: new Error('x')
+  })
   assert.equal(d.level, 'error')
   assert.equal(d.code, 'LOADER_FAILED')
   assert.equal(d.message, 'invalid JSON')
-  assert.equal(d.file, 'a.json')
   assert.equal(d.stage, 'load')
-  assert.equal(d.recordId, 'a.json#0')
+  assert.equal(d.origin.kind, 'core')
+  assert.equal(d.provenance.scope, 'source')
+  assert.equal((d.provenance as { source: { path: string } }).source.path, 'a.json')
+  assert.deepEqual(d.cause, { type: 'error', name: 'Error', message: 'x' })
 })
 
-test('diagnostic() extra is optional', () => {
+test('diagnostic() extra is optional (defaults: stage schema, origin core, provenance project)', () => {
   const d = diagnostic('warn', 'CONFIG_INVALID', 'oops')
   assert.equal(d.level, 'warn')
-  assert.equal(d.file, undefined)
-  assert.equal(d.stage, undefined)
+  assert.equal(d.code, 'CONFIG_INVALID')
+  assert.equal(d.message, 'oops')
+  assert.equal(d.stage, 'schema')
+  assert.equal(d.origin.kind, 'core')
+  assert.equal(d.provenance.scope, 'project')
+  assert.equal(d.position, undefined)
+  assert.equal(d.context, undefined)
+  assert.equal(d.cause, undefined)
 })
 
 test('VeliteError is a real Error (instanceof, stack captured)', () => {
@@ -44,8 +57,13 @@ test('VeliteError carries code, context, cause, diagnostics', () => {
 
 test('VeliteError defaults diagnostics to empty array and optional message', () => {
   const err = new VeliteError('internal')
-  assert.deepEqual(err.diagnostics, [])
+  assert.deepEqual([...err.diagnostics], [])
   assert.equal(err.message, '')
+})
+
+test('VeliteError diagnostics array is frozen (runtime immutability)', () => {
+  const err = new VeliteError('internal', { diagnostics: [diagnostic('error', 'X', 'm')] })
+  assert.ok(Object.isFrozen(err.diagnostics))
 })
 
 test('VeliteError toString includes name, code, message, context, cause', () => {

@@ -23,7 +23,8 @@ export const matterLoader: Loader = {
         items: [],
         diagnostics: [
           diagnostic('error', 'LOADER_FAILED', `invalid frontmatter: ${(cause as Error).message}`, {
-            file: path,
+            stage: 'load',
+            provenance: { scope: 'source', source: { path } },
             cause
           })
         ]

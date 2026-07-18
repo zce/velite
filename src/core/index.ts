@@ -37,7 +37,17 @@ export { ConfigError, defineCollection, defineConfig, resolveConfig, validateCon
 export type { CollectionDef, PrepareCollections, PrepareContext, PrepareHook, PrepareResult, ResolvedConfig, UserConfig } from './config'
 
 export { diagnostic, VeliteError } from './diagnostic'
-export type { Diagnostic, DiagnosticCode, DiagnosticLevel, DiagnosticStage, VeliteErrorCode } from './diagnostic'
+export type {
+  Diagnostic,
+  DiagnosticLevel,
+  DiagnosticOrigin,
+  DiagnosticPoint,
+  DiagnosticPosition,
+  DiagnosticProvenance,
+  DiagnosticStage,
+  DiagnosticValue,
+  VeliteErrorCode
+} from './diagnostic'
 
 export type { BuildResult } from './driver'
 

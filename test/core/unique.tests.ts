@@ -53,9 +53,9 @@ test('uniqueCheck: flags a duplicate slug across two records', async () => {
   const dupes = result.diagnostics.filter(d => d.code === 'SCHEMA_INVALID' && d.message.includes('duplicate unique value'))
   equal(dupes.length, 2, 'one diagnostic per conflicting owner')
   ok(dupes.every(d => d.stage === 'schema'))
-  ok(dupes.every(d => d.recordId !== undefined))
+  ok(dupes.every(d => d.provenance.scope === 'record'))
   // both owners are flagged
-  const owners = new Set(dupes.map(d => d.recordId))
+  const owners = new Set(dupes.map(d => (d.provenance as { record: { id: string } }).record.id))
   ok(owners.has('posts/a.md#hello-world') || owners.has('posts/a.md#'), `owners: ${[...owners].join(',')}`)
   // entries are still emitted (non-fatal schema diagnostics)
   equal(result.output.collections.posts!.entries.length, 2)

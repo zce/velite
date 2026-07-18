@@ -26,7 +26,19 @@ const flatten = (msg: string): string => {
 }
 
 const formatDiagnostic = (d: Diagnostic): string => {
-  const where = [d.collection, d.file, d.path?.join('.')].filter(Boolean).join(' ')
+  const parts: string[] = []
+  if (d.provenance.scope === 'collection' || d.provenance.scope === 'record') {
+    const c = (d.provenance as { collection: { id: string } }).collection
+    parts.push(c.id)
+  }
+  if (d.provenance.scope === 'source' || d.provenance.scope === 'record') {
+    parts.push((d.provenance as { source: { path: string } }).source.path)
+  }
+  if (d.provenance.scope === 'record') {
+    const p = (d.provenance as { path?: readonly (string | number)[] }).path
+    if (p !== undefined) parts.push(p.join('.'))
+  }
+  const where = parts.join(' ')
   return `[${d.code}] ${d.message}${where ? ` (${where})` : ''}`
 }
 

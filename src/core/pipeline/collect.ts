@@ -33,16 +33,22 @@ export const createCollectDerivation = (
     entries.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
 
     const single = config.collections.find(c => c.name === name)?.single ?? false
+    const collectionOrder = config.collections.findIndex(c => c.name === name)
     if (!single) {
       return { result: { collection: name, mode: 'list', entries }, effects, diagnostics }
     }
     if (entries.length === 0) {
-      diagnostics.push(diagnostic('error', 'COLLECTION_EMPTY', `single collection "${name}" matched no valid entry`, { stage: 'schema', collection: name }))
+      diagnostics.push(
+        diagnostic('error', 'COLLECTION_EMPTY', `single collection "${name}" matched no valid entry`, {
+          stage: 'schema',
+          provenance: { scope: 'collection', collection: { order: collectionOrder, id: name } }
+        })
+      )
     } else if (entries.length > 1) {
       diagnostics.push(
         diagnostic('warn', 'COLLECTION_MULTIPLE', `single collection "${name}" matched ${entries.length} entries; using the first`, {
           stage: 'schema',
-          collection: name
+          provenance: { scope: 'collection', collection: { order: collectionOrder, id: name } }
         })
       )
     }

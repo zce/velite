@@ -1,0 +1,741 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://velite.dev/design/content-derivation/evidence-schema.v1.json",
+  "title": "Velite Content Derivation Evidence Contract V1",
+  "oneOf": [
+    { "$ref": "#/$defs/evidenceProtocol" },
+    { "$ref": "#/$defs/evidenceBundle" },
+    { "$ref": "#/$defs/independentVerdict" }
+  ],
+  "$defs": {
+    "jsonValue": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        }
+      ]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "hashRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "domain", "digest"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "domain": { "type": "string", "minLength": 1 },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "typedInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "type"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 }
+      }
+    },
+    "gateDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "class", "phase", "owner", "inputs", "oracle", "pass", "fail", "invalid", "rerun", "retainedOutputs"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[DR]\\.[A-Z0-9_.]+$" },
+        "class": { "enum": ["hard", "target", "advisory"] },
+        "phase": { "enum": ["design", "release"] },
+        "owner": { "type": "string", "minLength": 1 },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/typedInput" }
+        },
+        "formulaId": { "type": "string", "pattern": "^F\\.[A-Z0-9_.]+$" },
+        "oracle": { "type": "string", "minLength": 1 },
+        "pass": { "type": "string", "minLength": 1 },
+        "fail": { "type": "string", "minLength": 1 },
+        "invalid": { "type": "string", "minLength": 1 },
+        "rerun": { "enum": ["never", "protocol-noise-only", "with-associated-hard-gate"] },
+        "retainedOutputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "formulaDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "inputs", "expression", "outputType"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^F\\.[A-Z0-9_.]+$" },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "expression": { "type": "string", "minLength": 1 },
+        "outputType": { "type": "string", "minLength": 1 }
+      }
+    },
+    "retainedField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactKind", "path", "type", "source", "requiredWhen", "validation", "meaning", "recalculationUse", "omission"],
+      "properties": {
+        "artifactKind": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "pattern": "^/" },
+        "type": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "requiredWhen": { "type": "string", "minLength": 1 },
+        "validation": { "type": "string", "minLength": 1 },
+        "meaning": { "type": "string", "minLength": 1 },
+        "recalculationUse": { "type": "string", "minLength": 1 },
+        "omission": { "enum": ["invalid", "explicit-inapplicable"] }
+      }
+    },
+    "workloadDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "dialects", "documents", "demands", "plugins", "assets", "operations", "documentBytes", "seedRule"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^W[A-Z0-9._]+$" },
+        "dialects": { "type": "array", "items": { "enum": ["markdown", "mdx"] }, "minItems": 1, "uniqueItems": true },
+        "documents": { "type": "integer", "minimum": 0 },
+        "demands": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "plugins": { "type": "string" },
+        "assets": { "type": "string" },
+        "operations": { "type": "array", "items": { "enum": ["full", "no-op", "incremental", "dispose"] }, "minItems": 1, "uniqueItems": true },
+        "documentBytes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["minimum", "maximum"],
+          "properties": {
+            "minimum": { "type": "integer", "minimum": 0 },
+            "maximum": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "seedRule": { "type": "string", "minLength": 1 }
+      }
+    },
+    "fixtureDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "purpose", "requiredObservations"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^S[0-9]{2}\\.[A-Z0-9_]+$" },
+        "purpose": { "type": "string", "minLength": 1 },
+        "requiredObservations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "enum": ["events", "adapterCalls", "stateSnapshots", "manifestSnapshots", "semanticObservations", "counterSnapshots", "retentionSnapshots", "exportObservations"] },
+          "uniqueItems": true
+        }
+      }
+    },
+    "artifactKindDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "schemaRef", "owner", "phase", "retention"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "schemaRef": { "type": "string", "pattern": "^evidence-schema\\.v1\\.json#/\\$defs/" },
+        "owner": { "type": "string", "minLength": 1 },
+        "phase": { "const": "release" },
+        "retention": { "enum": ["required", "conditional", "optional"] }
+      }
+    },
+    "evidenceProtocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["$schema", "protocolId", "protocolSchemaVersion", "bundleSchemaVersion", "verdictSchemaVersion", "canonicalization", "hashDomains", "phases", "baseline", "comparison", "adapter", "host", "pairing", "rerun", "pathSyntax", "artifactKinds", "retainedFieldDictionary", "workloads", "fixtures", "formulas", "gates", "resultRules", "negativeSurfaces"],
+      "properties": {
+        "$schema": { "type": "string", "minLength": 1 },
+        "protocolId": { "const": "velite-content-derivation-acceptance/1" },
+        "protocolSchemaVersion": { "const": 1 },
+        "bundleSchemaVersion": { "const": 1 },
+        "verdictSchemaVersion": { "const": 1 },
+        "canonicalization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["json", "jsonSequence", "text", "binary", "tree", "numberPolicy", "timestampPolicy"],
+          "properties": {
+            "json": { "const": "UTF-8 RFC 8785 JCS bytes with no BOM or trailing bytes" },
+            "jsonSequence": { "type": "string", "minLength": 1 },
+            "text": { "type": "string", "minLength": 1 },
+            "binary": { "type": "string", "minLength": 1 },
+            "tree": { "type": "string", "minLength": 1 },
+            "numberPolicy": { "type": "string", "minLength": 1 },
+            "timestampPolicy": { "type": "string", "minLength": 1 }
+          }
+        },
+        "hashDomains": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["algorithm", "artifact", "blob", "tree", "protocol", "bundleRoot", "verdict", "bundleRootExclusions"],
+          "properties": {
+            "algorithm": { "const": "SHA-256" },
+            "artifact": { "type": "string", "minLength": 1 },
+            "blob": { "type": "string", "minLength": 1 },
+            "tree": { "type": "string", "minLength": 1 },
+            "protocol": { "type": "string", "minLength": 1 },
+            "bundleRoot": { "type": "string", "minLength": 1 },
+            "verdict": { "type": "string", "minLength": 1 },
+            "bundleRootExclusions": { "type": "array", "items": { "type": "string" }, "minItems": 2, "uniqueItems": true }
+          }
+        },
+        "phases": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["design", "release"],
+          "properties": {
+            "design": { "type": "string", "minLength": 1 },
+            "release": { "type": "string", "minLength": 1 }
+          }
+        },
+        "baseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["firstKernelCommit", "laterReference", "replacement"],
+          "properties": {
+            "firstKernelCommit": { "const": "3903ba3bdcfe9ce987f69f2de799d218a939c677" },
+            "laterReference": { "const": "immediately preceding accepted release" },
+            "replacement": { "type": "string", "minLength": 1 }
+          }
+        },
+        "comparison": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["roles", "dependencyAttribution", "kernelAttribution", "identityBridge"],
+          "properties": {
+            "roles": { "const": { "A": "baseline source and baseline dependencies", "B": "baseline source and candidate dependencies", "C": "candidate source and candidate dependencies" } },
+            "dependencyAttribution": { "const": "A -> B" },
+            "kernelAttribution": { "const": "B -> C" },
+            "identityBridge": { "type": "string", "minLength": 1 }
+          }
+        },
+        "adapter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scope", "allowed", "forbidden"],
+          "properties": {
+            "scope": { "const": "acceptance harness only" },
+            "allowed": { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true },
+            "forbidden": { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true }
+          }
+        },
+        "host": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["platform", "architecture", "node", "pnpm", "qualification"],
+          "properties": {
+            "platform": { "const": "dedicated Linux" },
+            "architecture": { "const": "x64" },
+            "node": { "const": "22.13.0" },
+            "pnpm": { "const": "11.1.2" },
+            "qualification": { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true }
+          }
+        },
+        "pairing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["warmupPairs", "measuredPairs", "launchOrder", "permutation"],
+          "properties": {
+            "warmupPairs": { "const": 2 },
+            "measuredPairs": { "const": 7 },
+            "launchOrder": { "const": ["reference-first", "candidate-first", "reference-first", "candidate-first", "reference-first", "candidate-first", "reference-first"] },
+            "permutation": { "type": "string", "minLength": 1 }
+          }
+        },
+        "rerun": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maximum", "eligibleReasons", "fixedInputs", "validBoundaryRule", "invalidFirstRule", "terminalRule"],
+          "properties": {
+            "maximum": { "const": 1 },
+            "eligibleReasons": { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true },
+            "fixedInputs": { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true },
+            "validBoundaryRule": { "type": "string", "minLength": 1 },
+            "invalidFirstRule": { "type": "string", "minLength": 1 },
+            "terminalRule": { "type": "string", "minLength": 1 }
+          }
+        },
+        "pathSyntax": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["protocol", "manifest", "artifact", "verdict", "selection"],
+          "properties": {
+            "protocol": { "const": "P#/json-pointer" },
+            "manifest": { "const": "M#/json-pointer" },
+            "artifact": { "const": "A[kind;key=value,...]#/json-pointer" },
+            "verdict": { "const": "V#/json-pointer" },
+            "selection": { "type": "string", "minLength": 1 }
+          }
+        },
+        "artifactKinds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/artifactKindDefinition" }
+        },
+        "retainedFieldDictionary": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/retainedField" }
+        },
+        "workloads": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/workloadDescriptor" }
+        },
+        "fixtures": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/fixtureDescriptor" }
+        },
+        "formulas": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/formulaDefinition" }
+        },
+        "gates": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/gateDefinition" }
+        },
+        "resultRules": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pass", "fail", "invalid", "inapplicable", "final"],
+          "properties": {
+            "pass": { "type": "string", "minLength": 1 },
+            "fail": { "type": "string", "minLength": 1 },
+            "invalid": { "type": "string", "minLength": 1 },
+            "inapplicable": { "type": "string", "minLength": 1 },
+            "final": { "type": "string", "minLength": 1 }
+          }
+        },
+        "negativeSurfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "artifactCoordinates": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "integer", "boolean"] }
+    },
+    "artifactEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "schemaVersion", "phase", "owner", "producerRole", "requirement", "coordinates", "mediaType", "canonicalEncoding", "contentHash", "byteSize", "dependencies", "casPath"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "not": { "const": "independent-verdict" } },
+        "schemaVersion": { "type": "integer", "minimum": 1 },
+        "phase": { "const": "release" },
+        "owner": { "type": "string", "minLength": 1 },
+        "producerRole": { "enum": ["harness", "reference", "candidate", "release-host", "producer-calculator"] },
+        "requirement": { "enum": ["required", "conditional", "optional"] },
+        "coordinates": { "$ref": "#/$defs/artifactCoordinates" },
+        "mediaType": { "type": "string", "minLength": 1 },
+        "canonicalEncoding": { "enum": ["jcs", "jcs-sequence", "utf8-exact", "raw"] },
+        "contentHash": { "$ref": "#/$defs/hashRef" },
+        "byteSize": { "type": "integer", "minimum": 0 },
+        "recordCount": { "type": "integer", "minimum": 0 },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["artifactId", "contentHash"],
+            "properties": {
+              "artifactId": { "type": "string", "minLength": 1 },
+              "contentHash": { "$ref": "#/$defs/hashRef" }
+            }
+          }
+        },
+        "casPath": { "type": "string", "pattern": "^cas/sha256/[0-9a-f]{2}/[0-9a-f]{62}$" }
+      }
+    },
+    "revisionIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "commit", "sourceTreeHash", "dependencyManifestHash", "lockfileHash", "distTreeHash"],
+      "properties": {
+        "role": { "enum": ["A", "B", "C"] },
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "sourceTreeHash": { "$ref": "#/$defs/hashRef" },
+        "dependencyManifestHash": { "$ref": "#/$defs/hashRef" },
+        "lockfileHash": { "$ref": "#/$defs/hashRef" },
+        "distTreeHash": { "$ref": "#/$defs/hashRef" }
+      }
+    },
+    "evidenceBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bundleSchemaVersion", "protocol", "comparisonMode", "revisions", "artifacts"],
+      "properties": {
+        "bundleSchemaVersion": { "const": 1 },
+        "protocol": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "hash"],
+          "properties": {
+            "id": { "const": "velite-content-derivation-acceptance/1" },
+            "hash": { "$ref": "#/$defs/hashRef" }
+          }
+        },
+        "comparisonMode": { "enum": ["first-kernel", "accepted-release"] },
+        "revisions": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/revisionIdentity" }
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/artifactEntry" }
+        }
+      }
+    },
+    "artifactFieldRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "contentHash", "path"],
+      "properties": {
+        "artifactId": { "type": "string", "minLength": 1 },
+        "contentHash": { "$ref": "#/$defs/hashRef" },
+        "path": { "type": "string", "pattern": "^/" }
+      }
+    },
+    "gateResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gateId", "class", "phase", "status", "reasonCodes", "consumedInputs", "retainedOutputs", "witnessRefs"],
+      "properties": {
+        "gateId": { "type": "string", "pattern": "^[DR]\\.[A-Z0-9_.]+$" },
+        "class": { "enum": ["hard", "target", "advisory"] },
+        "phase": { "enum": ["design", "release"] },
+        "status": { "enum": ["pass", "fail", "invalid", "inapplicable"] },
+        "reasonCodes": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "consumedInputs": { "type": "array", "items": { "$ref": "#/$defs/artifactFieldRef" } },
+        "retainedOutputs": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+        "witnessRefs": { "type": "array", "items": { "$ref": "#/$defs/artifactFieldRef" } }
+      }
+    },
+    "independentVerdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdictSchemaVersion", "protocol", "bundleRoot", "calculator", "consumedArtifacts", "gates", "discrepancies", "final"],
+      "properties": {
+        "verdictSchemaVersion": { "const": 1 },
+        "protocol": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "hash"],
+          "properties": {
+            "id": { "const": "velite-content-derivation-acceptance/1" },
+            "hash": { "$ref": "#/$defs/hashRef" }
+          }
+        },
+        "bundleRoot": { "$ref": "#/$defs/hashRef" },
+        "calculator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "contentHash"],
+          "properties": {
+            "version": { "type": "string", "minLength": 1 },
+            "contentHash": { "$ref": "#/$defs/hashRef" }
+          }
+        },
+        "consumedArtifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["artifactId", "contentHash"],
+            "properties": {
+              "artifactId": { "type": "string", "minLength": 1 },
+              "contentHash": { "$ref": "#/$defs/hashRef" }
+            }
+          }
+        },
+        "gates": { "type": "array", "items": { "$ref": "#/$defs/gateResult" } },
+        "discrepancies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["gateId", "fieldPath", "producerValue", "independentValue", "classification"],
+            "properties": {
+              "gateId": { "type": "string" },
+              "fieldPath": { "type": "string" },
+              "producerValue": { "$ref": "#/$defs/jsonValue" },
+              "independentValue": { "$ref": "#/$defs/jsonValue" },
+              "classification": { "enum": ["producer-error", "calculator-error", "bundle-inconsistency"] }
+            }
+          }
+        },
+        "final": { "enum": ["pass", "fail", "invalid"] }
+      }
+    },
+    "baselineQualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixedCommit", "requestedCommit", "objectAvailable", "originalEnvironment", "build", "import", "replacement", "qualificationStatus"],
+      "properties": {
+        "fixedCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "requestedCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "objectAvailable": { "type": "boolean" },
+        "originalEnvironment": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+        "build": { "$ref": "#/$defs/jsonValue" },
+        "import": { "$ref": "#/$defs/jsonValue" },
+        "replacement": { "$ref": "#/$defs/jsonValue" },
+        "qualificationStatus": { "enum": ["pass", "fail", "invalid"] }
+      }
+    },
+    "dependencyBridge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revisions", "allowedChanges", "actualChanges", "aEqualsB", "builds", "imports", "attributionStatus"],
+      "properties": {
+        "revisions": { "type": "array", "items": { "$ref": "#/$defs/revisionIdentity" }, "minItems": 3, "maxItems": 3 },
+        "allowedChanges": { "type": "array", "items": { "type": "string" } },
+        "actualChanges": { "type": "array", "items": { "type": "string" } },
+        "aEqualsB": { "type": "boolean" },
+        "builds": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "imports": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "attributionStatus": { "enum": ["pass", "fail", "invalid"] }
+      }
+    },
+    "hostQualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hostId", "osImage", "kernel", "architecture", "cpu", "memoryBytes", "power", "servicesPolicy", "environmentAllowlist", "node", "pnpm", "status"],
+      "properties": {
+        "hostId": { "type": "string", "minLength": 1 },
+        "osImage": { "type": "string", "minLength": 1 },
+        "kernel": { "type": "string", "minLength": 1 },
+        "architecture": { "const": "x64" },
+        "cpu": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+        "memoryBytes": { "type": "integer", "minimum": 1 },
+        "power": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+        "servicesPolicy": { "type": "string" },
+        "environmentAllowlist": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "node": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+        "pnpm": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+        "status": { "enum": ["pass", "fail", "invalid"] }
+      }
+    },
+    "fixtureManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workloadId", "fixtureId", "seed", "generator", "documents", "assets", "eventSequence", "expectedCounts", "treeHash"],
+      "properties": {
+        "workloadId": { "type": "string" },
+        "fixtureId": { "type": "string" },
+        "seed": { "$ref": "#/$defs/hashRef" },
+        "generator": { "$ref": "#/$defs/jsonValue" },
+        "documents": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "assets": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "eventSequence": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "expectedCounts": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "treeHash": { "$ref": "#/$defs/hashRef" }
+      }
+    },
+    "adapterReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dependencyRole", "adapter", "generatedConfigBytesHash", "distBinding", "normalizedDemandDescriptor", "invarianceDiffs", "status"],
+      "properties": {
+        "dependencyRole": { "enum": ["A", "B", "C"] },
+        "adapter": { "$ref": "#/$defs/jsonValue" },
+        "generatedConfigBytesHash": { "$ref": "#/$defs/hashRef" },
+        "distBinding": { "type": "string" },
+        "normalizedDemandDescriptor": { "$ref": "#/$defs/jsonValue" },
+        "invarianceDiffs": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "status": { "enum": ["pass", "fail", "invalid"] }
+      }
+    },
+    "operationMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["durationNs", "timerStartMarker", "timerStopMarker", "includedPhases"],
+      "properties": {
+        "durationNs": { "type": "integer", "minimum": 1 },
+        "timerStartMarker": { "type": "string" },
+        "timerStopMarker": { "type": "string" },
+        "includedPhases": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    },
+    "rawSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sampleId", "comparisonId", "comparisonSide", "dependencyRole", "workloadId", "fixtureArtifactId", "batchIndex", "pairIndex", "measured", "launchOrder", "workloadOrder", "processStartedAt", "processEndedAt", "operations", "workerOutcome", "counts", "fixtureDigest", "outputDigest", "semanticOracleStatus", "structuralArtifactIds", "rssArtifactId"],
+      "properties": {
+        "sampleId": { "type": "string" },
+        "comparisonId": { "enum": ["dependency", "kernel"] },
+        "comparisonSide": { "enum": ["reference", "candidate"] },
+        "dependencyRole": { "enum": ["A", "B", "C"] },
+        "workloadId": { "type": "string" },
+        "fixtureArtifactId": { "type": "string" },
+        "batchIndex": { "enum": [1, 2] },
+        "pairIndex": { "type": "integer", "minimum": 0 },
+        "measured": { "type": "boolean" },
+        "launchOrder": { "enum": ["reference-first", "candidate-first"] },
+        "workloadOrder": { "type": "array", "items": { "type": "string" } },
+        "processStartedAt": { "type": "string", "format": "date-time" },
+        "processEndedAt": { "type": "string", "format": "date-time" },
+        "operations": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "full": { "$ref": "#/$defs/operationMeasurement" },
+            "no-op": { "$ref": "#/$defs/operationMeasurement" },
+            "incremental": { "$ref": "#/$defs/operationMeasurement" },
+            "dispose": { "$ref": "#/$defs/operationMeasurement" }
+          }
+        },
+        "workerOutcome": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": { "enum": ["success", "failure", "timeout", "oom", "crash"] },
+            "exitCode": { "type": ["integer", "null"] },
+            "signal": { "type": ["string", "null"] }
+          }
+        },
+        "counts": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+        "fixtureDigest": { "$ref": "#/$defs/hashRef" },
+        "outputDigest": { "oneOf": [{ "$ref": "#/$defs/hashRef" }, { "type": "null" }] },
+        "semanticOracleStatus": { "enum": ["pass", "fail", "not-run"] },
+        "structuralArtifactIds": { "type": "array", "items": { "type": "string" } },
+        "rssArtifactId": { "type": "string" }
+      }
+    },
+    "rawMeasurements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["samples"],
+      "properties": {
+        "samples": { "type": "array", "items": { "$ref": "#/$defs/rawSample" } }
+      }
+    },
+    "rssTrace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sampleId", "intervalNs", "samples", "peakRssBytes", "endMemory", "idleWorker", "samplingStatus"],
+      "properties": {
+        "sampleId": { "type": "string" },
+        "intervalNs": { "type": "integer", "minimum": 1, "maximum": 2000000 },
+        "samples": { "type": "array", "items": { "type": "object", "required": ["offsetNs", "rssBytes"], "properties": { "offsetNs": { "type": "integer", "minimum": 0 }, "rssBytes": { "type": "integer", "minimum": 1 } }, "additionalProperties": false } },
+        "peakRssBytes": { "type": "integer", "minimum": 1 },
+        "endMemory": { "$ref": "#/$defs/jsonValue" },
+        "idleWorker": { "$ref": "#/$defs/jsonValue" },
+        "samplingStatus": { "enum": ["pass", "fail", "invalid"] }
+      }
+    },
+    "semanticEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixtureId", "observations"],
+      "properties": {
+        "fixtureId": { "type": "string" },
+        "observations": { "type": "array", "items": { "type": "object", "required": ["inputRef", "expectedValueRef", "actualValueRef", "oracleRef", "status"], "properties": { "inputRef": { "$ref": "#/$defs/artifactFieldRef" }, "expectedValueRef": { "$ref": "#/$defs/artifactFieldRef" }, "actualValueRef": { "$ref": "#/$defs/artifactFieldRef" }, "oracleRef": { "$ref": "#/$defs/artifactFieldRef" }, "status": { "enum": ["pass", "fail", "invalid"] } }, "additionalProperties": false } }
+      }
+    },
+    "structuralWitness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixtureId", "coverage", "events", "adapterCalls", "stateSnapshots", "manifestSnapshots", "semanticObservations", "counterSnapshots", "retentionSnapshots", "exportObservations"],
+      "properties": {
+        "fixtureId": { "type": "string" },
+        "coverage": { "type": "object", "additionalProperties": false, "required": ["complete", "missingSubjects"], "properties": { "complete": { "type": "boolean" }, "missingSubjects": { "type": "array", "items": { "type": "string" } } } },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "adapterCalls": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "stateSnapshots": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "manifestSnapshots": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "semanticObservations": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "counterSnapshots": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "retentionSnapshots": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        "exportObservations": { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } }
+      }
+    },
+    "exportReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceDeclarations", "builtDeclarations", "runtimeExports", "exportMap", "deepImports", "ownKeys", "reflection", "harnessImportBoundary"],
+      "properties": {
+        "sourceDeclarations": { "$ref": "#/$defs/jsonValue" },
+        "builtDeclarations": { "$ref": "#/$defs/jsonValue" },
+        "runtimeExports": { "$ref": "#/$defs/jsonValue" },
+        "exportMap": { "$ref": "#/$defs/jsonValue" },
+        "deepImports": { "$ref": "#/$defs/jsonValue" },
+        "ownKeys": { "$ref": "#/$defs/jsonValue" },
+        "reflection": { "$ref": "#/$defs/jsonValue" },
+        "harnessImportBoundary": { "$ref": "#/$defs/jsonValue" }
+      }
+    },
+    "derivedReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reportSchemaVersion", "protocolHash", "bundleManifestHash", "batches", "metrics", "gates", "targetExplanations", "producerFinal"],
+      "properties": {
+        "reportSchemaVersion": { "const": 1 },
+        "protocolHash": { "$ref": "#/$defs/hashRef" },
+        "bundleManifestHash": { "$ref": "#/$defs/hashRef" },
+        "batches": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+        "metrics": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+        "gates": { "type": "array", "items": { "$ref": "#/$defs/gateResult" } },
+        "targetExplanations": { "type": "object", "additionalProperties": { "type": "string" } },
+        "producerFinal": { "enum": ["pass", "fail", "invalid"] }
+      }
+    },
+    "runControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seed", "permutation", "batches", "rerun"],
+      "properties": {
+        "seed": { "$ref": "#/$defs/hashRef" },
+        "permutation": { "type": "array", "items": { "type": "string" } },
+        "batches": { "type": "array", "items": { "enum": [1, 2] }, "minItems": 1, "maxItems": 2, "uniqueItems": true },
+        "rerun": { "type": "object", "additionalProperties": false, "required": ["used", "reasonCodes"], "properties": { "used": { "type": "boolean" }, "reasonCodes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true } } }
+      }
+    },
+    "calculatorSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "runtime", "sourceHash", "sourceBlob"],
+      "properties": {
+        "version": { "type": "string" },
+        "runtime": { "type": "string" },
+        "sourceHash": { "$ref": "#/$defs/hashRef" },
+        "sourceBlob": { "$ref": "#/$defs/hashRef" }
+      }
+    },
+    "producerVerdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolHash", "bundleManifestHash", "gates", "final"],
+      "properties": {
+        "protocolHash": { "$ref": "#/$defs/hashRef" },
+        "bundleManifestHash": { "$ref": "#/$defs/hashRef" },
+        "gates": { "type": "array", "items": { "$ref": "#/$defs/gateResult" } },
+        "final": { "enum": ["pass", "fail", "invalid"] }
+      }
+    }
+  }
+}

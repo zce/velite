@@ -1,12 +1,19 @@
 import { z } from 'zod'
 
-import { extractToc } from '../content/reference'
+import { extractToc, parseMarkdown } from '../content/reference'
 import { context } from './context'
 
 import type { TocItem } from '../content/reference'
 import type { Schema } from './s'
 
-/** Extract a flat table of contents (headings) from the current content. */
+/**
+ * Extract a flat table of contents (headings) from the current content.
+ *
+ * This is the transitional implementation: it parses the selected text directly
+ * via `parseMarkdown`. Phase 2 (T2.3) replaces this with the record-scoped
+ * content derivation module that coalesces matching pristine parses across the
+ * primary root and all sibling projections.
+ */
 export const toc = (): Schema<TocItem[]> =>
   z
     .custom<string>(i => typeof i === 'string')
@@ -19,12 +26,7 @@ export const toc = (): Schema<TocItem[]> =>
         return []
       }
       try {
-        // Use the lazily-cached mdast from the schema context rather than
-        // re-parsing. The context computes `file.mdast` once via
-        // `fromMarkdown()` and caches it, so every builtin that needs the
-        // AST in the same record parse shares one parse call.
-        const tree = file.mdast
-        if (tree == null) throw new Error('No mdast tree available')
+        const tree = parseMarkdown(body)
         return extractToc(tree)
       } catch (err) {
         addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })

@@ -1,37 +1,41 @@
-// Schema execution context.
+// Schema execution context — the public eight-field view.
 //
-// The context is the bridge between the pipeline (which knows the current file,
-// record and project) and schemas (built-in and user-defined), which need that
-// ambient information during a parse. It is propagated through async zod
-// transforms via the runtime's `ContextStorage` port, so a schema calls
-// `context()` and gets the state for the record currently being parsed.
+// Authority: Tickets 19, 21, 23. The exported `context()` returns only the
+// eight-field public view. Velite-owned roots use one private leased
+// record-bound content capability propagated through the process-owned
+// SchemaContextHost. The public view and private carrier are different
+// runtime objects. `Reflect.ownKeys(context())` exposes no carrier, lease,
+// private capability, or private symbol.
 //
-// Uses `createContext` from `src/runtime/contextual` — the standard ambient
-// context pattern. The composition root (`createBuilder`) calls
-// `schemaContext.install()` once with the runtime's storage adapter.
+// The process-owned `SchemaContextHost` (src/core/schema/host.ts) is the sole
+// ambient architecture exception. The default Node runtime composition owns
+// it for the process lifetime. It only propagates the current
+// `SchemaRunContext` and rejects missing or inactive leased carriers. It owns
+// no Builder, epoch, broker, generation, reader, publication, cache,
+// registry, or lifecycle state.
 
-import { raw as hastRaw } from 'hast-util-raw'
-import { toString } from 'hast-util-to-string'
-import { fromMarkdown } from 'mdast-util-from-markdown'
-import { toHast } from 'mdast-util-to-hast'
+// --- Internal test-facing compatibility shims (NOT public API) -------------
+//
+// These wrap the new process-owned SchemaContextHost + SchemaRunner so that
+// source-internal unit tests using the pre-1.0 `installContextStorage` +
+// `runWithContext` shape keep working during the Phase 1-3 migration. They are
+// not exported from the root package, core barrel, or schema barrel's public
+// type surface, and are removed once all tests migrate to `schemaRunner.run`.
 
-import { createContext } from '../../runtime/contextual'
 import { fail } from '../diagnostic'
+import { schemaContextHost } from './host'
 
-import type { Nodes } from 'hast'
-import type { Root } from 'mdast'
-import type { ContextStorage } from '../../runtime/contextual'
 import type { MarkdownOptions } from '../content/markdown'
 import type { MdxOptions } from '../content/mdx'
 import type { AssetResult, BlurOptions } from '../pipeline/asset'
-import type { Effect } from './effects'
+import type { Effect, EffectDeclarationContext, SchemaEffectDeclaration } from './effects'
 
 /**
  * A content file during schema parsing.
  *
- * AST fields (`mdast`, `hast`, `plain`) are lazily computed on first access
- * from `content` and cached. They are not part of the stable 1.0 type contract
- * but are accessible at runtime for advanced use cases.
+ * `content` is the only body field; the pre-1.0 `mdast`, `hast`, and `plain`
+ * derived fields are removed. Custom schemas that need parsing own their
+ * parser; Velite-owned roots use the private record-bound content capability.
  */
 export interface ContentFile {
   /** Stable source id (project-relative, POSIX). */
@@ -40,12 +44,6 @@ export interface ContentFile {
   readonly path: string
   /** Raw text content (e.g. Markdown/MDX body), when available. */
   readonly content?: string
-  /** Plain text extracted from content, when available. */
-  readonly plain?: string
-  /** Lazily-parsed Markdown AST, when content is available. */
-  readonly mdast?: Root
-  /** Lazily-parsed HTML AST, when content is available. */
-  readonly hast?: Nodes
 }
 
 /** Identity of the record currently being parsed within a multi-record source. */
@@ -89,10 +87,12 @@ export interface AssetRequest {
 }
 
 /**
- * Schema execution context.
+ * Schema execution context — the eight-field public view.
  *
- * Available during schema parsing via `context()`. All fields are accessible
- * to both built-in and user-defined schemas — there is no internal-only tier.
+ * Available during schema parsing via `context()`. All eight fields are
+ * accessible to both built-in and user-defined schemas; there is no
+ * internal-only tier. The private record-bound content capability is a
+ * separate runtime object reachable only by Velite-owned roots.
  */
 export interface SchemaContext {
   readonly project: ProjectInfo
@@ -100,33 +100,33 @@ export interface SchemaContext {
   readonly record: ContentRecord
   /** Session-scoped store for advanced custom schemas (shared across rebuilds, reset on config reload). */
   readonly store: SessionStore
-  /** Declare a schema effect (unique registration, asset reference, etc.). */
-  readonly collectEffect: (effect: Effect) => void
+  /**
+   * Declare a schema effect. The two-arg form `(effect: SchemaEffectDeclaration,
+   * context: EffectDeclarationContext)` is the final 1.0 surface (Ticket 23).
+   *
+   * During the Phase 1-3 migration, the internal validate bridge also accepts
+   * the legacy single-arg `Effect` shape so the existing `s.file`/`s.image`/
+   * `s.unique`/asset-link builtins keep working; Phase 3 migrates every caller
+   * to the two-arg form and removes the legacy overload. New code MUST use the
+   * two-arg form.
+   */
+  readonly collectEffect: ((effect: SchemaEffectDeclaration, context: EffectDeclarationContext) => void) & ((effect: Effect) => void)
   /**
    * Resolve an asset by its key (content-root-relative POSIX source path,
    * i.e. relative to `project.root`). Demands the engine's asset derivation,
    * returning a memoized {@link AssetResult}. The returned `publicUrl` is
    * always available (derivable from the key); image metadata is zero until
    * the driver feeds the asset's bytes in pass 2.
-   *
-   * `request.template` lets a single schema invocation pick a different
-   * filename template than the global `project.output.name`. `request.blur`
-   * customises the generated placeholder.
    */
   readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
   /**
    * Read an asset's bytes directly. Used by `s.image({ absoluteRoot })` to
-   * resolve absolute paths that bypass the asset derivation pipeline. The
-   * implementation closes over the runtime's filesystem so the schema layer
-   * stays runtime-agnostic.
+   * resolve absolute paths that bypass the asset derivation pipeline.
    */
   readonly readFile: (absPath: string) => Promise<Uint8Array>
   /**
    * Probe + blur an image's bytes directly, without going through the asset
-   * derivation. Used by `s.image({ absoluteRoot })` because those paths never
-   * become hashed asset outputs. Returns metadata-rich {@link AssetResult}-ish
-   * tuple; the public url is the caller's responsibility (it is the verbatim
-   * input value for absolute paths).
+   * derivation. Used by `s.image({ absoluteRoot })`.
    */
   readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
 }
@@ -172,103 +172,16 @@ export const createSessionStore = (): SessionStore => {
   }
 }
 
-export interface RunWithContextInput {
-  readonly project: ProjectInfo
-  readonly file: ContentFile
-  readonly record: ContentRecord
-  readonly store: SessionStore
-  readonly collectEffect: (effect: Effect) => void
-  readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
-  readonly readFile: (absPath: string) => Promise<Uint8Array>
-  readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
-}
-
-// Architecture note (architecture.md "Allowed Exception"): the runtime context
-// is the one intentional piece of hidden global state in core. Zod's transform
-// signature `(value, ctx) => ...` forbids passing ambient context explicitly,
-// so a late-bound ContextStorage is the thinnest possible escape hatch.
-// The composition root (`createBuilder`) installs it exactly once per process.
-// This is metadata-only (SchemaContext carries file/record/assetResolver),
-// never services — consistent with the `ctx()` rule in runtime-context.md.
-
-const schemaContext = createContext<SchemaContext>('SchemaContext')
-
 /**
- * Composition-root hook: install the context storage. Called once by
- * `createBuilder` with the type-erased runtime port, narrowed here to the
- * `SchemaContext` it actually carries.
+ * Get the eight-field public schema context for the current record parse.
  *
- * Internal — not part of the public package barrel.
- */
-export const installContextStorage = (storage: ContextStorage<SchemaContext>): void => schemaContext.install(storage)
-
-/**
- * Get the schema context for the current record parse.
- *
- * @throws `VeliteError` (`internal`) when called outside of a schema parse.
+ * @throws `VeliteError('internal')` when called outside of a schema parse or
+ *   after the active run has settled (late call).
  */
 export const context = (): SchemaContext => {
-  try {
-    return schemaContext.get()
-  } catch {
-    fail('internal', 'Missing schema context — are you calling context() outside of a schema parse?')
-  }
-}
-
-/** Run `run` inside a schema context for a single record parse. */
-export const runWithContext = <R>(input: RunWithContextInput, run: () => R): R => {
-  const ctx: SchemaContext = {
-    project: input.project,
-    file: input.file,
-    record: input.record,
-    store: input.store,
-    collectEffect: input.collectEffect,
-    asset: input.asset,
-    readFile: input.readFile,
-    probeImage: input.probeImage
-  }
-  return schemaContext.run(ctx, run)
-}
-
-/**
- * Create a schema-context content file with lazily-parsed AST.
- *
- * `mdast`, `hast` and `plain` are derived on first access from `content` and
- * cached. All schemas (built-in and user-defined) access them via `context()`.
- *
- * Ported from the pre-refactor `src/collections/file.ts` `createContentFile`.
- */
-export const createContentFile = (id: string, path: string, content?: string): ContentFile => {
-  let mdastCache: Root | undefined
-  let hastCache: Nodes | undefined
-  let plainCache: string | undefined
-
-  const file: ContentFile = {
-    id,
-    path,
-    content,
-    get mdast(): Root | undefined {
-      if (mdastCache != null) return mdastCache
-      if (content == null) return undefined
-      mdastCache = fromMarkdown(content)
-      return mdastCache
-    },
-    get hast(): Nodes | undefined {
-      if (hastCache != null) return hastCache
-      const mdast = this.mdast
-      if (mdast == null) return undefined
-      hastCache = hastRaw(toHast(mdast, { allowDangerousHtml: true }))
-      return hastCache
-    },
-    get plain(): string | undefined {
-      if (plainCache != null) return plainCache
-      const hast = this.hast
-      if (hast == null) return undefined
-      plainCache = toString(hast)
-      return plainCache
-    }
-  }
-  return file
+  const carrier = schemaContextHost().get()
+  if (!carrier.lease.active) fail('internal', 'Schema run lease is inactive — context() called after settlement')
+  return carrier.publicContext
 }
 
 /**
@@ -287,3 +200,10 @@ export const resolveBody = (data: unknown, meta?: Record<string, unknown>): stri
   }
   return undefined
 }
+
+/** Create a content file with the given id, path, and optional body content. */
+export const createContentFile = (id: string, path: string, content?: string): ContentFile => ({
+  id,
+  path,
+  content
+})

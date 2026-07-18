@@ -1,4 +1,3 @@
-export type { ContextStorage } from './contextual'
 export type { FileSystem } from './fs'
 export type { ImageProcessor } from './image'
 export type { Logger, LogLevel } from './logger'

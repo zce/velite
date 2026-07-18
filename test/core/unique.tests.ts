@@ -5,11 +5,12 @@
 import { equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { createBuilder, s } from '../../src/core'
+import { s } from '../../src/core'
+import { createBuilder } from '../../src/core/builder'
 import { join } from '../../src/core/util/path'
-import { nodeContextStorage, silentLogger } from '../../src/runtime/adapters/node'
+import { silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
-import { noopImageProcessor, noopWatch } from '../helpers/runtime'
+import { noopImageProcessor, noopWatch, testSchemaRunner } from '../helpers/runtime'
 
 import type { UserConfig } from '../../src/core/config'
 import type { TestRuntime } from '../helpers/runtime'
@@ -27,7 +28,7 @@ const setup = (files: Record<string, string>): { runtime: TestRuntime; fs: Memor
   const fs = new MemoryFileSystem()
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -85,7 +86,7 @@ test('uniqueCheck: distinct groups do not conflict', async () => {
   fs.put(abs('content/posts/a.md'), post('shared-slug', 'A'))
   fs.put(abs('content/notes/b.md'), post('shared-slug', 'B'))
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: { load: async () => ({ exports: cfg, dependencies: [] }) },
     logger: silentLogger,

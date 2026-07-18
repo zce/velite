@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { extractText, parseMarkdown } from '../content/reference'
 import { context } from './context'
 
 import type { Schema } from './s'
@@ -56,21 +57,31 @@ const wordLength = (str: string): number => {
   return words.length
 }
 
-/** Compute reading-time metadata from the current content. */
+/**
+ * Compute reading-time metadata from the current content.
+ *
+ * This is the transitional implementation: it parses the selected text directly
+ * via `parseMarkdown` and uses `extractText`. Phase 2 (T2.4) replaces this with
+ * the final v-flag Latin regex, frozen CJK table, and `0.56`/`265`/`Math.round`
+ * oracle over dialect-correct static visible text.
+ */
 export const metadata = (): Schema<Metadata> =>
   z
     .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<Metadata>(async (value, { addIssue }) => {
-      const body = value ?? context().file.plain
+      const { file } = context()
+      const body = value ?? file.content
       if (body == null || body.length === 0) {
         addIssue({ code: 'custom', message: 'The content is empty' })
         return { readingTime: 0, wordCount: 0 }
       }
+      const tree = parseMarkdown(body)
+      const plain = extractText(tree, 10_000)
       const avgWPM = 265
       const latinChars: string[] = []
       const cjChars: string[] = []
-      for (const char of body) {
+      for (const char of plain) {
         if (isCjChar(char)) cjChars.push(char)
         else latinChars.push(char)
       }

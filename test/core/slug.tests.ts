@@ -5,17 +5,14 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { createContentFile, installContextStorage, runWithContext } from '../../src/core/schema/context'
+import { createContentFile } from '../../src/core/schema/context'
 import { s } from '../../src/core/schema/s'
-import { nodeContextStorage } from '../../src/runtime/adapters/node'
+import { runWithContext } from '../helpers/schema-context'
 
 import type { AssetResult } from '../../src/core/pipeline/asset'
-import type { ContentFile, ProjectInfo, SchemaContext } from '../../src/core/schema/context'
+import type { ContentFile, ProjectInfo } from '../../src/core/schema/context'
 import type { UniqueEffect } from '../../src/core/schema/effects'
 import type { Schema } from '../../src/core/schema/s'
-import type { ContextStorage } from '../../src/runtime/contextual'
-
-installContextStorage(nodeContextStorage as ContextStorage<SchemaContext>)
 
 const project: ProjectInfo = {
   root: '/proj/content',

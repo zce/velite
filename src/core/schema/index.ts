@@ -4,7 +4,16 @@ export type { Infer, Schema, SchemaNamespace } from './s'
 export { context } from './context'
 export type { AssetRequest, ContentFile, ContentRecord, ImageMetadata, ProjectCollectionInfo, ProjectInfo, SchemaContext, SessionStore } from './context'
 
-export type { AssetReferenceEffect, Effect, UniqueEffect } from './effects'
+export type {
+  AssetReferenceEffect,
+  AssetReferenceEffectDeclaration,
+  Effect,
+  EffectDeclarationContext,
+  SchemaEffectDeclaration,
+  StableOccurrence,
+  UniqueEffect,
+  UniqueEffectDeclaration
+} from './effects'
 
 export type { AssetResult, BlurOptions } from '../pipeline/asset'
 export type { FileSchemaOptions } from './file'

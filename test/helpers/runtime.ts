@@ -1,9 +1,30 @@
+import { installSchemaContextHost } from '../../src/core/schema/host'
+import { createSchemaRunner } from '../../src/core/schema/runner'
+import { createNodeSchemaContextHost } from '../../src/runtime/adapters/node/schema-host'
+
 import type { BuilderDeps } from '../../src/core/builder'
 import type { ImageProcessor } from '../../src/runtime/image'
 import type { Logger } from '../../src/runtime/logger'
 import type { Watcher } from '../../src/runtime/watcher'
 
-export type TestRuntime = Pick<BuilderDeps, 'fs' | 'modules' | 'contextStorage' | 'logger' | 'image' | 'watch'>
+export type TestRuntime = Pick<BuilderDeps, 'fs' | 'modules' | 'schemaRunner' | 'logger' | 'image' | 'watch'>
+
+/**
+ * Shared test host installed once per test process. Installing the identical
+ * host is idempotent; tests never replace the host in beforeEach/afterEach.
+ * The first test to call this installs the host for the whole process.
+ */
+let sharedTestHost: ReturnType<typeof createNodeSchemaContextHost> | undefined
+const sharedTestRunner = (): TestRuntime['schemaRunner'] => {
+  if (sharedTestHost === undefined) {
+    sharedTestHost = createNodeSchemaContextHost()
+    installSchemaContextHost(sharedTestHost)
+  }
+  return createSchemaRunner(sharedTestHost)
+}
+
+/** Install the shared test host if needed and return a schema runner. */
+export const testSchemaRunner = (): TestRuntime['schemaRunner'] => sharedTestRunner()
 
 export const noopImageProcessor: ImageProcessor = {
   probe: async () => ({ width: 0, height: 0, format: '' }),

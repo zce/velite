@@ -3,6 +3,9 @@
 // this barrel. Everything else is imported directly from the owning module.
 //
 // Not re-exported here (and why):
+// - `createBuilder` — internal composition root only; the root package
+//   exposes `builder()`/`build()`/`watch()` facades. Source-internal tests
+//   import it directly from `./builder`.
 // - Runtime port types (`FileSystem`, `Logger`, etc.) — belong to
 //   `src/runtime/`; imported directly by `src/index.ts`.
 // - Engine types (`Engine`, `Derivation`, etc.) — internal implementation,
@@ -25,8 +28,9 @@
 //   — used only by `config.ts` tests, imported directly.
 // - Driver internals (`ApplyResult`, `DriverRuntime`, `OutputManifest`)
 //   — used only by `driver.ts` / builder, imported directly.
+// - SchemaContextHost, SchemaRunner, SchemaRunContext, lease, private content
+//   capability — internal implementation, not part of any public surface.
 
-export { createBuilder } from './builder'
 export type { Builder, BuildOptions, CreateBuilderOptions, WatchHandle, WatchOptions } from './builder'
 
 export { ConfigError, defineCollection, defineConfig, resolveConfig, validateConfig } from './config'
@@ -53,6 +57,7 @@ export type {
   ContentFile,
   ContentRecord,
   Effect,
+  EffectDeclarationContext,
   ExcerptSchemaOptions,
   FileSchemaOptions,
   ImageData,
@@ -67,8 +72,10 @@ export type {
   ProjectInfo,
   Schema,
   SchemaContext,
+  SchemaEffectDeclaration,
   SchemaNamespace,
   SessionStore,
+  StableOccurrence,
   TocItem,
   UniqueEffect
 } from './schema'

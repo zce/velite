@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { extractText, parseMarkdown } from '../content/reference'
 import { context } from './context'
 
 import type { Schema } from './s'
@@ -13,21 +14,29 @@ export interface ExcerptSchemaOptions {
 /**
  * Extract a plain-text excerpt from the current content.
  *
- * Uses the lazily-cached `file.plain` from the schema context rather than
- * re-parsing the markdown body. The context computes `file.plain` once (via
- * mdast → hast → plain text) and caches it, so every builtin that needs
- * plain text in the same record parse shares the computation.
+ * This is the transitional implementation: it parses the selected text directly
+ * via `parseMarkdown` and uses `extractText`. Phase 2 (T2.4) replaces this with
+ * the final code-point + `trimEnd()` + `U+2026` algorithm over dialect-correct
+ * static visible text.
  */
-export const excerpt = ({ length = 260 }: ExcerptSchemaOptions = {}): Schema<string> =>
-  z
+export const excerpt = (options: ExcerptSchemaOptions = {}): Schema<string> => {
+  const length = options.length ?? 260
+  return z
     .custom<string>(i => typeof i === 'string')
     .optional()
     .transform<string>(async (value, { addIssue }) => {
       const { file } = context()
-      const body = value ?? file.plain
+      const body = value ?? file.content
       if (body == null || body.length === 0) {
         addIssue({ code: 'custom', message: 'The content is empty' })
         return ''
       }
-      return body.slice(0, length)
+      try {
+        const tree = parseMarkdown(body)
+        return extractText(tree, length)
+      } catch (err) {
+        addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
+        return null as never
+      }
     })
+}

@@ -5,12 +5,13 @@
 import { deepEqual, equal, match, ok, rejects } from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { createBuilder, s } from '../src/core'
+import { s } from '../src/core'
+import { createBuilder } from '../src/core/builder'
 import { isVeliteError } from '../src/core/diagnostic'
 import { join } from '../src/core/util/path'
-import { nodeContextStorage, silentLogger } from '../src/runtime/adapters/node'
+import { silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
-import { noopImageProcessor, noopWatch } from './helpers/runtime'
+import { noopImageProcessor, noopWatch, testSchemaRunner } from './helpers/runtime'
 
 import type { UserConfig } from '../src/core/config'
 import type { ImageProcessor } from '../src/runtime/image'
@@ -37,7 +38,7 @@ const setup = (
   const fs = new MemoryFileSystem()
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -135,7 +136,7 @@ test('assets: orphan reconciliation survives across builder instances (persisted
   const mkBuilder = () => {
     const { config } = mkConfig(true)
     const runtime: TestRuntime = {
-      contextStorage: nodeContextStorage,
+      schemaRunner: testSchemaRunner(),
       fs,
       image: stubImage,
       modules: { load: async () => ({ exports: config, dependencies: [] }) },

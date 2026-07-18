@@ -14,11 +14,12 @@
 import { equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { createBuilder, s } from '../../src/core'
+import { s } from '../../src/core'
+import { createBuilder } from '../../src/core/builder'
 import { join } from '../../src/core/util/path'
-import { nodeContextStorage, silentLogger } from '../../src/runtime/adapters/node'
+import { silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
-import { noopImageProcessor, noopWatch } from '../helpers/runtime'
+import { noopImageProcessor, noopWatch, testSchemaRunner } from '../helpers/runtime'
 
 import type { PrepareHook, UserConfig } from '../../src/core/config'
 import type { TestRuntime } from '../helpers/runtime'
@@ -53,7 +54,7 @@ test('Builder: build() critical section is strictly serialized (max inflight = 1
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }]))
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -81,7 +82,7 @@ test('Builder: concurrent watch() invocations are serialized, no watcher leak', 
   let watcherCount = 0
   const unsubscribed: number[] = []
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -138,7 +139,7 @@ test('Builder: build() and apply() share the same serialization lock', async () 
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }]))
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,

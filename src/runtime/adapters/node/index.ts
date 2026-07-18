@@ -1,4 +1,4 @@
-export { createNodeContextStorage, nodeContextStorage } from './contextual'
+export { createNodeSchemaContextHost } from './schema-host'
 export { createNodeFileSystem, nodeFileSystem } from './fs'
 export { createSharpImageProcessor, sharpImageProcessor } from './image'
 export { createLogger, setLogLevel, silentLogger } from './logger'

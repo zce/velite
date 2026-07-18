@@ -4,9 +4,8 @@ import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
 import { createPipeline } from './pipeline'
 import { createScheduler } from './scheduler'
-import { installContextStorage, SchemaContext } from './schema/context'
+import { createSchemaRunner } from './schema/runner'
 
-import type { ContextStorage } from '../runtime/contextual'
 import type { FileSystem } from '../runtime/fs'
 import type { ImageProcessor } from '../runtime/image'
 import type { Logger } from '../runtime/logger'
@@ -18,9 +17,9 @@ import type { Engine } from './engine'
 import type { Loader } from './loader'
 import type { Pipeline } from './pipeline'
 import type { Scheduler } from './scheduler'
+import type { SchemaRunner } from './schema/runner'
 
 export interface BuildOptions {
-  signal?: AbortSignal
   /** Output layout override (default: `split` in dev, `single` in production). */
   layout?: 'split' | 'single'
 }
@@ -63,7 +62,8 @@ export interface CreateBuilderOptions {
 export interface BuilderDeps extends CreateBuilderOptions {
   fs: FileSystem
   modules: ModuleLoader
-  contextStorage: ContextStorage<SchemaContext>
+  /** Narrow schema runner bound to the process-owned SchemaContextHost. */
+  schemaRunner: SchemaRunner
   logger: Logger
   image: ImageProcessor
   watch: (paths: string[]) => Watcher
@@ -88,11 +88,11 @@ interface WatchState {
 }
 
 const loadSession = async (deps: BuilderDeps): Promise<Session> => {
-  const { fs, image, logger, modules } = deps
+  const { fs, image, logger, modules, schemaRunner } = deps
   const config = await resolveConfig({ fs, modules }, { cwd: deps.cwd, configPath: deps.configPath })
   logger.debug(`using config '${config.configPath}'`)
   const loaders = createLoaderRegistry(deps.loaders ?? [])
-  const pipeline = createPipeline({ config, loaders, fs, image })
+  const pipeline = createPipeline({ config, loaders, fs, image, schemaRunner })
   const engine = createEngine()
   const context = await createRunContext({ engine, pipeline, config, runtime: { fs, logger }, cwd: deps.cwd })
   const driver = createDriver({ context })
@@ -114,11 +114,7 @@ const loadSession = async (deps: BuilderDeps): Promise<Session> => {
  *    can't drop half of it.
  */
 export const createBuilder = (deps: BuilderDeps): Builder => {
-  const { contextStorage, fs, watch: createWatch } = deps
-  // Install the runtime's context storage once, so schema transforms can
-  // propagate the SchemaContext through zod's async callbacks. The port is
-  // type-erased at the runtime boundary; narrow it here to SchemaContext.
-  installContextStorage(contextStorage)
+  const { fs, watch: createWatch } = deps
 
   let session: Session | undefined
   let activeLayout: 'split' | 'single' = 'split'

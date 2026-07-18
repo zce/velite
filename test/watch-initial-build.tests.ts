@@ -11,11 +11,12 @@
 import { equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { createBuilder, s } from '../src/core'
+import { s } from '../src/core'
+import { createBuilder } from '../src/core/builder'
 import { join } from '../src/core/util/path'
-import { nodeContextStorage, silentLogger } from '../src/runtime/adapters/node'
+import { silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
-import { createCapturedLogger, noopImageProcessor } from './helpers/runtime'
+import { createCapturedLogger, noopImageProcessor, testSchemaRunner } from './helpers/runtime'
 
 import type { PrepareHook, UserConfig } from '../src/core/config'
 import type { TestRuntime } from './helpers/runtime'
@@ -35,7 +36,7 @@ test('Builder.watch(): runs the initial build exactly once and exposes its resul
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }]))
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -69,7 +70,7 @@ test('Builder.watch(): watches config dependencies and classifies their events a
   let loadCalls = 0
   let subscribedPaths: string[] = []
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: {
       load: async () => {
@@ -115,7 +116,7 @@ test('Builder.apply(): logs content rebuilds separately from config reloads', as
   fs.put(configDependency, '// shared config dependency')
   const { logger, logs } = createCapturedLogger()
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [configPath, configDependency] }) },
     logger,

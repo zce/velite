@@ -6,11 +6,12 @@
 import { deepEqual, equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { createBuilder, s } from '../../src/core'
+import { s } from '../../src/core'
+import { createBuilder } from '../../src/core/builder'
 import { join } from '../../src/core/util/path'
-import { nodeContextStorage, silentLogger } from '../../src/runtime/adapters/node'
+import { silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
-import { noopImageProcessor, noopWatch } from '../helpers/runtime'
+import { noopImageProcessor, noopWatch, testSchemaRunner } from '../helpers/runtime'
 
 import type { PrepareCollections, PrepareContext, PrepareHook, UserConfig } from '../../src/core/config'
 import type { TestRuntime } from '../helpers/runtime'
@@ -28,7 +29,7 @@ const setup = (prepare: PrepareHook | undefined): { runtime: TestRuntime; fs: Me
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -126,7 +127,7 @@ test('prepare: single collections expose the single object, not an array', async
   const fs = new MemoryFileSystem()
   fs.put(join(CWD, 'content/options/a.json'), JSON.stringify({ name: 'velite' }))
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: {
       load: async () => ({
@@ -207,7 +208,7 @@ test('prepare: false reconciles stale output across separate builder instances (
   const mkBuilder = (prepare?: PrepareHook) => {
     const config: UserConfig = { ...baseConfig, prepare }
     const runtime: TestRuntime = {
-      contextStorage: nodeContextStorage,
+      schemaRunner: testSchemaRunner(),
       fs,
       modules: { load: async () => ({ exports: config, dependencies: [] }) },
       logger: silentLogger,

@@ -1,11 +1,13 @@
-import { createBuilder, VeliteError } from './core'
+import { VeliteError } from './core'
+import { createBuilder } from './core/builder'
+import { createSchemaRunner, ensureHostInstalled } from './core/schema/runner'
 import { join } from './core/util/path'
 import {
   createChokidarWatcher,
   createJitiModuleLoader,
   createLogger,
-  createNodeContextStorage,
   createNodeFileSystem,
+  createNodeSchemaContextHost,
   createSharpImageProcessor
 } from './runtime/adapters/node'
 
@@ -42,12 +44,20 @@ const enforceStrict = (result: BuildResult, strict: boolean | undefined): void =
 /** Create a durable Node builder. Advanced/stateful entry; also the DI seam. */
 export const builder = (options: BuildEntryOptions = {}): Builder => {
   const cwd = options.cwd ?? process.cwd()
+  // Install or obtain the one process-wide SchemaContextHost. The default
+  // Node runtime composition owns it for the process lifetime; installing the
+  // identical host is idempotent, and installing a different host after the
+  // first is a deterministic internal configuration failure. The host only
+  // propagates the current SchemaRunContext — it owns no Builder/epoch/broker/
+  // generation/publication/cache/registry/lifecycle state.
+  const host = ensureHostInstalled(createNodeSchemaContextHost)
+  const schemaRunner = createSchemaRunner(host)
   return createBuilder({
     cwd,
     configPath: resolveConfigOption(cwd, options.config),
     fs: createNodeFileSystem(),
     modules: createJitiModuleLoader({}),
-    contextStorage: createNodeContextStorage(),
+    schemaRunner,
     logger: createLogger({ level: options.logLevel ?? 'info' }),
     image: createSharpImageProcessor(),
     watch: createChokidarWatcher
@@ -99,7 +109,7 @@ export const watch = async (options: BuildEntryOptions = {}): Promise<WatchHandl
   }
 }
 
-export { context, createBuilder, defineCollection, defineConfig, defineLoader, defineSchema, s, VeliteError } from './core'
+export { context, defineCollection, defineConfig, defineLoader, defineSchema, s, VeliteError } from './core'
 export type {
   AssetReferenceEffect,
   AssetRequest,
@@ -114,6 +124,7 @@ export type {
   ContentRecord,
   Diagnostic,
   Effect,
+  EffectDeclarationContext,
   Entry,
   ExcerptSchemaOptions,
   FileSchemaOptions,
@@ -141,8 +152,10 @@ export type {
   ResolvedConfig,
   Schema,
   SchemaContext,
+  SchemaEffectDeclaration,
   SchemaNamespace,
   SessionStore,
+  StableOccurrence,
   TocItem,
   UniqueEffect,
   UserConfig,

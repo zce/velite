@@ -4,22 +4,23 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { createJitiModuleLoader, createNodeContextStorage, createNodeFileSystem, createSharpImageProcessor } from '../../../../src/runtime/adapters/node'
+import { createJitiModuleLoader, createNodeFileSystem, createNodeSchemaContextHost, createSharpImageProcessor } from '../../../../src/runtime/adapters/node'
 import * as nodeAdapters from '../../../../src/runtime/adapters/node'
 
 test('node adapter barrel exposes individual adapter factories, not a runtime bundle', () => {
   strictEqual('createNodeRuntime' in nodeAdapters, false)
   strictEqual('nodeRuntime' in nodeAdapters, false)
+  strictEqual('createNodeContextStorage' in nodeAdapters, false, 'old createNodeContextStorage removed')
   strictEqual(typeof nodeAdapters.createNodeFileSystem, 'function')
   strictEqual(typeof nodeAdapters.createJitiModuleLoader, 'function')
-  strictEqual(typeof nodeAdapters.createNodeContextStorage, 'function')
+  strictEqual(typeof nodeAdapters.createNodeSchemaContextHost, 'function')
   strictEqual(typeof nodeAdapters.createSharpImageProcessor, 'function')
 })
 
 test('node adapter factories return individual adapter objects', () => {
   strictEqual(typeof createNodeFileSystem().read, 'function')
   strictEqual(typeof createJitiModuleLoader().load, 'function')
-  strictEqual(typeof createNodeContextStorage().run, 'function')
+  strictEqual(typeof createNodeSchemaContextHost().run, 'function')
   strictEqual(typeof createSharpImageProcessor().probe, 'function')
 })
 

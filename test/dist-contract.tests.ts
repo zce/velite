@@ -21,22 +21,12 @@ const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 test('dist: package entry is built and exports the public surface', async () => {
   ok(existsSync(distEntry), `dist/index.mjs not found — run \`pnpm build\` before this suite (or use \`pnpm test:src\` for src-only)`)
   const velite = (await import(distEntry)) as Record<string, unknown>
-  const values = [
-    'build',
-    'watch',
-    'builder',
-    'createBuilder',
-    's',
-    'defineConfig',
-    'defineCollection',
-    'defineLoader',
-    'defineSchema',
-    'context',
-    'VeliteError'
-  ]
+  const values = ['build', 'watch', 'builder', 's', 'defineConfig', 'defineCollection', 'defineLoader', 'defineSchema', 'context', 'VeliteError']
   for (const name of values) {
     ok(typeof velite[name] !== 'undefined', `dist missing value export: ${name}`)
   }
+  // createBuilder must NOT be present in dist (Ticket 21).
+  equal(velite.createBuilder, undefined, 'dist must not export createBuilder')
   ok(typeof velite.build === 'function', 'build is a function')
   ok(typeof velite.watch === 'function', 'watch is a function')
   ok(typeof velite.s === 'object' && velite.s !== null, 's is an object')

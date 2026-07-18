@@ -1,4 +1,4 @@
-import { ok, strictEqual } from 'node:assert'
+import { equal, ok, strictEqual } from 'node:assert'
 import { execFile } from 'node:child_process'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -11,10 +11,12 @@ import * as velite from '../src/index'
 const exec = promisify(execFile)
 
 test('api: exports the public surface', () => {
-  const names = ['build', 'watch', 'builder', 'createBuilder', 's', 'defineConfig', 'defineCollection']
+  const names = ['build', 'watch', 'builder', 's', 'defineConfig', 'defineCollection']
   for (const name of names) {
     ok(typeof (velite as Record<string, unknown>)[name] !== 'undefined', `missing export: ${name}`)
   }
+  // createBuilder must NOT be a root export (Ticket 21).
+  equal((velite as Record<string, unknown>).createBuilder, undefined, 'createBuilder must not be a root export')
 })
 
 test('api: createBuilder depends on explicit runtime capabilities', async () => {
@@ -24,13 +26,14 @@ test('api: createBuilder depends on explicit runtime capabilities', async () => 
     file,
     `
       import type { BuilderDeps } from '${join(process.cwd(), 'src/core/builder.ts')}'
-      import type { ContextStorage, FileSystem, ImageProcessor, Logger, ModuleLoader, Watcher } from '${join(process.cwd(), 'src/runtime/index.ts')}'
+      import type { FileSystem, ImageProcessor, Logger, ModuleLoader, Watcher } from '${join(process.cwd(), 'src/runtime/index.ts')}'
+      import type { SchemaRunner } from '${join(process.cwd(), 'src/core/schema/runner.ts')}'
 
       type HasRuntime = 'runtime' extends keyof BuilderDeps ? true : false
       type HasExplicitDeps = BuilderDeps extends {
         fs: FileSystem
         modules: ModuleLoader
-        contextStorage: ContextStorage<unknown>
+        schemaRunner: SchemaRunner
         logger: Logger
         image: ImageProcessor
         watch: (paths: string[]) => Watcher
@@ -74,11 +77,13 @@ test('api: runtime barrel exposes ports, not a bundled Runtime contract', async 
   await writeFile(
     file,
     `
-      import type { ContextStorage, FileSystem, ImageProcessor, Logger, ModuleLoader, Watcher } from '${join(process.cwd(), 'src/runtime/index.ts')}'
+      import type { FileSystem, ImageProcessor, Logger, ModuleLoader, Watcher } from '${join(process.cwd(), 'src/runtime/index.ts')}'
       // @ts-expect-error Runtime is intentionally not a public bundled contract.
       import type { Runtime } from '${join(process.cwd(), 'src/runtime/index.ts')}'
+      // @ts-expect-error ContextStorage is removed — SchemaContextHost replaces it.
+      import type { ContextStorage } from '${join(process.cwd(), 'src/runtime/index.ts')}'
 
-      type HasPorts = [FileSystem, ModuleLoader, ContextStorage<unknown>, Logger, ImageProcessor, Watcher]
+      type HasPorts = [FileSystem, ModuleLoader, Logger, ImageProcessor, Watcher]
       const hasPorts: HasPorts | undefined = undefined
       void hasPorts
     `

@@ -48,7 +48,7 @@ Concrete dependency wiring belongs in a dedicated composition root. Good example
 
 Composition roots may create default instances for public convenience, but the underlying capability should still be replaceable in tests.
 
-The composition roots in this repo: `createBuilder` (`src/core/builder.ts`), `createPipeline` (`src/core/pipeline/index.ts`), the public `builder` facade (`src/index.ts`), `createRunContext` + `createDriver` (`src/core/driver.ts`), and `createScheduler` (`src/core/scheduler.ts`).
+The composition roots in this repo: `createBuilder` (`src/core/builder.ts`, internal — not a root export), `createPipeline` (`src/core/pipeline/index.ts`), the public `builder`/`build`/`watch` facades (`src/index.ts`), `createRunContext` + `createDriver` (`src/core/driver.ts`), `createSchemaRunner` + `ensureHostInstalled` (`src/core/schema/runner.ts`, installs/obtains the process-owned `SchemaContextHost`), and `createScheduler` (`src/core/scheduler.ts`).
 
 ## Allowed direct exports
 
@@ -95,6 +95,6 @@ Prefer domain-oriented modules over utility buckets.
 
 ## Allowed exception: ambient schema context
 
-`context()` (`src/core/schema/context.ts`) is the one intentional piece of hidden global state in core. Zod's transform callback signature `(value, ctx) => ...` forbids passing ambient context explicitly, so a late-bound `ContextStorage` (`src/runtime/contextual.ts`) is the thinnest possible escape hatch. The composition root (`createBuilder`) installs it exactly once per process. See `schema-context.md` for what it carries and the rules for using it.
+`context()` (`src/core/schema/context.ts`) is the one intentional piece of hidden global state in core. Zod's transform callback signature `(value, ctx) => ...` forbids passing ambient context explicitly, so a process-owned `SchemaContextHost` (`src/core/schema/host.ts`, see `schema-context.md`) propagates the `SchemaRunContext` through async transforms. The default Node runtime composition root (`builder()`/`build()`/`watch()` in `src/index.ts`) installs the host exactly once per process; the internal `SchemaRunner` (`src/core/schema/runner.ts`) leases a fresh carrier per record parse. Installing the identical host is idempotent; installing a different host after the first is a deterministic `VeliteError('internal')`. The host owns NO Builder, epoch, broker, generation, reader, publication, cache, registry, or lifecycle state.
 
-It must only expose execution-scoped metadata (the current `SchemaContext`), never services. This is metadata-only, consistent with the explicit-over-magic principle: explicit imports, explicit dependencies, explicit construction, static typing. Avoid runtime scanning, automatic registration, decorators, reflection, and hidden global containers.
+It must only expose execution-scoped metadata (the current eight-field `SchemaContext`), never services. This is metadata-only, consistent with the explicit-over-magic principle: explicit imports, explicit dependencies, explicit construction, static typing. Avoid runtime scanning, automatic registration, decorators, reflection, and hidden global containers.

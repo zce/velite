@@ -1,27 +1,27 @@
 # Schema Context
 
-`context()` (`src/core/schema/context.ts:210`) is the controlled ambient accessor that returns the `SchemaContext` for the record currently being parsed. It is the one intentional exception to factory DI (see `module-architecture.md`).
+`context()` (`src/core/schema/context.ts`) is the controlled ambient accessor that returns the eight-field public `SchemaContext` for the record currently being parsed. It is the one intentional exception to factory DI (see `module-architecture.md`).
 
 ## Why it exists
 
-Zod's async transform callback signature `(value, ctx) => ...` forbids passing ambient context explicitly. Built-in and user-defined schemas both need file/record/project/asset metadata during parsing, so a late-bound `ContextStorage` (`src/runtime/contextual.ts`) propagates the `SchemaContext` through async transforms. The composition root (`createBuilder` in `src/core/builder.ts`) calls `installContextStorage` exactly once per process; `runWithContext` (`src/core/schema/context.ts:219`) binds a fresh context per record parse.
+Zod's async transform callback signature `(value, ctx) => ...` forbids passing ambient context explicitly. Built-in and user-defined schemas both need file/record/project/asset metadata during parsing, so a process-owned `SchemaContextHost` (`src/core/schema/host.ts`) propagates the `SchemaRunContext` through async transforms. The default Node runtime composition root (`builder()`/`build()`/`watch()` in `src/index.ts`) installs the host exactly once per process; the internal `SchemaRunner` (`src/core/schema/runner.ts`) leases a fresh carrier per record parse.
 
 ## What it carries
 
-`SchemaContext` (`src/core/schema/context.ts:97-132`) has exactly these fields — no internal-only tier:
+`SchemaContext` has exactly eight fields — no internal-only tier:
 
 | Field           | Type                                       | Purpose                                                                                                     |
 | --------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | `project`       | `ProjectInfo`                              | Resolved config snapshot: root, configPath, collections, output, markdown/mdx options                       |
-| `file`          | `ContentFile`                              | Current source file: id, path, content, plain, lazily-parsed mdast/hast                                     |
+| `file`          | `ContentFile`                              | Current source file: id, path, content (mdast/hast/plain removed; custom schemas own their parser)          |
 | `record`        | `ContentRecord`                            | Identity within a multi-record source: id, key, index                                                       |
 | `store`         | `SessionStore`                             | Session-scoped key/value store for advanced custom schemas (shared across rebuilds, reset on config reload) |
-| `collectEffect` | `(effect: Effect) => void`                 | Declare a schema effect (unique registration, asset reference)                                              |
+| `collectEffect` | `(effect, context) => void`                | Declare a schema effect (Ticket 23 two-arg surface; legacy single-arg during Phase 1-3 migration)           |
 | `asset`         | `(key, request?) => Promise<AssetResult>`  | Resolve an asset by content-root-relative POSIX path; memoized; returns publicUrl + optional image metadata |
 | `readFile`      | `(absPath) => Promise<Uint8Array>`         | Read asset bytes directly (used by `s.image({ absoluteRoot })`)                                             |
 | `probeImage`    | `(bytes, blur?) => Promise<ImageMetadata>` | Probe + blur image bytes directly, bypassing the asset pipeline                                             |
 
-All fields are accessible to both built-in and user-defined schemas — there is no internal-only tier.
+All fields are accessible to both built-in and user-defined schemas; there is no internal-only tier. The private record-bound `content(request)` capability is a separate runtime object reachable only by Velite-owned roots through the leased `SchemaRunContext`.
 
 ## Rules
 
@@ -40,7 +40,11 @@ const logger = context().logger
 const fs = context().fs
 ```
 
-`context()` throws `VeliteError('internal', ...)` when called outside of a schema parse (no bound execution context). Use `tryCtx()`-equivalent (`schemaContext.tryGet()`) only when absence is valid — built-in schemas never need this.
+`context()` throws `VeliteError('internal', ...)` when called outside of a schema parse (no bound execution context) or after the active run has settled (late call).
+
+## Process-owned host
+
+`SchemaContextHost` (`src/core/schema/host.ts`) is the sole ambient architecture exception. Installing the identical host is idempotent; installing a different host after the first is a deterministic `VeliteError('internal')`. There is no reset, replacement, reference-counting, or disposal protocol — the host's lifetime is the process lifetime. The host owns NO Builder, epoch, broker, generation, reader, publication, cache, registry, or lifecycle state; it only propagates the current `SchemaRunContext` and rejects missing or inactive leased carriers.
 
 ## SessionStore
 

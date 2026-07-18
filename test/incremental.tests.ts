@@ -1,11 +1,12 @@
 import { deepEqual, equal, ok } from 'node:assert'
 import { test } from 'node:test'
 
-import { createBuilder, s } from '../src/core'
+import { s } from '../src/core'
+import { createBuilder } from '../src/core/builder'
 import { join } from '../src/core/util/path'
-import { nodeContextStorage, silentLogger } from '../src/runtime/adapters/node'
+import { silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
-import { noopImageProcessor, noopWatch } from './helpers/runtime'
+import { noopImageProcessor, noopWatch, testSchemaRunner } from './helpers/runtime'
 
 import type { UserConfig } from '../src/core/config'
 import type { FileEvent } from '../src/runtime/watcher'
@@ -28,7 +29,7 @@ const setup = (): { runtime: TestRuntime; fs: MemoryFileSystem } => {
   fs.put(file('b'), body([{ title: 'B' }]))
   fs.put(file('c'), body([{ title: 'C' }]))
   const runtime: TestRuntime = {
-    contextStorage: nodeContextStorage,
+    schemaRunner: testSchemaRunner(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,

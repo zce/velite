@@ -1,11 +1,14 @@
-import { z } from 'zod'
+// Metadata projection: reading time + word count.
+//
+// The top-level `s.metadata()` form is removed; `.metadata()` is a method on
+// the dialect root. The `Metadata` type and the `computeMetadata` helper are
+// shared by the Markdown and MDX roots.
 
-import { extractText, parseMarkdown } from '../content/reference'
-import { context } from './context'
+import { extractText } from '../content/reference'
 
-import type { Schema } from './s'
+import type { Root as Mdast } from 'mdast'
 
-/** Document metadata: reading time and word count. */
+/** Document metadata: reading time in minutes and word count. */
 export interface Metadata {
   /** Reading time in minutes. */
   readingTime: number
@@ -58,34 +61,21 @@ const wordLength = (str: string): number => {
 }
 
 /**
- * Compute reading-time metadata from the current content.
+ * Compute reading-time metadata from an mdast tree.
  *
- * This is the transitional implementation: it parses the selected text directly
- * via `parseMarkdown` and uses `extractText`. Phase 2 (T2.4) replaces this with
- * the final v-flag Latin regex, frozen CJK table, and `0.56`/`265`/`Math.round`
- * oracle over dialect-correct static visible text.
+ * Transitional: the final v-flag Latin regex, frozen CJK table, and weighting
+ * arithmetic will replace this helper in a later stage.
  */
-export const metadata = (): Schema<Metadata> =>
-  z
-    .custom<string>(i => typeof i === 'string')
-    .optional()
-    .transform<Metadata>(async (value, { addIssue }) => {
-      const { file } = context()
-      const body = value ?? file.content
-      if (body == null || body.length === 0) {
-        addIssue({ code: 'custom', message: 'The content is empty' })
-        return { readingTime: 0, wordCount: 0 }
-      }
-      const tree = parseMarkdown(body)
-      const plain = extractText(tree, 10_000)
-      const avgWPM = 265
-      const latinChars: string[] = []
-      const cjChars: string[] = []
-      for (const char of plain) {
-        if (isCjChar(char)) cjChars.push(char)
-        else latinChars.push(char)
-      }
-      const wordCount = wordLength(latinChars.join('')) + cjChars.length * 0.56
-      const time = Math.round(wordCount / avgWPM)
-      return { readingTime: time === 0 ? 1 : time, wordCount }
-    })
+export const computeMetadata = (tree: Mdast): Metadata => {
+  const plain = extractText(tree, 10_000)
+  const avgWPM = 265
+  const latinChars: string[] = []
+  const cjChars: string[] = []
+  for (const char of plain) {
+    if (isCjChar(char)) cjChars.push(char)
+    else latinChars.push(char)
+  }
+  const wordCount = wordLength(latinChars.join('')) + cjChars.length * 0.56
+  const time = Math.round(wordCount / avgWPM)
+  return { readingTime: time === 0 ? 1 : time, wordCount }
+}

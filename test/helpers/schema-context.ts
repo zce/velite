@@ -10,6 +10,7 @@ import { createSchemaRunner } from '../../src/core/schema/runner'
 import { createNodeSchemaContextHost } from '../../src/runtime/adapters/node/schema-host'
 
 import type { AssetResult, BlurOptions } from '../../src/core/pipeline/asset'
+import type { ContentRequest } from '../../src/core/schema/capability'
 import type { AssetRequest, ContentFile, ContentRecord, ImageMetadata, ProjectInfo, SchemaContext, SessionStore } from '../../src/core/schema/context'
 import type { Effect, EffectDeclarationContext, SchemaEffectDeclaration } from '../../src/core/schema/effects'
 import type { SchemaRunInput, SchemaRunner } from '../../src/core/schema/runner'
@@ -41,6 +42,8 @@ export interface RunWithContextInput {
   readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
   readonly readFile: (absPath: string) => Promise<Uint8Array>
   readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
+  /** Optional override for the private record-bound content operation (default: `async () => undefined`). */
+  readonly contentOperation?: (request: ContentRequest) => Promise<unknown>
 }
 
 /**
@@ -58,7 +61,7 @@ export const runWithContext = async <R>(input: RunWithContextInput, run: () => R
     asset: input.asset,
     readFile: input.readFile,
     probeImage: input.probeImage,
-    contentOperation: async () => undefined
+    contentOperation: input.contentOperation ?? (async () => undefined)
   }
   return runner.run(runInput, run)
 }

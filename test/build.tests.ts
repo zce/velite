@@ -115,7 +115,7 @@ test('build: markdown collection exposes raw body, metadata and path via schemas
     collections: {
       posts: {
         pattern: 'posts/*.md',
-        schema: s.object({ title: s.string(), body: s.raw(), meta: s.metadata(), route: s.path() })
+        schema: s.object({ title: s.string(), body: s.raw(), meta: s.markdown().metadata(), route: s.path() })
       }
     }
   }

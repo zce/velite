@@ -31,6 +31,26 @@ test('dist: package entry is built and exports the public surface', async () => 
   ok(typeof velite.watch === 'function', 'watch is a function')
   ok(typeof velite.s === 'object' && velite.s !== null, 's is an object')
   ok(typeof (velite.s as Record<string, unknown>).string === 'function', 's.string is a function')
+  // T2.1: top-level s.toc / s.excerpt / s.metadata removed; TocOptions / original not exported.
+  const s = velite.s as Record<string, unknown>
+  equal(s.toc, undefined, 'dist s.toc must be removed')
+  equal(s.excerpt, undefined, 'dist s.excerpt must be removed')
+  equal(s.metadata, undefined, 'dist s.metadata must be removed')
+  equal(velite.TocOptions, undefined, 'dist must not export TocOptions')
+  equal(velite.original, undefined, 'dist must not export original')
+  // Roots expose the projection methods.
+  ok(typeof s.markdown === 'function', 'dist s.markdown is a function')
+  ok(typeof s.mdx === 'function', 'dist s.mdx is a function')
+  const mdRoot = (s.markdown as () => { toc(): unknown; excerpt(): unknown; metadata(): unknown })()
+  ok(
+    typeof mdRoot.toc === 'function' && typeof mdRoot.excerpt === 'function' && typeof mdRoot.metadata === 'function',
+    'dist markdown root exposes toc/excerpt/metadata'
+  )
+  const mdxRoot = (s.mdx as () => { toc(): unknown; excerpt(): unknown; metadata(): unknown })()
+  ok(
+    typeof mdxRoot.toc === 'function' && typeof mdxRoot.excerpt === 'function' && typeof mdxRoot.metadata === 'function',
+    'dist mdx root exposes toc/excerpt/metadata'
+  )
 })
 
 test('dist: package.json exports map, module, and types all resolve to existing dist files', () => {

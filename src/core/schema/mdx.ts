@@ -4,9 +4,14 @@ import { processMdx } from '../content/mdx'
 import { assetKeyOf } from '../pipeline/asset'
 import { dirname, join, stripQueryAndHash } from '../util/path'
 import { context } from './context'
+import { buildExcerptSchema, buildMetadataSchema, buildTocSchema } from './projections'
 
 import type { PluggableList } from 'unified'
 import type { ProcessMdxOptions } from '../content/mdx'
+import type { TocItem } from '../content/reference'
+import type { ExcerptSchemaOptions } from './excerpt'
+import type { Metadata } from './metadata'
+import type { DialectProfile } from './projections'
 import type { Schema } from './s'
 
 /** Options for the {@link mdx} schema. */
@@ -33,8 +38,18 @@ export interface MdxSchemaOptions {
   copyLinkedFiles?: boolean
 }
 
-/** Compile the current content body as MDX. */
-export const mdx = (options: MdxSchemaOptions = {}): Schema<string> =>
+/** An MDX dialect root: the primary `string -> function-body` schema plus projections. */
+export interface MdxRoot extends Schema<string> {
+  /** Flat table-of-contents projection (independent schema, same dialect/profile). */
+  toc(): Schema<TocItem[]>
+  /** Plain-text excerpt projection (independent schema, same dialect/profile). */
+  excerpt(options?: ExcerptSchemaOptions): Schema<string>
+  /** Reading-time + word-count metadata projection (independent schema, same dialect/profile). */
+  metadata(): Schema<Metadata>
+}
+
+/** Build the primary mdx schema (string -> function-body). */
+const buildPrimarySchema = (options: MdxSchemaOptions): Schema<string> =>
   z
     .custom<string>(i => typeof i === 'string')
     .optional()
@@ -73,3 +88,16 @@ export const mdx = (options: MdxSchemaOptions = {}): Schema<string> =>
         return null as never
       }
     })
+
+/** Compile the current content body as MDX. */
+export const mdx = (options: MdxSchemaOptions = {}): MdxRoot => {
+  const primary = buildPrimarySchema(options) as MdxRoot
+  const dp: DialectProfile = {
+    dialect: 'mdx',
+    profile: () => context().project.mdx
+  }
+  primary.toc = () => buildTocSchema(dp)
+  primary.excerpt = (projectionOptions?: ExcerptSchemaOptions) => buildExcerptSchema(dp, projectionOptions)
+  primary.metadata = () => buildMetadataSchema(dp)
+  return primary
+}

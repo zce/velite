@@ -130,8 +130,8 @@ export default defineConfig({
         title: s.string(),
         asset: s.file(),
         html: s.markdown(),
-        toc: s.toc(),
-        excerpt: s.excerpt()
+        toc: s.markdown().toc(),
+        excerpt: s.markdown().excerpt()
       })
     },
     pages: {
@@ -140,8 +140,8 @@ export default defineConfig({
         title: s.string(),
         asset: s.file(),
         code: s.mdx(),
-        toc: s.toc(),
-        excerpt: s.excerpt()
+        toc: s.mdx().toc(),
+        excerpt: s.mdx().excerpt()
       })
     }
   }

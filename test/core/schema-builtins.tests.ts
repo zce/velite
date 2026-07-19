@@ -78,16 +78,16 @@ test('s.raw(): returns the raw file body', async () => {
   assert.equal(r.data, 'the raw body')
 })
 
-test('s.metadata(): computes reading time and word count', async () => {
-  const r = await parseWith(s.metadata(), 'Hello world this is a test of reading time metadata.')
+test('s.markdown().metadata(): computes reading time and word count', async () => {
+  const r = await parseWith(s.markdown().metadata(), 'Hello world this is a test of reading time metadata.')
   assert.ok(r.success)
   const m = r.data as { readingTime: number; wordCount: number }
   assert.ok(m.wordCount > 0)
   assert.ok(m.readingTime >= 1)
 })
 
-test('s.metadata(): CJK characters count towards word count', async () => {
-  const r = await parseWith(s.metadata(), '你好世界这是一段中文内容')
+test('s.markdown().metadata(): CJK characters count towards word count', async () => {
+  const r = await parseWith(s.markdown().metadata(), '你好世界这是一段中文内容')
   assert.ok(r.success)
   const m = r.data as { readingTime: number; wordCount: number }
   assert.ok(m.wordCount > 0, 'CJK chars should contribute to word count')
@@ -129,8 +129,8 @@ test('s.path(): keeps /index when removeIndex is false', async () => {
   assert.equal(r.data, 'posts/index')
 })
 
-test('s.toc(): extracts a flat heading toc', async () => {
-  const r = await parseWith(s.toc(), '# Hello\n\n## Sub')
+test('s.markdown().toc(): extracts a flat heading toc', async () => {
+  const r = await parseWith(s.markdown().toc(), '# Hello\n\n## Sub')
   assert.ok(r.success)
   const toc = r.data as { depth: number; title: string; slug: string }[]
   assert.equal(toc.length, 2)
@@ -138,8 +138,8 @@ test('s.toc(): extracts a flat heading toc', async () => {
   assert.equal(toc[1]!.slug, 'sub')
 })
 
-test('s.excerpt(): extracts a plain-text excerpt of the given length', async () => {
-  const r = await parseWith(s.excerpt({ length: 10 }), 'one two three four five six seven')
+test('s.markdown().excerpt(): extracts a plain-text excerpt of the given length', async () => {
+  const r = await parseWith(s.markdown().excerpt({ length: 10 }), 'one two three four five six seven')
   assert.ok(r.success)
   const e = r.data as string
   assert.ok(e.length <= 11)

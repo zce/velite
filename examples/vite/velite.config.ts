@@ -104,9 +104,9 @@ const posts = defineCollection({
       categories: s.array(s.string()).default(['Journal']),
       tags: s.array(s.string()).default([]),
       meta: meta,
-      toc: s.toc(),
-      metadata: s.metadata(),
-      excerpt: s.excerpt(),
+      toc: s.markdown().toc(),
+      metadata: s.markdown().metadata(),
+      excerpt: s.markdown().excerpt(),
       content: s.markdown()
     })
     .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))

@@ -17,6 +17,21 @@ test('api: exports the public surface', () => {
   }
   // createBuilder must NOT be a root export (Ticket 21).
   equal((velite as Record<string, unknown>).createBuilder, undefined, 'createBuilder must not be a root export')
+  // Top-level s.toc / s.excerpt / s.metadata are removed; use root methods.
+  const s = velite.s as Record<string, unknown>
+  equal(s.toc, undefined, 's.toc must not be a root projection (use s.markdown().toc() / s.mdx().toc())')
+  equal(s.excerpt, undefined, 's.excerpt must not be a root projection (use s.markdown().excerpt() / s.mdx().excerpt())')
+  equal(s.metadata, undefined, 's.metadata must not be a root projection (use s.markdown().metadata() / s.mdx().metadata())')
+  ok(typeof s.markdown === 'function', 's.markdown is a function (the dialect root)')
+  ok(typeof s.mdx === 'function', 's.mdx is a function (the dialect root)')
+  const mdRoot = (s.markdown as () => { toc(): unknown; excerpt(): unknown; metadata(): unknown })()
+  ok(typeof mdRoot.toc === 'function', 's.markdown() root exposes .toc()')
+  ok(typeof mdRoot.excerpt === 'function', 's.markdown() root exposes .excerpt()')
+  ok(typeof mdRoot.metadata === 'function', 's.markdown() root exposes .metadata()')
+  const mdxRoot = (s.mdx as () => { toc(): unknown; excerpt(): unknown; metadata(): unknown })()
+  ok(typeof mdxRoot.toc === 'function', 's.mdx() root exposes .toc()')
+  ok(typeof mdxRoot.excerpt === 'function', 's.mdx() root exposes .excerpt()')
+  ok(typeof mdxRoot.metadata === 'function', 's.mdx() root exposes .metadata()')
 })
 
 test('api: createBuilder depends on explicit runtime capabilities', async () => {

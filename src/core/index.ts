@@ -34,7 +34,16 @@
 export type { Builder, BuildOptions, CreateBuilderOptions, WatchHandle, WatchOptions } from './builder'
 
 export { ConfigError, defineCollection, defineConfig, resolveConfig, validateConfig } from './config'
-export type { CollectionDef, PrepareCollections, PrepareContext, PrepareHook, PrepareResult, ResolvedConfig, UserConfig } from './config'
+export type {
+  CollectionDef,
+  PrepareCollections,
+  PrepareContext,
+  PrepareDiagnosticInput,
+  PrepareHook,
+  PrepareResult,
+  ResolvedConfig,
+  UserConfig
+} from './config'
 
 export { diagnostic, VeliteError } from './diagnostic'
 export type {

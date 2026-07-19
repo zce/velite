@@ -5,7 +5,7 @@ import type { FileSystem } from '../runtime/fs'
 import type { ModuleLoader } from '../runtime/modules'
 import type { MarkdownOptions } from './content/markdown'
 import type { MdxOptions } from './content/mdx'
-import type { Diagnostic } from './diagnostic'
+import type { Diagnostic, DiagnosticLevel } from './diagnostic'
 import type { ProjectInfo } from './schema/context'
 import type { Infer, Schema } from './schema/s'
 
@@ -34,14 +34,41 @@ export type PrepareCollections<C extends Record<string, CollectionDef> = Record<
   ? Record<string, unknown[] | unknown>
   : { [K in keyof C]: C[K] extends { single: true } ? CollectionData<C[K]> : CollectionData<C[K]>[] }
 
-/** Result of the `prepare` hook: continue (void), skip output (`false`), or replace the collections. */
+/**
+ * Result of the `prepare` hook: continue (void), skip output (`false`), or
+ * replace the collections.
+ *
+ * The legacy `{ collections, diagnostics? }` shape is removed; the sole prepare
+ * diagnostic channel is {@link PrepareContext.addDiagnostic}. Returning a
+ * `diagnostics` field is a type error; the sole prepare diagnostic channel is
+ * {@link PrepareContext.addDiagnostic}.
+ */
 export type PrepareResult<C extends Record<string, CollectionDef> = Record<string, CollectionDef>> =
   | void
   | false
-  | { collections: PrepareCollections<C>; diagnostics?: Diagnostic[] }
+  | { readonly collections: PrepareCollections<C> }
 
 /** A `T | Promise<T>` helper (kept local to avoid importing the old loaders). */
 type Promisable<T> = T | Promise<T>
+
+/**
+ * Input to {@link PrepareContext.addDiagnostic}. Velite supplies `stage` =
+ * `'prepare'`, `origin = { kind: 'prepare-hook', key }`, and project
+ * provenance; the hook supplies only these five fields. The `cause` is
+ * normalized, detached, and snapshotted before `addDiagnostic()` returns.
+ */
+export interface PrepareDiagnosticInput {
+  /** Non-empty prepare-key identifying this diagnostic sink entry. */
+  readonly key: string
+  /** Diagnostic level. */
+  readonly level: DiagnosticLevel
+  /** Non-empty diagnostic code. */
+  readonly code: string
+  /** Message (may be empty). */
+  readonly message: string
+  /** Optional cause; normalized and detached before the sink stores it. */
+  readonly cause?: unknown
+}
 
 /**
  * The output-oriented `prepare` hook.
@@ -50,19 +77,39 @@ type Promisable<T> = T | Promise<T>
  * for `single: true` collections) as the first argument, so callers can
  * destructure: `prepare: ({ posts, categories }) => { ... }`. The hook may
  * mutate the data in place (returning `void`), replace the collections
- * wholesale (returning a new `{ collections, diagnostics }`), or skip default
- * output (returning `false`).
+ * wholesale (returning `{ collections }`), or skip default output (returning
+ * `false`). Diagnostics flow only through {@link PrepareContext.addDiagnostic};
+ * the legacy `{ collections, diagnostics? }` return shape is removed.
  */
 export type PrepareHook<C extends Record<string, CollectionDef> = Record<string, CollectionDef>> = (
   collections: PrepareCollections<C>,
   context: PrepareContext
 ) => Promisable<PrepareResult<C>>
 
-/** Context passed to the `prepare` hook. */
+/**
+ * Context passed to the `prepare` hook.
+ *
+ * `diagnostics` is a read-only view of the diagnostics known before the hook
+ * ran (schema/unique/asset-read). The hook surfaces its own diagnostics via
+ * {@link PrepareContext.addDiagnostic}, the sole append-only prepare diagnostic
+ * sink. The sink closes synchronously when the hook return value or Promise
+ * settles; a later call throws `VeliteError('internal')` and appends nothing.
+ */
 export interface PrepareContext {
   /** Stable, read-only project snapshot. Same shape exposed via {@link SchemaContext.project}. */
   readonly project: ProjectInfo
+  /** Read-only diagnostics known before the prepare hook ran. */
   readonly diagnostics: readonly Diagnostic[]
+  /**
+   * The sole append-only prepare diagnostic sink. Synchronously normalizes
+   * and snapshots `cause`, then appends a `prepare`-stage diagnostic with
+   * `origin = { kind: 'prepare-hook', key }` and project provenance. Closes
+   * at hook settlement; a late call throws `VeliteError('internal')` and
+   * appends nothing. Exact same-key declarations collapse. Reusing a key with
+   * a different normalized payload yields one Velite-authored fatal prepare
+   * conflict and selects no winner.
+   */
+  readonly addDiagnostic: (diagnostic: PrepareDiagnosticInput) => void
 }
 
 export interface UserConfig<C extends Record<string, CollectionDef> = Record<string, CollectionDef>> {

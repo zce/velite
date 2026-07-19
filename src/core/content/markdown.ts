@@ -71,8 +71,9 @@ const remarkRemoveComments = () => (tree: Mdast) => {
  * skipped and the pipeline runs directly on a structured clone of the tree
  * (so the caller's tree is never mutated by remark/rehype plugins).
  *
- * SSOT: callers that already have an mdast tree (e.g. from the lazily-cached
- * `file.mdast`) should pass it directly to avoid a redundant parse.
+ * SSOT: callers that already have an mdast tree (e.g. obtained through the
+ * record-bound content capability) should pass it directly to avoid a
+ * redundant parse.
  */
 export const processMarkdown = async (source: MarkdownSource, options: MarkdownOptions = {}): Promise<string> => {
   const remarkPlugins: PluggableList = []

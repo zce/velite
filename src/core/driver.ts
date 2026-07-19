@@ -1,5 +1,5 @@
 import { classifyEvent } from './classify'
-import { codeFromDiagnostics, diagnostic, hasFatalDiagnostic, VeliteError } from './diagnostic'
+import { codeFromDiagnostics, diagnostic, equalDiagnosticValue, hasFatalDiagnostic, normalizeDiagnosticValue, VeliteError } from './diagnostic'
 import { loadManifest, MANIFEST_FILENAME, saveManifest } from './output/manifest'
 import { writeOutput } from './output/writer'
 import { assetInput, assetKeyOf, buildProjectInfo, fileInput, TREE } from './pipeline'
@@ -9,8 +9,8 @@ import { createPool } from './util/pool'
 import type { FileSystem } from '../runtime/fs'
 import type { Logger } from '../runtime/logger'
 import type { FileEvent } from '../runtime/watcher'
-import type { PrepareCollections, PrepareContext, ResolvedConfig } from './config'
-import type { Diagnostic } from './diagnostic'
+import type { PrepareCollections, PrepareContext, PrepareDiagnosticInput, ResolvedConfig } from './config'
+import type { Diagnostic, DiagnosticLevel, DiagnosticValue } from './diagnostic'
 import type { Engine } from './engine'
 import type { LogicalOutput } from './output/logical'
 import type { DataManifest, OutputManifest } from './output/manifest'
@@ -76,6 +76,169 @@ export interface RunContextDeps {
 }
 
 const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+
+// --- Prepare diagnostic sink ------------------------------------------------
+//
+// Sole append-only prepare diagnostic channel. `addDiagnostic` synchronously
+// normalizes and snapshots `cause`, appends a `prepare`-stage diagnostic with
+// `origin = { kind: 'prepare-hook', key }` and project provenance, then closes
+// at hook settlement. Late calls throw `VeliteError('internal')` and append
+// nothing. Exact same-key declarations collapse. Reusing a key with a
+// different normalized payload yields one Velite-authored fatal prepare
+// conflict diagnostic and selects no winner. Reversing call or completion
+// order yields the same set and order.
+//
+// A hook declaration is accepted only when ordinary reflection reports an
+// Object-prototype or null-prototype record containing exactly own data
+// properties `key`, `level`, `code`, `message`, and optional `cause`. Unknown
+// string keys, symbol keys, accessors, inherited fields, invalid levels, or
+// empty key/code are malformed; reflection failure is malformed. No Proxy
+// detector is used.
+
+/** Internal sink entry. `conflict === true` marks a same-key payload clash. */
+interface SinkEntry {
+  readonly input: PrepareDiagnosticInput
+  readonly normalizedCause: DiagnosticValue | undefined
+  readonly conflict?: true
+}
+
+interface PrepareSink {
+  /** Snapshot of the diagnostics appended so far. */
+  readonly diagnostics: readonly Diagnostic[]
+  /** The sink's `addDiagnostic` closure, bound to this sink. */
+  readonly addDiagnostic: PrepareContext['addDiagnostic']
+  /** Close the sink at hook settlement. Idempotent. */
+  readonly close: () => void
+}
+
+/** Build a Velite-authored prepare-conflict diagnostic for a same-key clash. */
+const prepareConflictDiagnostic = (key: string): Diagnostic =>
+  diagnostic('error', 'PREPARE_CONFLICT', `prepare hook declared diagnostic key '${key}' with conflicting payloads`, {
+    stage: 'prepare',
+    origin: { kind: 'velite' },
+    provenance: { scope: 'project' },
+    context: { key }
+  })
+
+const VALID_LEVELS: ReadonlySet<string> = new Set(['error', 'warn', 'info'])
+const ALLOWED_FIELDS: ReadonlySet<string> = new Set(['key', 'level', 'code', 'message', 'cause'])
+
+/**
+ * Validate a `PrepareDiagnosticInput` against the sole-prepare-sink shape
+ * contract. Accepted when ordinary reflection reports an Object-prototype or
+ * null-prototype record containing exactly own data properties `key`, `level`,
+ * `code`, `message`, and optional `cause`. Unknown string keys, symbol keys,
+ * accessors, inherited fields, invalid levels, or empty key/code are
+ * malformed. Reflection failure is malformed. No Proxy detector is used.
+ */
+const validatePrepareInput = (input: PrepareDiagnosticInput): void => {
+  if (typeof input !== 'object' || input === null) throw new VeliteError('internal', { message: 'PrepareDiagnosticInput must be an object' })
+  let proto: object | null
+  try {
+    proto = Object.getPrototypeOf(input)
+  } catch {
+    throw new VeliteError('internal', { message: 'PrepareDiagnosticInput reflection failed' })
+  }
+  if (proto !== null && proto !== Object.prototype) {
+    throw new VeliteError('internal', { message: 'PrepareDiagnosticInput must be an ordinary Object-prototype or null-prototype record' })
+  }
+  let ownKeys: (string | symbol)[]
+  try {
+    ownKeys = Reflect.ownKeys(input)
+  } catch {
+    throw new VeliteError('internal', { message: 'PrepareDiagnosticInput reflection failed' })
+  }
+  for (const k of ownKeys) {
+    if (typeof k === 'symbol') throw new VeliteError('internal', { message: 'PrepareDiagnosticInput must not carry symbol keys' })
+    if (!ALLOWED_FIELDS.has(k)) throw new VeliteError('internal', { message: `PrepareDiagnosticInput has unknown field '${k}'` })
+    const desc = Object.getOwnPropertyDescriptor(input, k)
+    if (desc === undefined || 'get' in desc || 'set' in desc) {
+      throw new VeliteError('internal', { message: `PrepareDiagnosticInput field '${k}' must be a data property, not an accessor` })
+    }
+  }
+  const key = (input as { key?: unknown }).key
+  if (typeof key !== 'string' || key.length === 0) throw new VeliteError('internal', { message: 'PrepareDiagnosticInput.key must be a non-empty string' })
+  const level = (input as { level?: unknown }).level
+  if (typeof level !== 'string' || !VALID_LEVELS.has(level)) {
+    throw new VeliteError('internal', { message: `PrepareDiagnosticInput.level must be 'error' | 'warn' | 'info' (got '${String(level)}')` })
+  }
+  const code = (input as { code?: unknown }).code
+  if (typeof code !== 'string' || code.length === 0) throw new VeliteError('internal', { message: 'PrepareDiagnosticInput.code must be a non-empty string' })
+  const message = (input as { message?: unknown }).message
+  if (typeof message !== 'string') throw new VeliteError('internal', { message: 'PrepareDiagnosticInput.message must be a string' })
+}
+
+/**
+ * Create a fresh append-only prepare diagnostic sink. The sink is single-use:
+ * `close()` is called once at hook settlement, after which `addDiagnostic`
+ * throws `VeliteError('internal')` and appends nothing.
+ */
+const createPrepareSink = (): PrepareSink => {
+  const entries = new Map<string, SinkEntry>()
+  let closed = false
+  const sameCause = (a: DiagnosticValue | undefined, b: DiagnosticValue | undefined): boolean => {
+    if (a === undefined && b === undefined) return true
+    if (a === undefined || b === undefined) return false
+    return equalDiagnosticValue(a, b)
+  }
+  const addDiagnostic = (raw: PrepareDiagnosticInput): void => {
+    if (closed) throw new VeliteError('internal', { message: 'Prepare sink is closed — addDiagnostic called after hook settlement' })
+    validatePrepareInput(raw)
+    const normalizedCause = raw.cause !== undefined ? normalizeDiagnosticValue(raw.cause) : undefined
+    const existing = entries.get(raw.key)
+    if (existing !== undefined) {
+      // Exact-duplicate collapse: same level, code, message, and normalized cause.
+      const samePayload =
+        existing.input.level === raw.level &&
+        existing.input.code === raw.code &&
+        existing.input.message === raw.message &&
+        sameCause(existing.normalizedCause, normalizedCause)
+      if (samePayload) return
+      // Same key, different normalized payload: drop both siblings and record
+      // exactly one Velite-authored fatal prepare-conflict diagnostic.
+      entries.delete(raw.key)
+      entries.set(`__conflict__${raw.key}`, {
+        input: { key: raw.key, level: 'error', code: 'PREPARE_CONFLICT', message: '' },
+        normalizedCause: undefined,
+        conflict: true
+      })
+      return
+    }
+    entries.set(raw.key, { input: raw, normalizedCause })
+  }
+  const diagnostics = (): readonly Diagnostic[] => {
+    const out: Diagnostic[] = []
+    for (const [, entry] of entries) {
+      if (entry.conflict === true) {
+        out.push(prepareConflictDiagnostic(entry.input.key))
+        continue
+      }
+      // Construct the Diagnostic directly so the already-normalized cause is
+      // not re-normalized (which would wrap the record in another record).
+      const d: Diagnostic = {
+        level: entry.input.level,
+        code: entry.input.code,
+        message: entry.input.message,
+        stage: 'prepare',
+        origin: { kind: 'prepare-hook', key: entry.input.key },
+        provenance: { scope: 'project' },
+        ...(entry.normalizedCause !== undefined ? { cause: entry.normalizedCause } : {})
+      }
+      out.push(d)
+    }
+    return out
+  }
+  const close = (): void => {
+    closed = true
+  }
+  return {
+    get diagnostics() {
+      return diagnostics()
+    },
+    addDiagnostic,
+    close
+  }
+}
 
 /** Absolute path of the velite-owned manifest under the data output directory. */
 const manifestPath = (config: ResolvedConfig): string => join(config.output.data, MANIFEST_FILENAME)
@@ -313,25 +476,50 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
   // (data + assets) to empty, so a prior successful build's files cannot be
   // served as current. Only velite-tracked files (the manifests) are removed;
   // caller-written files are left untouched.
+  //
+  // The sole prepare diagnostic channel is `addDiagnostic`. The legacy
+  // `{ collections, diagnostics? }` return shape is removed; `prepare(false)`
+  // records output suppression only and bypasses no fatal/strict/staging/
+  // publication gate — fatal prepare diagnostics still surface in the returned
+  // BuildResult.
   let output: LogicalOutput = emitted.output
   if (config.prepare !== undefined) {
+    const sink = createPrepareSink()
     const prepareContext: PrepareContext = {
       project: buildProjectInfo(config),
-      diagnostics
+      diagnostics,
+      addDiagnostic: sink.addDiagnostic
     }
     const view = buildPrepareCollections(output)
-    const prepared = await config.prepare(view, prepareContext)
+    let prepared: void | false | { readonly collections: PrepareCollections }
+    try {
+      prepared = await config.prepare(view, prepareContext)
+    } finally {
+      // Close the sink synchronously at hook settlement. Any later call to
+      // addDiagnostic throws VeliteError('internal') and appends nothing.
+      sink.close()
+    }
+    // Merge the sink's diagnostics into the build's diagnostics. The sink
+    // is the sole prepare diagnostic channel; the return value no longer
+    // carries `diagnostics`.
+    diagnostics = [...diagnostics, ...sink.diagnostics]
     if (prepared === false) {
       runtime.logger.warn(`prevent output by 'prepare' callback`)
       await reconcileDataToEmpty(context)
       await reconcileAssetsTo(context, new Set())
       await persistManifest(context)
       runtime.logger.report(diagnostics)
+      // `prepare(false)` suppresses output only; it bypasses no fatal gate.
+      // If the prepare hook (or earlier stages) produced a fatal diagnostic,
+      // the build still fails with the appropriate VeliteError code, matching
+      // the normal runBuild path.
+      if (hasFatalDiagnostic(diagnostics)) {
+        throw new VeliteError(codeFromDiagnostics(diagnostics), { diagnostics })
+      }
       return { output, diagnostics, written: [] }
     }
     if (prepared !== undefined) {
       output = rebuildOutput(output, prepared.collections)
-      if (prepared.diagnostics !== undefined) diagnostics = prepared.diagnostics
     } else {
       output = rebuildOutput(output, view)
     }

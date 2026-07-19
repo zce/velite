@@ -145,6 +145,7 @@ export type {
   PathSchemaOptions,
   PrepareCollections,
   PrepareContext,
+  PrepareDiagnosticInput,
   PrepareHook,
   PrepareResult,
   ProjectCollectionInfo,

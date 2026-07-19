@@ -4,7 +4,7 @@ import { processMdx } from '../content/mdx'
 import { assetKeyOf } from '../pipeline/asset'
 import { dirname, join, stripQueryAndHash } from '../util/path'
 import { context } from './context'
-import { buildExcerptSchema, buildMetadataSchema, buildTocSchema } from './projections'
+import { buildExcerptSchema, buildMetadataSchema, buildTocSchema, selectText } from './projections'
 
 import type { PluggableList } from 'unified'
 import type { ProcessMdxOptions } from '../content/mdx'
@@ -55,11 +55,8 @@ const buildPrimarySchema = (options: MdxSchemaOptions): Schema<string> =>
     .optional()
     .transform<string>(async (value, { addIssue }) => {
       const { file, project, record, asset, collectEffect } = context()
-      const body = value ?? file.content
-      if (body == null || body.length === 0) {
-        addIssue({ code: 'custom', message: 'The content is empty' })
-        return ''
-      }
+      const body = selectText(value, addIssue)
+      if (body === null) return ''
       const g = project.mdx
       const copyLinkedFiles = options.copyLinkedFiles ?? g?.copyLinkedFiles ?? true
       const merged: ProcessMdxOptions = {

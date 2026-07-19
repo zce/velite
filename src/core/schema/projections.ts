@@ -36,8 +36,36 @@ export interface DialectProfile {
 
 type AddIssue = (i: { code: 'custom'; message: string; fatal?: boolean }) => void
 
-/** Resolve the selected text and run the empty-input guard (no parse work on empty). */
-const selectText = (value: string | undefined, addIssue: AddIssue): string | null => {
+/**
+ * Resolve the selected text and run the empty-input guard.
+ *
+ * Selection rule (final 1.0 contract):
+ *
+ * ```text
+ * selected text = explicit string input ?? ContentFile.content
+ * ```
+ *
+ * An explicit string always wins, including `''`. The file body is consulted
+ * only when the schema input is absent (the Zod field is `undefined`). An
+ * explicit empty string is NOT treated as absent — it is a selected input and
+ * triggers the empty-content issue path below.
+ *
+ * Empty-input zero-work: if the selected text is missing (no explicit input
+ * AND `ContentFile.content` is `undefined`) OR exactly `''`, this adds a
+ * **non-fatal** Zod custom issue with message `The content is empty` and
+ * returns `null`. The caller must NOT open or call the content capability,
+ * install a parse slot, invoke a parser, or run a projection when this
+ * returns `null` — that is the executable no-parse oracle.
+ *
+ * Whitespace-only text is NOT empty (it is parsed normally). The guard checks
+ * `body == null || body.length === 0`, not `body.trim().length === 0`. A
+ * whitespace-only source goes through the full parse path.
+ *
+ * Non-fatal vs fatal: the empty-content issue is non-fatal (the record is
+ * invalid at the field, but the build continues). Parse/projection content
+ * failures remain fatal and are reported separately by the caller.
+ */
+export const selectText = (value: string | undefined, addIssue: AddIssue): string | null => {
   const body = value ?? context().file.content
   if (body == null || body.length === 0) {
     addIssue({ code: 'custom', message: 'The content is empty' })

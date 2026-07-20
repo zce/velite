@@ -5,6 +5,7 @@
 // runtime-neutral. Removed once all tests migrate to `schemaRunner.run`.
 
 import { createContentFile, createSessionStore } from '../../src/core/schema/context'
+import { createDefaultContentArtifactsFactory } from '../../src/core/schema/derivation/broker'
 import { installSchemaContextHost, schemaContextHost } from '../../src/core/schema/host'
 import { createSchemaRunner } from '../../src/core/schema/runner'
 import { createNodeSchemaContextHost } from '../../src/runtime/adapters/node/schema-host'
@@ -12,6 +13,7 @@ import { createNodeSchemaContextHost } from '../../src/runtime/adapters/node/sch
 import type { AssetResult, BlurOptions } from '../../src/core/pipeline/asset'
 import type { ContentRequest } from '../../src/core/schema/capability'
 import type { AssetRequest, ContentFile, ContentRecord, ImageMetadata, ProjectInfo, SchemaContext, SessionStore } from '../../src/core/schema/context'
+import type { RecordScope } from '../../src/core/schema/derivation/broker'
 import type { Effect, EffectDeclarationContext, SchemaEffectDeclaration } from '../../src/core/schema/effects'
 import type { SchemaRunInput, SchemaRunner } from '../../src/core/schema/runner'
 
@@ -42,16 +44,58 @@ export interface RunWithContextInput {
   readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
   readonly readFile: (absPath: string) => Promise<Uint8Array>
   readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
-  /** Optional override for the private record-bound content operation (default: `async () => undefined`). */
+  /**
+   * Optional override for the private record-bound content operation. When
+   * omitted, a real record-scoped broker is constructed from the default
+   * content artifacts factory and disposed after the run settles. This keeps
+   * the T2.1/T2.2 behavior tests passing without the transitional
+   * `?? parseMarkdown(body)` fallback that T2.3 removed.
+   */
   readonly contentOperation?: (request: ContentRequest) => Promise<unknown>
+  /**
+   * Optional observer invoked before the real broker handles each content
+   * demand. Use this to count demands without intercepting the result. Only
+   * used when `contentOperation` is NOT provided.
+   */
+  readonly onContentDemand?: (request: ContentRequest) => void
 }
 
 /**
  * Run `run` inside a schema context for a single record parse. Uses the
  * process-owned SchemaContextHost + SchemaRunner. Test-facing shim.
+ *
+ * When no `contentOperation` override is provided, a real record-scoped
+ * broker is opened and disposed in an outer `finally` (matching the
+ * production validate wiring). Pass `onContentDemand` to observe demands
+ * without intercepting them.
  */
 export const runWithContext = async <R>(input: RunWithContextInput, run: () => R | PromiseLike<R>): Promise<R> => {
   const runner = ensureTestSchemaRunner()
+  if (input.contentOperation !== undefined) {
+    const runInput: SchemaRunInput = {
+      project: input.project,
+      file: input.file,
+      record: input.record,
+      store: input.store ?? createSessionStore(),
+      collectEffect: input.collectEffect as SchemaContext['collectEffect'],
+      asset: input.asset,
+      readFile: input.readFile,
+      probeImage: input.probeImage,
+      contentOperation: input.contentOperation
+    }
+    return runner.run(runInput, run)
+  }
+  const factory = createDefaultContentArtifactsFactory()
+  const scope: RecordScope = { recordId: input.record.id, sourcePath: input.file.path, cwd: input.project.root }
+  const broker = factory.open(scope)
+  const observer = input.onContentDemand
+  const contentOperation =
+    observer === undefined
+      ? (request: ContentRequest) => broker.demand(request)
+      : (request: ContentRequest) => {
+          observer(request)
+          return broker.demand(request)
+        }
   const runInput: SchemaRunInput = {
     project: input.project,
     file: input.file,
@@ -61,9 +105,13 @@ export const runWithContext = async <R>(input: RunWithContextInput, run: () => R
     asset: input.asset,
     readFile: input.readFile,
     probeImage: input.probeImage,
-    contentOperation: input.contentOperation ?? (async () => undefined)
+    contentOperation
   }
-  return runner.run(runInput, run)
+  try {
+    return await runner.run(runInput, run)
+  } finally {
+    broker.dispose()
+  }
 }
 
 /** Re-export so existing tests that import installContextStorage from context still work. */

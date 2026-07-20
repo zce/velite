@@ -46,6 +46,17 @@ const fs = context().fs
 
 `SchemaContextHost` (`src/core/schema/host.ts`) is the sole ambient architecture exception. Installing the identical host is idempotent; installing a different host after the first is a deterministic `VeliteError('internal')`. There is no reset, replacement, reference-counting, or disposal protocol — the host's lifetime is the process lifetime. The host owns NO Builder, epoch, broker, generation, reader, publication, cache, registry, or lifecycle state; it only propagates the current `SchemaRunContext` and rejects missing or inactive leased carriers.
 
+## Public promise: logical observable continuity
+
+The public promise of the record-scoped content derivation module is **logical observable continuity**, not identity across parse and branches. Matching parse sharing and branch state isolation hold simultaneously:
+
+- Matching demands (same dialect, path, selected text, and effective parse profile) coalesce to exactly one pristine parse. The shared parse uses one internal path-aware parse VFile and produces an opaque `PristineArtifact` containing a pristine tree and a branch-materializable `VFileSeed`. The parse VFile never enters a transforming branch.
+- Every transforming branch receives an observably independent tree and a fresh VFile materialized from the seed. The exact same branch VFile object is passed through all remark/rehype/recma/run/stringify/compile phases in that branch. Sibling branches never share mutable AST, VFile, data, message, diagnostic, effect, result, or failure objects.
+- Static projections (TOC/excerpt/metadata) read only the opaque pristine tree and do NOT run returned transformers or compilers.
+- Only the listed seed fields and values are supported (cwd, ordered history, supported data snapshot, supported parse messages). Parser participants are deterministic and reentrant; hidden mutable state is not detected; 1.0 has no no-share marker.
+
+The seed, pristine tree, branch materializer, adapters, and compatibility machinery are internal dialect-adapter responsibilities — they do not appear in `SchemaContext`, `ContentFile`, or any custom projection protocol.
+
 ## SessionStore
 
 `store` is a session-scoped `Map`-backed key/value store (`get` / `has` / `getOrCreate`). It is shared across rebuilds inside a watch session, destroyed at the end of a one-shot build, and reset on config reload. There is deliberately no `set()` — built-in cross-file schemas use the effects model (`collectEffect` → `uniqueCheck`) so concurrent validation stays deterministic. Use `store` when a custom schema needs lazily-initialised shared state.

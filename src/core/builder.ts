@@ -4,6 +4,7 @@ import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
 import { createPipeline } from './pipeline'
 import { createScheduler } from './scheduler'
+import { createDefaultContentArtifactsFactory } from './schema/derivation/broker'
 import { createSchemaRunner } from './schema/runner'
 
 import type { FileSystem } from '../runtime/fs'
@@ -92,7 +93,8 @@ const loadSession = async (deps: BuilderDeps): Promise<Session> => {
   const config = await resolveConfig({ fs, modules }, { cwd: deps.cwd, configPath: deps.configPath })
   logger.debug(`using config '${config.configPath}'`)
   const loaders = createLoaderRegistry(deps.loaders ?? [])
-  const pipeline = createPipeline({ config, loaders, fs, image, schemaRunner })
+  const contentArtifactsFactory = createDefaultContentArtifactsFactory()
+  const pipeline = createPipeline({ config, loaders, fs, image, schemaRunner, contentArtifactsFactory })
   const engine = createEngine()
   const context = await createRunContext({ engine, pipeline, config, runtime: { fs, logger }, cwd: deps.cwd })
   const driver = createDriver({ context })

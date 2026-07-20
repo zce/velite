@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import { processMarkdown } from '../content/markdown'
 import { assetKeyOf } from '../pipeline/asset'
 import { dirname, join, stripQueryAndHash } from '../util/path'
+import { contentContext } from './content-context'
 import { context } from './context'
 import { buildExcerptSchema, buildMetadataSchema, buildTocSchema, selectText } from './projections'
 
@@ -63,19 +63,33 @@ const buildPrimarySchema = (options: MarkdownSchemaOptions): Schema<string> =>
       const body = selectText(value, addIssue)
       if (body === null) return ''
       const profile = resolveMarkdownProfile(options)
-      const merged: MarkdownOptions = { ...profile }
       const copyLinkedFiles = options.copyLinkedFiles ?? project.markdown?.copyLinkedFiles ?? true
-      if (copyLinkedFiles) {
-        merged.processAsset = async (url: string): Promise<string> => {
-          const absSourcePath = join(dirname(file.path), stripQueryAndHash(url))
-          const assetKey = assetKeyOf(absSourcePath, project.root)
-          const result = await asset(assetKey, { template: project.output.name })
-          collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, resolved: result.resolved, isImage: false })
-          return result.publicUrl
-        }
-      }
+      const processAsset = copyLinkedFiles
+        ? async (url: string): Promise<string> => {
+            const absSourcePath = join(dirname(file.path), stripQueryAndHash(url))
+            const assetKey = assetKeyOf(absSourcePath, project.root)
+            const result = await asset(assetKey, { template: project.output.name })
+            collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, resolved: result.resolved, isImage: false })
+            return result.publicUrl
+          }
+        : undefined
       try {
-        return await processMarkdown(body, merged)
+        const capability = contentContext()
+        const html = await capability.content({
+          kind: 'render-markdown',
+          text: body,
+          path: file.path,
+          dialect: 'markdown',
+          profile,
+          branchOptions: {
+            gfm: profile.gfm ?? true,
+            removeComments: profile.removeComments ?? true,
+            remarkPlugins: profile.remarkPlugins ?? [],
+            rehypePlugins: profile.rehypePlugins ?? [],
+            processAsset
+          }
+        })
+        return html as string
       } catch (err) {
         addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
         return null as never
@@ -87,7 +101,10 @@ export const markdown = (options: MarkdownSchemaOptions = {}): MarkdownRoot => {
   const primary = buildPrimarySchema(options) as MarkdownRoot
   const dp: DialectProfile = {
     dialect: 'markdown',
-    profile: () => context().project.markdown
+    // The projection profile MUST match the primary render profile so matching
+    // demands coalesce to one pristine parse. The profile is resolved lazily
+    // on each demand against the current project config.
+    profile: () => resolveMarkdownProfile(options)
   }
   primary.toc = () => buildTocSchema(dp)
   primary.excerpt = (projectionOptions?: ExcerptSchemaOptions) => buildExcerptSchema(dp, projectionOptions)

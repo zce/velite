@@ -16,6 +16,7 @@ import { rehypeCopyLinkedFiles } from './asset-links'
 
 import type { Root as Mdast } from 'mdast'
 import type { PluggableList } from 'unified'
+import type { VFile } from 'vfile'
 import type { ProcessAsset } from './asset-links'
 
 /**
@@ -50,6 +51,14 @@ export interface MarkdownOptions {
    * and `collectEffect(...)`; pure-core / tests can leave it `undefined`.
    */
   processAsset?: ProcessAsset
+  /**
+   * The branch VFile to pass through every processing phase in this branch
+   * (`run` and `stringify`). When provided alongside a tree `source`, the
+   * exact same VFile object is supplied to both phases. Internal — used by
+   * the record-scoped content derivation module to preserve branch VFile
+   * identity across the run/stringify phases.
+   */
+  file?: VFile
 }
 
 /** Remove html comments (`<!-- ... -->`) from the mdast tree. */
@@ -71,6 +80,11 @@ const remarkRemoveComments = () => (tree: Mdast) => {
  * skipped and the pipeline runs directly on a structured clone of the tree
  * (so the caller's tree is never mutated by remark/rehype plugins).
  *
+ * When `options.file` is provided alongside a tree, the exact same VFile
+ * object is supplied to every processing phase in the branch (`run` and
+ * `stringify`); plugins that emit messages or mutate file state observe the
+ * shared identity. The VFile is never retained after the branch settles.
+ *
  * SSOT: callers that already have an mdast tree (e.g. obtained through the
  * record-bound content capability) should pass it directly to avoid a
  * redundant parse.
@@ -89,7 +103,12 @@ export const processMarkdown = async (source: MarkdownSource, options: MarkdownO
     // Tree mode: skip parse, run remark/rehype transforms directly.
     // The tree is cloned so plugins that mutate don't affect the caller's cache.
     const pipeline = unified().use(remarkPlugins).use(remarkRehype, { allowDangerousHtml: true }).use(rehypeRaw).use(rehypePlugins).use(rehypeStringify)
-    return String(pipeline.stringify(await pipeline.run(structuredClone(source))))
+    const file = options.file
+    const tree = options.file != null ? source : structuredClone(source)
+    if (file != null) {
+      return String(pipeline.stringify(await pipeline.run(tree, file), file))
+    }
+    return String(pipeline.stringify(await pipeline.run(tree)))
   }
 
   // String mode: full parse + transform + stringify.

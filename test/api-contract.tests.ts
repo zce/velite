@@ -32,6 +32,27 @@ test('api: exports the public surface', () => {
   ok(typeof mdxRoot.toc === 'function', 's.mdx() root exposes .toc()')
   ok(typeof mdxRoot.excerpt === 'function', 's.mdx() root exposes .excerpt()')
   ok(typeof mdxRoot.metadata === 'function', 's.mdx() root exposes .metadata()')
+  // T2.3: record-scoped content derivation internal types must NOT be exported.
+  const internalTypes = [
+    'PristineArtifact',
+    'VFileSeed',
+    'ParseMessageSeed',
+    'ContentDialectAdapter',
+    'ContentBranch',
+    'RecordBroker',
+    'ContentArtifactsFactory',
+    'UnsupportedSeedValueError',
+    'ParseIdentity',
+    'ProfileIdentity',
+    'OpaquePristineTree',
+    'OpaqueBranchTree',
+    'RecordScope',
+    'DialectAdapterPair',
+    'BrokerFactoryDeps'
+  ]
+  for (const name of internalTypes) {
+    equal((velite as Record<string, unknown>)[name], undefined, `root package must not export internal derivation type: ${name}`)
+  }
 })
 
 test('api: createBuilder depends on explicit runtime capabilities', async () => {

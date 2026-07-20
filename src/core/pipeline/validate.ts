@@ -7,6 +7,7 @@ import type { ResolvedConfig } from '../config'
 import type { Derivation } from '../engine'
 import type { Entry } from '../model'
 import type { AssetRequest, ImageMetadata, ProjectCollectionInfo, ProjectInfo, SchemaContext } from '../schema/context'
+import type { ContentArtifactsFactory, RecordBroker, RecordScope } from '../schema/derivation/broker'
 import type { Effect, EffectDeclarationContext, EffectSystemOwner, SchemaEffectDeclaration } from '../schema/effects'
 import type { SchemaRunInput, SchemaRunner } from '../schema/runner'
 import type { AssetKey, AssetResult, BlurOptions } from './asset'
@@ -31,6 +32,8 @@ interface ValidateRuntime {
   fs: FileSystem
   image: ImageProcessor
   schemaRunner: SchemaRunner
+  /** The record-scoped content artifacts factory (broker factory). */
+  contentArtifactsFactory: ContentArtifactsFactory
 }
 
 const DEFAULT_BLUR_WIDTH = 8
@@ -155,11 +158,17 @@ export const createValidateDerivation = (
           collectEffect(args[0] as SchemaEffectDeclaration, args[1] as EffectDeclarationContext)
         }) as SchemaContext['collectEffect'] & ((effect: Effect) => void)
 
-        // The content operation is a no-op placeholder until Phase 2 wires
-        // the real record-scoped content derivation module. Velite-owned
-        // roots that need shared parsing will demand through this; custom
-        // schemas never see it.
-        const contentOperation = async (): Promise<undefined> => undefined
+        // The record-scoped content broker. Opened immediately before
+        // safeParseAsync() and disposed in an outer finally after the run
+        // settles (success, Zod failure, throw, or abandonment all take the
+        // same cleanup path). The broker coalesces matching pristine parses
+        // across the primary root and all sibling projections; materializes
+        // isolated branches for transforming demands; retains rejected parses
+        // for matching waiters. Custom schemas never see the broker — only
+        // the narrow `content(request)` operation is passed as contentOperation.
+        const recordScope: RecordScope = { recordId: raw.id, sourcePath: path, cwd: config.root }
+        const broker: RecordBroker = runtime.contentArtifactsFactory.open(recordScope)
+        const contentOperation = (request: Parameters<SchemaRunInput['contentOperation']>[0]): Promise<unknown> => broker.demand(request)
 
         const runInput: SchemaRunInput = {
           project,
@@ -173,25 +182,29 @@ export const createValidateDerivation = (
           contentOperation
         }
 
-        const parsed = await runtime.schemaRunner.run(runInput, () => col.schema.safeParseAsync(raw.data))
+        try {
+          const parsed = await runtime.schemaRunner.run(runInput, () => col.schema.safeParseAsync(raw.data))
 
-        if (parsed.success) {
-          entries.push({ id: raw.id, source: path, data: parsed.data })
-        } else {
-          for (const issue of parsed.error.issues) {
-            diagnostics.push(
-              diagnostic('error', 'SCHEMA_INVALID', issue.message, {
-                stage: 'schema',
-                provenance: {
-                  scope: 'record',
-                  collection: { order: collectionOrder, id: collection },
-                  source: { path },
-                  record: { index, id: raw.id },
-                  path: issue.path as (string | number)[]
-                }
-              })
-            )
+          if (parsed.success) {
+            entries.push({ id: raw.id, source: path, data: parsed.data })
+          } else {
+            for (const issue of parsed.error.issues) {
+              diagnostics.push(
+                diagnostic('error', 'SCHEMA_INVALID', issue.message, {
+                  stage: 'schema',
+                  provenance: {
+                    scope: 'record',
+                    collection: { order: collectionOrder, id: collection },
+                    source: { path },
+                    record: { index, id: raw.id },
+                    path: issue.path as (string | number)[]
+                  }
+                })
+              )
+            }
           }
+        } finally {
+          broker.dispose()
         }
       }
       return { entries, effects, diagnostics }

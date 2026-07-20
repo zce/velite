@@ -12,6 +12,7 @@ import type { ResolvedConfig } from '../config'
 import type { Derivation } from '../engine'
 import type { LoaderRegistry } from '../loader'
 import type { Source } from '../model'
+import type { ContentArtifactsFactory } from '../schema/derivation/broker'
 import type { SchemaRunner } from '../schema/runner'
 import type { Matcher } from '../util/glob'
 import type { AssetKey, AssetResult } from './asset'
@@ -36,6 +37,8 @@ export interface PipelineDeps {
   image: ImageProcessor
   /** Narrow schema runner bound to the process-owned SchemaContextHost. */
   schemaRunner: SchemaRunner
+  /** Record-scoped content artifacts factory (the broker factory). */
+  contentArtifactsFactory: ContentArtifactsFactory
 }
 
 /**
@@ -46,12 +49,12 @@ export interface PipelineDeps {
  * Runtime capabilities are direct second-level dependencies: coarse enough to
  * avoid function-level wiring noise, explicit enough to keep the boundary clear.
  */
-export const createPipeline = ({ config, loaders, fs, image, schemaRunner }: PipelineDeps): Pipeline => {
+export const createPipeline = ({ config, loaders, fs, image, schemaRunner, contentArtifactsFactory }: PipelineDeps): Pipeline => {
   const matchers = new Map<string, Matcher>(config.collections.map(c => [c.name, createMatcher(c.include, c.exclude)]))
   const sources = createSourcesDerivation(config, matchers)
   const load = createLoadDerivation(loaders)
   const asset = createAssetDerivation(config, image, fs)
-  const validate = createValidateDerivation(config, load, asset, { fs, image, schemaRunner })
+  const validate = createValidateDerivation(config, load, asset, { fs, image, schemaRunner, contentArtifactsFactory })
   const collect = createCollectDerivation(config, sources, validate)
   const uniqueCheck = createUniqueCheckDerivation(config, sources, validate)
   const emit = createEmitDerivation(config, collect, uniqueCheck)

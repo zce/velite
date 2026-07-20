@@ -7,15 +7,16 @@
 // three sibling-schema factories a root uses to install its methods.
 //
 // Velite-owned: the projection transforms demand a dialect-correct mdast
-// through the private `contentContext()` capability, with a transitional
-// fallback to direct `parseMarkdown` when the capability returns nothing
-// (the test stub `contentOperation: async () => undefined`).
+// through the private `contentContext()` capability. The record-scoped broker
+// coalesces matching pristine parses across the primary root and all sibling
+// projections (parse-once semantics). Static projections read only the opaque
+// pristine tree — they do NOT run returned transformers or compilers.
 //
 // Internal — not exported from the schema barrel.
 
 import { z } from 'zod'
 
-import { extractText, extractToc, parseMarkdown } from '../content/reference'
+import { extractText, extractToc } from '../content/reference'
 import { isVeliteError } from '../diagnostic'
 import { contentContext } from './content-context'
 import { context } from './context'
@@ -75,10 +76,10 @@ export const selectText = (value: string | undefined, addIssue: AddIssue): strin
 }
 
 /** Demand a dialect-correct mdast for the selected text via the private content capability (Velite-owned). */
-const demandMdast = async (text: string, dp: DialectProfile): Promise<Mdast | undefined> => {
+const demandMdast = async (text: string, dp: DialectProfile, projection: 'toc' | 'excerpt' | 'metadata'): Promise<Mdast> => {
   const capability = contentContext()
-  const result = await capability.content({ kind: 'mdast', text, path: context().file.path, dialect: dp.dialect, profile: dp.profile() })
-  return result as Mdast | undefined
+  const tree = await capability.content({ kind: 'mdast', text, path: context().file.path, dialect: dp.dialect, profile: dp.profile(), projection })
+  return tree as Mdast
 }
 
 /** Build the TOC projection schema for a dialect. */
@@ -90,7 +91,7 @@ export const buildTocSchema = (dp: DialectProfile): Schema<TocItem[]> =>
       const body = selectText(value, addIssue)
       if (body === null) return []
       try {
-        const tree = (await demandMdast(body, dp)) ?? parseMarkdown(body)
+        const tree = await demandMdast(body, dp, 'toc')
         return extractToc(tree)
       } catch (err) {
         if (isVeliteError(err)) throw err
@@ -109,7 +110,7 @@ export const buildExcerptSchema = (dp: DialectProfile, options: ExcerptSchemaOpt
       const body = selectText(value, addIssue)
       if (body === null) return ''
       try {
-        const tree = (await demandMdast(body, dp)) ?? parseMarkdown(body)
+        const tree = await demandMdast(body, dp, 'excerpt')
         return extractText(tree, length)
       } catch (err) {
         if (isVeliteError(err)) throw err
@@ -128,7 +129,7 @@ export const buildMetadataSchema = (dp: DialectProfile): Schema<Metadata> =>
       const body = selectText(value, addIssue)
       if (body === null) return { readingTime: 0, wordCount: 0 }
       try {
-        const tree = (await demandMdast(body, dp)) ?? parseMarkdown(body)
+        const tree = await demandMdast(body, dp, 'metadata')
         return computeMetadata(tree)
       } catch (err) {
         if (isVeliteError(err)) throw err

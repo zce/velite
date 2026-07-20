@@ -18,7 +18,6 @@ import { s } from '../../src/core/schema/s'
 import { runWithContext } from '../helpers/schema-context'
 
 import type { AssetResult } from '../../src/core/pipeline/asset'
-import type { ContentRequest } from '../../src/core/schema/capability'
 import type { ContentFile, ProjectInfo } from '../../src/core/schema/context'
 import type { Schema } from '../../src/core/schema/s'
 
@@ -184,9 +183,8 @@ test('T2.1: parsing a projection outside a schema parse rejects with VeliteError
 
 test('T2.1: projections are lazy — the content capability is not demanded until the projection is parsed', async () => {
   let contentCalls = 0
-  const contentOperation = async (_request: ContentRequest): Promise<unknown> => {
+  const onContentDemand = (): void => {
     contentCalls++
-    return undefined
   }
 
   // Constructing the root + projection schemas performs no content capability demand.
@@ -206,7 +204,7 @@ test('T2.1: projections are lazy — the content capability is not demanded unti
       asset: stubAsset,
       readFile: stubReadFile,
       probeImage: stubProbeImage,
-      contentOperation
+      onContentDemand
     },
     () => tocSchema.safeParseAsync(undefined)
   )

@@ -85,6 +85,8 @@
     "typescript": "^6.0.3",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0",
+    "vfile": "^6.0.3",
+    "vfile-message": "^4.0.3",
     "yaml": "^3.0.0-1"
   },
   "packageManager": "pnpm@11.1.2",

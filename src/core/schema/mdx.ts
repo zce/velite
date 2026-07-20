@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import { processMdx } from '../content/mdx'
 import { assetKeyOf } from '../pipeline/asset'
 import { dirname, join, stripQueryAndHash } from '../util/path'
+import { contentContext } from './content-context'
 import { context } from './context'
 import { buildExcerptSchema, buildMetadataSchema, buildTocSchema, selectText } from './projections'
 
@@ -48,6 +48,30 @@ export interface MdxRoot extends Schema<string> {
   metadata(): Schema<Metadata>
 }
 
+/** Resolve the effective mdx profile for a record parse. */
+const resolveMdxProfile = (
+  options: MdxSchemaOptions
+): {
+  readonly gfm: boolean
+  readonly removeComments: boolean
+  readonly minify: boolean
+  readonly outputFormat: 'program' | 'function-body'
+  readonly development: boolean
+  readonly remarkPlugins: readonly unknown[]
+  readonly rehypePlugins: readonly unknown[]
+} => {
+  const g = context().project.mdx
+  return {
+    gfm: options.gfm ?? g?.gfm ?? true,
+    removeComments: options.removeComments ?? g?.removeComments ?? true,
+    minify: options.minify ?? g?.minify ?? true,
+    outputFormat: options.outputFormat ?? g?.outputFormat ?? 'function-body',
+    development: options.development ?? g?.development ?? false,
+    remarkPlugins: [...(options.remarkPlugins ?? []), ...(g?.remarkPlugins ?? [])],
+    rehypePlugins: [...(options.rehypePlugins ?? []), ...(g?.rehypePlugins ?? [])]
+  }
+}
+
 /** Build the primary mdx schema (string -> function-body). */
 const buildPrimarySchema = (options: MdxSchemaOptions): Schema<string> =>
   z
@@ -57,29 +81,38 @@ const buildPrimarySchema = (options: MdxSchemaOptions): Schema<string> =>
       const { file, project, record, asset, collectEffect } = context()
       const body = selectText(value, addIssue)
       if (body === null) return ''
-      const g = project.mdx
-      const copyLinkedFiles = options.copyLinkedFiles ?? g?.copyLinkedFiles ?? true
-      const merged: ProcessMdxOptions = {
-        gfm: options.gfm ?? g?.gfm ?? true,
-        removeComments: options.removeComments ?? g?.removeComments ?? true,
-        minify: options.minify ?? g?.minify ?? true,
-        outputFormat: options.outputFormat ?? g?.outputFormat ?? 'function-body',
-        development: options.development ?? g?.development ?? false,
-        remarkPlugins: [...(options.remarkPlugins ?? []), ...(g?.remarkPlugins ?? [])],
-        rehypePlugins: [...(options.rehypePlugins ?? []), ...(g?.rehypePlugins ?? [])],
-        path: file.path
-      }
-      if (copyLinkedFiles) {
-        merged.processAsset = async (url: string): Promise<string> => {
-          const absSourcePath = join(dirname(file.path), stripQueryAndHash(url))
-          const assetKey = assetKeyOf(absSourcePath, project.root)
-          const result = await asset(assetKey, { template: project.output.name })
-          collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, resolved: result.resolved, isImage: false })
-          return result.publicUrl
-        }
-      }
+      const resolvedProfile = resolveMdxProfile(options)
+      const copyLinkedFiles = options.copyLinkedFiles ?? project.mdx?.copyLinkedFiles ?? true
+      const processAsset = copyLinkedFiles
+        ? async (url: string): Promise<string> => {
+            const absSourcePath = join(dirname(file.path), stripQueryAndHash(url))
+            const assetKey = assetKeyOf(absSourcePath, project.root)
+            const result = await asset(assetKey, { template: project.output.name })
+            collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, resolved: result.resolved, isImage: false })
+            return result.publicUrl
+          }
+        : undefined
       try {
-        return await processMdx(body, merged)
+        const capability = contentContext()
+        const code = await capability.content({
+          kind: 'compile-mdx',
+          text: body,
+          path: file.path,
+          dialect: 'mdx',
+          profile: resolvedProfile,
+          branchOptions: {
+            gfm: resolvedProfile.gfm,
+            removeComments: resolvedProfile.removeComments,
+            minify: resolvedProfile.minify,
+            outputFormat: resolvedProfile.outputFormat,
+            development: resolvedProfile.development,
+            remarkPlugins: resolvedProfile.remarkPlugins,
+            rehypePlugins: resolvedProfile.rehypePlugins,
+            processAsset,
+            path: file.path
+          }
+        })
+        return code as string
       } catch (err) {
         addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
         return null as never
@@ -91,7 +124,10 @@ export const mdx = (options: MdxSchemaOptions = {}): MdxRoot => {
   const primary = buildPrimarySchema(options) as MdxRoot
   const dp: DialectProfile = {
     dialect: 'mdx',
-    profile: () => context().project.mdx
+    // The projection profile MUST match the primary compile profile so matching
+    // demands coalesce to one pristine parse. The profile is resolved lazily
+    // on each demand against the current project config.
+    profile: () => resolveMdxProfile(options)
   }
   primary.toc = () => buildTocSchema(dp)
   primary.excerpt = (projectionOptions?: ExcerptSchemaOptions) => buildExcerptSchema(dp, projectionOptions)

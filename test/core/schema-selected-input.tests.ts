@@ -51,9 +51,10 @@ interface ParseInput {
   readonly fileContent?: string
   readonly input?: unknown
   readonly contentOperation?: (request: ContentRequest) => Promise<unknown>
+  readonly onContentDemand?: (request: ContentRequest) => void
 }
 
-const parse = async ({ schema, fileContent, input, contentOperation }: ParseInput) =>
+const parse = async ({ schema, fileContent, input, contentOperation, onContentDemand }: ParseInput) =>
   runWithContext(
     {
       project,
@@ -63,23 +64,22 @@ const parse = async ({ schema, fileContent, input, contentOperation }: ParseInpu
       asset: stubAsset,
       readFile: stubReadFile,
       probeImage: stubProbeImage,
-      contentOperation
+      contentOperation,
+      onContentDemand
     },
     () => schema.safeParseAsync(input)
   )
 
-const countingContentOp =
-  (counter: { count: number }) =>
-  async (_request: ContentRequest): Promise<unknown> => {
-    counter.count++
-    return undefined
-  }
+const countingDemand = (counter: { count: number }) => (): void => {
+  counter.count++
+}
 
 const noVisibleTextBody = '<!-- only an html comment, no statically visible text -->'
+const noVisibleTextMdxBody = '{/* only an mdx expression comment, no statically visible text */}'
 
 test('T2.2: explicit empty string is selected over a non-empty file body and yields the empty issue (markdown.toc)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().toc(), fileContent: '# File Title\n\nBody text.', input: '', contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().toc(), fileContent: '# File Title\n\nBody text.', input: '', onContentDemand: countingDemand(counter) })
   ok(!r.success, 'empty explicit input must fail the record')
   const issues = r.error.issues
   strictEqual(issues.length, 1)
@@ -91,7 +91,7 @@ test('T2.2: explicit empty string is selected over a non-empty file body and yie
 
 test('T2.2: explicit empty string is selected over a non-empty file body and yields the empty issue (markdown.excerpt)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().excerpt(), fileContent: '# File\n\nText.', input: '', contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().excerpt(), fileContent: '# File\n\nText.', input: '', onContentDemand: countingDemand(counter) })
   ok(!r.success)
   strictEqual(r.error.issues[0]!.message, 'The content is empty')
   strictEqual(counter.count, 0)
@@ -99,7 +99,7 @@ test('T2.2: explicit empty string is selected over a non-empty file body and yie
 
 test('T2.2: explicit empty string is selected over a non-empty file body and yields the empty issue (markdown.metadata)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().metadata(), fileContent: '# File\n\nText.', input: '', contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().metadata(), fileContent: '# File\n\nText.', input: '', onContentDemand: countingDemand(counter) })
   ok(!r.success)
   strictEqual(r.error.issues[0]!.message, 'The content is empty')
   strictEqual(counter.count, 0)
@@ -121,7 +121,7 @@ test('T2.2: explicit empty string is selected over a non-empty file body and yie
 
 test('T2.2: missing file.content (undefined) with no explicit input yields the empty issue with zero parse work (markdown.toc)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().toc(), fileContent: undefined, input: undefined, contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().toc(), fileContent: undefined, input: undefined, onContentDemand: countingDemand(counter) })
   ok(!r.success)
   strictEqual(r.error.issues[0]!.message, 'The content is empty')
   strictEqual(counter.count, 0, 'no content-capability demand when selected text is missing')
@@ -129,7 +129,7 @@ test('T2.2: missing file.content (undefined) with no explicit input yields the e
 
 test('T2.2: missing file.content (undefined) with no explicit input yields the empty issue with zero parse work (markdown.excerpt)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().excerpt(), fileContent: undefined, contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().excerpt(), fileContent: undefined, onContentDemand: countingDemand(counter) })
   ok(!r.success)
   strictEqual(r.error.issues[0]!.message, 'The content is empty')
   strictEqual(counter.count, 0)
@@ -137,7 +137,7 @@ test('T2.2: missing file.content (undefined) with no explicit input yields the e
 
 test('T2.2: missing file.content (undefined) with no explicit input yields the empty issue with zero parse work (markdown.metadata)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().metadata(), fileContent: undefined, contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().metadata(), fileContent: undefined, onContentDemand: countingDemand(counter) })
   ok(!r.success)
   strictEqual(r.error.issues[0]!.message, 'The content is empty')
   strictEqual(counter.count, 0)
@@ -196,7 +196,7 @@ test('T2.2: explicit non-empty string differing from file.content is selected (p
 
 test('T2.2: whitespace-only body parses normally and does NOT take the empty guard (markdown.toc)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().toc(), fileContent: '   \n\n\t  ', contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().toc(), fileContent: '   \n\n\t  ', onContentDemand: countingDemand(counter) })
   ok(r.success, 'whitespace-only body is non-empty and parses normally')
   ok(Array.isArray(r.data))
   strictEqual(counter.count, 1, 'whitespace-only body must demand the content capability (parsed)')
@@ -204,7 +204,7 @@ test('T2.2: whitespace-only body parses normally and does NOT take the empty gua
 
 test('T2.2: whitespace-only body parses normally (markdown.excerpt produces empty string)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().excerpt(), fileContent: '   \n\n\t  ', contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().excerpt(), fileContent: '   \n\n\t  ', onContentDemand: countingDemand(counter) })
   ok(r.success)
   strictEqual(r.data, '', 'whitespace-only body yields an empty excerpt (no statically visible text)')
   strictEqual(counter.count, 1)
@@ -212,7 +212,7 @@ test('T2.2: whitespace-only body parses normally (markdown.excerpt produces empt
 
 test('T2.2: whitespace-only body parses normally (markdown.metadata yields readingTime 1, wordCount 0)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().metadata(), fileContent: '   \n\n\t  ', contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().metadata(), fileContent: '   \n\n\t  ', onContentDemand: countingDemand(counter) })
   ok(r.success)
   deepStrictEqual(r.data, { readingTime: 1, wordCount: 0 }, 'whitespace-only body yields the no-visible-text success results')
   strictEqual(counter.count, 1)
@@ -220,7 +220,7 @@ test('T2.2: whitespace-only body parses normally (markdown.metadata yields readi
 
 test('T2.2: no-visible-text body (html-comment-only) parses normally and produces the no-visible-text success results (metadata)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().metadata(), fileContent: noVisibleTextBody, contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().metadata(), fileContent: noVisibleTextBody, onContentDemand: countingDemand(counter) })
   ok(r.success, 'no-visible-text body is non-empty and parses normally — not reclassified as missing')
   deepStrictEqual(r.data, { readingTime: 1, wordCount: 0 }, 'no-visible-text metadata success results')
   strictEqual(counter.count, 1, 'no-visible-text body must demand the content capability (parsed, not empty-guarded)')
@@ -228,7 +228,7 @@ test('T2.2: no-visible-text body (html-comment-only) parses normally and produce
 
 test('T2.2: no-visible-text body (html-comment-only) parses normally and produces the no-visible-text success results (excerpt)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().excerpt(), fileContent: noVisibleTextBody, contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().excerpt(), fileContent: noVisibleTextBody, onContentDemand: countingDemand(counter) })
   ok(r.success)
   strictEqual(r.data, '', 'no-visible-text excerpt success result is empty string')
   strictEqual(counter.count, 1)
@@ -236,7 +236,7 @@ test('T2.2: no-visible-text body (html-comment-only) parses normally and produce
 
 test('T2.2: no-visible-text body (html-comment-only) parses normally and produces the no-visible-text success results (toc)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.markdown().toc(), fileContent: noVisibleTextBody, contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.markdown().toc(), fileContent: noVisibleTextBody, onContentDemand: countingDemand(counter) })
   ok(r.success)
   deepStrictEqual(r.data, [], 'no-visible-text toc success result is empty array')
   strictEqual(counter.count, 1)
@@ -244,7 +244,7 @@ test('T2.2: no-visible-text body (html-comment-only) parses normally and produce
 
 test('T2.2: no-visible-text body parses normally (mdx.metadata yields readingTime 1, wordCount 0)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.mdx().metadata(), fileContent: noVisibleTextBody, contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.mdx().metadata(), fileContent: noVisibleTextMdxBody, onContentDemand: countingDemand(counter) })
   ok(r.success)
   deepStrictEqual(r.data, { readingTime: 1, wordCount: 0 })
   strictEqual(counter.count, 1)
@@ -252,7 +252,7 @@ test('T2.2: no-visible-text body parses normally (mdx.metadata yields readingTim
 
 test('T2.2: no-visible-text body parses normally (mdx.excerpt yields empty string)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.mdx().excerpt(), fileContent: noVisibleTextBody, contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.mdx().excerpt(), fileContent: noVisibleTextMdxBody, onContentDemand: countingDemand(counter) })
   ok(r.success)
   strictEqual(r.data, '')
   strictEqual(counter.count, 1)
@@ -260,7 +260,7 @@ test('T2.2: no-visible-text body parses normally (mdx.excerpt yields empty strin
 
 test('T2.2: no-visible-text body parses normally (mdx.toc yields empty array)', async () => {
   const counter = { count: 0 }
-  const r = await parse({ schema: s.mdx().toc(), fileContent: noVisibleTextBody, contentOperation: countingContentOp(counter) })
+  const r = await parse({ schema: s.mdx().toc(), fileContent: noVisibleTextMdxBody, onContentDemand: countingDemand(counter) })
   ok(r.success)
   deepStrictEqual(r.data, [])
   strictEqual(counter.count, 1)

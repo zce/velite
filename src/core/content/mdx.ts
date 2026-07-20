@@ -14,6 +14,7 @@ import { remarkCopyLinkedFiles } from './asset-links'
 import type { CompileOptions } from '@mdx-js/mdx'
 import type { Root as Mdast } from 'mdast'
 import type { PluggableList } from 'unified'
+import type { VFile } from 'vfile'
 import type { ProcessAsset } from './asset-links'
 
 /** MDX compiler options. */
@@ -45,6 +46,14 @@ export interface MdxOptions {
    * and `collectEffect(...)`; pure-core / tests can leave it `undefined`.
    */
   processAsset?: ProcessAsset
+  /**
+   * The branch VFile to pass through every processing phase in this branch
+   * (`run` and `stringify`). When provided, the exact same VFile object is
+   * supplied to both phases. Internal — used by the record-scoped content
+   * derivation module to preserve branch VFile identity across the
+   * run/stringify phases.
+   */
+  file?: VFile
 }
 
 /** Options for {@link processMdx}. */
@@ -79,6 +88,10 @@ const remarkRemoveComments = () => (tree: Mdast) => {
  *   2. `processor.run(mdast)`     → estree
  *   3. `processor.stringify(estree)` → JS string
  *
+ * When `options.file` is provided, the exact same VFile object is supplied to
+ * both `run` and `stringify` so branch VFile identity is preserved across the
+ * remark/rehype/recma/compiler phases of that branch.
+ *
  * Callers that only need a CommonMark mdast tree for toc/excerpt/reference
  * extraction should use `parseMarkdown()` directly.
  */
@@ -101,14 +114,15 @@ export const processMdx = async (source: string, options: ProcessMdxOptions = {}
   })
 
   const mdast = options.mdast ?? processor.parse(source)
+  const file = options.file
   // @ts-expect-error — @mdx-js/mdx type declares HeadTree as Program but the
   // processor actually accepts mdast Root at runtime (parse → run → stringify).
-  const estree = await processor.run(mdast)
-  let code = String(processor.stringify(estree))
+  const estree = file != null ? await processor.run(mdast, file) : await processor.run(mdast)
+  const code = String(file != null ? processor.stringify(estree, file) : processor.stringify(estree))
 
   if (options.minify ?? true) {
     const { minify } = await import('terser')
-    code =
+    return (
       (
         await minify(code, {
           module: true,
@@ -118,6 +132,7 @@ export const processMdx = async (source: string, options: ProcessMdxOptions = {}
           parse: { bare_returns: true }
         })
       ).code ?? code
+    )
   }
 
   return code

@@ -51,6 +51,27 @@ test('dist: package entry is built and exports the public surface', async () => 
     typeof mdxRoot.toc === 'function' && typeof mdxRoot.excerpt === 'function' && typeof mdxRoot.metadata === 'function',
     'dist mdx root exposes toc/excerpt/metadata'
   )
+  // T2.3: record-scoped content derivation internal types must NOT be exported.
+  const internalTypes = [
+    'PristineArtifact',
+    'VFileSeed',
+    'ParseMessageSeed',
+    'ContentDialectAdapter',
+    'ContentBranch',
+    'RecordBroker',
+    'ContentArtifactsFactory',
+    'UnsupportedSeedValueError',
+    'ParseIdentity',
+    'ProfileIdentity',
+    'OpaquePristineTree',
+    'OpaqueBranchTree',
+    'RecordScope',
+    'DialectAdapterPair',
+    'BrokerFactoryDeps'
+  ]
+  for (const name of internalTypes) {
+    equal(velite[name], undefined, `dist must not export internal derivation type: ${name}`)
+  }
 })
 
 test('dist: package.json exports map, module, and types all resolve to existing dist files', () => {

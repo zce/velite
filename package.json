@@ -68,7 +68,7 @@
     "@types/mdast": "^4.0.4",
     "@types/node": "^22.19.1",
     "@types/picomatch": "^4.0.2",
-    "chokidar": "^4.0.3",
+    "chokidar": "^5.0.0",
     "fast-glob": "^3.3.3",
     "hast-util-raw": "^9.1.0",
     "hast-util-to-string": "^3.0.1",

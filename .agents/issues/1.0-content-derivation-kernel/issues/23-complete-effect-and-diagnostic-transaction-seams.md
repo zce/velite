@@ -7,6 +7,10 @@ Blocked by: 09, 19
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+For controlled content processing, [ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md) supersede broker branch outcomes/collectors and consumer-owned request provenance. Active-stage journals discard failed declarations and make successful declarations eligible once per execution with stable execution/stage provenance; captured closures resolve the active stage, not the first request or Parse journal. Ordinary content failures remain recoverable field-local issues; shared warnings are execution-owned. Keep the two-argument custom effect declaration, invalid-record/all-sibling discard, symmetric cross-record checks, and existing diagnostic-value/prepare/build publication contracts. Original reasoning and every unrelated diagnostic/prepare/generation decision are preserved.
+
 ## Question
 
 Which interfaces produce stable schema-path, declaration, and occurrence provenance for custom and built-in effects, and how can `prepare` append hook diagnostics while being unable at runtime to mutate, delete, replace, or downgrade core diagnostics?

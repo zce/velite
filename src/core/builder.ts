@@ -4,8 +4,6 @@ import { createEngine } from './engine'
 import { createLoaderRegistry } from './loader'
 import { createPipeline } from './pipeline'
 import { createScheduler } from './scheduler'
-import { createDefaultContentArtifactsFactory } from './schema/derivation/broker'
-import { createSchemaRunner } from './schema/runner'
 
 import type { FileSystem } from '../runtime/fs'
 import type { ImageProcessor } from '../runtime/image'
@@ -13,6 +11,7 @@ import type { Logger } from '../runtime/logger'
 import type { ModuleLoader } from '../runtime/modules'
 import type { FileEvent, Watcher } from '../runtime/watcher'
 import type { ResolvedConfig } from './config'
+import type { ContentExecutionsFactory } from './content/execution/record'
 import type { BuildResult, Driver, RunContext } from './driver'
 import type { Engine } from './engine'
 import type { Loader } from './loader'
@@ -65,6 +64,8 @@ export interface BuilderDeps extends CreateBuilderOptions {
   modules: ModuleLoader
   /** Narrow schema runner bound to the process-owned SchemaContextHost. */
   schemaRunner: SchemaRunner
+  /** Record content factory bound to the same host as the schema runner. */
+  contentExecutionsFactory: ContentExecutionsFactory
   logger: Logger
   image: ImageProcessor
   watch: (paths: string[]) => Watcher
@@ -89,12 +90,11 @@ interface WatchState {
 }
 
 const loadSession = async (deps: BuilderDeps): Promise<Session> => {
-  const { fs, image, logger, modules, schemaRunner } = deps
+  const { fs, image, logger, modules, schemaRunner, contentExecutionsFactory } = deps
   const config = await resolveConfig({ fs, modules }, { cwd: deps.cwd, configPath: deps.configPath })
   logger.debug(`using config '${config.configPath}'`)
   const loaders = createLoaderRegistry(deps.loaders ?? [])
-  const contentArtifactsFactory = createDefaultContentArtifactsFactory()
-  const pipeline = createPipeline({ config, loaders, fs, image, schemaRunner, contentArtifactsFactory })
+  const pipeline = createPipeline({ config, loaders, fs, image, schemaRunner, contentExecutionsFactory })
   const engine = createEngine()
   const context = await createRunContext({ engine, pipeline, config, runtime: { fs, logger }, cwd: deps.cwd })
   const driver = createDriver({ context })

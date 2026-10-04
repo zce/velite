@@ -7,6 +7,10 @@ Type: research
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+[ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md) replace the selected pristine-tree/independent-branch reuse plan with one owned processor continuation per definition/input/record and detached semantic results. The research below remains evidence for its original questions, not a requirement to copy AST/VFile/plugin state. Dialect-correct parsing, adapter-owned dependency compatibility, and plugin responsibility for cross-record/global concurrency still apply. No unrelated publication decision is changed.
+
 ## Question
 
 Which parse, transform, run, and compile artifacts can Unified, remark/rehype, and `@mdx-js/mdx` safely reuse across Markdown HTML, MDX code, excerpt, TOC, and custom derivations, and which plugin or syntax-extension behaviors require isolation or reparsing?

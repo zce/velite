@@ -1,5 +1,6 @@
 import { VeliteError } from './core'
 import { createBuilder } from './core/builder'
+import { createDefaultContentExecutionsFactory } from './core/content/execution/record'
 import { createSchemaRunner, ensureHostInstalled } from './core/schema/runner'
 import { join } from './core/util/path'
 import {
@@ -7,12 +8,18 @@ import {
   createJitiModuleLoader,
   createLogger,
   createNodeFileSystem,
+  createNodePromiseObserver,
   createNodeSchemaContextHost,
   createSharpImageProcessor
 } from './runtime/adapters/node'
 
 import type { Builder, BuildResult, WatchHandle } from './core'
 import type { LogLevel } from './runtime'
+import type { PromiseObserver } from './runtime/promise-observer'
+
+// One lazy, process-lifetime Node observer, not one hook per Builder/record.
+// It carries only an async-scope marker; ownership stays with record validation.
+let defaultPromiseObserver: PromiseObserver | undefined
 
 export interface BuildEntryOptions {
   /** Project directory (default: process.cwd()). */
@@ -51,13 +58,16 @@ export const builder = (options: BuildEntryOptions = {}): Builder => {
   // propagates the current SchemaRunContext — it owns no Builder/epoch/broker/
   // generation/publication/cache/registry/lifecycle state.
   const host = ensureHostInstalled(createNodeSchemaContextHost)
-  const schemaRunner = createSchemaRunner(host)
+  const promiseObserver = (defaultPromiseObserver ??= createNodePromiseObserver({ runUnbound: operation => host.run(undefined, operation) }))
+  const schemaRunner = createSchemaRunner({ host, promiseObserver })
+  const contentExecutionsFactory = createDefaultContentExecutionsFactory(host)
   return createBuilder({
     cwd,
     configPath: resolveConfigOption(cwd, options.config),
     fs: createNodeFileSystem(),
     modules: createJitiModuleLoader({}),
     schemaRunner,
+    contentExecutionsFactory,
     logger: createLogger({ level: options.logLevel ?? 'info' }),
     image: createSharpImageProcessor(),
     watch: createChokidarWatcher
@@ -110,6 +120,8 @@ export const watch = async (options: BuildEntryOptions = {}): Promise<WatchHandl
 }
 
 export { context, defineCollection, defineConfig, defineLoader, defineSchema, s, VeliteError } from './core'
+export { content } from './core/schema/content'
+export type { ContentNamespace, MarkdownDefinition, MarkdownDefinitionOptions, MdxDefinition, MdxDefinitionOptions } from './core/schema/content'
 export type {
   AssetReferenceEffect,
   AssetRequest,
@@ -138,11 +150,7 @@ export type {
   LoaderResult,
   LogicalOutput,
   MarkdownOptions,
-  MarkdownRoot,
-  MarkdownSchemaOptions,
   MdxOptions,
-  MdxRoot,
-  MdxSchemaOptions,
   Metadata,
   PathSchemaOptions,
   PrepareCollections,
@@ -159,7 +167,6 @@ export type {
   SchemaNamespace,
   SessionStore,
   StableOccurrence,
-  TocItem,
   UniqueEffect,
   UserConfig,
   VeliteErrorCode,
@@ -169,3 +176,4 @@ export type {
 // Runtime port types — sourced directly from src/runtime (core re-exports are
 // gone; the port types are provided by the runtime layer, not the core layer).
 export type { FileEvent, FileSystem, ImageProcessor, Logger, LogLevel, ModuleLoader, Watcher } from './runtime'
+export type { TocItem } from './core/content/results'

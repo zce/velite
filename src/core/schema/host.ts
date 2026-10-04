@@ -30,8 +30,10 @@ export interface SchemaContextHost {
    * Preserves the callback return type — supports both synchronous and
    * asynchronous callback results. Must preserve LIFO nesting, restore the
    * outer carrier after an inner run, and isolate concurrent async chains.
+   * An undefined context masks the carrier for private runtime bookkeeping;
+   * it does not reset/dispose the process host or alter actual schema work.
    */
-  run<T>(context: SchemaRunContext, operation: () => T): T
+  run<T>(context: SchemaRunContext | undefined, operation: () => T): T
   /**
    * Return only an active carrier. A missing or inactive carrier is an internal
    * invariant failure (throws `VeliteError('internal')`).

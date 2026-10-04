@@ -7,6 +7,10 @@ Type: grilling
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+[ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md) supersede schema-root terminology, root-reference-irrelevant/profile sharing, and pristine-branch rationale below. The black-box/no-general-projection decision remains: custom schemas may compose the finite ordinary result schemas but gain no AST, VFile, broker, processor, or generic demand protocol. Same-definition identity coordinates only those known requests; it does not make arbitrary custom code shareable. Original alternatives and unrelated build/publication decisions remain history without modification.
+
 ## Question
 
 Which stable high-level capabilities should custom schemas receive to request, contribute, or reuse content derivations without exposing unstable implementation details or creating hidden coordination?

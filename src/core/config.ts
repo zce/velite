@@ -3,8 +3,7 @@ import { dirname, join } from './util/path'
 
 import type { FileSystem } from '../runtime/fs'
 import type { ModuleLoader } from '../runtime/modules'
-import type { MarkdownOptions } from './content/markdown'
-import type { MdxOptions } from './content/mdx'
+import type { MarkdownOptions, MdxOptions } from './content/options'
 import type { Diagnostic, DiagnosticLevel } from './diagnostic'
 import type { ProjectInfo } from './schema/context'
 import type { Infer, Schema } from './schema/s'
@@ -134,9 +133,9 @@ export interface UserConfig<C extends Record<string, CollectionDef> = Record<str
   }
   /** Collections keyed by name (the name is also the output data key). */
   collections: C
-  /** Global markdown rendering options; per-schema options override these. */
+  /** Global markdown defaults; definition-local options override these. */
   markdown?: MarkdownOptions
-  /** Global MDX compiler options; per-schema options override these. */
+  /** Global MDX defaults; definition-local options override these. */
   mdx?: MdxOptions
   /** Output-oriented result-processing hook, applied between emit and write. */
   prepare?: PrepareHook<C>

@@ -74,12 +74,10 @@ interface ContentFile {
   readonly path: string
   /** Raw text content (e.g. Markdown/MDX body), when available. */
   readonly content?: string
-  /** Plain text extracted from content, when available. */
-  readonly plain?: string
 }
 ```
 
-AST fields are intentionally not part of the stable 1.0 contract; derive anything else you need from `path`.
+There are no `plain`, `mdast`, or `hast` getters. Use a Content Definition for source analysis and navigation, or let an independent custom schema own its parser. Content execution state is not part of the file model.
 
 ## ContentRecord
 
@@ -93,6 +91,82 @@ interface ContentRecord {
   readonly index: number
 }
 ```
+
+## ContentNamespace
+
+```ts
+interface ContentNamespace {
+  readonly markdown: (options?: MarkdownDefinitionOptions) => MarkdownDefinition
+  readonly mdx: (options?: MdxDefinitionOptions) => MdxDefinition
+}
+```
+
+The root runtime export `content` has this type. Its two factories return definitions, not Zod schemas. Factories are not additional root-level exports or members of `s`.
+
+## MarkdownDefinition / MdxDefinition
+
+```ts
+import type { ZodType } from 'zod'
+
+interface MarkdownDefinition {
+  html(): ZodType<string, string | undefined>
+  toc(): ZodType<TocItem[], string | undefined>
+  excerpt(options?: ExcerptSchemaOptions): ZodType<string, string | undefined>
+  metadata(): ZodType<Metadata, string | undefined>
+}
+
+interface MdxDefinition {
+  code(): ZodType<string, string | undefined>
+  toc(): ZodType<TocItem[], string | undefined>
+  excerpt(options?: ExcerptSchemaOptions): ZodType<string, string | undefined>
+  metadata(): ZodType<Metadata, string | undefined>
+}
+```
+
+Each method returns an ordinary async Zod schema; input/output inference and native wrappers remain Zod behavior. Extracting a method preserves definition identity without a `this` binding. There is no public processor, AST, VFile, cache, generic projection, or lifecycle interface. See [Content Definitions](../guide/content-executions.md).
+
+## Content Definition Options
+
+```ts
+interface MarkdownDefinitionOptions extends MarkdownOptions {}
+interface MdxDefinitionOptions extends MdxOptions {}
+```
+
+These have the same supported fields as the corresponding [global Markdown](#markdownoptions) and [global MDX](#mdxoptions) options, but configure one definition. Scalar definition values override globals; definition-local plugins precede global plugins within each phase. Established options/registration values are treated as immutable without recursively cloning or freezing opaque plugin arguments. Only excerpt length belongs to a result selection.
+
+## ExcerptSchemaOptions
+
+```ts
+interface ExcerptSchemaOptions {
+  /** Non-negative safe-integer Unicode code-point limit. @default 260 */
+  length?: number
+}
+```
+
+Invalid explicit length configuration synchronously throws `TypeError` at schema construction. Truncation appends `…` outside the requested limit and does not split valid surrogate pairs.
+
+## TocItem
+
+```ts
+interface TocItem {
+  depth: number
+  title: string
+  id: string
+}
+```
+
+A flat transformed-heading navigation item: level 1–6, complete normalized static title, and actual output target without a leading `#`. There is no `slug` alias or nested TOC tree. Every result delivery has detached arrays and item objects.
+
+## Metadata
+
+```ts
+interface Metadata {
+  readingTime: number
+  wordCount: number
+}
+```
+
+Static pre-transform source analysis: weighted word count and rounded reading time in minutes, with a minimum of one. Metadata is detached per delivery. See [Source Analysis](../guide/content-executions.md#source-analysis-versus-navigation) for values and Unicode rules.
 
 ## ProjectInfo
 
@@ -293,7 +367,7 @@ interface BuildResult {
 type PrepareCollections = Record<string, unknown[] | unknown>
 ```
 
-The friendly view of the build output passed to the [`prepare`](../guide/config.md#prepare) hook: a record keyed by collection name. List collections expose an array of validated records; `single: true` collections expose the single record directly. The hook may mutate values in place, return a `{ collections, diagnostics }` replacement, or return `false` to suppress all default output (Velite reconciles its own previously-written data and asset files to empty in that case — caller-written files are untouched).
+The friendly view of the build output passed to the [`prepare`](./config.md#prepare) hook: a record keyed by collection name. List collections expose an array of validated records; `single: true` collections expose the single record directly. The hook may mutate values in place, return a `{ collections, diagnostics }` replacement, or return `false` to suppress all default output (Velite reconciles its own previously-written data and asset files to empty in that case — caller-written files are untouched).
 
 ## PrepareContext
 
@@ -336,18 +410,16 @@ Refer to [Unified](https://unifiedjs.com/explore/package/unified/#pluggablelist)
 /**
  * MDX compiler options
  */
-export interface MdxOptions extends Omit<CompileOptions, 'outputFormat'> {
-  /** Enable GitHub Flavored Markdown (GFM). @default true */
-  gfm?: boolean
-  /** Remove html comments. @default true */
-  removeComments?: boolean
-  /** Copy linked files to public path and replace their urls with public urls. @default true */
-  copyLinkedFiles?: boolean
+interface MdxOptions extends MarkdownOptions {
   /** Output format to generate. @default 'function-body' */
-  outputFormat?: CompileOptions['outputFormat']
+  outputFormat?: 'program' | 'function-body'
   /** Minify the output code. @default true */
   minify?: boolean
+  /** Use development compilation. @default false */
+  development?: boolean
+  /** Recma plugins, included in complete Transform even for TOC-only demand. */
+  recmaPlugins?: PluggableList
 }
 ```
 
-Refer to [MDX](https://mdxjs.com/packages/mdx/#compileoptions) for more information about `CompileOptions`.
+`MarkdownOptions` and `MdxOptions` describe project-wide defaults. The supported fields are bounded; Velite does not pass arbitrary MDX compiler options through. Within each phase, definition-local plugins precede global plugins under ordinary Unified registration semantics. See [configuration ownership](../guide/content-executions.md#configuration).

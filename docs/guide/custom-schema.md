@@ -148,7 +148,23 @@ export const rawBody = () =>
     .transform(value => value ?? context().file.content ?? '')
 ```
 
-Built-in file-derived schemas such as `s.path()`, `s.raw()`, `s.markdown()`, `s.mdx()`, `s.excerpt()`, `s.metadata()`, and `s.toc()` include this optional wrapper. Value-required schemas such as `s.file()`, `s.image()`, `s.slug()`, `s.unique()`, and `s.isoDate()` do not.
+Built-in `s.path()` and `s.raw()` accept missing fields. Content Definition result schemas accept `string | undefined` and select the file body for absent input without needing an added wrapper. Value-required schemas such as `s.file()`, `s.image()`, `s.slug()`, `s.unique()`, and `s.isoDate()` do not.
+
+### Compose Content Results
+
+Use Content Definition methods as ordinary async Zod schemas. Custom schemas can transform their detached results without gaining access to Velite's processor, AST, VFile, cache, or lifecycle internals:
+
+```ts
+import { content, defineSchema } from 'velite'
+
+const article = content.markdown()
+export const shortExcerpt = defineSchema(article.excerpt({ length: 160 }).transform(text => text.toUpperCase()))
+export const headingCount = defineSchema(article.toc().transform(items => items.length))
+```
+
+Both selections reuse the same definition and exact input within a record. A custom schema that invokes its own parser remains independent; there is no generic shared-AST/projection protocol.
+
+Keep native wrapper behavior in mind: `.optional()` does not guarantee no inner content work, and `.catch()` recovers ordinary issues without retrying failed stages or swallowing internal faults. Conditional body processing needs explicit input selection, such as preprocessing to `null` with a `.nullable()` guard. See [native wrappers and conditional derivation](content-executions.md#native-wrappers-and-conditional-derivation).
 
 ### Error Handling in Transforms
 

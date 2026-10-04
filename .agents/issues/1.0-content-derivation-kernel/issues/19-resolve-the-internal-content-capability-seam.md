@@ -7,6 +7,10 @@ Blocked by: 05, 07, 09
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+[ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md) replace only the hybrid-root/profile/pristine-branch request and factory details below with known semantic selections over owned definition/input executions. The distinct public/private runtime objects, leased private record capability, eight public context fields, absent `ContentFile` derived fields, and black-box custom-schema boundary remain mandatory. Preserve explicit factory DI and the process-owned host refinements in Ticket 21; no public content service or registry is added. Original alternatives and unrelated generation/publication decisions are untouched.
+
 ## Question
 
 How should Velite-owned schema roots and projections access the record-scoped Content Artifact Broker when the public `SchemaContext` has no internal-only tier and custom schemas must not receive a broker, generic demand operation, request constructors, or cache lifecycle capabilities?

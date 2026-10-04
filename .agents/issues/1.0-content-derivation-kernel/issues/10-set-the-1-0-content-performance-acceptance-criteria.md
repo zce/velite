@@ -7,6 +7,10 @@ Type: grilling
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+For the current content scope, [ADR 0001](../../../../adr/0001-share-semantic-content-results.md), [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md), and the [semantic-content spec](../../1.0-semantic-content-execution/spec.md) replace profile-equivalent independent-root sharing, pristine/branch counters, source-only TOC, and the old content workload/percentage gates. Acceptance measures actual definition identity, fixed-stage demand, semantic capture, owned continuation, and terminal retention at representative costs; it must not invent a reduction percentage or require the older broad evidence infrastructure. Keep relevant record/build transaction and isolation obligations. Original measurement rationale and unrelated generation/publication requirements are neither deleted, superseded, nor reapproved by this notice.
+
 ## Question
 
 Which benchmark workloads, metrics, regression limits, and structural assertions must the selected 1.0 design satisfy before implementation is accepted?

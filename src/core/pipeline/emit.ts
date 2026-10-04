@@ -1,4 +1,4 @@
-import { diagnostic } from '../diagnostic'
+import { compareDiagnostic, diagnostic } from '../diagnostic'
 
 import type { ResolvedConfig } from '../config'
 import type { Diagnostic } from '../diagnostic'
@@ -7,37 +7,46 @@ import type { CollectionResult } from '../model'
 import type { Effect } from '../schema/effects'
 import type { Collected, Emitted, UniqueChecked } from './types'
 
-const UNIQUE_SEPARATOR = '\0'
+const ownerKey = (collection: string, owner: string): string => JSON.stringify([collection, owner])
 
-const uniqueDiagnostics = (config: ResolvedConfig, effects: readonly Effect[], collectionByOwner: ReadonlyMap<string, string>): Diagnostic[] => {
-  const buckets = new Map<string, { value: string; group: string; owners: Set<string> }>()
+const uniqueCandidates = (config: ResolvedConfig, effects: readonly Effect[], collectionByOwner: ReadonlyMap<string, string>) => {
+  const buckets = new Map<string, { value: string; group: string; owners: Map<string, Effect> }>()
   for (const effect of effects) {
     if (effect.type !== 'unique') continue
-    const key = `${effect.group}${UNIQUE_SEPARATOR}${effect.value}`
+    const key = JSON.stringify([effect.group, effect.value])
     let bucket = buckets.get(key)
     if (bucket === undefined) {
-      bucket = { group: effect.group, value: effect.value, owners: new Set() }
+      bucket = { group: effect.group, value: effect.value, owners: new Map() }
       buckets.set(key, bucket)
     }
-    bucket.owners.add(effect.owner)
+    const collection = effect.system?.collectionId ?? collectionByOwner.get(effect.owner) ?? ''
+    bucket.owners.set(ownerKey(collection, effect.owner), effect)
   }
 
   const diagnostics: Diagnostic[] = []
+  const invalid = new Set<string>()
   for (const bucket of buckets.values()) {
     if (bucket.owners.size <= 1) continue
-    for (const owner of bucket.owners) {
-      const collection = collectionByOwner.get(owner) ?? ''
+    for (const [key, effect] of bucket.owners) {
+      invalid.add(key)
+      const owner = effect.owner
+      const collection = effect.system?.collectionId ?? collectionByOwner.get(owner) ?? ''
       const collectionOrder = config.collections.findIndex(c => c.name === collection)
-      const sourcePath = owner.split('#')[0] ?? ''
+      const sourcePath = effect.system?.sourcePath ?? owner.split('#')[0] ?? ''
       diagnostics.push(
         diagnostic('error', 'SCHEMA_INVALID', `duplicate unique value "${bucket.value}" in group "${bucket.group}"`, {
           stage: 'schema',
-          provenance: { scope: 'record', collection: { order: collectionOrder, id: collection }, source: { path: sourcePath }, record: { index: 0, id: owner } }
+          provenance: {
+            scope: 'record',
+            collection: { order: collectionOrder, id: collection },
+            source: { path: sourcePath },
+            record: { index: effect.system?.recordIndex ?? 0, id: owner }
+          }
         })
       )
     }
   }
-  return diagnostics
+  return { diagnostics: diagnostics.sort(compareDiagnostic), invalid }
 }
 
 /**
@@ -65,7 +74,14 @@ export const createEmitDerivation = (
       diagnostics.push(...collected.diagnostics)
       effects.push(...collected.effects)
     }
-    diagnostics.push(...uniqueDiagnostics(config, effects, collectionByOwner))
-    return { output: { collections }, effects, diagnostics }
+    const checked = uniqueCandidates(config, effects, collectionByOwner)
+    diagnostics.push(...checked.diagnostics)
+    for (const [name, collection] of Object.entries(collections))
+      collections[name] = { ...collection, entries: collection.entries.filter(entry => !checked.invalid.has(ownerKey(name, entry.id))) }
+    return {
+      output: { collections },
+      effects: effects.filter(effect => !checked.invalid.has(ownerKey(effect.system?.collectionId ?? collectionByOwner.get(effect.owner) ?? '', effect.owner))),
+      diagnostics
+    }
   }
 })

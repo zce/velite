@@ -8,7 +8,7 @@
 // surface cannot pass review silently. The companion `pnpm test:src` script
 // excludes this file (and `test/integration/`) from its run, since they need
 // dist/ on disk and aren't part of the inner-loop unit suite.
-import { equal, ok } from 'node:assert/strict'
+import { deepEqual, equal, ok } from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -21,7 +21,7 @@ const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 test('dist: package entry is built and exports the public surface', async () => {
   ok(existsSync(distEntry), `dist/index.mjs not found — run \`pnpm build\` before this suite (or use \`pnpm test:src\` for src-only)`)
   const velite = (await import(distEntry)) as Record<string, unknown>
-  const values = ['build', 'watch', 'builder', 's', 'defineConfig', 'defineCollection', 'defineLoader', 'defineSchema', 'context', 'VeliteError']
+  const values = ['build', 'watch', 'builder', 's', 'content', 'defineConfig', 'defineCollection', 'defineLoader', 'defineSchema', 'context', 'VeliteError']
   for (const name of values) {
     ok(typeof velite[name] !== 'undefined', `dist missing value export: ${name}`)
   }
@@ -31,26 +31,23 @@ test('dist: package entry is built and exports the public surface', async () => 
   ok(typeof velite.watch === 'function', 'watch is a function')
   ok(typeof velite.s === 'object' && velite.s !== null, 's is an object')
   ok(typeof (velite.s as Record<string, unknown>).string === 'function', 's.string is a function')
-  // T2.1: top-level s.toc / s.excerpt / s.metadata removed; TocOptions / original not exported.
+  // One definition/result family; neither hybrid roots nor standalone projections.
   const s = velite.s as Record<string, unknown>
   equal(s.toc, undefined, 'dist s.toc must be removed')
   equal(s.excerpt, undefined, 'dist s.excerpt must be removed')
   equal(s.metadata, undefined, 'dist s.metadata must be removed')
   equal(velite.TocOptions, undefined, 'dist must not export TocOptions')
   equal(velite.original, undefined, 'dist must not export original')
-  // Roots expose the projection methods.
-  ok(typeof s.markdown === 'function', 'dist s.markdown is a function')
-  ok(typeof s.mdx === 'function', 'dist s.mdx is a function')
-  const mdRoot = (s.markdown as () => { toc(): unknown; excerpt(): unknown; metadata(): unknown })()
-  ok(
-    typeof mdRoot.toc === 'function' && typeof mdRoot.excerpt === 'function' && typeof mdRoot.metadata === 'function',
-    'dist markdown root exposes toc/excerpt/metadata'
-  )
-  const mdxRoot = (s.mdx as () => { toc(): unknown; excerpt(): unknown; metadata(): unknown })()
-  ok(
-    typeof mdxRoot.toc === 'function' && typeof mdxRoot.excerpt === 'function' && typeof mdxRoot.metadata === 'function',
-    'dist mdx root exposes toc/excerpt/metadata'
-  )
+  equal(s.markdown, undefined)
+  equal(s.mdx, undefined)
+  const content = velite.content as (typeof import('../src/index'))['content']
+  deepEqual(Reflect.ownKeys(content).sort(), ['markdown', 'mdx'])
+  for (const definition of [content.markdown(), content.mdx()]) {
+    equal((definition as unknown as Record<string, unknown>).safeParseAsync, undefined, 'a definition is not a Zod schema')
+    for (const name of ['toc', 'excerpt', 'metadata'] as const) ok(typeof definition[name]().safeParseAsync === 'function')
+  }
+  deepEqual(Reflect.ownKeys(content.markdown()).sort(), ['excerpt', 'html', 'metadata', 'toc'])
+  deepEqual(Reflect.ownKeys(content.mdx()).sort(), ['code', 'excerpt', 'metadata', 'toc'])
   // T2.3: record-scoped content derivation internal types must NOT be exported.
   const internalTypes = [
     'PristineArtifact',
@@ -67,11 +64,66 @@ test('dist: package entry is built and exports the public surface', async () => 
     'OpaqueBranchTree',
     'RecordScope',
     'DialectAdapterPair',
-    'BrokerFactoryDeps'
+    'BrokerFactoryDeps',
+    'ContentDefinitionDescriptor',
+    'OwnedContent',
+    'ContentExecutionsFactory',
+    'ContentProcessor',
+    'NavigationSnapshot',
+    'ContentStageScope',
+    'ContentPromise',
+    'PromiseObserver',
+    'NodePromiseObserver',
+    'NodePromiseObserverDeps',
+    'SchemaRunnerDeps',
+    'createNodePromiseObserver'
   ]
   for (const name of internalTypes) {
     equal(velite[name], undefined, `dist must not export internal derivation type: ${name}`)
   }
+})
+
+test('dist: generated declarations expose finite types and no content ownership machinery or legacy roots', () => {
+  const dts = readFileSync(join(repoRoot, 'dist/index.d.mts'), 'utf8')
+  for (const name of [
+    'ContentNamespace',
+    'MarkdownDefinition',
+    'MarkdownDefinitionOptions',
+    'MdxDefinition',
+    'MdxDefinitionOptions',
+    'TocItem',
+    'Metadata',
+    'ExcerptSchemaOptions'
+  ])
+    ok(new RegExp(`\\b${name}\\b`).test(dts), `missing public type ${name}`)
+  for (const name of [
+    'MarkdownRoot',
+    'MdxRoot',
+    'MarkdownSchemaOptions',
+    'MdxSchemaOptions',
+    'PristineArtifact',
+    'VFileSeed',
+    'RecordBroker',
+    'ContentArtifactsFactory',
+    'ProfileIdentity',
+    'ContentDefinitionDescriptor',
+    'OwnedContent',
+    'ContentExecutionsFactory',
+    'ContentProcessor',
+    'NavigationSnapshot',
+    'ContentStageScope',
+    'ContentPromise',
+    'ContentOptions',
+    'MdxContentOptions',
+    'SchemaContextHost',
+    'SchemaRunContext',
+    'PromiseObserver',
+    'NodePromiseObserver',
+    'NodePromiseObserverDeps',
+    'SchemaRunnerDeps',
+    'createNodePromiseObserver'
+  ])
+    ok(!new RegExp(`(?:interface|type|class|const|function)\\s+${name}\\b`).test(dts), `leaked internal/legacy declaration ${name}`)
 })
 
 test('dist: package.json exports map, module, and types all resolve to existing dist files', () => {

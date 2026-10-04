@@ -405,7 +405,7 @@ const tryPatchEmitted = async (context: RunContext): Promise<Emitted | undefined
       entries.push(...validated.entries)
       entries.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
       collections[collectionName] = { ...current, entries }
-      effects = effects.filter(effect => !removedOwners.has(effect.owner))
+      effects = effects.filter(effect => (effect.system !== undefined && effect.system.collectionId !== collectionName) || !removedOwners.has(effect.owner))
       effects.push(...validated.effects)
       patchedCollections.add(collectionName)
     }

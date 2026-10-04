@@ -7,6 +7,10 @@ Type: prototype
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+The hybrid `s.markdown` / `s.mdx` schema-root API, rejection of a separate definition, and root-reference-irrelevant sharing below are superseded by [ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and the exact [ADR 0002 API](../../../../adr/0002-content-definition-and-anchor-contract.md). `content.markdown` / `content.mdx` create non-schema definitions; finite methods create ordinary result schemas. Reusing the same definition is necessary for sharing, while separate calls remain independent. Native Zod composition and explicit dialect selection remain; no generic `.project()` protocol survives. Preserve the original trade-off/prototype reasoning as history; this notice changes no unrelated publication contract.
+
 ## Question
 
 Which 1.0 public API model best balances simplicity, explicitness, type safety, extensibility, and efficient sharing: independent schemas with implicit coordination, an explicit content pipeline with projections, a unified schema producing multiple results, or another concrete model?

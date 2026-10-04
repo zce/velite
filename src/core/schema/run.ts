@@ -4,7 +4,7 @@
 //
 // Authority: Ticket 21 (Define schema run storage ownership) + Ticket 19
 // (Resolve the internal content capability seam). The exported `context()`
-// returns only the eight-field public view; Velite-owned roots use the private
+// returns only the eight-field public view; Velite-owned result schemas use the private
 // `content(request)` capability. The public view and private carrier remain
 // different runtime objects.
 //
@@ -12,6 +12,7 @@
 // schema barrel, core barrel, root package, or package export map, and must
 // not appear in built public declarations or runtime reflection.
 
+import type { ContentStageScope } from '../content/execution/types'
 import type { RecordContentCapability } from './capability'
 import type { SchemaContext } from './context'
 
@@ -26,4 +27,5 @@ export interface SchemaRunContext {
   readonly content: RecordContentCapability
   /** The active lease; `false` after run settlement rejects late callers. */
   readonly lease: { active: boolean }
+  readonly contentStage?: ContentStageScope
 }

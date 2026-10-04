@@ -1,7 +1,7 @@
 // Schema execution context — the public eight-field view.
 //
 // Authority: Tickets 19, 21, 23. The exported `context()` returns only the
-// eight-field public view. Velite-owned roots use one private leased
+// eight-field public view. Velite-owned result schemas use one private leased
 // record-bound content capability propagated through the process-owned
 // SchemaContextHost. The public view and private carrier are different
 // runtime objects. `Reflect.ownKeys(context())` exposes no carrier, lease,
@@ -14,19 +14,10 @@
 // no Builder, epoch, broker, generation, reader, publication, cache,
 // registry, or lifecycle state.
 
-// --- Internal test-facing compatibility shims (NOT public API) -------------
-//
-// These wrap the new process-owned SchemaContextHost + SchemaRunner so that
-// source-internal unit tests using the pre-1.0 `installContextStorage` +
-// `runWithContext` shape keep working during the Phase 1-3 migration. They are
-// not exported from the root package, core barrel, or schema barrel's public
-// type surface, and are removed once all tests migrate to `schemaRunner.run`.
-
 import { fail } from '../diagnostic'
 import { schemaContextHost } from './host'
 
-import type { MarkdownOptions } from '../content/markdown'
-import type { MdxOptions } from '../content/mdx'
+import type { MarkdownOptions, MdxOptions } from '../content/options'
 import type { AssetResult, BlurOptions } from '../pipeline/asset'
 import type { Effect, EffectDeclarationContext, SchemaEffectDeclaration } from './effects'
 
@@ -35,7 +26,7 @@ import type { Effect, EffectDeclarationContext, SchemaEffectDeclaration } from '
  *
  * `content` is the only body field; the pre-1.0 `mdast`, `hast`, and `plain`
  * derived fields are removed. Custom schemas that need parsing own their
- * parser; Velite-owned roots use the private record-bound content capability.
+ * parser; Velite-owned results use the private record-bound content capability.
  */
 export interface ContentFile {
   /** Stable source id (project-relative, POSIX). */
@@ -92,7 +83,7 @@ export interface AssetRequest {
  * Available during schema parsing via `context()`. All eight fields are
  * accessible to both built-in and user-defined schemas; there is no
  * internal-only tier. The private record-bound content capability is a
- * separate runtime object reachable only by Velite-owned roots.
+ * separate runtime object reachable only by Velite-owned result schemas.
  */
 export interface SchemaContext {
   readonly project: ProjectInfo

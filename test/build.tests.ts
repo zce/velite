@@ -1,13 +1,13 @@
 import { deepEqual, equal, ok, rejects } from 'node:assert'
 import { test } from 'node:test'
 
-import { s } from '../src/core'
+import { content, s } from '../src/core'
 import { createBuilder } from '../src/core/builder'
 import { isVeliteError } from '../src/core/diagnostic'
 import { join } from '../src/core/util/path'
 import { silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
-import { createCapturedLogger, noopImageProcessor, noopWatch, testSchemaRunner } from './helpers/runtime'
+import { createCapturedLogger, noopImageProcessor, noopWatch, testContentExecutionsFactory, testSchemaRunner } from './helpers/runtime'
 
 import type { UserConfig } from '../src/core/config'
 import type { TestRuntime } from './helpers/runtime'
@@ -17,9 +17,10 @@ const DATA_DIR = join(CWD, '.velite')
 
 const setup = (config: UserConfig, files: Record<string, string>): { runtime: TestRuntime; fs: MemoryFileSystem } => {
   const fs = new MemoryFileSystem()
-  for (const [path, content] of Object.entries(files)) fs.put(path, content)
+  for (const [path, fileContent] of Object.entries(files)) fs.put(path, fileContent)
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -88,11 +89,11 @@ test('build: fatal (non-schema) errors throw VeliteError and skip output', async
   await rejects(readJson(fs, join(DATA_DIR, 'misc.json')))
 })
 
-test('build: markdown collection renders body to html via s.markdown()', async () => {
+test('build: markdown collection renders body to html via a Content Definition', async () => {
   const config: UserConfig = {
     root: 'content',
     collections: {
-      posts: { pattern: 'posts/*.md', schema: s.object({ title: s.string(), body: s.markdown() }) }
+      posts: { pattern: 'posts/*.md', schema: s.object({ title: s.string(), body: content.markdown().html() }) }
     }
   }
   const { runtime, fs } = setup(config, {
@@ -105,8 +106,58 @@ test('build: markdown collection renders body to html via s.markdown()', async (
 
   const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ title: string; body: string }>
   equal(posts[0]!.title, 'Hello')
-  ok(posts[0]!.body.includes('<h1>Hello World</h1>'), posts[0]!.body)
-  ok(posts[0]!.body.includes('<p>A body.</p>'), posts[0]!.body)
+  equal(posts[0]!.body, '<h1 id="hello-world">Hello World</h1>\n<p>A body.</p>')
+})
+
+test('build: uses the injected content execution factory on initial build and config reload', async t => {
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.md', schema: s.object({ body: content.markdown().html() }) } }
+  }
+  const { runtime } = setup(config, { [join(CWD, 'content/posts/a.md')]: '# Original' })
+  let opened = 0
+  let closed = 0
+  const configPath = join(CWD, 'velite.config.ts')
+  const instance = createBuilder({
+    ...runtime,
+    cwd: CWD,
+    configPath,
+    contentExecutionsFactory: {
+      open(scope) {
+        opened++
+        const record = runtime.contentExecutionsFactory.open(scope)
+        return {
+          ...record,
+          demand: async () => '<p>Injected</p>',
+          close() {
+            closed++
+            record.close()
+          }
+        }
+      }
+    }
+  })
+  t.after(() => instance.dispose())
+
+  const initial = await instance.build({ layout: 'single' })
+  deepEqual(initial.diagnostics, [])
+  deepEqual(
+    initial.output.collections.posts!.entries.map(entry => entry.data),
+    [{ body: '<p>Injected</p>' }]
+  )
+  ok(opened > 0, 'validation opens records through the injected factory')
+  equal(closed, opened, 'validation closes every injected record')
+
+  const beforeReload = opened
+  const reloaded = await instance.apply([{ type: 'change', absPath: configPath }])
+  ok(reloaded !== undefined)
+  deepEqual(reloaded.diagnostics, [])
+  deepEqual(
+    reloaded.output.collections.posts!.entries.map(entry => entry.data),
+    [{ body: '<p>Injected</p>' }]
+  )
+  ok(opened > beforeReload, 'the replacement pipeline receives the same explicit factory dependency')
+  equal(closed, opened, 'reload does not leak injected records')
 })
 
 test('build: markdown collection exposes raw body, metadata and path via schemas', async () => {
@@ -115,7 +166,7 @@ test('build: markdown collection exposes raw body, metadata and path via schemas
     collections: {
       posts: {
         pattern: 'posts/*.md',
-        schema: s.object({ title: s.string(), body: s.raw(), meta: s.markdown().metadata(), route: s.path() })
+        schema: s.object({ title: s.string(), body: s.raw(), meta: content.markdown().metadata(), route: s.path() })
       }
     }
   }
@@ -133,7 +184,7 @@ test('build: markdown collection exposes raw body, metadata and path via schemas
   }>
   equal(posts[0]!.title, 'Hello')
   equal(posts[0]!.body, '# Hello World\n\nA body paragraph here.')
-  ok(posts[0]!.meta.wordCount > 0)
+  deepEqual(posts[0]!.meta, { readingTime: 1, wordCount: 6 })
   equal(posts[0]!.route, 'posts/hello')
 })
 

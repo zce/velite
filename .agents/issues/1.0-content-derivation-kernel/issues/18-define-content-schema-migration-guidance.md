@@ -7,6 +7,10 @@ Blocked by: 06, 07, 19, 20, 23, 24
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+Content migration now follows [ADR 0001](../../../../adr/0001-share-semantic-content-results.md), [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md), and the [semantic-content spec](../../1.0-semantic-content-execution/spec.md). This supersedes the hybrid-root target, inline equal-profile sharing/rewrites, global-before-local order, source `{ depth, title, slug }` TOC, seed-state restrictions, and affected content `MIG-*` actions even in later final inventory sections. Reuse an explicit definition, then construct ordinary result schemas; navigation uses actual transformed IDs. No content codemod/evidence product is required by the new scope. Working slices may coexist with existing callers only until new Ticket 11 removes the old path completely, with no placeholders, aliases, or intermediate 1.0 release. The original migration reasoning and unrelated publication/generation/prepare/diagnostic/Builder migrations remain unchanged and are not reapproved here.
+
 ## Question
 
 What exact breaking changes, automated or manual migration steps, diagnostics, and documentation should guide existing configurations from independent top-level `s.markdown()`, `s.mdx()`, `s.toc()`, and `s.excerpt()` schemas to the 1.0 schema-rooted derivation-family interface, including plugin configuration and custom content schemas?

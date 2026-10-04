@@ -2,7 +2,7 @@
 //
 // Authority: Ticket 23 (Complete effect and diagnostic transaction seams) —
 // final concept-convergence resolution. Effects are owner- and provenance-
-// bearing declarative facts promoted through branch, valid-record, cross-file-
+// bearing declarative facts promoted through stage, valid-record, cross-file-
 // valid, and committed-generation transactions. Custom declarations provide a
 // record-rooted semantic path, stable declaration ordinal, and one validated
 // stable occurrence; Velite supplies system owner/source provenance. Call
@@ -10,7 +10,7 @@
 // and object identity are forbidden identity and ordering sources.
 //
 // Custom occurrence is exactly `singleton`, `source-index`, or `key`. Velite-
-// controlled roots and projections may retain a private authoritative half-
+// controlled schemas may retain a private authoritative half-
 // open source range; that private representation is not a member of
 // StableOccurrence, not accepted by custom collectEffect, not exported, and
 // not treated as a custom selected-input claim.

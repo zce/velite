@@ -7,6 +7,10 @@ Blocked by: 05, 19
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+This ticket's process-owned host, narrow runner, distinct public/private views, leases, eight-field context, and explicit factory DI remain in force. [ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md) replace only broker/profile-namespace/branch ownership references with the epoch-assembled record content module and exclusively owned definition/input executions. The host gains no execution/cache/journal state; record outer cleanup remains separate from lease closure. Original host reasoning and unrelated Builder/generation/publication decisions are preserved, not superseded or reapproved.
+
 ## Question
 
 Who owns and installs the process-wide schema-run context storage, and how do multiple concurrent Builders, injected test adapters, Builder disposal, and configuration reload preserve explicit dependency injection without replacing a live adapter or creating an unsupported hidden singleton?

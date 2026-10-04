@@ -7,6 +7,10 @@ Labels: bug
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+[ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md) replace Ticket 22's seed-copy/branch interpretation, including the final “Unblocked” constraint below. The new regression follows one owned MDX continuation through ordinary legal tree/file replacements, preserving parser/transformer closures, private state, messages, and final compiler handling. It must not demand copied seed graphs, sibling branch objects, or immutable VFile identity when a plugin legally replaces the file. Canonical record identity remains independent of file path changes, and records/executions remain isolated. Original bug/reopening evidence, status, and unrelated publication decisions are preserved.
+
 ## Problem
 
 `ProcessMdxOptions.path` is accepted and populated by `s.mdx()`, but `processMdx` does not pass a path-aware VFile through `parse`, `run`, and `stringify`. Manual phase calls create or use separate empty file values, so plugins cannot reliably communicate through `file.data` or `file.messages`, and path-dependent diagnostics or compilation behavior do not receive the declared source path.

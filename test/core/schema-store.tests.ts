@@ -8,7 +8,7 @@ import { context, createSessionStore } from '../../src/core/schema/context'
 import { join } from '../../src/core/util/path'
 import { silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
-import { noopImageProcessor, noopWatch, testSchemaRunner } from '../helpers/runtime'
+import { noopImageProcessor, noopWatch, testContentExecutionsFactory, testSchemaRunner } from '../helpers/runtime'
 
 import type { UserConfig } from '../../src/core/config'
 import type { TestRuntime } from '../helpers/runtime'
@@ -48,6 +48,7 @@ test('SchemaContext.store: is shared across records within one build', async () 
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }, { title: 'C' }]))
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,

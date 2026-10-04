@@ -5,13 +5,13 @@
 import { deepEqual, equal, match, ok, rejects } from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { s } from '../src/core'
+import { content, s } from '../src/core'
 import { createBuilder } from '../src/core/builder'
 import { isVeliteError } from '../src/core/diagnostic'
 import { join } from '../src/core/util/path'
 import { silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
-import { noopImageProcessor, noopWatch, testSchemaRunner } from './helpers/runtime'
+import { noopImageProcessor, noopWatch, testContentExecutionsFactory, testSchemaRunner } from './helpers/runtime'
 
 import type { UserConfig } from '../src/core/config'
 import type { ImageProcessor } from '../src/runtime/image'
@@ -36,9 +36,10 @@ const setup = (
   image: ImageProcessor | null = stubImage
 ): { runtime: TestRuntime; fs: MemoryFileSystem } => {
   const fs = new MemoryFileSystem()
-  for (const [path, content] of Object.entries(files)) fs.put(path, content)
+  for (const [path, fileContent] of Object.entries(files)) fs.put(path, fileContent)
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -137,6 +138,7 @@ test('assets: orphan reconciliation survives across builder instances (persisted
     const { config } = mkConfig(true)
     const runtime: TestRuntime = {
       schemaRunner: testSchemaRunner(),
+      contentExecutionsFactory: testContentExecutionsFactory(),
       fs,
       image: stubImage,
       modules: { load: async () => ({ exports: config, dependencies: [] }) },
@@ -553,10 +555,10 @@ test('s.image: blur options propagate to the image processor (custom width)', as
   equal(receivedOutput?.quality, 80)
 })
 
-test('s.markdown: copyLinkedFiles rewrites img src + asset is copied once', async () => {
+test('content.markdown: copyLinkedFiles rewrites img src + asset is copied once', async () => {
   const config: UserConfig = {
     root: 'content',
-    collections: { posts: { pattern: 'posts/*.md', schema: s.object({ html: s.markdown() }) } }
+    collections: { posts: { pattern: 'posts/*.md', schema: s.object({ html: content.markdown().html() }) } }
   }
   const md = '# title\n\n![logo](./cover.png)'
   const { runtime, fs } = setup(config, {
@@ -568,14 +570,16 @@ test('s.markdown: copyLinkedFiles rewrites img src + asset is copied once', asyn
   equal(result.diagnostics.length, 0, JSON.stringify(result.diagnostics))
   const posts = (await readJson(fs, join(DATA_DIR, 'posts.json'))) as Array<{ html: string }>
   match(posts[0]!.html, /<img\s+src="\/static\/cover-[0-9a-f]{8}\.png"/)
-  // The asset file was written via the markdown plugin's processAsset hook.
-  ok(result.written.some(p => /\/static\/cover-[0-9a-f]{8}\.png$/.test(p)))
+  // The content execution's linked-file transform declares one asset.
+  const assetWrites = result.written.filter(p => p.startsWith(ASSETS_DIR))
+  equal(assetWrites.length, 1)
+  match(assetWrites[0]!, /\/static\/cover-[0-9a-f]{8}\.png$/)
 })
 
-test('s.markdown: copyLinkedFiles: false leaves urls untouched', async () => {
+test('content.markdown: copyLinkedFiles: false leaves urls untouched', async () => {
   const config: UserConfig = {
     root: 'content',
-    collections: { posts: { pattern: 'posts/*.md', schema: s.object({ html: s.markdown({ copyLinkedFiles: false }) }) } }
+    collections: { posts: { pattern: 'posts/*.md', schema: s.object({ html: content.markdown({ copyLinkedFiles: false }).html() }) } }
   }
   const md = '![logo](./cover.png)'
   const { runtime, fs } = setup(config, {

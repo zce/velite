@@ -1,8 +1,13 @@
+import { readFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createJiti } from 'jiti'
 
 import { name as pkgName } from '../../../../package.json'
 
+import type { Jiti, ModuleCache, NodeModule } from 'jiti'
+import type { Module } from 'node:module'
 import type { ModuleLoader } from '../../modules'
 
 export interface JitiModuleLoaderDeps {
@@ -11,9 +16,12 @@ export interface JitiModuleLoaderDeps {
 }
 
 export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import.meta.url }: JitiModuleLoaderDeps = {}): ModuleLoader => {
+  const nativeCache = createRequire(baseUrl).cache
+  let nativeDependencies = new Map<string, Module>()
   const createLoader = (): ReturnType<typeof createJiti> =>
     createJiti(baseUrl, {
       interopDefault: true,
+      moduleCache: false,
       alias: {
         [packageName]: fileURLToPath(import.meta.resolve(packageName))
       }
@@ -21,21 +29,65 @@ export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import
 
   /**
    * Module loader adapter using jiti to import TS/JS modules at runtime (no
-   * separate build step). A fresh jiti instance per load keeps config reloads
-   * fresh; its per-load cache is still used to discover local files pulled in
-   * during evaluation for watch-mode dependency tracking. `default: true`
-   * returns the effective export value, matching Velite config loading.
+   * separate build step). Disable the native runtime cache and evaluate into a
+   * fresh explicit cache, re-evaluating configs and transformed dependencies
+   * without losing watch tracking. Force the root through jiti as native ESM
+   * imports otherwise keep a changed JS/MJS config cached by URL. Native ESM
+   * helper URL caching remains jiti/Node behavior, not a custom module graph.
    */
   return {
     async load(absPath) {
       const jiti = createLoader()
-      const before = new Set(Object.keys(jiti.cache))
-      const exports = await jiti.import(absPath, { default: true })
-      const after = new Set(Object.keys(jiti.cache))
-      const dependencies = [...after].filter(dep => !before.has(dep))
-      return { exports, dependencies }
+      // Only previously observed local config imports are invalidated. Keep
+      // installed packages' native identity and never purge the global cache.
+      for (const [dependency, observed] of nativeDependencies) {
+        if (!/[\\/]node_modules[\\/]/.test(dependency) && nativeCache[dependency] === observed) delete nativeCache[dependency]
+      }
+      const observedNative = new Map<string, Module>()
+      // jiti publishes each evaluated Module into this supported per-load cache
+      // before running it. Observe that Module's own public require/import calls,
+      // including pre-cached JSON, rather than a process-wide cache time window.
+      const cache: ModuleCache = new Proxy(Object.create(null), {
+        set(target: ModuleCache, filename: string, module: NodeModule) {
+          const require = module.require as Jiti
+          const remember = (resolve: () => string | undefined): void => {
+            try {
+              const resolved = resolve()
+              if (!resolved || (!isAbsolute(resolved) && !resolved.startsWith('file:'))) return
+              const path = resolved.startsWith('file:') ? fileURLToPath(resolved) : resolved
+              if (cache[path]) return
+              const native = nativeCache[path]
+              if (native) observedNative.set(path, native)
+            } catch {
+              // Dependency observation must not change a successful import's outcome.
+            }
+          }
+          module.require = new Proxy(require, {
+            apply(_target, _thisArg, [id]: [string]) {
+              const exports = require(id)
+              remember(() => require.resolve(id))
+              return exports
+            }
+          })
+          const importModule = require.import
+          require.import = async <T>(id: string, options?: Parameters<Jiti['import']>[1]) => {
+            const exports = await importModule<T>(id, options)
+            remember(() => require.esmResolve(id, options))
+            return exports
+          }
+          target[filename] = module
+          return true
+        }
+      })
+      try {
+        const namespace = await jiti.evalModule(await readFile(absPath, 'utf8'), { filename: absPath, async: true, forceTranspile: true, cache })
+        // Same default-export policy as jiti.import(path, { default: true }).
+        const exports = (namespace as { default?: unknown } | undefined)?.default ?? namespace
+        const dependencies = [...new Set([...Object.keys(cache), ...observedNative.keys()])]
+        return { exports, dependencies }
+      } finally {
+        nativeDependencies = observedNative
+      }
     }
   }
 }
-
-export const jitiModuleLoader: ModuleLoader = createJitiModuleLoader({})

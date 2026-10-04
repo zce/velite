@@ -15,3 +15,34 @@ Markdown has top-level support in Velite. Although we also support MDX, I think 
 - **Stronger by extension**: Markdown is extensible, you can use it to write code, write math formulas, and even write music.
 
 :::
+
+## Generate HTML and related results
+
+Create one definition for the related selections of a document:
+
+```ts
+import { content, defineConfig, s } from 'velite'
+
+const article = content.markdown()
+
+export default defineConfig({
+  collections: {
+    posts: {
+      pattern: 'posts/**/*.md',
+      schema: s.object({
+        title: s.string(),
+        html: article.html(),
+        toc: article.toc(),
+        excerpt: article.excerpt(),
+        metadata: article.metadata()
+      })
+    }
+  }
+})
+```
+
+An absent result field selects the file body; an explicit string overrides it. Reusing the same definition and exact selected text within a record shares one execution. Global `markdown` options remain available, while definition-local options override scalars and local plugins precede global plugins.
+
+Generated HTML automatically carries heading IDs during transformation, even without a TOC field. TOC is a flat array of `{ depth, title, id }` for transformed headings and their actual targets, not a source outline or independently calculated slugs. Plugins can add, remove, or retarget headings. Legal unique explicit IDs are preserved; invalid or duplicate explicit IDs produce content validation issues.
+
+Excerpt and metadata describe normalized static pre-transform source text. TOC requires complete transformation but skips HTML serialization, so it may still resolve linked assets or perform plugin I/O. See [Content Definitions](content-executions.md) for native wrappers, conditional derivation, recovery, and effect boundaries.

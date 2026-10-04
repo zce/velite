@@ -7,6 +7,10 @@ Type: grilling
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+Current content identity, value, and ownership authority is [ADR 0001](../../../../adr/0001-share-semantic-content-results.md), [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md), and the [semantic-content spec](../../1.0-semantic-content-execution/spec.md). Same-definition/exact-input executions replace profile-matched pristine sharing and independent transforming branches; the oracle is ordinary owned processing plus the written semantic values, not separately restarted render/outline branches. Navigation follows transformed headings and actual targets, not source-only TOC. Explicit-input precedence, dialect correctness, truthful source identity, canonical ordering, custom black boxes, and record/build transaction obligations survive. Original reasoning and unrelated publication decisions remain unchanged.
+
 ## Question
 
 What source identity, result equivalence, ordering, determinism, mutation-isolation, and correctness invariants must every shared content derivation design preserve across built-in and custom schemas?

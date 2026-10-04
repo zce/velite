@@ -14,8 +14,7 @@
 //   — used only by `builder.ts`, imported directly.
 // - Output internals (`planWrites`, `writeOutput`, layout/declaration helpers)
 //   — used only by `driver.ts` / `writer.ts`, imported directly.
-// - Content helpers (`processMarkdown`, `processMdx`, `extractText`, etc.)
-//   — used only by `builtins.ts` / `context.ts`, imported directly.
+// - Content execution owners/adapters — private to validation and composition.
 // - Scheduler (`createScheduler`, `Scheduler`) — used only
 //   by `builder.ts`, imported directly.
 // - Loader internals (`createLoaderRegistry`, individual loader types)
@@ -67,7 +66,7 @@ export type { CollectionResult, Entry } from './model'
 
 export type { LogicalOutput } from './output/logical'
 
-export { context, defineSchema, s } from './schema'
+export { content, context, defineSchema, s } from './schema'
 export type {
   AssetReferenceEffect,
   AssetRequest,
@@ -83,10 +82,6 @@ export type {
   ImageMetadata,
   ImageSchemaOptions,
   Infer,
-  MarkdownRoot,
-  MarkdownSchemaOptions,
-  MdxRoot,
-  MdxSchemaOptions,
   Metadata,
   PathSchemaOptions,
   ProjectCollectionInfo,
@@ -101,5 +96,4 @@ export type {
   UniqueEffect
 } from './schema'
 
-export type { MarkdownOptions } from './content/markdown'
-export type { MdxOptions } from './content/mdx'
+export type { MarkdownOptions, MdxOptions } from './content/options'

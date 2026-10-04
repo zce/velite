@@ -10,7 +10,7 @@ import { createBuilder } from '../../src/core/builder'
 import { join } from '../../src/core/util/path'
 import { silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
-import { noopImageProcessor, noopWatch, testSchemaRunner } from '../helpers/runtime'
+import { noopImageProcessor, noopWatch, testContentExecutionsFactory, testSchemaRunner } from '../helpers/runtime'
 
 import type { UserConfig } from '../../src/core/config'
 import type { TestRuntime } from '../helpers/runtime'
@@ -29,6 +29,7 @@ const setup = (files: Record<string, string>): { runtime: TestRuntime; fs: Memor
   for (const [path, content] of Object.entries(files)) fs.put(path, content)
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -57,8 +58,8 @@ test('uniqueCheck: flags a duplicate slug across two records', async () => {
   // both owners are flagged
   const owners = new Set(dupes.map(d => (d.provenance as { record: { id: string } }).record.id))
   ok(owners.has('posts/a.md#hello-world') || owners.has('posts/a.md#'), `owners: ${[...owners].join(',')}`)
-  // entries are still emitted (non-fatal schema diagnostics)
-  equal(result.output.collections.posts!.entries.length, 2)
+  // Every conflicting record is excluded; iteration order never chooses a winner.
+  equal(result.output.collections.posts!.entries.length, 0)
 })
 
 test('uniqueCheck: no conflict when slugs differ', async () => {
@@ -87,6 +88,7 @@ test('uniqueCheck: distinct groups do not conflict', async () => {
   fs.put(abs('content/notes/b.md'), post('shared-slug', 'B'))
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: { load: async () => ({ exports: cfg, dependencies: [] }) },
     logger: silentLogger,

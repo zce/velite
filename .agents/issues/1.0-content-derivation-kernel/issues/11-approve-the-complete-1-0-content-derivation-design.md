@@ -8,6 +8,10 @@ Blocked by: 18, 20, 21, 22, 23, 24, 25
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+The content portions of this historical approval, including its later concept-convergence answer, are superseded by [ADR 0001](../../../../adr/0001-share-semantic-content-results.md), the concrete [ADR 0002 contract](../../../../adr/0002-content-definition-and-anchor-contract.md), and the [semantic-content spec](../../1.0-semantic-content-execution/spec.md). Do not implement the approved hybrid roots, profile-equivalent pristine sharing, seed branches, source TOC/slug values, or old content migration/performance gates. Preserve Ticket 20's source/excerpt/metadata values and necessary record/build transactions. The original review and unrelated generation/publication/diagnostic/prepare/Builder decisions remain; broader historical release evidence is not imported into the new content scope. Neither this old approval nor the new contract is production/release verification.
+
 ## Question
 
 Does the synthesized 1.0 content derivation design fully resolve the public contract, internal boundaries, plugin and extension semantics, effects and failures, cache behavior, migration impact, and measurable acceptance criteria well enough to hand off for implementation planning?

@@ -1,5 +1,6 @@
-import { installSchemaContextHost } from '../../src/core/schema/host'
-import { createSchemaRunner } from '../../src/core/schema/runner'
+import { createDefaultContentExecutionsFactory } from '../../src/core/content/execution/record'
+import { createSchemaRunner, ensureHostInstalled } from '../../src/core/schema/runner'
+import { createNodePromiseObserver } from '../../src/runtime/adapters/node/promise-observer'
 import { createNodeSchemaContextHost } from '../../src/runtime/adapters/node/schema-host'
 
 import type { BuilderDeps } from '../../src/core/builder'
@@ -7,24 +8,31 @@ import type { ImageProcessor } from '../../src/runtime/image'
 import type { Logger } from '../../src/runtime/logger'
 import type { Watcher } from '../../src/runtime/watcher'
 
-export type TestRuntime = Pick<BuilderDeps, 'fs' | 'modules' | 'schemaRunner' | 'logger' | 'image' | 'watch'>
+export type TestRuntime = Pick<BuilderDeps, 'fs' | 'modules' | 'schemaRunner' | 'contentExecutionsFactory' | 'logger' | 'image' | 'watch'>
 
 /**
  * Shared test host installed once per test process. Installing the identical
  * host is idempotent; tests never replace the host in beforeEach/afterEach.
- * The first test to call this installs the host for the whole process.
+ * Reuse any host already installed by a public facade or another test harness.
  */
 let sharedTestHost: ReturnType<typeof createNodeSchemaContextHost> | undefined
+let sharedTestObserver: ReturnType<typeof createNodePromiseObserver> | undefined
 const sharedTestRunner = (): TestRuntime['schemaRunner'] => {
   if (sharedTestHost === undefined) {
-    sharedTestHost = createNodeSchemaContextHost()
-    installSchemaContextHost(sharedTestHost)
+    sharedTestHost = ensureHostInstalled(createNodeSchemaContextHost)
   }
-  return createSchemaRunner(sharedTestHost)
+  sharedTestObserver ??= createNodePromiseObserver({ runUnbound: operation => sharedTestHost!.run(undefined, operation) })
+  return createSchemaRunner({ host: sharedTestHost, promiseObserver: sharedTestObserver })
 }
 
 /** Install the shared test host if needed and return a schema runner. */
 export const testSchemaRunner = (): TestRuntime['schemaRunner'] => sharedTestRunner()
+
+/** Construct a record content factory bound to the shared schema runner host. */
+export const testContentExecutionsFactory = (): TestRuntime['contentExecutionsFactory'] => {
+  testSchemaRunner()
+  return createDefaultContentExecutionsFactory(sharedTestHost!)
+}
 
 export const noopImageProcessor: ImageProcessor = {
   probe: async () => ({ width: 0, height: 0, format: '' }),

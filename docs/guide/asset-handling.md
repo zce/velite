@@ -7,8 +7,10 @@
 
 - [File Schema](velite-schemas.md#s-file)
 - [Image Schema](velite-schemas.md#s-image)
-- [Markdown Schema](velite-schemas.md#s-markdown)
-- [MDX Schema](velite-schemas.md#s-mdx)
+- [Markdown Definition](velite-schemas.md#content-markdown-options)
+- [MDX Definition](velite-schemas.md#content-mdx-options)
+
+Content Definitions resolve linked assets during Transform when `copyLinkedFiles` is enabled. TOC-only requests still perform this work even though they skip serialization/minification; source-only excerpt/metadata requests do not run returned transformers. See [controlled effects](content-executions.md#detached-values-and-controlled-effects) for stage/record eligibility and the limits of plugin I/O rollback.
 
 ## Uploading Assets
 

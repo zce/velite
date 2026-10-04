@@ -7,6 +7,10 @@ Type: grilling
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+Use [ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md) for current plugin semantics. Owned continuation replaces pristine eligibility, copied branches, and blanket restrictions on parser-to-transform closure/private state. Source-only selections skip returned transformers; TOC completes transformation and MDX recma, withholding navigation on late failure. Preserve legal tree/file replacements and opaque values without a seed-copy compatibility rule. Definition-local plugins precede global plugins, as in current source; the global-before-local clause below is superseded. Ordinary dependency plugin behavior and responsibility for external I/O/global cross-record state remain. Original reasoning and unrelated publication decisions are preserved.
+
 ## Question
 
 What contract determines when Unified/remark/rehype/MDX plugins execute once, execute per derivation, force a branch or clone, or make an artifact ineligible for sharing, while keeping normal ecosystem plugins usable?

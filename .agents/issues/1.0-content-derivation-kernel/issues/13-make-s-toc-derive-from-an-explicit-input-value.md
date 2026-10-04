@@ -7,6 +7,10 @@ Labels: bug
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+The explicit-input defect below remains relevant, but its schema-root/profile/source-outline implementation recipe is superseded by [ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md). Test `content.markdown(...).toc()` / `content.mdx(...).toc()` against the selected explicit or fallback text, transformed heading order, and actual output IDs. No `ContentFile.mdast` or implicit fallback parse survives. The original defect evidence is preserved; this notice changes no ticket status or unrelated publication decision.
+
 ## Problem
 
 `s.toc()` accepts an explicit string input and checks that selected body for emptiness, but then always extracts headings from `context().file.mdast`. The result therefore describes the current file body instead of the explicit value. It can also fail with `No mdast tree available` when an explicit value exists but the file has no body.

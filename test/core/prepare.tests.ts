@@ -12,7 +12,7 @@ import { VeliteError } from '../../src/core/diagnostic'
 import { join } from '../../src/core/util/path'
 import { silentLogger } from '../../src/runtime/adapters/node'
 import { MemoryFileSystem } from '../helpers/memory-fs'
-import { noopImageProcessor, noopWatch, testSchemaRunner } from '../helpers/runtime'
+import { noopImageProcessor, noopWatch, testContentExecutionsFactory, testSchemaRunner } from '../helpers/runtime'
 
 import type { PrepareCollections, PrepareContext, PrepareHook, UserConfig } from '../../src/core/config'
 import type { TestRuntime } from '../helpers/runtime'
@@ -31,6 +31,7 @@ const setup = (prepare: PrepareHook | undefined): { runtime: TestRuntime; fs: Me
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -129,6 +130,7 @@ test('prepare: single collections expose the single object, not an array', async
   fs.put(join(CWD, 'content/options/a.json'), JSON.stringify({ name: 'velite' }))
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: {
       load: async () => ({
@@ -210,6 +212,7 @@ test('prepare: false reconciles stale output across separate builder instances (
     const config: UserConfig = { ...baseConfig, prepare }
     const runtime: TestRuntime = {
       schemaRunner: testSchemaRunner(),
+      contentExecutionsFactory: testContentExecutionsFactory(),
       fs,
       modules: { load: async () => ({ exports: config, dependencies: [] }) },
       logger: silentLogger,
@@ -266,6 +269,7 @@ test('T1.5: addDiagnostic is the sole prepare diagnostic channel; PrepareResult.
 test('T1.5: addDiagnostic appends a normalized diagnostic with prepare origin/provenance/stage', async () => {
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs: (() => {
       const fs = new MemoryFileSystem()
       fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
@@ -297,6 +301,7 @@ test('T1.5: addDiagnostic appends a normalized diagnostic with prepare origin/pr
 test('T1.5: addDiagnostic normalizes the cause before snapshot (mutation after call does not affect captured diagnostic)', async () => {
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs: (() => {
       const fs = new MemoryFileSystem()
       fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
@@ -338,6 +343,7 @@ test('T1.5: addDiagnostic rejects malformed inputs (unknown field, symbol key, a
   const sym = Symbol('x')
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs: (() => {
       const fs = new MemoryFileSystem()
       fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
@@ -417,6 +423,7 @@ test('T1.5: addDiagnostic accepts a null-prototype record (ordinary null-proto i
   const stashed: string[] = []
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs: (() => {
       const fs = new MemoryFileSystem()
       fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
@@ -452,6 +459,7 @@ test('T1.5: addDiagnostic late call after hook settlement throws VeliteError(int
   let lateCall: (() => void) | undefined
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs: (() => {
       const fs = new MemoryFileSystem()
       fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
@@ -485,6 +493,7 @@ test('T1.5: addDiagnostic late call after hook settlement throws VeliteError(int
 test('T1.5: exact duplicate key collapses; reversing call order yields the same set and order', async () => {
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs: (() => {
       const fs = new MemoryFileSystem()
       fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
@@ -515,6 +524,7 @@ test('T1.5: exact duplicate key collapses; reversing call order yields the same 
 test('T1.5: same key with different normalized payload yields one Velite-authored fatal prepare conflict; no winner', async () => {
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs: (() => {
       const fs = new MemoryFileSystem()
       fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
@@ -570,6 +580,7 @@ test('T1.5: reversed async completion order yields the same set (Ticket 23 line 
   // participates in identity or ordering).
   const makeRuntime = (settleOrder: 'forward' | 'reversed'): TestRuntime => ({
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs: (() => {
       const fs = new MemoryFileSystem()
       fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))
@@ -613,6 +624,7 @@ test('T1.5: reversed async completion order yields the same set (Ticket 23 line 
 test('T1.5: prepare(false) bypasses no fatal/strict/staging gate — fatal prepare diagnostics still fail the build', async () => {
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs: (() => {
       const fs = new MemoryFileSystem()
       fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }, { title: 'B' }]))

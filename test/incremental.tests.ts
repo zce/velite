@@ -6,7 +6,7 @@ import { createBuilder } from '../src/core/builder'
 import { join } from '../src/core/util/path'
 import { silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
-import { noopImageProcessor, noopWatch, testSchemaRunner } from './helpers/runtime'
+import { noopImageProcessor, noopWatch, testContentExecutionsFactory, testSchemaRunner } from './helpers/runtime'
 
 import type { UserConfig } from '../src/core/config'
 import type { FileEvent } from '../src/runtime/watcher'
@@ -30,6 +30,7 @@ const setup = (): { runtime: TestRuntime; fs: MemoryFileSystem } => {
   fs.put(file('c'), body([{ title: 'C' }]))
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,

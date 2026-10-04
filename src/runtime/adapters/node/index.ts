@@ -1,6 +1,7 @@
 export { createNodeSchemaContextHost } from './schema-host'
+export { createNodePromiseObserver } from './promise-observer'
 export { createNodeFileSystem, nodeFileSystem } from './fs'
 export { createSharpImageProcessor, sharpImageProcessor } from './image'
 export { createLogger, setLogLevel, silentLogger } from './logger'
-export { createJitiModuleLoader, jitiModuleLoader } from './modules'
+export { createJitiModuleLoader } from './modules'
 export { createChokidarWatcher } from './watcher'

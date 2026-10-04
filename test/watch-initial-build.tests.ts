@@ -16,7 +16,7 @@ import { createBuilder } from '../src/core/builder'
 import { join } from '../src/core/util/path'
 import { silentLogger } from '../src/runtime/adapters/node'
 import { MemoryFileSystem } from './helpers/memory-fs'
-import { createCapturedLogger, noopImageProcessor, testSchemaRunner } from './helpers/runtime'
+import { createCapturedLogger, noopImageProcessor, testContentExecutionsFactory, testSchemaRunner } from './helpers/runtime'
 
 import type { PrepareHook, UserConfig } from '../src/core/config'
 import type { TestRuntime } from './helpers/runtime'
@@ -37,6 +37,7 @@ test('Builder.watch(): runs the initial build exactly once and exposes its resul
   fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }]))
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
@@ -71,6 +72,7 @@ test('Builder.watch(): watches config dependencies and classifies their events a
   let subscribedPaths: string[] = []
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: {
       load: async () => {
@@ -117,6 +119,7 @@ test('Builder.apply(): logs content rebuilds separately from config reloads', as
   const { logger, logs } = createCapturedLogger()
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
     fs,
     modules: { load: async () => ({ exports: config, dependencies: [configPath, configDependency] }) },
     logger,

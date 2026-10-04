@@ -6,6 +6,12 @@ Created: 2026-07-15T12:06:06Z
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+For current Velite 1.0 content work, follow [ADR 0001](../../../adr/0001-share-semantic-content-results.md), the concrete [ADR 0002 contract](../../../adr/0002-content-definition-and-anchor-contract.md), and the [semantic-content spec](../1.0-semantic-content-execution/spec.md). The decisions and handoff below remain historical reasoning, not authority to implement hybrid schema roots, profile-equivalent pristine sharing, seed-copy branches, source-only TOC, or their migration/performance gates.
+
+The replacement uses explicit Content Definitions, same-definition/exact-input record-local executions, detached semantic delivery, transformed navigation with actual unique anchors, and owned plugin continuation. Ticket 20's normalized source-text/excerpt/metadata values survive; its TOC/root/sharing clauses do not. Existing factory DI, ambient-host/public-private separation, eight public context fields, and necessary record/cross-record/build transactions remain. Unrelated generation/publication/prepare/cleanup/Builder decisions are neither superseded nor reapproved, and their broader release/evidence infrastructure is not a prerequisite of the new scope. Working new slices may coexist with old callers only until new Ticket 11 removes the legacy path; no intermediate 1.0 release or compatibility family is authorized.
+
 ## Destination
 
 Produce an implementation-ready design for the Velite 1.0 content derivation kernel: its public API, processing and sharing semantics, extension and plugin boundaries, side-effect model, and measurable correctness and performance criteria. The design may replace current architecture and APIs where justified, but this map stops before implementation.

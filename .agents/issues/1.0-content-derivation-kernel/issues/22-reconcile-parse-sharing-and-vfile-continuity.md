@@ -7,6 +7,10 @@ Blocked by: 01, 05, 06, 08
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+The pristine parse, immutable seed/copy graph, materialized branch, profile-equivalence, and cloneability-based compatibility contract below is superseded by [ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md). Retain one ordinary owned processor/tree/file continuation, following legal callback replacements and preserving opaque parser/transformer state. Sharing is by definition/input/record identity; navigation requires complete Transform including recma, while Source Analysis uses bounded pre-transform text. Keep factory DI, private representation boundaries, record/epoch isolation, internal-fault distinction, terminal close, and plugin responsibility for external/global state. Original trade-offs/bug history and unrelated publication decisions remain unchanged.
+
 ## Question
 
 How can one pristine parse be shared while each transforming branch observes the promised logical VFile continuity, and what explicit contract determines whether parser extensions with hidden mutable state are eligible for the mandatory matching-profile parse slot?

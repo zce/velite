@@ -7,6 +7,10 @@ Type: prototype
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+[ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md) replace this pristine-artifact broker, profile matching, seed materialization, and per-demand branches. One deep record-scoped module owns definition/input executions, fixed Parse/complete Transform/Emit outcomes, bounded semantic snapshots, stage journals, and close. Navigation requires complete transformation; it is not a parse-only projection. Keep explicit pipeline/validate factory DI, epoch/record isolation, outer cleanup, and the prohibition on Engine/store/file-model content caches. Private content capability placement follows the distinct leased carrier, not the earlier public-context wording. The body remains historical reasoning; unrelated build/publication decisions are unchanged.
+
 ## Question
 
 Which internal architecture should coordinate parsing, transformations, compilation, and reusable derived artifacts so that representative workloads avoid redundant work without violating the agreed semantic invariants?

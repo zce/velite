@@ -1,14 +1,14 @@
-import { diagnostic } from '../diagnostic'
+import { diagnostic, fail } from '../diagnostic'
 import { createContentFile, createSessionStore, resolveBody } from '../schema/context'
 import { join } from '../util/path'
 
 import type { FileSystem, ImageProcessor } from '../../runtime'
 import type { ResolvedConfig } from '../config'
+import type { ContentDeclaration, ContentExecutionsFactory } from '../content/execution/record'
 import type { Derivation } from '../engine'
 import type { Entry } from '../model'
 import type { AssetRequest, ImageMetadata, ProjectCollectionInfo, ProjectInfo, SchemaContext } from '../schema/context'
-import type { ContentArtifactsFactory, RecordBroker, RecordScope } from '../schema/derivation/broker'
-import type { Effect, EffectDeclarationContext, EffectSystemOwner, SchemaEffectDeclaration } from '../schema/effects'
+import type { Effect, EffectSystemOwner } from '../schema/effects'
 import type { SchemaRunInput, SchemaRunner } from '../schema/runner'
 import type { AssetKey, AssetResult, BlurOptions } from './asset'
 import type { Loaded, Validated, ValidateKey } from './types'
@@ -32,8 +32,7 @@ interface ValidateRuntime {
   fs: FileSystem
   image: ImageProcessor
   schemaRunner: SchemaRunner
-  /** The record-scoped content artifacts factory (broker factory). */
-  contentArtifactsFactory: ContentArtifactsFactory
+  contentExecutionsFactory: ContentExecutionsFactory
 }
 
 const DEFAULT_BLUR_WIDTH = 8
@@ -59,7 +58,7 @@ const createProbeImage =
  * Source-grained, matching the PRD's source-level invalidation contract.
  *
  * Each record is parsed inside a schema run (`schemaRunner.run`) so built-in
- * content schemas (`s.markdown()`, `s.raw()`, ...) can read the current file's
+ * result schemas and built-ins can read the current file's
  * body and project via `context()`. Schema effects are accumulated per record
  * via `collectEffect` and returned alongside the entries; the driver consumes
  * asset-reference effects to drive the two-pass asset flow.
@@ -82,9 +81,6 @@ export const createValidateDerivation = (
   // config-reload, when loadSession rebuilds the pipeline). Shared across
   // rebuilds so custom schemas can lazily initialise session-scoped state.
   const store = createSessionStore()
-  // Stable declaration ordinal per record; reset each record. Real per-record
-  // transaction wiring lands in Phase 3; for now a per-record counter preserves
-  // the existing collectEffect call shape.
   return {
     name: 'validate',
     async compute(context, { collection, path }) {
@@ -110,10 +106,11 @@ export const createValidateDerivation = (
         const key = raw.key === '' ? undefined : typeof raw.key === 'number' ? String(raw.key) : raw.key
         const record = { id: raw.id, ...(key != null ? { key } : {}), index }
 
-        // Bridge the new two-arg collectEffect surface to the legacy committed
-        // Effect array. Phase 3 replaces this with a proper record-atomic
-        // effect transaction; for now we stamp system provenance at collect
-        // time so the committed Effect shape is well-formed.
+        // Both declaration shapes enter this record's candidate transaction.
+        // Only the final native Zod success promotes them to source candidates;
+        // downstream cross-record/build checks still decide publication.
+        const candidateEffects: Effect[] = []
+        let acceptingEffects = true
         const systemOwner: EffectSystemOwner = {
           owner: raw.id,
           collectionOrder,
@@ -122,12 +119,14 @@ export const createValidateDerivation = (
           recordIndex: index,
           recordId: raw.id
         }
-        const collectEffect = (effect: SchemaEffectDeclaration, ctx: EffectDeclarationContext): void => {
+        const normalizeEffect = (args: ContentDeclaration): Effect => {
+          if (args.length === 1) return { ...args[0], owner: raw.id, system: systemOwner }
+          const [effect, ctx] = args
           const request = { kind: 'custom', declaration: ctx.declaration, projection: undefined, occurrence: ctx.occurrence }
           if (effect.type === 'unique') {
-            effects.push({ type: 'unique', owner: raw.id, group: effect.group, value: effect.value, system: systemOwner, request })
+            return { type: 'unique', owner: raw.id, group: effect.group, value: effect.value, system: systemOwner, request }
           } else {
-            effects.push({
+            return {
               type: 'asset',
               owner: raw.id,
               assetPath: effect.source,
@@ -136,46 +135,34 @@ export const createValidateDerivation = (
               isImage: effect.metadata,
               system: systemOwner,
               request
-            })
+            }
           }
         }
-        // Back-compat: schemas that still call collectEffect with a single
-        // legacy Effect argument (s.image, s.file, markdown/mdx asset links).
-        // Phase 3 migrates all callers to the two-arg surface and removes this.
-        const collectEffectLegacy = (effect: Effect): void => {
-          effects.push(effect)
+        const collectEffects = (declarations: readonly ContentDeclaration[]): void => {
+          if (!acceptingEffects) fail('internal', 'Record effect transaction is closed — collectEffect called after finalization')
+          // Normalize the complete stage before mutating the record candidates.
+          // A throwing declaration getter cannot leave a promoted prefix.
+          const normalized = declarations.map(normalizeEffect)
+          candidateEffects.push(...normalized)
         }
-        // Make the input accept both the new two-arg and legacy single-arg
-        // call shapes by detecting arity at runtime. This is an interim
-        // bridge — Phase 3 removes it once all builtins are migrated.
-        const collectEffectBridge: SchemaContext['collectEffect'] & {
-          (effect: Effect): void
-        } = ((...args: unknown[]) => {
-          if (args.length === 1) {
-            collectEffectLegacy(args[0] as Effect)
-            return
-          }
-          collectEffect(args[0] as SchemaEffectDeclaration, args[1] as EffectDeclarationContext)
-        }) as SchemaContext['collectEffect'] & ((effect: Effect) => void)
 
-        // The record-scoped content broker. Opened immediately before
-        // safeParseAsync() and disposed in an outer finally after the run
-        // settles (success, Zod failure, throw, or abandonment all take the
-        // same cleanup path). The broker coalesces matching pristine parses
-        // across the primary root and all sibling projections; materializes
-        // isolated branches for transforming demands; retains rejected parses
-        // for matching waiters. Custom schemas never see the broker — only
-        // the narrow `content(request)` operation is passed as contentOperation.
-        const recordScope: RecordScope = { recordId: raw.id, sourcePath: path, cwd: config.root }
-        const broker: RecordBroker = runtime.contentArtifactsFactory.open(recordScope)
-        const contentOperation = (request: Parameters<SchemaRunInput['contentOperation']>[0]): Promise<unknown> => broker.demand(request)
+        // One content owner per actual record validation; all outcomes close
+        // in the outer finally, including thrown or abandoned operations.
+        const content = runtime.contentExecutionsFactory.open({
+          project,
+          file,
+          record,
+          collection: { order: collectionOrder, id: collection },
+          collectEffects
+        })
+        const contentOperation = (request: Parameters<SchemaRunInput['contentOperation']>[0]): Promise<unknown> => content.demand(request)
 
         const runInput: SchemaRunInput = {
           project,
           file,
           record,
           store,
-          collectEffect: collectEffectBridge,
+          collectEffect: content.collectEffect,
           asset: demandAsset,
           readFile,
           probeImage,
@@ -184,9 +171,12 @@ export const createValidateDerivation = (
 
         try {
           const parsed = await runtime.schemaRunner.run(runInput, () => col.schema.safeParseAsync(raw.data))
+          diagnostics.push(...content.diagnostics())
+          acceptingEffects = false
 
           if (parsed.success) {
             entries.push({ id: raw.id, source: path, data: parsed.data })
+            effects.push(...candidateEffects)
           } else {
             for (const issue of parsed.error.issues) {
               diagnostics.push(
@@ -204,7 +194,9 @@ export const createValidateDerivation = (
             }
           }
         } finally {
-          broker.dispose()
+          acceptingEffects = false
+          candidateEffects.length = 0
+          content.close()
         }
       }
       return { entries, effects, diagnostics }

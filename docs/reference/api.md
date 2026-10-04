@@ -134,6 +134,30 @@ interface WatchHandle {
 }
 ```
 
+## `content`
+
+Create a Markdown or MDX Content Definition, then use its ordinary async Zod result schemas:
+
+```ts
+import { content, s } from 'velite'
+
+const article = content.markdown()
+const schema = s.object({
+  html: article.html(),
+  toc: article.toc(),
+  excerpt: article.excerpt({ length: 160 }),
+  metadata: article.metadata()
+})
+```
+
+- `content.markdown(options?)` returns a [`MarkdownDefinition`](./types.md#markdowndefinition-mdxdefinition) with `.html()`, `.toc()`, `.excerpt(options?)`, and `.metadata()`.
+- `content.mdx(options?)` returns a [`MdxDefinition`](./types.md#markdowndefinition-mdxdefinition) with `.code()` and the same navigation/source-analysis methods.
+- Definitions are not Zod schemas. Their methods return schemas accepting `string | undefined`; an absent field selects the current body. Native Zod composition applies to those schemas.
+- Sharing requires the same definition and exact selected text within one record validation, not structurally equal options.
+- TOC returns flat actual `{ depth, title, id }` targets after complete Transform; excerpt/metadata use static pre-transform source text.
+
+See [Content Definitions](../guide/content-executions.md) for supported options, input/recovery rules, dynamic MDX limitations, and effects. The `s` namespace contains Zod and other built-ins, not a second content API family.
+
 ## `defineConfig`
 
 Identity helper for the top-level Velite config. Returns its input unchanged; exists so editors can infer types from a typed config literal without a manual `satisfies UserConfig`.

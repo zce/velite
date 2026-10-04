@@ -7,6 +7,10 @@ Blocked by: 03, 04, 07, 19
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+The current content API/ownership/navigation contract is [ADR 0001](../../../../adr/0001-share-semantic-content-results.md), [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md), and the [semantic-content spec](../../1.0-semantic-content-execution/spec.md). **Only the normalized static source-text, Excerpt, and Metadata value oracles are inherited**, including the exact Latin Unicode Sets regex and complete frozen half-open CJK table reproduced in ADR 0002. The hybrid roots, profile equivalence, pristine-only/no-text-snapshot assumptions, source-only TOC with `slug`, empty/equal slug targets, branch/effect rules, and affected migration/performance tests below are superseded. Navigation now completes transformation and uses actual unique anchors. Preserve the full original reasoning and unrelated record/build/publication obligations; current helpers are still not a value oracle.
+
 ## Question
 
 What is the complete 1.0 built-in projection surface and edge-case contract, including whether `metadata()` is a Markdown/MDX root method, its selected-input and static-text semantics, the supported TOC options, and the result when neither an explicit value nor file-body fallback exists?

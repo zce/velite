@@ -3,15 +3,18 @@
 // asynchronous operations but always returns `Promise<T>` so lease closure
 // occurs after settlement. Constructs the private carrier, creates the lease,
 // wraps record-bound capabilities with that lease, delegates propagation to
-// the host, awaits the operation, and deactivates the lease in `finally`.
+// the host inside the injected Promise-observation scope, awaits the operation,
+// and deactivates the lease in `finally`.
 //
 // Authority: Ticket 21. Internal — not exported from any public barrel.
 
 import { fail } from '../diagnostic'
 import { installSchemaContextHost, schemaContextHost } from './host'
 
+import type { PromiseObserver } from '../../runtime/promise-observer'
 import type { ContentRequest, RecordContentCapability } from './capability'
 import type { SchemaContext } from './context'
+import type { Effect, EffectDeclarationContext, SchemaEffectDeclaration } from './effects'
 import type { SchemaContextHost } from './host'
 import type { SchemaRunContext } from './run'
 
@@ -58,11 +61,16 @@ export interface SchemaRunner {
   run<T>(input: SchemaRunInput, operation: () => T | PromiseLike<T>): Promise<T>
 }
 
+export interface SchemaRunnerDeps {
+  host: SchemaContextHost
+  promiseObserver: PromiseObserver
+}
+
 /**
  * Create a {@link SchemaRunner} bound to the installed process-owned host.
  * Internal composition root use only. The host must already be installed.
  */
-export const createSchemaRunner = (host: SchemaContextHost = schemaContextHost()): SchemaRunner => {
+export const createSchemaRunner = ({ host, promiseObserver }: SchemaRunnerDeps): SchemaRunner => {
   const runner: SchemaRunner = {
     async run<T>(input: SchemaRunInput, operation: () => T | PromiseLike<T>): Promise<T> {
       const lease = { active: true }
@@ -74,15 +82,20 @@ export const createSchemaRunner = (host: SchemaContextHost = schemaContextHost()
           return input.contentOperation(request)
         }
       }
-      const publicContext = createPublicSchemaContext(input)
-      const carrier: SchemaRunContext = { publicContext, content: leasedCapability, lease }
-      return host.run(carrier, async () => {
-        try {
-          return await operation()
-        } finally {
-          lease.active = false
+      const collectEffect: SchemaContext['collectEffect'] = (...args: [Effect] | [SchemaEffectDeclaration, EffectDeclarationContext]): void => {
+        if (!lease.active) {
+          fail('internal', 'Schema run lease is inactive — captured collectEffect used after settlement')
         }
-      })
+        if (args.length === 1) input.collectEffect(args[0])
+        else input.collectEffect(args[0], args[1])
+      }
+      const publicContext = createPublicSchemaContext({ ...input, collectEffect })
+      const carrier: SchemaRunContext = { publicContext, content: leasedCapability, lease }
+      try {
+        return await promiseObserver.run(() => host.run(carrier, async () => await operation()))
+      } finally {
+        lease.active = false
+      }
     }
   }
   return runner

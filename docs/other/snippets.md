@@ -85,7 +85,9 @@ export const remoteImage = () =>
   })
 ```
 
-## Built-in `s.mdx()` schema result render
+## Render a Content Definition's MDX code
+
+Use `content.mdx().code()` to generate a function-body string, then render trusted compiled code in your application. This runtime evaluation is separate from Velite's source/navigation analysis, which never executes MDX expressions or components. Runtime heading replacements must forward the supplied `id`; see [Content Definitions](../guide/content-executions.md#actual-heading-targets).
 
 ```tsx
 import * as runtime from 'react/jsx-runtime'
@@ -254,6 +256,8 @@ class VeliteWebpackPlugin {
 
 ## HTML Excerpt
 
+This application-owned custom schema returns HTML rather than a Content Definition's static source excerpt. It has its own parser and separator policy; it does not add options to `.excerpt()` or share Velite's content execution.
+
 ```ts
 import { excerpt as hastExcerpt } from 'hast-util-excerpt'
 import { raw } from 'hast-util-raw'
@@ -268,7 +272,7 @@ export interface ExcerptOptions {
    * Excerpt separator.
    * @default 'more'
    * @example
-   * s.excerpt({ separator: 'preview' }) // split excerpt by `<!-- preview -->`
+   * htmlExcerpt({ separator: 'preview' }) // split excerpt by `<!-- preview -->`
    */
   separator?: string
   /**
@@ -278,21 +282,25 @@ export interface ExcerptOptions {
   length?: number
 }
 
-export const excerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
-  s.custom<string>().transform(async (value, ctx) => {
-    const { file } = context()
-    if (value == null && file.content != null) {
-      value = file.content
-    }
-    try {
-      const mdast = fromMarkdown(value)
-      const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
-      const exHast = hastExcerpt(hast, { comment: separator, maxSearchSize: 1024 })
-      const output = exHast ?? truncate(hast, { size: length, ellipsis: '…' })
-      return toHtml(output)
-    } catch (err: any) {
-      ctx.addIssue({ fatal: true, code: 'custom', message: err.message })
-      return value
-    }
-  })
+export const htmlExcerpt = ({ separator = 'more', length = 300 }: ExcerptOptions = {}) =>
+  s
+    .string()
+    .optional()
+    .transform(async (value, ctx) => {
+      const source = value ?? context().file.content
+      if (source === undefined || source === '') {
+        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        return s.NEVER
+      }
+      try {
+        const mdast = fromMarkdown(source)
+        const hast = raw(toHast(mdast, { allowDangerousHtml: true }))
+        const exHast = hastExcerpt(hast, { comment: separator, maxSearchSize: 1024 })
+        const output = exHast ?? truncate(hast, { size: length, ellipsis: '…' })
+        return toHtml(output)
+      } catch (err) {
+        ctx.addIssue({ code: 'custom', message: err instanceof Error ? err.message : String(err) })
+        return s.NEVER
+      }
+    })
 ```

@@ -7,6 +7,10 @@ Blocked by: 05, 06, 09, 19
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+[ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md) replace **only content-artifact factory/profile-namespace/branch references** with epoch-owned content assembly and record-local definition/input executions. Closing a record still releases all content state, and epoch replacement never transfers an old execution or modifies the process host. This notice neither supersedes nor reapproves any Generation, Publication, BuilderCoordinator, pointer, recovery, retirement, cleanup, reader, watch, prepare, or build-policy decision, including later refinements. The original publication/lifecycle reasoning remains intact; the new content spec does not import broader release/evidence work as a prerequisite.
+
 ## Question
 
 Which module owns candidate and committed generations, where is the strict policy applied before publication, and how are pipeline epochs, optional processor pools or locks, old requests, manifests, outputs, and teardown coordinated during builds, patches, failed reloads, and successful reloads?

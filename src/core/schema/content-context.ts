@@ -1,7 +1,7 @@
-// Private content-context accessor for Velite-owned roots and projections.
+// Private content-context accessor for Velite-owned result schemas.
 //
 // The exported `context()` returns only the eight-field public view; Velite-
-// owned roots and projections use this unexported internal accessor to obtain
+// owned result schemas use this unexported internal accessor to obtain
 // the leased record-bound `content(request)` capability. The carrier is the
 // same one propagated by the process-owned SchemaContextHost; the lease is the
 // same one the SchemaRunner activates for each record parse.
@@ -16,7 +16,7 @@ import type { RecordContentCapability } from './capability'
 
 /**
  * Get the leased private `content(request)` capability for the current record
- * parse. Velite-owned roots and projections only.
+ * parse. Velite-owned result schemas only.
  *
  * @throws `VeliteError('internal')` when called outside of a schema parse or
  *   after the active run has settled (late call).

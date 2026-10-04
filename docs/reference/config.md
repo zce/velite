@@ -166,12 +166,15 @@ const site = defineCollection({
 The schema of the collection.
 
 ```js
+import { content, defineCollection, s } from 'velite'
+
+const postContent = content.markdown()
 const posts = defineCollection({
   schema: s.object({
     title: s.string(), // from frontmatter
     description: s.string().optional(), // from frontmatter
-    excerpt: s.string(), // from markdown body,
-    content: s.string() // from markdown body
+    excerpt: postContent.excerpt(), // static pre-transform source text
+    content: postContent.html() // transformed HTML
   })
 })
 ```
@@ -191,6 +194,8 @@ The file loaders. You can use it to load files that are not supported by Velite.
 - Type: `MarkdownOptions`, See [MarkdownOptions](types.md#markdownoptions)
 
 Global Markdown options.
+
+These defaults apply to `content.markdown()` definitions. Scalars resolve as `definition option ?? global option ?? built-in default`; definition-local plugins precede global plugins within each phase, preserving ordinary Unified registration semantics. Definition options belong on `content.markdown(options)`, not on `.html()` / `.toc()` / `.metadata()` selections. See [Content Definitions](../guide/content-executions.md#configuration).
 
 ### `markdown.gfm`
 
@@ -233,6 +238,8 @@ Rehype plugins.
 
 Global MDX options.
 
+These defaults apply to `content.mdx()` definitions with the same scalar precedence and local-before-global plugin order. Only the documented fields are supported, not arbitrary MDX compiler-option passthrough.
+
 ### `mdx.gfm`
 
 - Type: `boolean`
@@ -245,7 +252,7 @@ Enable GitHub Flavored Markdown (GFM).
 - Type: `boolean`
 - Default: `true`
 
-Remove html comments.
+Remove MDX expression block comments without removing surrounding content.
 
 ### `mdx.copyLinkedFiles`
 
@@ -254,7 +261,33 @@ Remove html comments.
 
 Copy linked files to public path and replace their urls with public urls.
 
-More options, see [MDX Compile Options](https://mdxjs.com/packages/mdx/#compileoptions).
+### `mdx.remarkPlugins` / `mdx.rehypePlugins` / `mdx.recmaPlugins`
+
+- Type: `PluggableList`
+- Default: `[]`
+
+User registrations for each phase. Complete Transform includes recma even for TOC-only requests; navigation is withheld if a later recma plugin fails.
+
+### `mdx.minify`
+
+- Type: `boolean`
+- Default: `true`
+
+Minify emitted JavaScript with Terser. TOC-only and source-only selections do not serialize or minify.
+
+### `mdx.outputFormat`
+
+- Type: `'program' | 'function-body'`
+- Default: `'function-body'`
+
+The compiled JavaScript output format.
+
+### `mdx.development`
+
+- Type: `boolean`
+- Default: `false`
+
+Use development MDX compilation.
 
 ## `prepare`
 

@@ -26,31 +26,32 @@ Velite — a tool that turns Markdown / MDX, YAML, JSON into a type-safe data la
 
 The core library is runtime-agnostic; all I/O and platform APIs live behind ports in `src/runtime/`, adapted per platform.
 
-| Path                     | Role                                                                                                                                                                                                                |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`               | Public API barrel + `build()`/`watch()`/`builder()` facades (wires default Node adapters via DI)                                                                                                                    |
-| `cli.ts`                 | CLI entry (`velite build` / `velite dev`); delegates to the public facades                                                                                                                                          |
-| `core/builder.ts`        | **Composition root** — `createBuilder(deps)` assembles config + loaders + pipeline + engine + driver into a `Builder`; owns watch state + mutex                                                                     |
-| `core/config.ts`         | Config types, `defineConfig`/`defineCollection`, `resolveConfig` (jiti load, up to 3 parent dirs, defaults)                                                                                                         |
-| `core/diagnostic.ts`     | `Diagnostic`, `VeliteError`, `fail()`, `assert()`, `hasFatalDiagnostic`, `codeFromDiagnostics`                                                                                                                      |
-| `core/driver.ts`         | Build-time orchestration: `RunContext`, two-pass asset emit, `prepare` hook, incremental patching, `applyChanges` (watch)                                                                                           |
-| `core/scheduler.ts`      | Debounced serial rebuild queue for watch mode                                                                                                                                                                       |
-| `core/classify.ts`       | Route a `FileEvent` to `config` / `content` / `ignore`                                                                                                                                                              |
-| `core/model.ts`          | Shared domain vocabulary: `Source`, `Collection`, `Entry`, `RawEntry`, `CollectionResult`                                                                                                                           |
-| `core/index.ts`          | Core barrel (re-exports only what cross-module callers need)                                                                                                                                                        |
-| `core/content/`          | Markdown/MDX processing (no I/O): `processMarkdown`, `processMdx`, `rehypeCopyLinkedFiles`, mdast helpers                                                                                                           |
-| `core/engine/`           | Incremental memoized derivation graph: `createEngine`, dependency tracking, staleness, in-flight dedup, `EngineError` (cycle/missing-input)                                                                         |
-| `core/loader/`           | Source loaders (pure): `json`, `yaml`, `matter` (frontmatter); `createLoaderRegistry` (custom-first); `defineLoader`                                                                                                |
-| `core/output/`           | Output planning + writer: `LogicalOutput`, `planWrites` (single/split), `writeOutput` (hash + skip-unchanged + stale cleanup), `OutputManifest`, type declaration                                                   |
-| `core/pipeline/`         | Derivation graph (the core computation): `createPipeline` composing `sources`→`load`→`validate`→`collect`→`uniqueCheck`→`emit` + `asset` derivation                                                                 |
-| `core/schema/`           | Schema namespace `s` (zod + builtins), `context()` + `SchemaContext`, effects model, built-in schemas: `file`, `image`, `markdown`, `mdx`, `slug`, `toc`, `excerpt`, `metadata`, `path`, `raw`, `isoDate`, `unique` |
-| `core/util/`             | Pure helpers (no `node:*`): posix `path`, FNV-1a `hash`, `glob` matcher, identity, bounded `pool`                                                                                                                   |
-| `runtime/`               | Runtime ports: `FileSystem`, `ImageProcessor`, `Logger`, `ModuleLoader`, `Watcher`, `ContextStorage`; `createContext` ambient-value accessor                                                                        |
-| `runtime/adapters/node/` | Node adapters: `node:fs`+tinyglobby, sharp (lazy), jiti modules, chokidar watcher, `AsyncLocalStorage` context — the only place `node:*`/native imports live                                                        |
+| Path                     | Role                                                                                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`               | Public API barrel + `build()`/`watch()`/`builder()` facades (wires default Node adapters via DI)                                                                  |
+| `cli.ts`                 | CLI entry (`velite build` / `velite dev`); delegates to the public facades                                                                                        |
+| `core/builder.ts`        | **Composition root** — `createBuilder(deps)` assembles config + loaders + pipeline + engine + driver into a `Builder`; owns watch state + mutex                   |
+| `core/config.ts`         | Config types, `defineConfig`/`defineCollection`, `resolveConfig` (jiti load, up to 3 parent dirs, defaults)                                                       |
+| `core/diagnostic.ts`     | `Diagnostic`, `VeliteError`, `fail()`, `assert()`, `hasFatalDiagnostic`, `codeFromDiagnostics`                                                                    |
+| `core/driver.ts`         | Build-time orchestration: `RunContext`, two-pass asset emit, `prepare` hook, incremental patching, `applyChanges` (watch)                                         |
+| `core/scheduler.ts`      | Debounced serial rebuild queue for watch mode                                                                                                                     |
+| `core/classify.ts`       | Route a `FileEvent` to `config` / `content` / `ignore`                                                                                                            |
+| `core/model.ts`          | Shared domain vocabulary: `Source`, `Collection`, `Entry`, `RawEntry`, `CollectionResult`                                                                         |
+| `core/index.ts`          | Core barrel (re-exports only what cross-module callers need)                                                                                                      |
+| `core/content/`          | Record-owned Parse/Transform/Emit executions, Markdown/MDX adapters, bounded source/navigation snapshots, and actual heading anchors                              |
+| `core/engine/`           | Incremental memoized derivation graph: `createEngine`, dependency tracking, staleness, in-flight dedup, `EngineError` (cycle/missing-input)                       |
+| `core/loader/`           | Source loaders (pure): `json`, `yaml`, `matter` (frontmatter); `createLoaderRegistry` (custom-first); `defineLoader`                                              |
+| `core/output/`           | Output planning + writer: `LogicalOutput`, `planWrites` (single/split), `writeOutput` (hash + skip-unchanged + stale cleanup), `OutputManifest`, type declaration |
+| `core/pipeline/`         | Derivation graph (the core computation): `createPipeline` composing `sources`→`load`→`validate`→`collect`→`uniqueCheck`→`emit` + `asset` derivation               |
+| `core/schema/`           | Zod namespace `s`, separate `content` definitions/result schemas, eight-field `context()`, effects; `file`, `image`, `slug`, `path`, `raw`, `isoDate`, `unique`   |
+| `core/util/`             | Pure helpers (no `node:*`): posix `path`, FNV-1a `hash`, `glob` matcher, identity, bounded `pool`                                                                 |
+| `runtime/`               | Runtime ports: `FileSystem`, `ImageProcessor`, `Logger`, `ModuleLoader`, `Watcher`, `ContextStorage`; `createContext` ambient-value accessor                      |
+| `runtime/adapters/node/` | Node adapters: `node:fs`+tinyglobby, sharp (lazy), jiti modules, chokidar watcher, `AsyncLocalStorage` context — the only place `node:*`/native imports live      |
 
 ## Key patterns
 
 - `s` is the extended Zod namespace (`src/core/schema/s.ts`) — re-exports all of `zod` plus custom schemas
+- `content.markdown()` / `content.mdx()` create definitions, not Zod schemas; finite methods return result schemas. Reuse one definition and exact selected input within a record for shared execution
 - User config files (`velite.config.{js,ts,mjs,mts,cjs,cts}`) are loaded with **jiti** at runtime (`src/core/config.ts`), not bundled with tsdown
 - Config is searched up to 3 parent directories from cwd (`src/core/config.ts`)
 - Default content root: `content/`, default output: `.velite/` (data) + `public/static/` (assets)
@@ -65,10 +66,12 @@ The core library is runtime-agnostic; all I/O and platform APIs live behind port
 ## Module organization
 
 - For source architecture changes, read `.agents/knowledge/module-architecture.md` first. It covers factory DI rules, composition roots, allowed direct exports, and prohibited patterns in one place.
+- For content APIs, source selections, heading navigation, or plugin ownership, read `adr/0001-share-semantic-content-results.md` and `adr/0002-content-definition-and-anchor-contract.md`. They define the implemented execution/value contract; active ownership guidance is in `.agents/knowledge/module-architecture.md`.
 - Dependency-bearing modules, stateful modules, lifecycle-managed modules, runtime adapters, and composition modules must use explicit factory DI. Dependencies must be visible, typed, and wired at a composition root.
 - Do not introduce IoC containers, service locators, decorator injection, runtime auto-registration, or hidden singleton services unless explicitly requested.
 - Do not force factory wrappers onto pure functions, type-only modules, constants, error classes, schema builders, identity helpers, or public facade functions unless they gain external dependencies, lifecycle state, or a replaceable capability boundary.
 - For the `context()` ambient accessor (the one allowed exception), see `.agents/knowledge/schema-context.md`.
+- For schema Promise abandonment or runner runtime wiring, read `adr/0003-observe-scoped-schema-promises.md`: the separately injected private runtime observer is authorized; public context/exports remain unchanged.
 
 ## Code style
 

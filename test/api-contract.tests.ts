@@ -1,4 +1,4 @@
-import { equal, ok, strictEqual } from 'node:assert'
+import { deepEqual, equal, ok, strictEqual } from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -11,29 +11,52 @@ import * as velite from '../src/index'
 const exec = promisify(execFile)
 
 test('api: exports the public surface', () => {
-  const names = ['build', 'watch', 'builder', 's', 'defineConfig', 'defineCollection']
+  const names = ['build', 'watch', 'builder', 's', 'content', 'context', 'defineConfig', 'defineCollection', 'defineLoader', 'defineSchema']
   for (const name of names) {
     ok(typeof (velite as Record<string, unknown>)[name] !== 'undefined', `missing export: ${name}`)
   }
   // createBuilder must NOT be a root export (Ticket 21).
   equal((velite as Record<string, unknown>).createBuilder, undefined, 'createBuilder must not be a root export')
-  // Top-level s.toc / s.excerpt / s.metadata are removed; use root methods.
+})
+
+test('api: content exports finite definitions, not legacy schema roots or standalone selections', () => {
+  deepEqual(Reflect.ownKeys(velite.content).sort(), ['markdown', 'mdx'])
+  equal(typeof velite.content.markdown, 'function')
+  equal(typeof velite.content.mdx, 'function')
+  const markdown = velite.content.markdown()
+  const mdx = velite.content.mdx()
+  deepEqual(Reflect.ownKeys(markdown).sort(), ['excerpt', 'html', 'metadata', 'toc'])
+  deepEqual(Reflect.ownKeys(mdx).sort(), ['code', 'excerpt', 'metadata', 'toc'])
+  for (const definition of [markdown, mdx]) {
+    for (const name of ['parse', 'parseAsync', 'safeParseAsync', 'optional', 'transform', 'project', 'close']) {
+      equal((definition as unknown as Record<string, unknown>)[name], undefined, `a definition must not expose ${name}`)
+    }
+  }
+
   const s = velite.s as Record<string, unknown>
-  equal(s.toc, undefined, 's.toc must not be a root projection (use s.markdown().toc() / s.mdx().toc())')
-  equal(s.excerpt, undefined, 's.excerpt must not be a root projection (use s.markdown().excerpt() / s.mdx().excerpt())')
-  equal(s.metadata, undefined, 's.metadata must not be a root projection (use s.markdown().metadata() / s.mdx().metadata())')
-  ok(typeof s.markdown === 'function', 's.markdown is a function (the dialect root)')
-  ok(typeof s.mdx === 'function', 's.mdx is a function (the dialect root)')
-  const mdRoot = (s.markdown as () => { toc(): unknown; excerpt(): unknown; metadata(): unknown })()
-  ok(typeof mdRoot.toc === 'function', 's.markdown() root exposes .toc()')
-  ok(typeof mdRoot.excerpt === 'function', 's.markdown() root exposes .excerpt()')
-  ok(typeof mdRoot.metadata === 'function', 's.markdown() root exposes .metadata()')
-  const mdxRoot = (s.mdx as () => { toc(): unknown; excerpt(): unknown; metadata(): unknown })()
-  ok(typeof mdxRoot.toc === 'function', 's.mdx() root exposes .toc()')
-  ok(typeof mdxRoot.excerpt === 'function', 's.mdx() root exposes .excerpt()')
-  ok(typeof mdxRoot.metadata === 'function', 's.mdx() root exposes .metadata()')
-  // T2.3: record-scoped content derivation internal types must NOT be exported.
-  const internalTypes = [
+  for (const name of ['markdown', 'mdx', 'toc', 'excerpt', 'metadata', 'content']) {
+    equal(s[name], undefined, `legacy s.${name} must not be exported`)
+    ok(!Object.hasOwn(s, name), `s must not retain an own ${name} property`)
+  }
+  for (const name of [
+    'markdown',
+    'mdx',
+    'toc',
+    'excerpt',
+    'metadata',
+    'original',
+    'MarkdownRoot',
+    'MdxRoot',
+    'MarkdownSchemaOptions',
+    'MdxSchemaOptions',
+    'TocOptions'
+  ]) {
+    equal((velite as Record<string, unknown>)[name], undefined, `legacy root export must be absent: ${name}`)
+  }
+})
+
+test('api: internal content execution machinery remains private', () => {
+  const internals = [
     'PristineArtifact',
     'VFileSeed',
     'ParseMessageSeed',
@@ -48,10 +71,37 @@ test('api: exports the public surface', () => {
     'OpaqueBranchTree',
     'RecordScope',
     'DialectAdapterPair',
-    'BrokerFactoryDeps'
+    'BrokerFactoryDeps',
+    'ContentResult',
+    'ContentDefinitionDescriptor',
+    'SemanticContentRequest',
+    'ContentStageScope',
+    'ContentExecutionsDeps',
+    'ContentExecutionsFactory',
+    'ContentRecordScope',
+    'RecordContent',
+    'RecordContentCapability',
+    'ContentRequest',
+    'SchemaContextHost',
+    'SchemaRunContext',
+    'ContentPromise',
+    'PromiseObserver',
+    'NodePromiseObserver',
+    'NodePromiseObserverDeps',
+    'SchemaRunnerDeps',
+    'createNodePromiseObserver',
+    'createContentExecutionsFactory',
+    'createDefaultContentExecutionsFactory',
+    'createMarkdownExecution',
+    'createMdxExecution',
+    'createOwnedProcessor',
+    'createSchemaRunner',
+    'installSchemaContextHost',
+    'schemaContextHost',
+    'contentContext'
   ]
-  for (const name of internalTypes) {
-    equal((velite as Record<string, unknown>)[name], undefined, `root package must not export internal derivation type: ${name}`)
+  for (const name of internals) {
+    equal((velite as Record<string, unknown>)[name], undefined, `root package must not export internal content machinery: ${name}`)
   }
 })
 

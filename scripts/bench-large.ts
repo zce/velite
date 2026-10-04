@@ -119,7 +119,10 @@ MDX builds are more expensive than plain markdown because they compile into exec
 const writeFixture = async (root: string, docs: number, assets: number): Promise<{ changedDoc: string }> => {
   await writeFile(
     join(root, 'velite.config.ts'),
-    `import { defineConfig, s } from 'velite'
+    `import { content, defineConfig, s } from 'velite'
+
+const guideContent = content.markdown()
+const pageContent = content.mdx()
 
 export default defineConfig({
   root: 'content',
@@ -129,9 +132,9 @@ export default defineConfig({
       schema: s.object({
         title: s.string(),
         asset: s.file(),
-        html: s.markdown(),
-        toc: s.markdown().toc(),
-        excerpt: s.markdown().excerpt()
+        html: guideContent.html(),
+        toc: guideContent.toc(),
+        excerpt: guideContent.excerpt()
       })
     },
     pages: {
@@ -139,9 +142,9 @@ export default defineConfig({
       schema: s.object({
         title: s.string(),
         asset: s.file(),
-        code: s.mdx(),
-        toc: s.mdx().toc(),
-        excerpt: s.mdx().excerpt()
+        code: pageContent.code(),
+        toc: pageContent.toc(),
+        excerpt: pageContent.excerpt()
       })
     }
   }

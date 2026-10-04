@@ -54,7 +54,7 @@ export const rehypeCopyLinkedFiles: Plugin<[ProcessAsset], Hast> =
         if (publicUrl === url) return
         for (const node of elements) {
           for (const name of LINKED_PROPERTIES) {
-            if (name in node.properties) node.properties[name] = publicUrl
+            if (node.properties[name] === url) node.properties[name] = publicUrl
           }
         }
       })
@@ -82,7 +82,7 @@ export const remarkCopyLinkedFiles: Plugin<[ProcessAsset], Mdast> =
         links.set(withUrl.url, nodes)
       }
     })
-    visit(tree, 'mdxJsxFlowElement' as never, node => {
+    visit(tree, ['mdxJsxFlowElement', 'mdxJsxTextElement'] as never, node => {
       const jsx = node as unknown as MdxJsx
       for (const attr of jsx.attributes ?? []) {
         if (LINKED_PROPERTIES.includes(attr.name) && typeof attr.value === 'string' && isRelativePath(attr.value)) {

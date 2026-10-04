@@ -38,10 +38,10 @@ Don't use `require()` to import it, and make sure your nearest `package.json` co
 Create a `velite.config.js` file in the root directory of your project to define collections config:
 
 ```js
-import { defineConfig, s } from 'velite'
+import { content, defineConfig, s } from 'velite'
 
-// `s` is extended from Zod with some custom schemas,
-// you can also import re-exported `z` from `velite` if you don't need these extension schemas.
+// Reuse this definition for related results from the same selected body.
+const postContent = content.markdown()
 
 export default defineConfig({
   collections: {
@@ -56,9 +56,9 @@ export default defineConfig({
           date: s.isoDate(), // input Date-like string, output ISO Date string.
           cover: s.image(), // input image relative path, output image object with blurImage.
           video: s.file().optional(), // input file relative path, output file public path.
-          metadata: s.metadata(), // extract markdown reading-time, word-count, etc.
-          excerpt: s.excerpt(), // excerpt of markdown content
-          content: s.markdown() // transform markdown to html
+          metadata: postContent.metadata(), // source reading time and weighted word count
+          excerpt: postContent.excerpt(), // static pre-transform source text
+          content: postContent.html() // transform markdown to html
         })
         // more additional fields (computed fields)
         .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
@@ -71,6 +71,8 @@ export default defineConfig({
 ```
 
 For more information about Velite extended field schemas, see [Velite Schemas](velite-schemas.md).
+
+`content.markdown()` creates a definition, not a schema. Its methods return ordinary Zod schemas. Reusing the same definition and selected text within one record shares processing; equal-looking separate definitions do not. For MDX, use `content.mdx()` and its `.code()` method. See [Content Definitions](content-executions.md).
 
 ::: tip
 

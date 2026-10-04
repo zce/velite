@@ -7,6 +7,10 @@ Type: grilling
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+The current contract is [ADR 0001](../../../../adr/0001-share-semantic-content-results.md) plus [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md). Same-definition/exact-selected-string/record-attempt identity and fixed-stage success/rejection reuse replace structural profile normalization, root-reference-irrelevant equality, pristine-only memoization, and branch materialization. A later higher demand continues one owned processor; stage failures have the specified dependent selections. Record-local lifetime, no automatic retry, terminal/idempotent close, harmless late settlement, new-epoch isolation, and separate outer validation memoization remain. Original algorithms/prototype evidence are retained as history; unrelated publication rules are not changed.
+
 ## Question
 
 How are reusable content computations keyed, scoped, invalidated, awaited, cloned, and released across fields, records, rebuilds, configuration changes, and concurrent async schema evaluation?

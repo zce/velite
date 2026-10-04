@@ -7,6 +7,10 @@ Type: grilling
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+For content processing only, [ADR 0001](../../../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md) replace per-demand immutable branch outcomes and pristine-only failure retention with controlled stage journals, shared stage success/rejection, and execution-owned warning provenance. Failed stages discard declarations; successful stages make them eligible once, not once per consumer or under a first field's ownership. Ordinary field-local Zod recovery must not be defeated by a duplicate fatal side channel. Invalid-record discard, symmetric cross-record validation, truthful canonical provenance, and existing build/publication gates remain. This notice leaves diagnostic value normalization, prepare, strict, generation, and publication decisions and the original reasoning intact.
+
 ## Question
 
 How should asset collection, other processing effects, diagnostics, cancellation, and partial failures behave when multiple derivations share or branch processing work?

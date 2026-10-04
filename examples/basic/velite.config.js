@@ -2,7 +2,10 @@
 
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
-import { context, defineConfig, s } from 'velite'
+import { content, context, defineConfig, s } from 'velite'
+
+const postContent = content.markdown()
+const pageContent = content.mdx()
 
 const slugify = (/** @type {string} */ input) =>
   input
@@ -86,7 +89,7 @@ export default defineConfig({
         .object({
           title: s.string().max(99),
           slug: s.slug(),
-          body: s.mdx(),
+          body: pageContent.code(),
           raw: s.raw()
         })
         .transform(data => ({ ...data, permalink: `/${data.slug}`, basename: context().file.path.split(/[\\/]/).pop() }))
@@ -108,10 +111,10 @@ export default defineConfig({
           categories: s.array(s.string()).default(['Journal']),
           tags: s.array(s.string()).default([]),
           meta: meta,
-          toc: s.markdown().toc(),
-          metadata: s.markdown().metadata(),
-          excerpt: s.markdown().excerpt(),
-          content: s.markdown()
+          toc: postContent.toc(),
+          metadata: postContent.metadata(),
+          excerpt: postContent.excerpt(),
+          content: postContent.html()
         })
         .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
     }

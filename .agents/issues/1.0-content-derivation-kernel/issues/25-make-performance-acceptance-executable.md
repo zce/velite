@@ -7,6 +7,10 @@ Blocked by: 02, 10, 20, 24
 
 ---
 
+## Content contract supersession (2026-10-01)
+
+For the current content scope, [ADR 0001](../../../../adr/0001-share-semantic-content-results.md), [ADR 0002](../../../../adr/0002-content-definition-and-anchor-contract.md), and the [semantic-content spec](../../1.0-semantic-content-execution/spec.md) supersede profile/pristine/branch witnesses, candidate hybrid-root adapters, source-only TOC counters/values, and their content-only reduction gates throughout this answer and later evidence definitions. Use observable definition identity, Parse/complete Transform/Emit reuse, actual anchors, native plugin continuation, detached values, close/isolation, and representative cost/retention evidence instead. The new scope does not require this broader evidence-protocol/bundle infrastructure or content codemods. Preserve all original protocol rationale and unrelated generation/publication/lifecycle contracts; they are neither deleted, superseded, nor reapproved by this content notice.
+
 ## Question
 
 What fixed comparison baseline, cross-version fixture adapter, dependency policy, and exact formulas make every 1.0 numeric performance gate executable once the public schema surface changes?

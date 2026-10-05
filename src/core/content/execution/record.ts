@@ -114,6 +114,7 @@ export const createContentExecutionsFactory = ({ host, markdown, mdx }: ContentE
       if (execution === undefined) {
         const processAsset = definition.options.copyLinkedFiles
           ? async (url: string): Promise<string> => {
+              active()
               const assetPath = join(dirname(scope.file.path), stripQueryAndHash(url))
               const result = await host.get().publicContext.asset(assetKeyOf(assetPath, scope.project.root), { metadata: false })
               collectEffect({ type: 'asset', owner: scope.record.id, assetPath, publicUrl: result.publicUrl, resolved: result.resolved, isImage: false })

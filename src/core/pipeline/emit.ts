@@ -53,8 +53,8 @@ const uniqueCandidates = (config: ResolvedConfig, effects: readonly Effect[], co
  * `emit()` → the complete LogicalOutput across all collections (the build's root
  * derivation). Demanding this drives the whole pipeline. Aggregates effects from
  * every collection; the driver consumes asset-reference effects to feed asset
- * bytes in pass 2. Also demands `uniqueCheck` so cross-file uniqueness conflicts
- * surface as diagnostics on every emit (full and incremental).
+ * bytes in pass 2. Filters conflicting candidates before applying singleton
+ * cardinality and selection on every emit (full and incremental).
  */
 export const createEmitDerivation = (
   config: ResolvedConfig,
@@ -76,8 +76,29 @@ export const createEmitDerivation = (
     }
     const checked = uniqueCandidates(config, effects, collectionByOwner)
     diagnostics.push(...checked.diagnostics)
-    for (const [name, collection] of Object.entries(collections))
-      collections[name] = { ...collection, entries: collection.entries.filter(entry => !checked.invalid.has(ownerKey(name, entry.id))) }
+    for (const [name, collection] of Object.entries(collections)) {
+      const entries = collection.entries.filter(entry => !checked.invalid.has(ownerKey(name, entry.id)))
+      const single = collection.mode === 'single'
+      if (single) {
+        const collectionOrder = config.collections.findIndex(c => c.name === name)
+        if (entries.length === 0) {
+          diagnostics.push(
+            diagnostic('error', 'COLLECTION_EMPTY', `single collection "${name}" matched no valid entry`, {
+              stage: 'schema',
+              provenance: { scope: 'collection', collection: { order: collectionOrder, id: name } }
+            })
+          )
+        } else if (entries.length > 1) {
+          diagnostics.push(
+            diagnostic('warn', 'COLLECTION_MULTIPLE', `single collection "${name}" matched ${entries.length} entries; using the first`, {
+              stage: 'schema',
+              provenance: { scope: 'collection', collection: { order: collectionOrder, id: name } }
+            })
+          )
+        }
+      }
+      collections[name] = { ...collection, entries: single ? entries.slice(0, 1) : entries }
+    }
     return {
       output: { collections },
       effects: effects.filter(effect => !checked.invalid.has(ownerKey(effect.system?.collectionId ?? collectionByOwner.get(effect.owner) ?? '', effect.owner))),

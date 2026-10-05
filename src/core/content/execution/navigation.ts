@@ -34,6 +34,16 @@ export const anchorBase = (title: string): string => {
 
 const isJsx = (node: NavigationNode): boolean => node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement'
 
+const hasRuntimeChildren = (node: NavigationNode): boolean =>
+  (node.attributes ?? []).some(
+    attr =>
+      attr.type === 'mdxJsxExpressionAttribute' ||
+      (attr.name === 'children' &&
+        attr.value !== null &&
+        typeof attr.value === 'object' &&
+        (attr.value as { type?: string }).type === 'mdxJsxAttributeValueExpression')
+  )
+
 const staticTitle = (node: NavigationNode): string | undefined => {
   const fragments: string[] = []
   let determined = true
@@ -43,7 +53,7 @@ const staticTitle = (node: NavigationNode): string | undefined => {
     else if (
       value.type === 'mdxFlowExpression' ||
       value.type === 'mdxTextExpression' ||
-      (isJsx(value) && value.name != null && !/^[a-z][a-z\d-]*$/.test(value.name))
+      (isJsx(value) && (hasRuntimeChildren(value) || (value.name != null && !/^[a-z][a-z\d-]*$/.test(value.name))))
     )
       determined = false
     else if (value.type !== 'comment' && value.type !== 'mdxjsEsm') for (const child of value.children ?? []) collect(child)
@@ -100,7 +110,7 @@ export const captureNavigation = (tree: NavigationNode): NavigationSnapshot => {
     if (!/^h[1-6]$/.test(tag ?? '')) continue
     const title = staticTitle(node)
     if (title === undefined || target.dynamic) {
-      limitations.push(`Cannot statically determine navigation for <${tag}>: ${title === undefined ? 'title' : 'target'}`)
+      limitations.push(`Cannot statically determine navigation for <${tag}>: ${target.dynamic ? 'target' : 'title'}`)
       continue
     }
     let id = target.id as string | undefined | null

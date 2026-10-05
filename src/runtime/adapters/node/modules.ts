@@ -17,7 +17,7 @@ export interface JitiModuleLoaderDeps {
 
 export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import.meta.url }: JitiModuleLoaderDeps = {}): ModuleLoader => {
   const nativeCache = createRequire(baseUrl).cache
-  let nativeDependencies = new Map<string, Module>()
+  let nativeDependencies = new Set<Module>()
   const createLoader = (): ReturnType<typeof createJiti> =>
     createJiti(baseUrl, {
       interopDefault: true,
@@ -40,10 +40,23 @@ export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import
       const jiti = createLoader()
       // Only previously observed local config imports are invalidated. Keep
       // installed packages' native identity and never purge the global cache.
-      for (const [dependency, observed] of nativeDependencies) {
+      for (const observed of nativeDependencies) {
+        const dependency = observed.filename
         if (!/[\\/]node_modules[\\/]/.test(dependency) && nativeCache[dependency] === observed) delete nativeCache[dependency]
       }
-      const observedNative = new Map<string, Module>()
+      const observedNative = new Set<Module>()
+      const rememberNative = (module: Module): void => {
+        if (observedNative.has(module)) return
+        const { filename } = module
+        // A used child can outlive its cache entry. Watch its filename, but keep
+        // every consumed identity: an old child must not replace a fresh one,
+        // and invalidation must not evict another caller's unconsumed entry.
+        observedNative.add(module)
+        // Native CJS children include already-cached imports. Stay within local
+        // config dependencies, not an installed package's shared module graph.
+        if (/[\\/]node_modules[\\/]/.test(filename)) return
+        for (const child of module.children) rememberNative(child)
+      }
       // jiti publishes each evaluated Module into this supported per-load cache
       // before running it. Observe that Module's own public require/import calls,
       // including pre-cached JSON, rather than a process-wide cache time window.
@@ -57,7 +70,7 @@ export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import
               const path = resolved.startsWith('file:') ? fileURLToPath(resolved) : resolved
               if (cache[path]) return
               const native = nativeCache[path]
-              if (native) observedNative.set(path, native)
+              if (native) rememberNative(native)
             } catch {
               // Dependency observation must not change a successful import's outcome.
             }
@@ -83,7 +96,7 @@ export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import
         const namespace = await jiti.evalModule(await readFile(absPath, 'utf8'), { filename: absPath, async: true, forceTranspile: true, cache })
         // Same default-export policy as jiti.import(path, { default: true }).
         const exports = (namespace as { default?: unknown } | undefined)?.default ?? namespace
-        const dependencies = [...new Set([...Object.keys(cache), ...observedNative.keys()])]
+        const dependencies = [...new Set([...Object.keys(cache), ...Array.from(observedNative, module => module.filename)])]
         return { exports, dependencies }
       } finally {
         nativeDependencies = observedNative

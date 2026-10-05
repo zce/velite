@@ -89,6 +89,8 @@ const components = {
 
 For example, `<h2 id="details">Details</h2>` is static, but `<h2 id={'details'}>Details</h2>` and `<h2 {...props}>Details</h2>` have dynamic targets. `<h2>{title}</h2>` has a dynamic title. These expressions remain untouched, and their headings are omitted from TOC; Velite never executes them to guess a target or title. `<Heading>` is an unknown component, not an inferred heading.
 
+A runtime-dependent intrinsic descendant can also make the complete title unknown: `<h1>Known <span {...runtimeProps} /></h1>` is omitted rather than reported as the partial title `Known`. By contrast, `<h1>Known <span>More</span></h1>` has the static title `Known More`. Attributes are not another source of title text. Limitation warnings are emitted once per execution only when TOC is requested, including after code has already completed. Legal known heading IDs remain preserved and reserved even when the title is unknown.
+
 ## Native wrappers and conditional derivation
 
 Result schemas retain native Zod behavior. `.optional()` is **not** a body-presence policy or a zero-work guarantee: an inner transform can receive `undefined` and request body processing even when an outer wrapper returns `undefined` or suppresses its issues. Actual inner requests, not the final retained value, determine work. Defaults, unions, refinements, and custom schemas do not introduce a separate Velite scheduler.
@@ -137,3 +139,5 @@ Every TOC delivery has a fresh detached array and item objects; metadata objects
 Velite-owned effect declarations are buffered by stage. A failed stage discards its declarations; a successful stage makes them eligible once per execution, regardless of the number or order of consumers. Eligibility is **not commitment**: invalid records discard all sibling effects, and valid candidates still pass cross-record validation and build-publication gates. Recovery can preserve successful lower-stage effects, never failed-stage effects. A wrapper discarding a result does not undo work already requested.
 
 Direct plugin filesystem, network, and other external I/O cannot be rolled back. Source-only requests skip returned transformers and emission, but plugin initialization can still run attachers. TOC-only processing runs transformations and asset resolution even though it skips serialization/minification. Record completion closes the execution; captured capabilities are not usable later.
+
+Built-in linked-asset processing checks the active record, schema lease and stage before starting controlled asset work. After terminal close it cannot start another asset demand, read or probe. An I/O operation already started while active may still settle; its late result cannot promote a declaration. This is a terminal fence, not cancellation of already-started I/O or revocation of independently retained plugin references.

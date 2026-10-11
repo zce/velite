@@ -24,6 +24,15 @@ interface NativeObservation {
 const childrenObservation = Symbol('config children observation')
 const cacheObservation = Symbol('config cache observation')
 
+// A Module is appended to its parent's children before its constructor
+// initializes filename and children; its id is already the actual resolved
+// native filename.
+const nativeFilename = (module: Module): string => module.filename || module.id
+
+// Native CJS dependencies of a local configuration stay within the project,
+// not an installed package's shared module graph.
+const isInstalledPath = (filename: string): boolean => /[\\/]node_modules[\\/]/.test(filename)
+
 /**
  * Node's CJS loader internals are not part of the public type surface. These
  * boundaries type only the members the adapter interposes on, with the exact
@@ -47,7 +56,7 @@ interface NativeLoadObserver {
   consuming: (module: Module) => void
   inScope: () => boolean
   inExcluded: () => boolean
-  excludeSubtree: () => (run: () => unknown) => unknown
+  excludeSubtree: (run: () => unknown) => unknown
   observeParent: (parent: Module | null | undefined) => () => void
 }
 
@@ -104,9 +113,9 @@ const installNativeLoadObserver = (observer: NativeLoadObserver): (() => void) =
             break
           }
         if (!owner) return Reflect.apply(originalLoad, Module, [request, parent, isMain])
-        const parentFilename = parent && (parent.filename || parent.id)
-        const excludedSubtree = owner.inExcluded() || (typeof parentFilename === 'string' && /[\\/]node_modules[\\/]/.test(parentFilename))
-        if (excludedSubtree) return owner.excludeSubtree()(() => Reflect.apply(originalLoad, Module, [request, parent, isMain]))
+        const parentFilename = parent ? nativeFilename(parent) : undefined
+        const excludedSubtree = owner.inExcluded() || (parentFilename !== undefined && isInstalledPath(parentFilename))
+        if (excludedSubtree) return owner.excludeSubtree(() => Reflect.apply(originalLoad, Module, [request, parent, isMain]))
         // Both a cache hit and a new module are appended to the actual parent's
         // children before this call returns. Observing that real insertion
         // captures the consumed Module — including Node's same-directory fast
@@ -201,7 +210,7 @@ const observeChildren = (module: Module, listener: NativeListener): (() => void)
       // Node does not append a cached child twice. Observe actual cache reads
       // for the already-known direct children during this native require; new
       // children are captured by insertion. No second resolver or source guess.
-      const filenames = new Set((thisArg.children ?? []).map(child => child.filename || child.id))
+      const filenames = new Set((thisArg.children ?? []).map(nativeFilename))
       for (const listener of observation.listeners)
         if (listener.active()) for (const filename of filenames) releases.push(observeCacheSlot(listener.cache, filename, listener))
       try {
@@ -292,7 +301,7 @@ export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import
       // installed packages' native identity and never purge the global cache.
       for (const observed of nativeDependencies) {
         const dependency = observed.filename
-        if (!/[\\/]node_modules[\\/]/.test(dependency) && nativeCache[dependency] === observed) delete nativeCache[dependency]
+        if (!isInstalledPath(dependency) && nativeCache[dependency] === observed) delete nativeCache[dependency]
       }
       const observedNative = new Set<Module>()
       const scope = new AsyncLocalStorage<boolean>()
@@ -311,12 +320,7 @@ export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import
         // every consumed identity: an old child must not replace a fresh one,
         // and invalidation must not evict another caller's unconsumed entry.
         observedNative.add(module)
-        // A new child is appended before its constructor initializes filename
-        // and children. Its id is already the actual resolved native filename.
-        const filename = module.filename || module.id
-        // Native CJS children include already-cached imports. Stay within local
-        // config dependencies, not an installed package's shared module graph.
-        if (/[\\/]node_modules[\\/]/.test(filename)) return
+        if (isInstalledPath(nativeFilename(module))) return
         childrenSubscriptions.set(module, observeChildren(module, listener))
         for (const child of module.children ?? []) rememberNative(child)
       }
@@ -347,9 +351,9 @@ export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import
         consuming: module => rememberNative(module),
         inScope: () => scope.getStore() === true && !closed,
         inExcluded: () => excluded.getStore() === true,
-        excludeSubtree: () => run => excluded.run(true, run),
+        excludeSubtree: run => excluded.run(true, run),
         observeParent: parent => {
-          if (!parent || closed || scope.getStore() !== true || excluded.getStore() === true) return () => {}
+          if (!parent || !listener.active()) return () => {}
           const release = observeChildren(parent, listener)
           // A cache hit whose child is already on this owner appends nothing
           // new; modules consumed outside this evaluation stay unconsumed.
@@ -409,7 +413,7 @@ export const createJitiModuleLoader = ({ packageName = pkgName, baseUrl = import
         scope.disable()
         nativeDependencies = observedNative
       }
-      const dependencies = [...new Set([...Object.keys(cache), ...Array.from(observedNative, module => module.filename || module.id)])]
+      const dependencies = [...new Set([...Object.keys(cache), ...Array.from(observedNative, nativeFilename)])]
       return { exports, dependencies }
     }
   }

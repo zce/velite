@@ -2,7 +2,7 @@
 
 Status: accepted implementation contract for Velite 1.0, 2026-10-01. The user approved the `content.markdown` / `content.mdx` API baseline and Unicode anchor baseline; this decision completes their concrete types, options, and value rules. It does not claim these exports or methods exist in the current runtime, or approve an intermediate implementation for release.
 
-[ADR 0001](0001-share-semantic-content-results.md) chooses exclusively owned content executions and detached semantic results. This decision fixes the public contract that implements that architecture, rather than approving the earlier hybrid schema roots or profile-equivalence broker. Domain terms come from [`CONTEXT.md`](../CONTEXT.md); the unchanged [parent spec](../.agents/issues/1.0-semantic-content-execution/spec.md) remains the implementation scope. Read this decision before implementing or reviewing content APIs, input selection, source values, or heading navigation.
+[ADR 0001](0001-share-semantic-content-results.md) chooses exclusively owned content executions and detached semantic results. This decision fixes the public contract that implements that architecture, rather than approving the earlier hybrid schema roots or profile-equivalence broker. Domain terms come from [`CONTEXT.md`](../CONTEXT.md); the parent spec that scoped implementation was session-process material, removed once the work landed (git history retains it). Read this decision before implementing or reviewing content APIs, input selection, source values, or heading navigation.
 
 ## Public API (target, not an implemented example)
 
@@ -220,7 +220,7 @@ Automatic IDs depend on transformed titles, plugin output, document order, the r
 
 ## Source Analysis value oracle
 
-These rules inherit historical [Ticket 20](../.agents/issues/1.0-content-derivation-kernel/issues/20-finalize-the-built-in-projection-contract.md), sections “Static visible text,” “Excerpt,” and “Metadata.” They are normative here; its pristine/profile/root/source-TOC rules are not. Transitional helpers and pre-1.0 getters are not value oracles.
+These rules inherit the historical “Finalize the built-in projection contract” ticket (session-process material, retained in git history), sections “Static visible text,” “Excerpt,” and “Metadata.” They are normative here; its pristine/profile/root/source-TOC rules are not. Transitional helpers and pre-1.0 getters are not value oracles.
 
 ### Normalized static source text
 

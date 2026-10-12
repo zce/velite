@@ -66,12 +66,12 @@ The core library is runtime-agnostic; all I/O and platform APIs live behind port
 ## Module organization
 
 - For source architecture changes, read `.agents/knowledge/module-architecture.md` first. It covers factory DI rules, composition roots, allowed direct exports, and prohibited patterns in one place.
-- For content APIs, source selections, heading navigation, or plugin ownership, read `adr/0001-share-semantic-content-results.md` and `adr/0002-content-definition-and-anchor-contract.md`. They define the implemented execution/value contract; active ownership guidance is in `.agents/knowledge/module-architecture.md`.
+- For content APIs, source selections, heading navigation, or plugin ownership, read `.adr/0001-share-semantic-content-results.md` and `.adr/0002-content-definition-and-anchor-contract.md`. They define the implemented execution/value contract; active ownership guidance is in `.agents/knowledge/module-architecture.md`.
 - Dependency-bearing modules, stateful modules, lifecycle-managed modules, runtime adapters, and composition modules must use explicit factory DI. Dependencies must be visible, typed, and wired at a composition root.
 - Do not introduce IoC containers, service locators, decorator injection, runtime auto-registration, or hidden singleton services unless explicitly requested.
 - Do not force factory wrappers onto pure functions, type-only modules, constants, error classes, schema builders, identity helpers, or public facade functions unless they gain external dependencies, lifecycle state, or a replaceable capability boundary.
 - For the `context()` ambient accessor (the one allowed exception), see `.agents/knowledge/schema-context.md`.
-- For schema Promise abandonment or runner runtime wiring, read `adr/0003-observe-scoped-schema-promises.md`: the separately injected private runtime observer is authorized; public context/exports remain unchanged.
+- For schema Promise abandonment or runner runtime wiring, read `.adr/0003-observe-scoped-schema-promises.md`: the separately injected private runtime observer is authorized; public context/exports remain unchanged.
 
 ## Code style
 
@@ -104,9 +104,10 @@ pnpm test   # runs: node --import jiti/register --test test/**/*.tests.ts
 
 ## Session workspace
 
-- **Plans, intermediate notes, per-task reports** go under `.agents/sessions/YYYYMMDD-HHmm-{slug}/`.
+- **Plans, specs, tickets, intermediate notes, per-task reports** go under `.agents/sessions/YYYYMMDD-HHmm-{slug}/`.
 - **Save plans to:** `.agents/sessions/YYYYMMDD-HHmm-{slug}/plan.md` instead of the plugin or skill presets.
-- **Save specs to:** `.agents/sessions/YYYYMMDD-HHmm-{slug}/specs.md` instead of the plugin or skill presets.
+- **Save specs to:** `.agents/sessions/YYYYMMDD-HHmm-{slug}/spec.md` instead of the plugin or skill presets.
+- **Save tickets to:** `.agents/sessions/YYYYMMDD-HHmm-{slug}/tickets/NN-<slug>.md` instead of the plugin or skill presets.
 - Session subfolders are gitignored by default — never put long-lived conventions there; promote them to `.agents/knowledge/` instead.
 - Full rules: `.agents/AGENTS.md`
 
@@ -125,7 +126,7 @@ Skip if you are only passing through (e.g. a quick grep or single-file read).
 
 ### Issue tracker
 
-Issues live as local markdown files under `.agents/issues/<feature>/`. See `.agents/issue-tracker.md`.
+Issues are session-scoped: tickets live inside `.agents/sessions/<session>/tickets/`. See `.agents/issue-tracker.md`.
 
 ### Triage labels
 
@@ -133,4 +134,4 @@ Five default canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, 
 
 ### Domain docs
 
-Single-context: root `CONTEXT.md` + `adr/`. See `.agents/domain.md`.
+Single-context: root `CONTEXT.md` + `.adr/`. See `.agents/domain.md`.

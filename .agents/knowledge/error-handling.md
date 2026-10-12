@@ -14,14 +14,14 @@ Principle: **diagnostics ≠ throws.** Collect user-facing build issues as `Diag
 
 ## Content stage failures
 
-For content processing, recovery, or effect failure paths, read [ADR 0001](../../adr/0001-share-semantic-content-results.md) and [ADR 0002](../../adr/0002-content-definition-and-anchor-contract.md). These rules describe the implemented record-owned executions in `src/core/content/execution/`, not the superseded branch/seed path.
+For content processing, recovery, or effect failure paths, read [ADR 0001](../../.adr/0001-share-semantic-content-results.md) and [ADR 0002](../../.adr/0002-content-definition-and-anchor-contract.md). These rules describe the implemented record-owned executions in `src/core/content/execution/`, not the superseded branch/seed path.
 
 - Adapt ordinary content/plugin exceptions, invalid/conflicting explicit IDs, and failed processor stages into issues at each dependent requesting schema's normal Zod path. Retain the stage rejection without retry. Do not emit a second unconditional fatal diagnostic that defeats native `.catch()` recovery.
 - Parse failure affects all selections; complete Transform failure affects navigation/generated content; Emit failure affects generated content only. Keep earlier successful semantic results, including source selections after Transform failure and navigation after Emit failure. MDX navigation stays provisional until recma and the entire Transform succeed.
 - Shared warnings use record/content-execution provenance, never a first consumer's field. Repeated consumers do not duplicate them. Dynamic-heading capability warnings appear only when TOC is actually requested, including late requests. Preserve truthful message attribution; selected/transformed text without a source mapping gets no invented original-file coordinates.
 - Failed-stage declarations are discarded; successful-stage declarations become eligible once. Eligibility is not commitment: invalid records discard every sibling effect, and existing cross-record/build policy still gates valid candidates. Direct plugin I/O is outside rollback.
 - Directly throw `VeliteError('internal')` for internal invariants, recursive demands waiting on their own/ancestor pending work, missing/inactive leases, and use after close. Ordinary Zod fallback must not swallow those faults. Terminal close fences late settlement rather than reopening stages or journals.
-- Observe abandoned native schema Promise rejections through the private runtime capability authorized by [ADR 0003](../../adr/0003-observe-scoped-schema-promises.md), not a process rejection handler or a fallback conversion. Original outcomes and actual waiters remain unchanged; closing the lease still rejects late capability use.
+- Observe abandoned native schema Promise rejections through the private runtime capability authorized by [ADR 0003](../../.adr/0003-observe-scoped-schema-promises.md), not a process rejection handler or a fallback conversion. Original outcomes and actual waiters remain unchanged; closing the lease still rejects late capability use.
 - These rules replace branch-local failure/seed-compatibility assumptions only for content executions. They do not redefine unrelated diagnostic normalization, prepare, strict policy, or generation/publication contracts.
 
 ## VeliteError API

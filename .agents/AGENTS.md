@@ -2,37 +2,32 @@
 
 This directory is the central hub for AI-related artefacts for this repository. It is **not** part of the shipped codebase.
 
-## Three directories, three lifetimes
+## Two directories, two lifetimes
 
-| Directory    | Purpose                                                    | Lifetime           | Tracked in git?     |
-| ------------ | ---------------------------------------------------------- | ------------------ | ------------------- |
-| `knowledge/` | Stable conventions every session (human + AI) must follow  | Long-lived, edited | **Yes**             |
-| `issues/`    | Local issue tracker: feature specs + per-ticket files      | Long-lived         | **Yes**             |
-| `sessions/`  | Transient session artefacts: plans, scratch notes, reports | Per-session        | **No** (gitignored) |
+| Directory    | Purpose                                                   | Lifetime                       | Tracked in git?     |
+| ------------ | --------------------------------------------------------- | ------------------------------ | ------------------- |
+| `knowledge/` | Stable conventions every session (human + AI) must follow | Long-lived, edited             | **Yes**             |
+| `sessions/`  | Session workspaces: specs, tickets, plans, notes, reports | Per-session, frozen at handoff | **No** (gitignored) |
 
 If a finding is universal and reusable → it belongs in `knowledge/`.
-If it is "what we did this session" or "where we are right now" → it belongs in `sessions/`.
-If it is a work item or spec that must survive across sessions → it belongs in `issues/`.
+Everything else — specs, tickets, plans, notes, reports — belongs in `sessions/`. The repo keeps conclusions only; process artefacts live and die with sessions.
 
 ## Layout
 
 ```
 .agents/
 ├── AGENTS.md                          ← this file
-├── issue-tracker.md                   ← issue tracker config (local markdown)
+├── issue-tracker.md                   ← issue tracker config (session-scoped)
 ├── triage-labels.md                   ← triage label mapping
 ├── domain.md                          ← domain doc consumer rules
 ├── knowledge/                         ← stable, long-lived AI conventions (tracked)
 │   └── ...
-├── issues/                            ← local issue tracker (tracked)
-│   └── <feature-slug>/
-│       ├── map.md
-│       ├── spec.md
-│       └── issues/NN-<slug>.md
-└── sessions/                          ← transient per-session scratch (gitignored)
+└── sessions/                          ← session workspaces (gitignored)
     ├── .gitignore                     ← ignores session subfolders, tracks AGENTS.md
     └── YYYYMMDD-HHmm-{slug}/         ← one folder per session
         ├── plan.md
+        ├── spec.md                    ← the task's scope, when one exists
+        ├── tickets/NN-<slug>.md      ← this task's work breakdown
         ├── notes.md
         ├── report.md
         └── ...
@@ -40,7 +35,7 @@ If it is a work item or spec that must survive across sessions → it belongs in
 
 ## Git policy
 
-- `knowledge/` and `issues/` are **tracked** — commit them like any other source file.
+- `knowledge/` is **tracked** — commit it like any other source file.
 - `sessions/.gitignore` ignores all session subfolders (`*/`). To commit a session on a feature branch for review context, add an un-ignore line (e.g. `!20260617-1430-schema-refactor`). Remove it before merging to `main`.
 - Session folders must **never** be merged into `main`. Promote durable findings to `knowledge/` before cleanup.
 
@@ -52,7 +47,7 @@ These files are mandatory project guidance for future source changes, not option
 
 ## Sessions directory
 
-Transient scratch space for AI-assisted sessions: plans, research notes, status reports, and any artefact that helps a human or a future AI session pick up where the previous one left off. **Not** part of the codebase. **Not** for source code.
+Transient workspace for AI-assisted sessions: plans, specs, tickets, research notes, status reports, and any artefact that helps a human or a future AI session pick up where the previous one left off. **Not** part of the codebase. **Not** for source code.
 
 ### Session folder naming
 
@@ -66,9 +61,9 @@ If two sessions collide on the same minute, append `-2`, `-3`, etc. to the slug.
 
 ### When to create a new session vs. reuse an existing one
 
-**Create a new session** when the user starts a new, unrelated task, or a previous session is finished (`report.md` written) and a follow-up has a different goal.
+**Reuse the existing session** when the user says "continue", "keep going", or "next step" and the previous session is still the live workspace for that task.
 
-**Reuse the existing session** when the user says "continue", "keep going", "next step", or references the previous task, or the work is the same task spread across multiple conversations.
+**Create a new session** when the user starts a new, unrelated task, or a previous session is finished (`report.md` written), or a follow-up conversation begins a fresh workspace for the same task. When the new session continues an unfinished task, carry its live artefacts forward: copy the still-open `tickets/` and the `spec.md` from the previous session's folder. Earlier folders are frozen history — never edit them from a later session.
 
 When unsure, list the most recent session folders (`ls -1t .agents/sessions/`) and ask.
 
@@ -76,14 +71,16 @@ When unsure, list the most recent session folders (`ls -1t .agents/sessions/`) a
 
 All optional. Only create what the task actually needs.
 
-| File         | Purpose                                                         |
-| ------------ | --------------------------------------------------------------- |
-| `plan.md`    | Goal, constraints, ordered steps, decisions still to make       |
-| `notes.md`   | Findings, snippets, code references (`file:line`), observations |
-| `report.md`  | Final summary when the task ends — what shipped, what didn't    |
-| `todo.md`    | Outstanding actionable items, with owner if known               |
-| `context.md` | Background a future session must know to make sense of the work |
-| `logs.md`    | Verbatim command output / tool runs only when materially useful |
+| File         | Purpose                                                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `plan.md`    | Goal, constraints, ordered steps, decisions still to make                                                                  |
+| `spec.md`    | The task's scope, when the work has one; carried forward until the work lands                                              |
+| `tickets/`   | One `NN-<slug>.md` file per ticket — the task's work breakdown, each with a single `Status:` line (see `issue-tracker.md`) |
+| `notes.md`   | Findings, snippets, code references (`file:line`), observations                                                            |
+| `report.md`  | Final summary when the task ends — what shipped, what didn't                                                               |
+| `todo.md`    | Outstanding actionable items, with owner if known                                                                          |
+| `context.md` | Background a future session must know to make sense of the work                                                            |
+| `logs.md`    | Verbatim command output / tool runs only when materially useful                                                            |
 
 ### Writing rules
 
@@ -93,7 +90,7 @@ All optional. Only create what the task actually needs.
 4. Record decisions **and the reasoning** — future you will not remember why.
 5. English only, matching the rest of the repo.
 6. No secrets, tokens, passwords, or anything unsafe in a public gist.
-7. Treat every session folder as ephemeral. If something must survive, promote it to `knowledge/`.
+7. Treat every session folder as ephemeral. If something must survive, promote it to `knowledge/` (or `.adr/` for architecture decisions).
 
 ### Quality bar
 

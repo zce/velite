@@ -697,7 +697,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
 </div>
 <main class="am-doc">
-<header class="am-head"><h1>Velite 架构与扩展性设计</h1><p class="am-sub">平台无关内核 · 运行时端口 · 显式工厂依赖注入</p><div class="am-intro am-md"><div class="am-md"><p>Velite 把 Markdown / MDX、YAML、JSON 内容源编译成 Zod 校验的类型安全数据层。本页依据根 AGENTS.md、<code>.agents/knowledge/</code> 与 <code>adr/0001–0003</code>,梳理其架构分层、构建管线、运行时端口、五个扩展点、配置体系与设计红线。</p>
+<header class="am-head"><h1>Velite 架构与扩展性设计</h1><p class="am-sub">平台无关内核 · 运行时端口 · 显式工厂依赖注入</p><div class="am-intro am-md"><div class="am-md"><p>Velite 把 Markdown / MDX、YAML、JSON 内容源编译成 Zod 校验的类型安全数据层。本页依据根 AGENTS.md、<code>.agents/knowledge/</code> 与 <code>.adr/0001–0003</code>,梳理其架构分层、构建管线、运行时端口、五个扩展点、配置体系与设计红线。</p>
 </div></div></header>
 <div class="am-doc-layout">
 <nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 结论:先看全景</a><a href="#panel-B">B · 一、分层架构与组合根</a><a href="#panel-C">C · 二、构建管线:七条派生</a><a href="#panel-D">D · 三、运行时端口:平台隔离层</a><a href="#panel-E">E · 四、扩展点全景</a><a href="#panel-F">F · 五、配置体系与优先级</a><a href="#panel-G">G · 六、context():八字段与唯一例外</a><a href="#panel-H">H · 七、设计红线</a></nav><div class="am-doc-body">
@@ -754,7 +754,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 <figure class="am-codeblock" data-am-src="src/core/schema/s.ts" data-am-lines="5-23"><figcaption class="am-code-head"><span class="am-code-title">src/core/schema/s.ts:5-23</span><span class="am-code-lang">ts</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="ts"><span class="am-ln" data-n="5">/**</span><span class="am-ln" data-n="6"> * Velite&#39;s schema namespace. A thin, curated surface over zod so users (and our</span><span class="am-ln" data-n="7"> * own builtins) never import zod directly — this isolates the validation library</span><span class="am-ln" data-n="8"> * so it can evolve or be swapped without churning user configs.</span><span class="am-ln" data-n="9"> *</span><span class="am-ln" data-n="10"> * Uses `...z` to forward all zod base schemas: if zod adds a new primitive in</span><span class="am-ln" data-n="11"> * a future minor, it appears here automatically without a velite release.</span><span class="am-ln" data-n="12"> * Builtins (`image`, `slug`, etc.) extend the zod surface.</span><span class="am-ln" data-n="13"> *</span><span class="am-ln" data-n="14"> * Content Definitions live separately under `content`. `raw` and `path` read</span><span class="am-ln" data-n="15"> * the eight-field schema context wired by the SchemaRunner for each record.</span><span class="am-ln" data-n="16"> * Asset builtins (`file` / `image`) resolve content-relative references through</span><span class="am-ln" data-n="17"> * the engine&#39;s asset derivation (M5). Uniqueness builtins (`unique` / `slug`)</span><span class="am-ln" data-n="18"> * register `UniqueEffect`s the pipeline&#39;s `uniqueCheck` derivation scans (M6).</span><span class="am-ln" data-n="19"> */</span><span class="am-ln am-ln--hl" data-n="20">export const s = {</span><span class="am-ln am-ln--hl" data-n="21">  ...z,</span><span class="am-ln am-ln--hl" data-n="22">  ...builtins</span><span class="am-ln am-ln--hl" data-n="23">}</span></code></pre></figure>
 <div class="am-md"><p>内容定义的目标用法(ADR 0002,<code>content</code> 是独立命名空间,不进 <code>s</code>):</p>
 </div>
-<figure class="am-codeblock" data-am-src="adr/0002-content-definition-and-anchor-contract.md" data-am-lines="76-83"><figcaption class="am-code-head"><span class="am-code-title">adr/0002-content-definition-and-anchor-contract.md:76-83</span><span class="am-code-lang">ts</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="ts"><span class="am-ln" data-n="76">import { content, s } from &#39;velite&#39;</span><span class="am-ln" data-n="77"></span><span class="am-ln am-ln--hl" data-n="78">const article = content.markdown({ gfm: true })</span><span class="am-ln" data-n="79">const schema = s.object({</span><span class="am-ln" data-n="80">  html: article.html(),</span><span class="am-ln" data-n="81">  toc: article.toc(),</span><span class="am-ln" data-n="82">  excerpt: article.excerpt({ length: 160 }),</span><span class="am-ln" data-n="83">  metadata: article.metadata()</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src=".adr/0002-content-definition-and-anchor-contract.md" data-am-lines="76-83"><figcaption class="am-code-head"><span class="am-code-title">.adr/0002-content-definition-and-anchor-contract.md:76-83</span><span class="am-code-lang">ts</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="ts"><span class="am-ln" data-n="76">import { content, s } from &#39;velite&#39;</span><span class="am-ln" data-n="77"></span><span class="am-ln am-ln--hl" data-n="78">const article = content.markdown({ gfm: true })</span><span class="am-ln" data-n="79">const schema = s.object({</span><span class="am-ln" data-n="80">  html: article.html(),</span><span class="am-ln" data-n="81">  toc: article.toc(),</span><span class="am-ln" data-n="82">  excerpt: article.excerpt({ length: 160 }),</span><span class="am-ln" data-n="83">  metadata: article.metadata()</span></code></pre></figure>
 <div class="am-callout am-callout--info" role="note"><div class="am-callout-title">内容执行的共享不变量(ADR 0001 / 0002)</div><div class="am-callout-body am-md"><p>同一记录校验内「同一定义对象 + 精确选中的输入文本」共享<strong>一次独占执行</strong>;分开创建的定义永远独立。Parse 服务 Source Analysis(excerpt / metadata),完整 Transform 服务 Navigation TOC,Emit 服务 HTML / code;失败不重试,成功的低阶段保留。对外只交付<strong>脱离的语义结果</strong>(TOC 数组、元数据对象每次全新),绝不暴露 AST / VFile / 插件私有状态;关闭是终态且幂等。</p>
 </div></div></div>
 </section>
@@ -895,7 +895,7 @@ html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
 </ul>
 <p><strong>允许直接导出</strong>:纯函数与工具、类型模块、常量、错误类、schema 构建器与恒等助手、公共门面。</p>
 </div></div>
-<div class="am-md"><p>本页为评审层;架构事实以 AGENTS.md、<code>.agents/knowledge/module-architecture.md</code>、<code>.agents/knowledge/schema-context.md</code> 与 <code>adr/0001–0003</code> 为准。</p>
+<div class="am-md"><p>本页为评审层;架构事实以 AGENTS.md、<code>.agents/knowledge/module-architecture.md</code>、<code>.agents/knowledge/schema-context.md</code> 与 <code>.adr/0001–0003</code> 为准。</p>
 </div></div>
 </section>
 </div>
@@ -923,7 +923,7 @@ title: Velite 架构与扩展性设计
 subtitle: 平台无关内核 · 运行时端口 · 显式工厂依赖注入
 ---
 
-Velite 把 Markdown / MDX、YAML、JSON 内容源编译成 Zod 校验的类型安全数据层。本页依据根 AGENTS.md、`.agents/knowledge/` 与 `adr/0001–0003`,梳理其架构分层、构建管线、运行时端口、五个扩展点、配置体系与设计红线。
+Velite 把 Markdown / MDX、YAML、JSON 内容源编译成 Zod 校验的类型安全数据层。本页依据根 AGENTS.md、`.agents/knowledge/` 与 `.adr/0001–0003`,梳理其架构分层、构建管线、运行时端口、五个扩展点、配置体系与设计红线。
 
 ## 结论:先看全景
 
@@ -1023,7 +1023,7 @@ runtime 端口 ⇄ Node 适配 | 适配器是唯一持有平台依赖的地方
 
 内容定义的目标用法(ADR 0002,`content` 是独立命名空间,不进 `s`):
 
-```ts src=adr/0002-content-definition-and-anchor-contract.md lines=76-83 hl=78
+```ts src=.adr/0002-content-definition-and-anchor-contract.md lines=76-83 hl=78
 ```
 
 ```callout info 内容执行的共享不变量(ADR 0001 / 0002)
@@ -1107,7 +1107,7 @@ const fs = context().fs // ✗ 不存在
 **允许直接导出**:纯函数与工具、类型模块、常量、错误类、schema 构建器与恒等助手、公共门面。
 ```
 
-本页为评审层;架构事实以 AGENTS.md、`.agents/knowledge/module-architecture.md`、`.agents/knowledge/schema-context.md` 与 `adr/0001–0003` 为准。
+本页为评审层;架构事实以 AGENTS.md、`.agents/knowledge/module-architecture.md`、`.agents/knowledge/schema-context.md` 与 `.adr/0001–0003` 为准。
 </textarea>
 <script>
 (() => {

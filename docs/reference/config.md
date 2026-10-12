@@ -70,14 +70,7 @@ And other identity functions to help you define the config file type:
 - Type: `string`
 - Default: `'content'`
 
-The root directory of the contents, relative to resolved config file.
-
-#### `strict`
-
-- Type: `boolean`
-- Default: `false`
-
-If true, throws an error and terminates the process if any schema validation fails. Otherwise, a warning is logged but the process does not terminate.
+The root directory of the contents, relative to the working directory where Velite runs (not the config file — the config may be discovered in a parent directory).
 
 ## `output`
 
@@ -90,21 +83,28 @@ The output configuration.
 - Type: `string`
 - Default: `'.velite'`
 
-The output directory of the data files, relative to resolved config file.
+The output directory of the data files, relative to the working directory.
 
 ### `output.assets`
 
 - Type: `string`
 - Default: `'public/static'`
 
-The directory of the assets, relative to resolved config file. This directory should be served statically by the app.
+The directory of the assets, relative to the working directory. This directory should be served statically by the app.
 
 ### `output.base`
 
-- Type: `` '/' | `/${string}/` | `.${string}/` | `${string}:${string}/` ``
+- Type: `string`
 - Default: `'/static/'`
 
 The public base path of the assets. This option is used to generate the asset URLs. It should be the same as the `base` option of the app and end with a slash.
+
+### `output.name`
+
+- Type: `string`
+- Default: `'[name]-[hash:8].[ext]'`
+
+The filename template for emitted assets. Supports `[name]`, `[hash]`, `[hash:N]`, and `[ext]` placeholders, and the `/` character to nest assets under sub-directories of the assets directory.
 
 ### `output.format`
 
@@ -135,15 +135,26 @@ The type name is usually a singular noun, but it can be any valid TypeScript ide
 
 ### `collections[key].pattern`
 
-- Type: `string`
+- Type: `string | string[]`
 
-The glob pattern of the collection files, based on `root`.
+The glob pattern(s) of the collection files, based on `root`. Multiple patterns are unioned; a pattern prefixed with `!` negates.
 
 ```js
 const posts = defineCollection({
   pattern: 'posts/*.md'
 })
+
+const docs = defineCollection({
+  // multiple patterns — later entries win, `!` excludes
+  pattern: ['docs/**/*.md', '!docs/drafts/**']
+})
 ```
+
+### `collections[key].exclude`
+
+- Type: `string | string[]`
+
+Patterns to exclude from the matched files (shorthand for adding `!`-prefixed entries to `pattern`).
 
 ### `collections[key].single`
 
@@ -178,16 +189,6 @@ const posts = defineCollection({
   })
 })
 ```
-
-## `loaders`
-
-- Type: `Loader[]`, See [Loader](types.md#loader)
-- Default: `[]`, built-in loaders: `'json'`, `'yaml'`, `'matter'`
-
-The file loaders. You can use it to load files that are not supported by Velite. For more information, see [Custom Loaders](../guide/custom-loader.md).
-
-> [!NOTE]
-> Loaders are configured per-collection via `collections[key].loader`, not at the top level of `defineConfig`.
 
 ## `markdown`
 
@@ -293,12 +294,12 @@ Use development MDX compilation.
 
 - Type: `(collections: PrepareCollections, context: PrepareContext) => Promisable<PrepareResult>`
 
-Where `PrepareCollections = Record<string, unknown[] | unknown>` and `PrepareResult = void | false | { collections: PrepareCollections; diagnostics?: Diagnostic[] }`.
+Where `PrepareCollections = Record<string, unknown[] | unknown>` and `PrepareResult = void | false | { collections: PrepareCollections }`.
 
 The output-oriented `prepare` hook, executed after schema validation and collection aggregation, before the default output is written. It receives the collections map and may:
 
 - mutate the collections in place and return `void` (the mutations are kept);
-- return a new `{ collections, diagnostics }` object to replace the current result;
+- return a new `{ collections }` object to replace the current result;
 - return `false` to skip the default data output (assets are still emitted).
 
 ```js
@@ -310,12 +311,26 @@ export default defineConfig({
     data.tags.push({ ... })
 
     // context.project is a stable view of the resolved project
-    const { project, diagnostics } = context
+    const { project } = context
+
+    // the sole way to add diagnostics from the hook:
+    context.addDiagnostic({
+      key: 'my-warning',
+      level: 'warn',
+      code: 'MY_CODE',
+      message: 'something worth reporting'
+    })
 
     // return false to skip the default data output
   }
 })
 ```
+
+::: tip
+
+`prepare` cannot report diagnostics through its return value — `context.addDiagnostic` is the only channel. Each diagnostic needs a stable `key`; declaring the same key with a different payload is a conflict. See [PrepareContext](types.md#preparecontext).
+
+:::
 
 ::: tip
 

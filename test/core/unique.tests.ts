@@ -1,7 +1,7 @@
-// Integration tests for the cross-file uniqueness check (uniqueCheck derivation).
-// Uses the full builder + MemoryFileSystem so the two-stage aggregation
-// (validate collects UniqueEffect → uniqueCheck detects conflicts → emit merges
-// diagnostics) is exercised end-to-end, including the incremental path.
+// Integration tests for the cross-file uniqueness check. Uses the full builder
+// + MemoryFileSystem so the two-stage aggregation (validate collects
+// UniqueEffect → emit detects conflicts and merges diagnostics) is exercised
+// end-to-end, including the incremental path.
 import { equal, ok } from 'node:assert/strict'
 import { test } from 'node:test'
 
@@ -45,7 +45,7 @@ const post = (slug: string, title = slug): string => `---\ntitle: ${title}\nslug
 
 const abs = (rel: string): string => join(CWD, rel)
 
-test('uniqueCheck: flags a duplicate slug across two records', async () => {
+test('uniqueness: flags a duplicate slug across two records', async () => {
   const { runtime } = setup({
     [abs('content/posts/a.md')]: post('hello-world', 'A'),
     [abs('content/posts/b.md')]: post('hello-world', 'B')
@@ -62,7 +62,7 @@ test('uniqueCheck: flags a duplicate slug across two records', async () => {
   equal(result.output.collections.posts!.entries.length, 0)
 })
 
-test('uniqueCheck: no conflict when slugs differ', async () => {
+test('uniqueness: no conflict when slugs differ', async () => {
   const { runtime } = setup({
     [abs('content/posts/a.md')]: post('hello-world'),
     [abs('content/posts/b.md')]: post('other-slug')
@@ -74,7 +74,7 @@ test('uniqueCheck: no conflict when slugs differ', async () => {
   equal(result.output.collections.posts!.entries.length, 2)
 })
 
-test('uniqueCheck: distinct groups do not conflict', async () => {
+test('uniqueness: distinct groups do not conflict', async () => {
   // Two collections, each with its own slug group → no cross-collection conflict.
   const cfg: UserConfig = {
     root: 'content',
@@ -100,7 +100,7 @@ test('uniqueCheck: distinct groups do not conflict', async () => {
   equal(dupes.length, 0, 'same value in different groups is not a conflict')
 })
 
-test('uniqueCheck: incremental — changing one record clears the conflict', async () => {
+test('uniqueness: incremental — changing one record clears the conflict', async () => {
   const { runtime, fs } = setup({
     [abs('content/posts/a.md')]: post('hello-world', 'A'),
     [abs('content/posts/b.md')]: post('hello-world', 'B')
@@ -121,7 +121,7 @@ test('uniqueCheck: incremental — changing one record clears the conflict', asy
   builder.dispose()
 })
 
-test('uniqueCheck: incremental — backdating (re-setting equal content) keeps the memo', async () => {
+test('uniqueness: incremental — backdating (re-setting equal content) keeps the memo', async () => {
   const { runtime } = setup({
     [abs('content/posts/a.md')]: post('hello-world', 'A'),
     [abs('content/posts/b.md')]: post('hello-world', 'B')

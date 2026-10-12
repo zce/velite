@@ -12,10 +12,10 @@ type ChangeKind = 'config' | 'content' | 'ignore'
  */
 export const classifyEvent = (
   event: FileEvent,
-  options: { cwd: string; configPath: string; configDependencies: readonly string[]; contentRoot: string; outputDir: string; assetsDir: string }
+  options: { configPath: string; configDependencies: readonly string[]; contentRoot: string; outputDir: string; assetsDir: string }
 ): ChangeKind => {
   const { absPath } = event
-  const { cwd, configPath, configDependencies, contentRoot, outputDir, assetsDir } = options
+  const { configPath, configDependencies, contentRoot, outputDir, assetsDir } = options
   const normalized = normalize(absPath)
 
   if (normalized === normalize(configPath)) return 'config'
@@ -28,6 +28,5 @@ export const classifyEvent = (
   }
   const root = normalize(contentRoot)
   if (normalized.startsWith(root + '/') || normalized === root) return 'content'
-  if (normalized.startsWith(normalize(cwd) + '/')) return 'ignore'
   return 'ignore'
 }

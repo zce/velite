@@ -1,6 +1,6 @@
 # Share semantic results of explicitly defined content executions
 
-Status: accepted target architecture for Velite 1.0, 2026-09-30. This decision does not claim that the current implementation has been migrated or approved for release.
+Status: accepted target architecture for Velite 1.0, 2026-09-30. This decision does not claim that the current implementation has been migrated or approved for release. (Implemented since: the Content Definitions API landed with commit 11ec942.)
 
 Velite will separate Content Definitions from ordinary Zod result schemas. Reusing a definition with the same selected input in one record coordinates one exclusively owned processing execution; separately created definitions remain independent. Share detached semantic results rather than pristine ASTs or reconstructed plugin state, because ordinary parser/transformer closures and VFile replacement cannot be preserved reliably by general profile comparison and seed copying.
 

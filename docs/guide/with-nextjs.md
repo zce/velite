@@ -4,7 +4,55 @@ Velite is a framework agnostic library, it can be used in any JavaScript framewo
 
 Here are some recipes for help you better integrate Velite with Next.js.
 
-## 🎊 Start Velite with Next.js Config 🆕
+## 🎊 Next.js Plugin (Recommended)
+
+The [`@velite/plugin-next`](https://github.com/zce/velite/tree/main/packages/next) package handles both dev watch and production build for you, and works with Turbopack:
+
+::: code-group
+
+```sh [npm]
+$ npm install -D velite @velite/plugin-next
+```
+
+```sh [pnpm]
+$ pnpm add -D velite @velite/plugin-next
+```
+
+```sh [yarn]
+$ yarn add -D velite @velite/plugin-next
+```
+
+```sh [bun]
+$ bun add -D velite @velite/plugin-next
+```
+
+:::
+
+In your `next.config.ts`:
+
+```ts
+import { withVelite } from '@velite/plugin-next'
+
+export default withVelite({
+  // other next config here...
+})
+```
+
+To pass Velite options, create a configured plugin:
+
+```ts
+import { createNextPlugin } from '@velite/plugin-next'
+
+const withVelite = createNextPlugin({ config: './velite.config.ts' })
+
+export default withVelite({
+  reactStrictMode: true
+})
+```
+
+The plugin accepts Velite build options except `watch` and `clean` — it controls those based on the Next.js command (`next dev` runs watch mode, `next build` runs a clean production build).
+
+## Start Velite with Next.js Config
 
 Next.js is gradually adopting Turbopack because it is significantly faster. However, Turbopack is not fully compatible with the Webpack ecosystem, which means that the `VeliteWebpackPlugin` does not function correctly when Turbopack is enabled. Here is a completely new solution.
 

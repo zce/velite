@@ -1,0 +1,1873 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="paper" data-mode="auto" data-style="80">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="Answer me with HTML 0.4.13">
+<title>Velite 架构与扩展性设计</title>
+<style>
+html[data-theme="blueprint"], html[data-theme="blueprint"][data-mode="light"] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --radius: 0px;
+  --shadow: none;
+  --bw: 1.5px;
+  --head-font: var(--font-sans);
+  --bg: #f6f6f3;
+  --paper: #ffffff;
+  --ink: #16181d;
+  --ink-2: #4b5260;
+  --ink-3: #8b929e;
+  --line: #1d2026;
+  --line-2: #d6dae1;
+  --fill: #f3f5f8;
+  --accent: #1d5fbf;
+  --accent-bg: #e4ecf8;
+  --ok: #1d5fbf;
+  --ok-bg: #e4ecf8;
+  --err: #c62828;
+  --err-bg: #fbeaea;
+  --warn: #a8620a;
+  --warn-bg: #fdf3e2;
+  --head-bg: #16181d;
+  --head-fg: #ffffff;
+}
+html[data-theme="blueprint"][data-mode="dark"] {
+  --bg: #081322;
+  --paper: #0d1c31;
+  --ink: #e6edf7;
+  --ink-2: #a9b8cc;
+  --ink-3: #6b7f99;
+  --line: #c9d6e8;
+  --line-2: #23385a;
+  --fill: #12253f;
+  --accent: #6ea8ff;
+  --accent-bg: #16305a;
+  --ok: #6ea8ff;
+  --ok-bg: #16305a;
+  --err: #ff7070;
+  --err-bg: #3b1620;
+  --warn: #f0b14a;
+  --warn-bg: #3a2a10;
+  --head-bg: #e6edf7;
+  --head-fg: #081322;
+}
+@media (prefers-color-scheme: dark) {
+html[data-theme="blueprint"][data-mode="auto"] {
+  --bg: #081322;
+  --paper: #0d1c31;
+  --ink: #e6edf7;
+  --ink-2: #a9b8cc;
+  --ink-3: #6b7f99;
+  --line: #c9d6e8;
+  --line-2: #23385a;
+  --fill: #12253f;
+  --accent: #6ea8ff;
+  --accent-bg: #16305a;
+  --ok: #6ea8ff;
+  --ok-bg: #16305a;
+  --err: #ff7070;
+  --err-bg: #3b1620;
+  --warn: #f0b14a;
+  --warn-bg: #3a2a10;
+  --head-bg: #e6edf7;
+  --head-fg: #081322;
+}
+}
+
+html[data-theme="shadcn"], html[data-theme="shadcn"][data-mode="light"] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --radius: 8px;
+  --shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+  --bw: 1px;
+  --head-font: var(--font-sans);
+  --bg: #fafafa;
+  --paper: #ffffff;
+  --ink: #09090b;
+  --ink-2: #71717a;
+  --ink-3: #a1a1aa;
+  --line: #e4e4e7;
+  --line-2: #f0f0f2;
+  --fill: #f4f4f5;
+  --accent: #2563eb;
+  --accent-bg: #eff6ff;
+  --ok: #16a34a;
+  --ok-bg: #f0fdf4;
+  --err: #dc2626;
+  --err-bg: #fef2f2;
+  --warn: #d97706;
+  --warn-bg: #fffbeb;
+  --head-bg: #18181b;
+  --head-fg: #fafafa;
+}
+html[data-theme="shadcn"][data-mode="dark"] {
+  --bg: #09090b;
+  --paper: #121215;
+  --ink: #fafafa;
+  --ink-2: #a1a1aa;
+  --ink-3: #71717a;
+  --line: #27272a;
+  --line-2: #1c1c1f;
+  --fill: #18181b;
+  --accent: #60a5fa;
+  --accent-bg: #172554;
+  --ok: #4ade80;
+  --ok-bg: #052e16;
+  --err: #f87171;
+  --err-bg: #450a0a;
+  --warn: #fbbf24;
+  --warn-bg: #451a03;
+  --head-bg: #fafafa;
+  --head-fg: #18181b;
+}
+@media (prefers-color-scheme: dark) {
+html[data-theme="shadcn"][data-mode="auto"] {
+  --bg: #09090b;
+  --paper: #121215;
+  --ink: #fafafa;
+  --ink-2: #a1a1aa;
+  --ink-3: #71717a;
+  --line: #27272a;
+  --line-2: #1c1c1f;
+  --fill: #18181b;
+  --accent: #60a5fa;
+  --accent-bg: #172554;
+  --ok: #4ade80;
+  --ok-bg: #052e16;
+  --err: #f87171;
+  --err-bg: #450a0a;
+  --warn: #fbbf24;
+  --warn-bg: #451a03;
+  --head-bg: #fafafa;
+  --head-fg: #18181b;
+}
+}
+
+html[data-theme="paper"], html[data-theme="paper"][data-mode="light"] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+  --radius: 2px;
+  --shadow: none;
+  --bw: 1px;
+  --head-font: var(--font-serif);
+  --bg: #f5f2ea;
+  --paper: #fdfbf6;
+  --ink: #1f1c17;
+  --ink-2: #57514a;
+  --ink-3: #8c867b;
+  --line: #cbc3b4;
+  --line-2: #e5dfd3;
+  --fill: #f3eee4;
+  --accent: #8c2f1e;
+  --accent-bg: #f5e5df;
+  --ok: #2e6a3b;
+  --ok-bg: #e4efe5;
+  --err: #a3251b;
+  --err-bg: #f7e3e0;
+  --warn: #7f5300;
+  --warn-bg: #f6ecd6;
+  --head-bg: #1f1c17;
+  --head-fg: #fdfbf6;
+}
+html[data-theme="paper"][data-mode="dark"] {
+  --bg: #15130f;
+  --paper: #1c1a15;
+  --ink: #ebe5d8;
+  --ink-2: #b5ad9e;
+  --ink-3: #7b7467;
+  --line: #4a443a;
+  --line-2: #2d2a24;
+  --fill: #242119;
+  --accent: #e59a7d;
+  --accent-bg: #3a2219;
+  --ok: #8cc79a;
+  --ok-bg: #1c3122;
+  --err: #f0928a;
+  --err-bg: #3a1d1a;
+  --warn: #e3b866;
+  --warn-bg: #352a13;
+  --head-bg: #ebe5d8;
+  --head-fg: #15130f;
+}
+@media (prefers-color-scheme: dark) {
+html[data-theme="paper"][data-mode="auto"] {
+  --bg: #15130f;
+  --paper: #1c1a15;
+  --ink: #ebe5d8;
+  --ink-2: #b5ad9e;
+  --ink-3: #7b7467;
+  --line: #4a443a;
+  --line-2: #2d2a24;
+  --fill: #242119;
+  --accent: #e59a7d;
+  --accent-bg: #3a2219;
+  --ok: #8cc79a;
+  --ok-bg: #1c3122;
+  --err: #f0928a;
+  --err-bg: #3a1d1a;
+  --warn: #e3b866;
+  --warn-bg: #352a13;
+  --head-bg: #ebe5d8;
+  --head-fg: #15130f;
+}
+}
+
+html:lang(zh-Hant)[data-theme][data-mode], html:lang(zh-TW)[data-theme][data-mode], html:lang(zh-HK)[data-theme][data-mode], html:lang(zh-MO)[data-theme][data-mode] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Heiti TC", "Microsoft JhengHei", "Noto Sans CJK TC", "Noto Sans TC", "PingFang SC", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html:lang(ja)[data-theme][data-mode] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans CJK JP", "Noto Sans JP", "PingFang SC", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Answer me with HTML base — uses theme variables only, never hard-coded colors (theme tokens and decorations: themes/<name>.js). Exception: the var() fallbacks of diagrams (flow / sequence) equal the blueprint light tokens, guarded by a test. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-sans); font-size: 14px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+code, pre, kbd { font-family: var(--font-mono); }
+
+/* ── Toolbar ─────────────────────────────── */
+.am-toolbar {
+  position: fixed; top: 12px; right: 12px; z-index: 10; display: flex; gap: 6px;
+}
+.am-btn {
+  font: 12px/1 var(--font-sans); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--radius); padding: 7px 10px; cursor: pointer;
+}
+.am-btn:hover { border-color: var(--ink-3); }
+.am-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Theme and mode lists: a label and a native select inside one button-like box */
+.am-pick {
+  display: flex; align-items: center; gap: 6px; font: 12px/1 var(--font-sans); color: var(--ink-2); background: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--radius); padding: 0 4px 0 10px;
+}
+.am-pick:hover { border-color: var(--ink-3); }
+.am-pick:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.am-pick select {
+  font: inherit; color: var(--ink); background: transparent; border: 0; padding: 6px 2px; cursor: pointer; outline: none;
+}
+.am-pick option { color: var(--ink); background: var(--paper); }
+
+/* ── Header ───────────────────────────────── */
+.am-head { margin: 0 0 20px; padding-right: 300px; }
+.am-head h1 { margin: 0; font-size: 24px; line-height: 1.25; letter-spacing: -0.01em; }
+.am-sub { margin: 4px 0 0; color: var(--ink-2); }
+.am-head-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
+.am-head-meta b { font-family: var(--font-mono); font-weight: 400; color: var(--ink-3); margin-right: 6px; }
+.am-intro { margin-top: 12px; max-width: 80ch; }
+
+/* ── sheet template ────────────────────────── */
+.am-sheet { max-width: 1680px; margin: 0 auto; padding: 32px 28px 40px; }
+.am-frame { position: relative; }
+.am-grid {
+  display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  gap: 20px; align-items: start;
+}
+.am-ruler { display: none; }
+.am-ruler span { flex: 1; display: flex; align-items: center; justify-content: center; }
+.am-ruler--top, .am-ruler--bottom { left: 18px; right: 18px; height: 18px; }
+.am-ruler--top { top: 0; }
+.am-ruler--bottom { bottom: 0; }
+.am-ruler--left, .am-ruler--right { top: 18px; bottom: 18px; width: 18px; flex-direction: column; }
+.am-ruler--left { left: 0; }
+.am-ruler--right { right: 0; }
+.am-ruler--top span + span, .am-ruler--bottom span + span { border-left: 1px solid var(--line); }
+.am-ruler--left span + span, .am-ruler--right span + span { border-top: 1px solid var(--line); }
+
+/* ── Panels ───────────────────────────────── */
+.am-panel {
+  background: var(--paper); border: var(--bw) solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); min-width: 0; overflow: hidden;
+}
+.am-panel-head {
+  display: flex; align-items: stretch; gap: 0; border-bottom: var(--bw) solid var(--line); min-height: 34px;
+}
+.am-panel-id {
+  display: flex; align-items: center; justify-content: center; min-width: 34px; padding: 0 8px;
+  background: var(--head-bg); color: var(--head-fg); font-weight: 600; font-size: 14px;
+}
+.am-panel-head h2 { margin: 0; padding: 7px 12px; font-size: 15px; font-weight: 600; flex: 1; display: flex; align-items: center; }
+.am-panel-meta { align-self: center; padding: 0 12px; font: 11px/1.3 var(--font-mono); color: var(--ink-2); text-align: right; }
+.am-panel-body { padding: 14px 16px 16px; }
+.am-panel-body > * + * { margin-top: 12px; }
+
+/* ── Markdown body ───────────────────────── */
+.am-md > :first-child { margin-top: 0; }
+.am-md > :last-child { margin-bottom: 0; }
+.am-md p { margin: 0 0 8px; }
+.am-md ul, .am-md ol { margin: 0 0 8px; padding-left: 20px; }
+.am-md li + li { margin-top: 3px; }
+.am-md h3, .am-md h4 { margin: 14px 0 6px; font-size: 13px; }
+.am-md a { color: var(--accent); }
+.am-md blockquote { margin: 0 0 8px; padding: 2px 12px; border-left: 3px solid var(--line-2); color: var(--ink-2); }
+.am-md :not(pre) > code { font-size: 0.9em; background: var(--fill); padding: 1px 5px; border-radius: 4px; }
+.am-md hr { border: 0; border-top: 1px solid var(--line-2); margin: 12px 0; }
+.am-md table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.am-md th {
+  text-align: left; font: 11px/1.3 var(--font-mono); color: var(--ink-2); font-weight: 400;
+  padding: 6px 10px; border-bottom: 1px solid var(--line-2);
+}
+/* th { text-align: left } outranks the align attribute from Markdown alignment, so restore right and center columns explicitly. */
+.am-md th[align="right"] { text-align: right; }
+.am-md th[align="center"] { text-align: center; }
+.am-md td { padding: 7px 10px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+.am-md tbody tr:nth-child(even) td { background: var(--fill); }
+.am-table-wrap { overflow-x: auto; }
+/* Images scale down to the panel and never past 70% of the window height, keeping their shape. */
+.am-md img { max-width: 100%; max-height: 70vh; height: auto; }
+.am-figure { margin: 0; text-align: center; }
+.am-figure img { display: block; margin: 0 auto; border: 1px solid var(--line-2); border-radius: var(--radius); }
+.am-figure figcaption { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--ink-2); }
+.am-code {
+  margin: 0; padding: 12px 14px; background: var(--fill); border: 1px solid var(--line-2);
+  border-radius: var(--radius); overflow-x: auto; font-size: 12.5px; line-height: 1.5;
+}
+/* Ask: a decision the reader makes; the suggested option starts selected */
+.am-ask { margin: 10px 0; padding: 10px 12px 8px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--fill); min-width: 0; }
+/* The question floats inside the box, so a long question wraps like text instead of riding on the border */
+.am-ask-q { float: left; width: 100%; padding: 0; margin-bottom: 4px; font-weight: 600; }
+/* Two columns: the control, then the label, tag and note, which wrap under the label and never under the control */
+.am-ask-opt { clear: both; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-items: baseline; padding: 5px 2px; cursor: pointer; }
+.am-ask-opt input { margin: 0; accent-color: var(--accent); position: relative; top: 2px; }
+.am-ask-tag { display: inline-block; font-size: 11px; line-height: 1.5; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 6px; white-space: nowrap; }
+.am-ask-note { display: block; color: var(--ink-2); }
+/* Comment box under each panel, and the Reply sheet */
+.am-comment-btn {
+  display: flex; flex-shrink: 0; align-self: center; margin: 0 6px 0 auto; color: var(--ink-3); background: transparent;
+  border: 1px solid transparent; border-radius: var(--radius); padding: 3px; cursor: pointer;
+}
+.am-panel-meta + .am-comment-btn { margin-left: 0; }
+.am-panel:hover .am-comment-btn, .am-comment-btn:focus-visible, .am-comment-btn[aria-expanded="true"] { border-color: var(--line-2); color: var(--ink-2); }
+.am-panel .am-comment-btn.am-comment-btn--on { color: var(--accent); border-color: var(--accent); }
+.am-panel--bare { position: relative; }
+.am-panel--bare > .am-comment-btn { position: absolute; top: 4px; right: 0; }
+.am-comment { padding: 0 14px 12px; }
+.am-comment textarea, .am-reply textarea {
+  width: 100%; font: 13px/1.5 var(--font-sans); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--radius); padding: 8px 10px; resize: vertical;
+}
+.am-comment textarea:focus-visible, .am-reply textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.am-btn--reply { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+.am-btn--reply:hover { opacity: .88; }
+.am-reply {
+  width: min(640px, calc(100vw - 32px)); padding: 16px; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line-2); border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0,0,0,.25);
+}
+.am-reply::backdrop { background: rgba(0,0,0,.35); }
+.am-reply-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 10px; }
+.am-reply-head span { color: var(--ink-2); font-size: 13px; }
+.am-reply textarea { font-family: var(--font-mono); font-size: 12.5px; }
+.am-reply-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.am-reply .am-btn:disabled { opacity: .5; cursor: default; }
+/* Code block: a header (title or path:lines, language, copy), then one span per line; numbered blocks show the line number in a gutter */
+.am-codeblock { margin: 10px 0; min-width: 0; }
+.am-codeblock .am-code { border-top-left-radius: 0; border-top-right-radius: 0; padding: 10px 0; }
+.am-code-head {
+  display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 12px; font: 12px/1.3 var(--font-sans); color: var(--ink-2);
+  background: var(--paper); border: 1px solid var(--line-2); border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0;
+}
+.am-code-title { font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.am-code-lang { margin-left: auto; color: var(--ink-3); text-transform: lowercase; }
+.am-code-copy { font: 12px/1 var(--font-sans); color: var(--ink-2); background: transparent; border: 1px solid var(--line-2); border-radius: var(--radius); padding: 4px 8px; cursor: pointer; margin-left: auto; }
+.am-code-lang + .am-code-copy { margin-left: 0; }
+.am-code-copy:hover { border-color: var(--ink-3); color: var(--ink); }
+.am-code-copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.am-code code { display: block; min-width: max-content; }
+.am-ln { display: block; padding: 0 14px; min-height: 1.5em; white-space: pre; }
+.am-ln--hl { background: var(--accent-bg); box-shadow: inset 3px 0 0 var(--accent); }
+.am-code--num .am-ln::before {
+  content: attr(data-n); display: inline-block; width: 3.5ch; margin-right: 12px; text-align: right; color: var(--ink-3);
+  user-select: none; -webkit-user-select: none;
+}
+
+/* ── Status badges ok / no / warn ──────────────── */
+.am-status { white-space: nowrap; font-weight: 500; }
+.am-status--ok { color: var(--ok); }
+.am-status--no { color: var(--err); }
+.am-status--warn { color: var(--warn); }
+.am-status-icon { display: inline-block; width: 1.1em; font-weight: 700; }
+
+/* ── callout ─────────────────────────────── */
+.am-callout {
+  border: 1px solid var(--line-2); border-left: 3px solid var(--accent); background: var(--accent-bg);
+  padding: 10px 14px; border-radius: var(--radius);
+}
+.am-callout--ok { border-left-color: var(--ok); background: var(--ok-bg); }
+.am-callout--warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.am-callout--err { border-left-color: var(--err); background: var(--err-bg); }
+.am-callout-title { font-weight: 600; margin-bottom: 4px; }
+
+/* ── kv title block ─────────────────────────── */
+.am-kv {
+  display: grid; grid-template-columns: repeat(var(--kv-cols, 2), minmax(0, 1fr)); margin: 0;
+  border-top: var(--bw) solid var(--line); border-left: var(--bw) solid var(--line);
+}
+.am-kv-cell { border-right: var(--bw) solid var(--line); border-bottom: var(--bw) solid var(--line); padding: 6px 10px 8px; min-width: 0; }
+.am-kv-cell--wide { grid-column: 1 / -1; }
+.am-kv dt { font: 11px/1.4 var(--font-mono); color: var(--ink-2); }
+.am-kv dd { margin: 2px 0 0; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.am-kv-cell--wide dd { font-size: 17px; font-weight: 600; }
+
+/* ── timeline ────────────────────────────── */
+.am-timeline { list-style: none; margin: 0; padding: 0; }
+.am-timeline--h { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); padding-top: 4px; }
+.am-timeline--h li { position: relative; text-align: center; padding: 0 6px; }
+.am-timeline--h li::before {
+  content: ""; position: absolute; top: 31px; left: 0; right: 0; border-top: var(--bw) solid var(--line);
+}
+.am-timeline--h li:first-child::before { left: 50%; }
+.am-timeline--h li:last-child::before { right: 50%; }
+.am-tl-when { display: block; font-size: 15px; font-weight: 500; height: 24px; }
+.am-tl-dot {
+  position: relative; display: block; width: 11px; height: 11px; margin: 2px auto 8px;
+  border: var(--bw) solid var(--line); border-radius: 50%; background: var(--paper);
+}
+.am-tl-item--hi .am-tl-dot { background: var(--accent); border-color: var(--accent); }
+.am-tl-title { display: block; font-size: 12.5px; font-weight: 500; }
+.am-tl-text { display: block; font-size: 12px; color: var(--ink-2); line-height: 1.45; }
+.am-timeline--v li { position: relative; padding: 0 0 14px 22px; }
+.am-timeline--v li::before { content: ""; position: absolute; left: 5px; top: 6px; bottom: -6px; border-left: var(--bw) solid var(--line-2); }
+.am-timeline--v li:last-child::before { display: none; }
+.am-timeline--v .am-tl-dot { position: absolute; left: 0; top: 4px; margin: 0; }
+.am-timeline--v .am-tl-when { display: inline; height: auto; font: 12px var(--font-mono); color: var(--ink-2); margin-right: 8px; }
+.am-timeline--v .am-tl-title { display: inline; font-size: 14px; }
+.am-timeline--v .am-tl-text { margin-top: 2px; }
+
+/* ── annot sentence notes ──────────────────────── */
+.am-annot + .am-annot { border-top: 1px solid var(--line-2); padding-top: 12px; }
+.am-annot-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.am-annot-meta { font: 11px var(--font-mono); font-weight: 400; color: var(--ink-2); }
+.am-annot-scroll { overflow-x: auto; }
+.am-annot-line {
+  position: relative; display: inline-block; white-space: pre; font: 14px/1.6 var(--font-mono);
+  padding-bottom: calc(var(--rows, 0) * 17px + 14px);
+}
+.am-annot-line--wrap { display: block; white-space: normal; padding-bottom: 10px; }
+.am-annot-line--wrap .am-seg { white-space: nowrap; }
+.am-seg { position: relative; }
+.am-seg::after {
+  content: ""; position: absolute; left: 1px; right: 1px; top: calc(100% + 1px); height: 5px;
+  border: 1px solid var(--accent); border-top: 0;
+}
+.am-seg-n {
+  position: absolute; left: 0; top: calc(100% + 8px + var(--row, 0) * 17px);
+  font: 11px/16px var(--font-sans); color: var(--accent); white-space: nowrap;
+}
+.am-seg--err { color: var(--err); }
+.am-seg--err::after { border-color: var(--err); }
+.am-seg--err .am-seg-n { color: var(--err); }
+.am-annot-caption { font-size: 12px; color: var(--ink-2); }
+
+/* ── limits bars ───────────────────────── */
+.am-lim + .am-lim { margin-top: 14px; }
+.am-lim-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; margin-bottom: 4px; }
+.am-lim-val { font: 12px var(--font-mono); color: var(--accent); white-space: nowrap; }
+.am-lim-track { position: relative; height: 12px; border: 1px solid var(--line-2); background: var(--fill); border-radius: calc(var(--radius) / 2); }
+.am-lim-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent-bg); border-right: 1px solid var(--accent); }
+.am-lim-mark { position: absolute; top: -4px; bottom: -4px; border-left: 2px solid var(--accent); }
+.am-lim.is-over .am-lim-fill { background: var(--err-bg); border-right-color: var(--err); }
+.am-lim.is-over .am-lim-val { color: var(--err); }
+.am-lim-ticks { position: relative; height: 16px; font: 10px/16px var(--font-mono); color: var(--ink-3); }
+.am-lim-ticks span { position: absolute; transform: translateX(-50%); }
+.am-lim-ticks span:first-child { transform: none; }
+.am-lim-note { font-size: 11px; color: var(--ink-2); margin-left: 6px; }
+
+/* ── tree ─────────────────────────── */
+.am-tree { font-size: 13px; }
+.am-tree-root { display: flex; justify-content: center; position: relative; padding-bottom: 18px; }
+.am-tree-root::after { content: ""; position: absolute; bottom: 0; left: 50%; height: 18px; border-left: var(--bw) solid var(--line); }
+.am-tree-root--solo { padding-bottom: 12px; }
+.am-tree-root--solo::after { display: none; }
+.am-tree-box {
+  border: var(--bw) solid var(--line); background: var(--paper); padding: 6px 14px; text-align: center;
+  border-radius: var(--radius); font-weight: 600;
+}
+.am-tree-box small { display: block; font-weight: 400; color: var(--ink-2); font-size: 12px; }
+.am-tree-box--root { background: var(--accent-bg); font-size: 15px; padding: 8px 28px; }
+.am-tree-cols { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); }
+.am-tree-col { position: relative; padding: 18px 8px 0; min-width: 0; }
+.am-tree-col::before { content: ""; position: absolute; top: 0; left: 0; right: 0; border-top: var(--bw) solid var(--line); }
+.am-tree-col:first-child::before { left: 50%; }
+.am-tree-col:last-child::before { right: 50%; }
+.am-tree-col::after { content: ""; position: absolute; top: 0; left: 50%; height: 18px; border-left: var(--bw) solid var(--line); }
+.am-tree-list, .am-tree-list ul { list-style: none; margin: 0; padding: 0; }
+.am-tree-col > .am-tree-list { margin: 8px 0 0 14px; }
+.am-tree-list ul { margin-left: 16px; }
+.am-tree-list li { position: relative; padding: 3px 0 3px 18px; }
+.am-tree-list li::before { content: ""; position: absolute; left: 0; top: 0.95em; width: 12px; border-top: 1px solid var(--ink-3); }
+.am-tree-list li::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; border-left: 1px solid var(--ink-3); }
+.am-tree-list li:last-child::after { bottom: auto; height: 0.95em; }
+.am-tree-tag { font: 11px var(--font-mono); color: var(--ink-3); margin-right: 4px; }
+.am-tree code { font: 12px var(--font-mono); }
+.am-tree-sub { display: block; font-size: 11.5px; color: var(--ink-2); }
+.am-tree-hi > .am-tree-label { color: var(--accent); font-weight: 600; }
+
+/* ── Diagrams (flow / sequence) ───────────────── */
+.am-diagram { margin: 0; overflow-x: auto; text-align: center; }
+/* Embedded previews can lose html[data-theme]; the fallbacks keep diagrams readable, and defined theme variables still win. */
+.am-diagram svg { max-width: 100%; height: auto; font-family: var(--font-sans, sans-serif); }
+.am-diagram text { fill: var(--ink, #16181d); font-size: 13px; }
+.am-node-shape { fill: var(--paper, #ffffff); stroke: var(--line, #1d2026); stroke-width: var(--bw, 1.5px); }
+.am-node--hi .am-node-shape { fill: var(--accent-bg, #e4ecf8); stroke: var(--accent, #1d5fbf); }
+.am-node--hi text { fill: var(--accent, #1d5fbf); font-weight: 600; }
+.am-edge { fill: none; stroke: var(--ink-2, #4b5260); stroke-width: 1.3; }
+.am-edge--dashed { stroke-dasharray: 5 4; }
+.am-arrow { fill: var(--ink-2, #4b5260); }
+.am-edge-label rect { fill: var(--paper, #ffffff); }
+.am-diagram .am-edge-label text { fill: var(--accent, #1d5fbf); font-size: 11.5px; }
+.am-cluster { fill: var(--fill, #f3f5f8); stroke: var(--line-2, #d6dae1); stroke-width: 1; stroke-dasharray: 4 3; }
+.am-diagram .am-cluster-label { fill: var(--ink-2, #4b5260); font: 11px var(--font-mono, monospace); }
+.am-lifeline { stroke: var(--ink-3, #8b929e); stroke-width: 1; stroke-dasharray: 4 4; }
+.am-actor { fill: var(--paper, #ffffff); stroke: var(--line, #1d2026); stroke-width: var(--bw, 1.5px); }
+.am-note { fill: var(--warn-bg, #fdf3e2); stroke: var(--warn, #a8620a); stroke-width: 1; }
+.am-diagram .am-step { fill: var(--ink-3, #8b929e); font: 10px var(--font-mono, monospace); }
+
+.am-diagram-expand {
+  /* In flow and sticky: it sits at the right edge and stays in view when the diagram scrolls sideways. */
+  position: sticky; left: calc(100% - 36px); z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0; margin: 8px 8px -36px auto;
+  color: var(--ink-2); background: var(--paper);
+  border: var(--bw, 1px) solid var(--line-2); border-radius: var(--radius);
+  cursor: pointer; opacity: 0.72;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s, background 0.15s;
+}
+.am-diagram:hover .am-diagram-expand,
+.am-diagram-expand:focus-visible { opacity: 1; }
+.am-diagram-expand:hover {
+  opacity: 1; color: var(--ink); border-color: var(--accent); background: var(--fill);
+}
+.am-diagram-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── Diagram Lightbox and Pan-Zoom Viewer ─────────── */
+.am-lightbox {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; flex-direction: column;
+  touch-action: none;
+}
+.am-lightbox[hidden] { display: none !important; }
+
+.am-lightbox-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.am-lightbox-header {
+  position: absolute; top: 12px; left: 24px; right: 24px; height: 36px;
+  display: flex; align-items: center; justify-content: space-between;
+  z-index: 10; pointer-events: none;
+}
+.am-lightbox-title {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: rgba(255, 255, 255, 0.92);
+  font: 13px/1 var(--font-sans, sans-serif); font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw;
+}
+.am-lightbox-title svg { stroke: rgba(255, 255, 255, 0.85); flex-shrink: 0; }
+.am-lightbox-actions {
+  display: flex; align-items: center; gap: 8px; pointer-events: auto;
+}
+.am-lightbox-close {
+  width: 32px; height: 32px;
+  background: var(--paper);
+  border: var(--bw, 1px) solid var(--line-2);
+  border-radius: 50%;
+  color: var(--ink);
+  font-size: 15px; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: background 0.15s, color 0.15s, transform 0.15s, border-color 0.15s;
+}
+.am-lightbox-close:hover {
+  color: var(--accent); border-color: var(--accent); background: var(--fill); transform: scale(1.05);
+}
+.am-lightbox-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.am-lightbox-stage {
+  position: absolute;
+  top: 54px; bottom: 20px; left: 24px; right: 24px;
+  background: var(--paper);
+  border: var(--bw, 1px) solid var(--line-2);
+  border-radius: max(var(--radius), 14px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.am-lightbox-stage.am-panning { cursor: grabbing; }
+
+.am-lightbox-canvas {
+  position: absolute; left: 0; top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  pointer-events: none;
+}
+.am-lightbox-canvas svg {
+  max-width: none !important;
+  max-height: none !important;
+  display: block;
+  font-family: var(--font-sans, sans-serif);
+}
+
+/* ── doc template ────────────────────────── */
+.am-doc { max-width: 1120px; margin: 0 auto; padding: 40px 28px 64px; }
+.am-doc-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 32px; align-items: start; }
+.am-doc-layout--notoc { grid-template-columns: minmax(0, 1fr); max-width: 860px; }
+.am-toc { position: sticky; top: 24px; font-size: 13px; }
+.am-toc a { display: block; color: var(--ink-2); text-decoration: none; padding: 4px 0 4px 10px; border-left: 2px solid var(--line-2); }
+.am-toc a:hover { color: var(--ink); border-left-color: var(--accent); }
+.am-doc-body > .am-panel + .am-panel { margin-top: 20px; }
+
+/* ── Responsive and print ─────────────────────────── */
+@media (max-width: 1100px) {
+  .am-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .am-grid > .am-panel { grid-column: auto !important; }
+  .am-grid > .am-panel.am-span-wide { grid-column: 1 / -1 !important; }
+}
+@media (max-width: 760px) {
+  .am-sheet, .am-doc { padding: 56px 12px 24px; }
+  .am-head { padding-right: 0; }
+  .am-grid { grid-template-columns: minmax(0, 1fr); }
+  .am-grid > .am-panel.am-span-wide { grid-column: auto !important; }
+  .am-doc-layout { grid-template-columns: minmax(0, 1fr); }
+  .am-toc { position: static; }
+  .am-timeline--h { grid-template-columns: minmax(0, 1fr); }
+  .am-tree-cols { grid-template-columns: minmax(0, 1fr); }
+  /* Tables and diagrams keep their size: the wrapper scrolls horizontally when they overflow. */
+  .am-md th, .am-md td { min-width: 6em; }
+  .am-diagram svg { max-width: none; }
+  .am-lightbox-header { top: 8px; left: 12px; right: 12px; }
+  .am-lightbox-stage { top: 46px; bottom: 12px; left: 12px; right: 12px; border-radius: max(var(--radius), 10px); }
+}
+.am-colophon { text-align: center; padding: 0 0 28px; font: 11px var(--font-mono); color: var(--ink-3); }
+.am-colophon a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+@media print {
+  .am-toolbar, .am-diagram-expand, .am-lightbox, .am-code-copy, .am-comment-btn, .am-comment, .am-reply { display: none !important; }
+  body { background: var(--paper); }
+  .am-panel { break-inside: avoid; box-shadow: none; }
+}
+.am-panel--bare { border: 0; background: transparent; box-shadow: none; }
+.am-panel--bare > .am-panel-body { padding: 0; }
+.am-panel--bare .am-kv { background: var(--paper); }
+
+
+html[data-theme="blueprint"] .am-frame { border: 1px solid var(--line); padding: 30px; }
+html[data-theme="blueprint"] .am-frame::before {
+  content: ""; position: absolute; inset: 18px; border: 1px solid var(--line); pointer-events: none;
+}
+html[data-theme="blueprint"] .am-ruler {
+  display: flex; position: absolute; font: 10px/1 var(--font-mono); color: var(--ink-3);
+}
+@media (max-width: 760px) {
+  html[data-theme="blueprint"] .am-frame { padding: 0; border: 0; }
+  html[data-theme="blueprint"] .am-frame::before, html[data-theme="blueprint"] .am-ruler { display: none; }
+}
+
+html[data-theme="shadcn"] .am-panel-id { border-radius: 6px; min-width: 24px; height: 24px; margin: 9px 0 9px 14px; font-size: 12px; }
+html[data-theme="shadcn"] .am-panel-head { border-bottom-width: 1px; }
+html[data-theme="shadcn"] .am-kv { border-color: var(--line); border-radius: var(--radius); overflow: hidden; }
+
+html[data-theme="paper"]:lang(zh-Hant)[data-mode], html[data-theme="paper"]:lang(zh-TW)[data-mode], html[data-theme="paper"]:lang(zh-HK)[data-mode], html[data-theme="paper"]:lang(zh-MO)[data-mode] { --font-serif: "Iowan Old Style", Palatino, Georgia, "Songti TC", "PMingLiU", "MingLiU", "Noto Serif CJK TC", "Noto Serif TC", "Source Han Serif TC", "Songti SC", serif; }
+html[data-theme="paper"]:lang(ja)[data-mode] { --font-serif: "Iowan Old Style", Palatino, Georgia, "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif CJK JP", "Noto Serif JP", "Songti SC", serif; }
+html[data-theme="paper"] .am-head h1, html[data-theme="paper"] .am-panel-head h2, html[data-theme="paper"] .am-md, html[data-theme="paper"] .am-intro, html[data-theme="paper"] .am-callout { font-family: var(--font-serif); }
+html[data-theme="paper"] .am-head h1 { font-weight: 600; letter-spacing: 0; }
+html[data-theme="paper"] .am-md p, html[data-theme="paper"] .am-md li, html[data-theme="paper"] .am-md blockquote, html[data-theme="paper"] .am-intro { font-size: 15.5px; line-height: 1.75; }
+html[data-theme="paper"] .am-md p { margin-bottom: 12px; }
+html[data-theme="paper"] .am-md table { font-family: var(--font-sans); }
+</style>
+</head>
+<body>
+<div class="am-toolbar" data-am-root-lang="zh-CN" data-am-root-theme="paper" data-am-root-mode="auto" data-am-root-style="80">
+<label class="am-pick">主题<select data-am="theme"><option value="blueprint">图纸</option><option value="shadcn">卡片</option><option value="paper" selected>纸张</option></select></label>
+<label class="am-pick">明暗<select data-am="mode"><option value="auto" selected>跟随系统</option><option value="light">亮</option><option value="dark">暗</option></select></label>
+<button class="am-btn am-btn--reply" type="button" data-am="reply" data-ui="{&quot;button&quot;:&quot;回复&quot;,&quot;comment&quot;:&quot;评论&quot;,&quot;commentHint&quot;:&quot;对这个面板的意见&quot;,&quot;title&quot;:&quot;你的回复&quot;,&quot;hint&quot;:&quot;复制后粘贴到对话里。&quot;,&quot;copy&quot;:&quot;复制回复&quot;,&quot;close&quot;:&quot;关闭&quot;,&quot;suggested&quot;:&quot;建议&quot;,&quot;empty&quot;:&quot;先选择选项，或在面板上写评论。&quot;,&quot;decisions&quot;:&quot;决定&quot;,&quot;comments&quot;:&quot;评论&quot;,&quot;confirmed&quot;:&quot;确认了建议&quot;,&quot;untouched&quot;:&quot;未作答，保留建议&quot;,&quot;was&quot;:&quot;原为&quot;,&quot;typed&quot;:&quot;以 \&quot;&gt;\&quot; 开头的行是读者输入的文字。&quot;,&quot;done&quot;:&quot;已复制 ✓&quot;}">回复</button>
+<button class="am-btn" type="button" data-am="copy" data-done="已复制 ✓">复制源稿</button>
+</div>
+<main class="am-doc">
+<header class="am-head"><h1>Velite 架构与扩展性设计</h1><p class="am-sub">平台无关内核 · 运行时端口 · 显式工厂依赖注入</p><div class="am-intro am-md"><div class="am-md"><p>Velite 把 Markdown / MDX、YAML、JSON 内容源编译成 Zod 校验的类型安全数据层。本页依据根 AGENTS.md、<code>.agents/knowledge/</code> 与 <code>adr/0001–0003</code>,梳理其架构分层、构建管线、运行时端口、五个扩展点、配置体系与设计红线。</p>
+</div></div></header>
+<div class="am-doc-layout">
+<nav class="am-toc" aria-label="目录"><a href="#panel-A">A · 结论:先看全景</a><a href="#panel-B">B · 一、分层架构与组合根</a><a href="#panel-C">C · 二、构建管线:七条派生</a><a href="#panel-D">D · 三、运行时端口:平台隔离层</a><a href="#panel-E">E · 四、扩展点全景</a><a href="#panel-F">F · 五、配置体系与优先级</a><a href="#panel-G">G · 六、context():八字段与唯一例外</a><a href="#panel-H">H · 七、设计红线</a></nav><div class="am-doc-body">
+<section class="am-panel" id="panel-A">
+<header class="am-panel-head"><span class="am-panel-id">A</span><h2>结论:先看全景</h2></header>
+<div class="am-panel-body"><div class="am-callout am-callout--ok" role="note"><div class="am-callout-title">一句话架构</div><div class="am-callout-body am-md"><p>Velite 是三层合体:<strong>平台无关的领域层</strong>(<code>src/core</code>,纯派生图,零 <code>node:*</code> 导入);<strong>一组运行时端口</strong>(<code>src/runtime</code>,由 <code>adapters/node</code> 提供平台实现);<strong>显式工厂依赖注入</strong>(依赖在组合根可见、可测、可整体替换)。所有扩展点都是有限且显式注册的 API——没有运行时扫描、装饰器注入或隐藏注册表。</p>
+</div></div>
+<dl class="am-kv" style="--kv-cols: 2"><div class="am-kv-cell am-kv-cell--wide"><dt>定位</dt><dd>把 Markdown / MDX · YAML · JSON 变成 Zod 校验的类型安全数据层</dd></div><div class="am-kv-cell"><dt>内核</dt><dd><code>src/core</code> —— 七条派生组成的增量记忆化图</dd></div><div class="am-kv-cell"><dt>端口层</dt><dd><code>src/runtime</code> —— FileSystem · ImageProcessor · Logger · ModuleLoader · Watcher</dd></div><div class="am-kv-cell"><dt>适配层</dt><dd><code>src/runtime/adapters/node</code> —— 全仓唯一允许 <code>node:*</code> 与原生导入的地方</dd></div><div class="am-kv-cell"><dt>隔离层</dt><dd><code>s</code> 命名空间 —— <code>...zod</code> 全量转发,用户不直接 import zod</dd></div><div class="am-kv-cell"><dt>交付物</dt><dd>tsdown(rolldown)打包 · ESM-only · Node ≥ 22.13 · jiti 运行时加载配置</dd></div><div class="am-kv-cell"><dt>生态</dt><dd><code>packages/next</code> → @velite/plugin-next · <code>packages/vite</code> → @velite/plugin-vite</dd></div></dl></div>
+</section>
+<section class="am-panel" id="panel-B">
+<header class="am-panel-head"><span class="am-panel-id">B</span><h2>一、分层架构与组合根</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>依赖组装只发生在<strong>组合根</strong>。最关键的两个:公共门面 <code>src/index.ts</code>(安装进程级 Host、绑定全部 Node 适配器)与内部组合根 <code>createBuilder</code>(<code>src/core/builder.ts</code>,组装配置 + 加载器 + 管线 + 引擎 + 驱动)。</p>
+</div>
+<figure class="am-diagram am-flow"><svg viewBox="0 0 558 558" width="558" height="558" role="img" aria-label="流程图：CLI velite build / dev、公共门面、组合根 index.ts、SchemaContextHost、createBuilder、Driver + RunContext、Scheduler、Pipeline 派生图" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M336.8,49 L336.8,65 Q336.8,81 336.8,97 L336.8,113" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="270.2" y="72" width="133.1" height="18" rx="3"/><text x="336.8" y="81" text-anchor="middle" dominant-baseline="central">builder · build · watch</text></g></g><g data-step="1"><path class="am-edge" d="M336.8,148 L336.8,164 Q336.8,180 336.8,196 L336.8,212" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="211.7" y="171" width="250.1" height="18" rx="3"/><text x="336.8" y="180" text-anchor="middle" dominant-baseline="central">安装 SchemaContextHost · 绑定 Node 适配器</text></g></g><g data-step="2"><path class="am-edge" d="M368.8,247 L398,263 Q427.3,279 427.3,295 L427.3,311" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="337.4" y="270" width="179.7" height="18" rx="3"/><text x="427.3" y="279" text-anchor="middle" dominant-baseline="central">进程内安装一次 · 同一 host 幂等</text></g></g><g data-step="3"><path class="am-edge" d="M304.8,247 L275.5,263 Q246.2,279 246.2,295 L246.2,311" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="177.1" y="270" width="138.3" height="18" rx="3"/><text x="246.2" y="279" text-anchor="middle" dominant-baseline="central">BuilderDeps 全显式注入</text></g></g><g data-step="4"><path class="am-edge" d="M300.5,342.4 L370.1,360.2 Q439.7,378 439.7,394 L439.7,410" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="344.1" y="369" width="191.2" height="18" rx="3"/><text x="439.7" y="378" text-anchor="middle" dominant-baseline="central">两遍资产发射 · prepare · 增量补丁</text></g></g><g data-step="5"><path class="am-edge" d="M246.2,346 L246.2,362 Q246.2,378 246.2,394 L246.2,410" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="170.4" y="369" width="151.7" height="18" rx="3"/><text x="246.2" y="378" text-anchor="middle" dominant-baseline="central">watch 去抖 · 串行重建队列</text></g></g><g data-step="6"><path class="am-edge" d="M191.9,345.2 L138.5,361.6 Q85,378 85,394 L85,410" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="21.6" y="369" width="126.8" height="18" rx="3"/><text x="85" y="378" text-anchor="middle" dominant-baseline="central">配置在此捕获 · 不进图</text></g></g><g data-step="7"><path class="am-edge" d="M85,445 L85,461 Q85,477 85,493 L85,509" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="15" y="468" width="140" height="18" rx="3"/><text x="85" y="477" text-anchor="middle" dominant-baseline="central">依赖追踪 · in-flight 去重</text></g></g><g data-step="8"><path class="am-edge" d="M439.7,445 L439.7,461 Q439.7,477 439.7,493 L439.7,509" marker-end="url(#am1-arrow)"/><g class="am-edge-label"><rect x="337.1" y="468" width="205.3" height="18" rx="3"/><text x="439.7" y="477" text-anchor="middle" dominant-baseline="central">single / split · hash 跳写 · 清理陈旧</text></g></g></g><g><g class="am-node am-node--rect" data-key="CLI velite build / dev" data-step="0"><rect class="am-node-shape" x="257.2" y="14" width="159" height="35" rx="3"/><text x="336.8" y="31.5" text-anchor="middle" dominant-baseline="central">CLI velite build / dev</text></g><g class="am-node am-node--round" data-key="公共门面" data-step="0"><rect class="am-node-shape" x="290.8" y="113" width="92" height="35" rx="17.5"/><text x="336.8" y="130.5" text-anchor="middle" dominant-baseline="central">公共门面</text></g><g class="am-node am-node--rect" data-key="组合根 index.ts" data-step="1"><rect class="am-node-shape" x="276.9" y="212" width="119.8" height="35" rx="3"/><text x="336.8" y="229.5" text-anchor="middle" dominant-baseline="central">组合根 index.ts</text></g><g class="am-node am-node--rect" data-key="SchemaContextHost" data-step="2"><rect class="am-node-shape" x="351.8" y="311" width="151" height="35" rx="3"/><text x="427.3" y="328.5" text-anchor="middle" dominant-baseline="central">SchemaContextHost</text></g><g class="am-node am-node--rect" data-key="createBuilder" data-step="3"><rect class="am-node-shape" x="191.9" y="311" width="108.6" height="35" rx="3"/><text x="246.2" y="328.5" text-anchor="middle" dominant-baseline="central">createBuilder</text></g><g class="am-node am-node--rect" data-key="Driver + RunContext" data-step="4"><rect class="am-node-shape" x="364.2" y="410" width="151" height="35" rx="3"/><text x="439.7" y="427.5" text-anchor="middle" dominant-baseline="central">Driver + RunContext</text></g><g class="am-node am-node--rect" data-key="Scheduler" data-step="5"><rect class="am-node-shape" x="201.8" y="410" width="88.8" height="35" rx="3"/><text x="246.2" y="427.5" text-anchor="middle" dominant-baseline="central">Scheduler</text></g><g class="am-node am-node--rect" data-key="Pipeline 派生图" data-step="6"><rect class="am-node-shape" x="24.3" y="410" width="121.3" height="35" rx="3"/><text x="85" y="427.5" text-anchor="middle" dominant-baseline="central">Pipeline 派生图</text></g><g class="am-node am-node--rect" data-key="Engine 增量图" data-step="7"><rect class="am-node-shape" x="28.5" y="509" width="113" height="35" rx="3"/><text x="85" y="526.5" text-anchor="middle" dominant-baseline="central">Engine 增量图</text></g><g class="am-node am-node--rect" data-key="Output 写入" data-step="8"><rect class="am-node-shape" x="390.1" y="509" width="99.2" height="35" rx="3"/><text x="439.7" y="526.5" text-anchor="middle" dominant-baseline="central">Output 写入</text></g></g></svg></figure>
+<figure class="am-codeblock" data-am-src="src/index.ts" data-am-lines="51-75"><figcaption class="am-code-head"><span class="am-code-title">src/index.ts:51-75</span><span class="am-code-lang">ts</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="ts"><span class="am-ln" data-n="51">/** Create a durable Node builder. Advanced/stateful entry; also the DI seam. */</span><span class="am-ln" data-n="52">export const builder = (options: BuildEntryOptions = {}): Builder =&gt; {</span><span class="am-ln" data-n="53">  const cwd = options.cwd ?? process.cwd()</span><span class="am-ln" data-n="54">  // Install or obtain the one process-wide SchemaContextHost. The default</span><span class="am-ln" data-n="55">  // Node runtime composition owns it for the process lifetime; installing the</span><span class="am-ln" data-n="56">  // identical host is idempotent, and installing a different host after the</span><span class="am-ln" data-n="57">  // first is a deterministic internal configuration failure. The host only</span><span class="am-ln" data-n="58">  // propagates the current SchemaRunContext — it owns no Builder/epoch/broker/</span><span class="am-ln" data-n="59">  // generation/publication/cache/registry/lifecycle state.</span><span class="am-ln am-ln--hl" data-n="60">  const host = ensureHostInstalled(createNodeSchemaContextHost)</span><span class="am-ln am-ln--hl" data-n="61">  const promiseObserver = (defaultPromiseObserver ??= createNodePromiseObserver({ runUnbound: operation =&gt; host.run(undefined, operation) }))</span><span class="am-ln am-ln--hl" data-n="62">  const schemaRunner = createSchemaRunner({ host, promiseObserver })</span><span class="am-ln am-ln--hl" data-n="63">  const contentExecutionsFactory = createDefaultContentExecutionsFactory(host)</span><span class="am-ln" data-n="64">  return createBuilder({</span><span class="am-ln" data-n="65">    cwd,</span><span class="am-ln" data-n="66">    configPath: resolveConfigOption(cwd, options.config),</span><span class="am-ln" data-n="67">    fs: createNodeFileSystem(),</span><span class="am-ln" data-n="68">    modules: createJitiModuleLoader({}),</span><span class="am-ln" data-n="69">    schemaRunner,</span><span class="am-ln" data-n="70">    contentExecutionsFactory,</span><span class="am-ln" data-n="71">    logger: createLogger({ level: options.logLevel ?? &#39;info&#39; }),</span><span class="am-ln" data-n="72">    image: createSharpImageProcessor(),</span><span class="am-ln" data-n="73">    watch: createChokidarWatcher</span><span class="am-ln" data-n="74">  })</span><span class="am-ln" data-n="75">}</span></code></pre></figure>
+<div class="am-md"><ul>
+<li>公共门面 <code>builder()</code> 同时是 <strong>DI 接缝</strong>:<code>fs</code> / <code>modules</code> / <code>logger</code> / <code>image</code> / <code>watch</code> 全部在此绑定 Node 实现,测试可以整体替换。</li>
+<li>watch 模式:文件事件先经 <code>classify</code> 路由(config / content / ignore)→ <code>Scheduler</code> 去抖串行 → <code>Driver.applyChanges</code> 增量补丁。</li>
+<li>配置变更 = 新 epoch(全新 Builder / Engine / Pipeline),因此配置与 schema 不需要哈希入图。</li>
+<li>独立构建天然隔离;构建期可变状态全部挂在 <code>RunContext</code> 上,会话级 schema 存储放 <code>SessionStore</code>。</li>
+</ul>
+</div></div>
+</section>
+<section class="am-panel" id="panel-C">
+<header class="am-panel-head"><span class="am-panel-id">C</span><h2>二、构建管线:七条派生</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><code>createPipeline</code>(<code>src/core/pipeline/index.ts</code>)把领域计算表达为七条 <code>Derivation</code>,由 Engine 按依赖拓扑求值:</p>
+</div>
+<figure class="am-diagram am-flow"><svg viewBox="0 0 1231 134" width="1231" height="134" role="img" aria-label="流程图：sources 发现、load 加载、validate 校验、collect 汇聚、uniqueCheck 唯一性、emit 生成、asset 资产" xmlns="http://www.w3.org/2000/svg"><defs><marker id="am2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="am-arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs><g></g><g><g data-step="0"><path class="am-edge" d="M119.7,31.5 L172.4,31.5 Q225.1,31.5 279.6,31.5 L334.1,31.5" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="143.7" y="22.5" width="162.7" height="18" rx="3"/><text x="225.1" y="31.5" text-anchor="middle" dominant-baseline="central">LoaderRegistry · 自定义优先</text></g></g><g data-step="1"><path class="am-edge" d="M418,31.5 L475.1,31.5 Q532.2,31.5 587.4,43.5 L642.7,55.4" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="445.6" y="22.5" width="173.1" height="18" rx="3"/><text x="532.2" y="31.5" text-anchor="middle" dominant-baseline="central">SchemaRunner + 内容执行模块</text></g></g><g data-step="2"><path class="am-edge" d="M749.5,79.9 L796.2,91.2 Q843,102.5 902.2,102.5 L961.5,102.5" marker-end="url(#am2-arrow)"/></g><g data-step="3"><path class="am-edge" d="M749.5,54.1 L796.2,42.8 Q843,31.5 889.8,31.5 L936.5,31.5" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="773.5" y="22.5" width="139" height="18" rx="3"/><text x="843" y="31.5" text-anchor="middle" dominant-baseline="central">键为 null · 扫描全部集合</text></g></g><g data-step="4"><path class="am-edge" d="M1061,102.5 L1085,102.5 Q1108.9,102.5 1125.5,93.5 L1142.1,84.5" marker-end="url(#am2-arrow)"/></g><g data-step="5"><path class="am-edge" d="M1085.9,31.5 L1097.4,31.5 Q1108.9,31.5 1125.5,40.5 L1142.1,49.5" marker-end="url(#am2-arrow)"/></g><g data-step="6"><path class="am-edge am-edge--dashed" d="M421.6,102.5 L476.9,102.5 Q532.2,102.5 587.4,90.5 L642.7,78.6" marker-end="url(#am2-arrow)"/><g class="am-edge-label"><rect x="463" y="93.5" width="138.3" height="18" rx="3"/><text x="532.2" y="102.5" text-anchor="middle" dominant-baseline="central">惰性 · memo · 按资产键</text></g></g></g><g><g class="am-node am-node--rect" data-key="sources 发现" data-step="0"><rect class="am-node-shape" x="14" y="14" width="105.7" height="35" rx="3"/><text x="66.9" y="31.5" text-anchor="middle" dominant-baseline="central">sources 发现</text></g><g class="am-node am-node--rect" data-key="load 加载" data-step="0"><rect class="am-node-shape" x="334.1" y="14" width="83.9" height="35" rx="3"/><text x="376.1" y="31.5" text-anchor="middle" dominant-baseline="central">load 加载</text></g><g class="am-node am-node--rect" data-key="validate 校验" data-step="1"><rect class="am-node-shape" x="642.7" y="49.5" width="106.8" height="35" rx="3"/><text x="696.1" y="67" text-anchor="middle" dominant-baseline="central">validate 校验</text></g><g class="am-node am-node--rect" data-key="collect 汇聚" data-step="2"><rect class="am-node-shape" x="961.5" y="85" width="99.5" height="35" rx="3"/><text x="1011.2" y="102.5" text-anchor="middle" dominant-baseline="central">collect 汇聚</text></g><g class="am-node am-node--rect" data-key="uniqueCheck 唯一性" data-step="3"><rect class="am-node-shape" x="936.5" y="14" width="149.4" height="35" rx="3"/><text x="1011.2" y="31.5" text-anchor="middle" dominant-baseline="central">uniqueCheck 唯一性</text></g><g class="am-node am-node--rect" data-key="emit 生成" data-step="4"><rect class="am-node-shape" x="1131.9" y="49.5" width="84.7" height="35" rx="3"/><text x="1174.3" y="67" text-anchor="middle" dominant-baseline="central">emit 生成</text></g><g class="am-node am-node--rect" data-key="asset 资产" data-step="6"><rect class="am-node-shape" x="330.5" y="85" width="91.2" height="35" rx="3"/><text x="376.1" y="102.5" text-anchor="middle" dominant-baseline="central">asset 资产</text></g></g></svg></figure>
+<div class="am-md"><ul>
+<li><strong>记忆化与陈旧性</strong>:输入未变直接命中缓存,输入变更标记陈旧后重算;<code>in-flight</code> 去重保证并发请求同一条派生只执行一次;环与缺输入是确定性 <code>EngineError</code>。</li>
+<li><code>validate</code> 是核心:加载结果 → <code>SchemaRunner</code>(为每条记录租用八字段上下文)→ 记录级内容执行模块(Parse / Transform / Emit 按需推进)。</li>
+<li><code>emit</code> 之后、写入之前,<code>prepare</code> 钩子介入(Driver 编排),再由 Output 层 <code>planWrites</code>(single / split 布局)落盘,写入时 hash 比对跳过未变更文件并清理陈旧输出。</li>
+</ul>
+</div></div>
+</section>
+<section class="am-panel" id="panel-D">
+<header class="am-panel-head"><span class="am-panel-id">D</span><h2>三、运行时端口:平台隔离层</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>内核永远不触碰平台 API;端口类型定义在 <code>src/runtime</code>,实现在 <code>src/runtime/adapters/node</code>——这是全仓唯一允许 <code>node:*</code> 与原生导入的地方。</p>
+</div>
+<div class="am-tree"><div class="am-tree-root am-tree-root--solo"><div class="am-tree-box am-tree-box--root" data-key="runtime 端口 ⇄ Node 适配" data-step="0">runtime 端口 ⇄ Node 适配<small>适配器是唯一持有平台依赖的地方</small></div></div><ul class="am-tree-list"><li data-key="FileSystem" data-step="1"><span class="am-tree-label">FileSystem</span><span class="am-tree-sub">node:fs + tinyglobby</span></li><li data-key="ImageProcessor" data-step="2"><span class="am-tree-label">ImageProcessor</span><span class="am-tree-sub">sharp(懒加载)</span></li><li data-key="Logger" data-step="3"><span class="am-tree-label">Logger</span><span class="am-tree-sub">控制台 · 分级日志</span></li><li data-key="ModuleLoader" data-step="4"><span class="am-tree-label">ModuleLoader</span><span class="am-tree-sub">jiti · 运行时加载 velite.config.*</span></li><li data-key="Watcher" data-step="5"><span class="am-tree-label">Watcher</span><span class="am-tree-sub">chokidar 文件事件</span></li><li data-key="SchemaContextHost" data-step="6"><span class="am-tree-label">SchemaContextHost</span><span class="am-tree-sub">AsyncLocalStorage 载体传播 · 进程级</span></li><li data-key="PromiseObserver" data-step="7"><span class="am-tree-label">PromiseObserver</span><span class="am-tree-sub">原生 Promise 链沉降观察 · ADR 0003</span></li></ul></div>
+<div class="am-md"><ul>
+<li>替换能力不需要改内核:换掉 <code>ImageProcessor</code> 适配器即可改用别的图片后端,内核与管线毫无感知。</li>
+<li>重型原生依赖(sharp)按需懒加载;<code>jiti</code>、sharp、zod、@mdx-js/mdx 是运行时依赖(external),其余工具打进 dist。</li>
+<li>每个适配器都是普通 <code>createXxx()</code> 工厂,在组合根被显式选中——没有反射、注册中心或环境探测。</li>
+</ul>
+</div></div>
+</section>
+<section class="am-panel" id="panel-E">
+<header class="am-panel-head"><span class="am-panel-id">E</span><h2>四、扩展点全景</h2></header>
+<div class="am-panel-body"><div class="am-md"><p>五个用户可触达的扩展缝,全部是<strong>显式注册的有限 API</strong>:</p>
+</div>
+<div class="am-tree"><div class="am-tree-root am-tree-root--solo"><div class="am-tree-box am-tree-box--root" data-key="扩展点" data-step="0">扩展点<small>全显式 · 有限 · 无运行时扫描</small></div></div><ul class="am-tree-list"><li data-key="Loader 加载器" data-step="1"><span class="am-tree-label">Loader 加载器</span><span class="am-tree-sub"><code>defineLoader</code> 自定义,优先于内置 matter / json / yaml</span></li><li data-key="Schema 校验器" data-step="2"><span class="am-tree-label">Schema 校验器</span><span class="am-tree-sub"><code>defineSchema</code> + <code>s</code> 命名空间(zod 全量 + 内置扩展)</span></li><li data-key="内容方言" data-step="3"><span class="am-tree-label">内容方言</span><span class="am-tree-sub"><code>content.markdown</code> / <code>content.mdx</code> + remark · rehype · recma 插件</span></li><li data-key="prepare 钩子" data-step="4"><span class="am-tree-label">prepare 钩子</span><span class="am-tree-sub">输出前处理,返回 false 可抑制默认输出</span></li><li data-key="配置层" data-step="5"><span class="am-tree-label">配置层</span><span class="am-tree-sub"><code>defineConfig</code> 全局默认,定义局部覆盖</span></li></ul></div>
+<figure class="am-codeblock" data-am-src="src/core/loader/index.ts" data-am-lines="16-22"><figcaption class="am-code-head"><span class="am-code-title">src/core/loader/index.ts:16-22</span><span class="am-code-lang">ts</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="ts"><span class="am-ln" data-n="16">export const createLoaderRegistry = (custom: Loader[] = []): LoaderRegistry =&gt; {</span><span class="am-ln" data-n="17">  // Custom loaders take precedence over built-ins.</span><span class="am-ln am-ln--hl" data-n="18">  const loaders = [...custom, matterLoader, jsonLoader, yamlLoader]</span><span class="am-ln" data-n="19">  return {</span><span class="am-ln" data-n="20">    resolve: path =&gt; loaders.find(loader =&gt; matches(loader, path))</span><span class="am-ln" data-n="21">  }</span><span class="am-ln" data-n="22">}</span></code></pre></figure>
+<figure class="am-codeblock" data-am-src="src/core/schema/s.ts" data-am-lines="5-23"><figcaption class="am-code-head"><span class="am-code-title">src/core/schema/s.ts:5-23</span><span class="am-code-lang">ts</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="ts"><span class="am-ln" data-n="5">/**</span><span class="am-ln" data-n="6"> * Velite&#39;s schema namespace. A thin, curated surface over zod so users (and our</span><span class="am-ln" data-n="7"> * own builtins) never import zod directly — this isolates the validation library</span><span class="am-ln" data-n="8"> * so it can evolve or be swapped without churning user configs.</span><span class="am-ln" data-n="9"> *</span><span class="am-ln" data-n="10"> * Uses `...z` to forward all zod base schemas: if zod adds a new primitive in</span><span class="am-ln" data-n="11"> * a future minor, it appears here automatically without a velite release.</span><span class="am-ln" data-n="12"> * Builtins (`image`, `slug`, etc.) extend the zod surface.</span><span class="am-ln" data-n="13"> *</span><span class="am-ln" data-n="14"> * Content Definitions live separately under `content`. `raw` and `path` read</span><span class="am-ln" data-n="15"> * the eight-field schema context wired by the SchemaRunner for each record.</span><span class="am-ln" data-n="16"> * Asset builtins (`file` / `image`) resolve content-relative references through</span><span class="am-ln" data-n="17"> * the engine&#39;s asset derivation (M5). Uniqueness builtins (`unique` / `slug`)</span><span class="am-ln" data-n="18"> * register `UniqueEffect`s the pipeline&#39;s `uniqueCheck` derivation scans (M6).</span><span class="am-ln" data-n="19"> */</span><span class="am-ln am-ln--hl" data-n="20">export const s = {</span><span class="am-ln am-ln--hl" data-n="21">  ...z,</span><span class="am-ln am-ln--hl" data-n="22">  ...builtins</span><span class="am-ln am-ln--hl" data-n="23">}</span></code></pre></figure>
+<div class="am-md"><p>内容定义的目标用法(ADR 0002,<code>content</code> 是独立命名空间,不进 <code>s</code>):</p>
+</div>
+<figure class="am-codeblock" data-am-src="adr/0002-content-definition-and-anchor-contract.md" data-am-lines="76-83"><figcaption class="am-code-head"><span class="am-code-title">adr/0002-content-definition-and-anchor-contract.md:76-83</span><span class="am-code-lang">ts</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code am-code--num"><code data-lang="ts"><span class="am-ln" data-n="76">import { content, s } from &#39;velite&#39;</span><span class="am-ln" data-n="77"></span><span class="am-ln am-ln--hl" data-n="78">const article = content.markdown({ gfm: true })</span><span class="am-ln" data-n="79">const schema = s.object({</span><span class="am-ln" data-n="80">  html: article.html(),</span><span class="am-ln" data-n="81">  toc: article.toc(),</span><span class="am-ln" data-n="82">  excerpt: article.excerpt({ length: 160 }),</span><span class="am-ln" data-n="83">  metadata: article.metadata()</span></code></pre></figure>
+<div class="am-callout am-callout--info" role="note"><div class="am-callout-title">内容执行的共享不变量(ADR 0001 / 0002)</div><div class="am-callout-body am-md"><p>同一记录校验内「同一定义对象 + 精确选中的输入文本」共享<strong>一次独占执行</strong>;分开创建的定义永远独立。Parse 服务 Source Analysis(excerpt / metadata),完整 Transform 服务 Navigation TOC,Emit 服务 HTML / code;失败不重试,成功的低阶段保留。对外只交付<strong>脱离的语义结果</strong>(TOC 数组、元数据对象每次全新),绝不暴露 AST / VFile / 插件私有状态;关闭是终态且幂等。</p>
+</div></div></div>
+</section>
+<section class="am-panel" id="panel-F">
+<header class="am-panel-head"><span class="am-panel-id">F</span><h2>五、配置体系与优先级</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><code>UserConfig</code> 是唯一的用户配置面;<code>defineConfig</code> / <code>defineCollection</code> 只做类型推断,零运行时效果。</p>
+<div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>默认</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>root</code></td>
+<td><code>content/</code></td>
+<td>内容根目录</td>
+</tr>
+<tr>
+<td><code>output.data</code></td>
+<td><code>.velite/</code></td>
+<td>生成数据目录</td>
+</tr>
+<tr>
+<td><code>output.assets</code></td>
+<td><code>public/static/</code></td>
+<td>生成资产目录</td>
+</tr>
+<tr>
+<td><code>output.base</code></td>
+<td><code>/static/</code></td>
+<td>资产公共 URL 前缀</td>
+</tr>
+<tr>
+<td><code>output.name</code></td>
+<td><code>[name]-[hash:8].[ext]</code></td>
+<td>资产命名模板(支持 name / hash / hash:N / ext / 子目录嵌套)</td>
+</tr>
+<tr>
+<td><code>output.format</code></td>
+<td><code>esm</code></td>
+<td>数据条目格式(<code>esm</code> 或 <code>cjs</code>)</td>
+</tr>
+<tr>
+<td><code>collections</code></td>
+<td>必填</td>
+<td>集合名即输出键;字段:pattern · exclude · single · typeName · schema</td>
+</tr>
+<tr>
+<td><code>markdown</code> / <code>mdx</code></td>
+<td>—</td>
+<td>全局方言默认,定义局部覆盖</td>
+</tr>
+<tr>
+<td><code>prepare</code></td>
+<td>—</td>
+<td>输出前钩子;返回 <code>false</code> 抑制默认文件输出</td>
+</tr>
+</tbody></table></div>
+</div>
+<div class="am-callout am-callout--warn" role="note"><div class="am-callout-title">值解析优先级</div><div class="am-callout-body am-md"><p>标量按 <code>定义局部选项 ?? config.markdown / mdx 全局默认 ?? 内置默认</code> 解析;显式 <code>false</code> 覆盖全局 <code>true</code>。插件注册:<strong>定义局部在前、全局在后</strong>,保序、不去重、不排序,按 Unified 原生 <code>.use()</code> 语义合并。运行期修改插件引用不受支持——变更请走配置重载(epoch 替换)。</p>
+</div></div>
+<div class="am-md"><ul>
+<li>配置文件 <code>velite.config.{js,ts,mjs,mts,cjs,cts}</code> 由 <strong>jiti 在运行时加载</strong>(不打包进 dist),自 cwd 向上最多搜索 3 层父目录。</li>
+<li><code>prepare</code> 钩子签名:<code>(collections, { project, diagnostics, addDiagnostic })</code>;诊断只能走 <code>addDiagnostic</code>(钩子沉降后同步关闭,迟到调用是 internal 错);返回 <code>void</code>(原地改)、<code>{ collections }</code>(整体替换)或 <code>false</code>(跳过输出)。</li>
+<li>入口选项(API / CLI 层):<code>cwd</code> · <code>config</code> · <code>layout</code>(生产默认 <code>single</code>,否则 <code>split</code>)· <code>clean</code> · <code>strict</code>(有 error 级诊断则抛 VeliteError)· <code>logLevel</code>。</li>
+</ul>
+</div></div>
+</section>
+<section class="am-panel" id="panel-G">
+<header class="am-panel-head"><span class="am-panel-id">G</span><h2>六、context():八字段与唯一例外</h2></header>
+<div class="am-panel-body"><div class="am-md"><p><code>context()</code>(<code>src/core/schema/context.ts</code>)返回当前正在解析记录的八字段 <code>SchemaContext</code>——内置与用户自定义 schema 的能力边界完全相同,没有内部专属层:</p>
+</div>
+<dl class="am-kv" style="--kv-cols: 2"><div class="am-kv-cell"><dt>project</dt><dd>解析后的配置快照(root · collections · output · 方言选项)</dd></div><div class="am-kv-cell"><dt>file</dt><dd>当前源文件(id · path;mdast/hast 已移除,自定义 schema 自带解析)</dd></div><div class="am-kv-cell"><dt>record</dt><dd>多记录源内的身份(id · key · index)</dd></div><div class="am-kv-cell"><dt>store</dt><dd>会话级 KV 存储;跨重建共享,配置重载时重置;刻意无 set()</dd></div><div class="am-kv-cell"><dt>collectEffect</dt><dd>声明 schema effect(两参声明面)→ 交 uniqueCheck 扫描</dd></div><div class="am-kv-cell"><dt>asset</dt><dd>按内容根相对 POSIX 路径解析资产;memo 化;返回 publicUrl + 可选图片元数据</dd></div><div class="am-kv-cell"><dt>readFile</dt><dd>直接读取资产字节(s.image({ absoluteRoot }) 使用)</dd></div><div class="am-kv-cell"><dt>probeImage</dt><dd>直接探测图片元数据(可加 blur),绕过资产管线</dd></div></dl>
+<div class="am-callout am-callout--warn" role="note"><div class="am-callout-title">为什么允许这一个隐藏全局状态</div><div class="am-callout-body am-md"><p>Zod 的 transform 签名 <code>(value, ctx) =&gt; ...</code> 无法显式携带环境上下文,因此由进程级 <code>SchemaContextHost</code> 经 AsyncLocalStorage 传播 <code>SchemaRunContext</code>。同一 host 重复安装幂等;首次安装后再装不同 host 是确定性 <code>VeliteError(&#39;internal&#39;)</code>;没有重置 / 替换 / 引用计数。host <strong>只做传播</strong>,不持有 Builder、epoch、内容执行、缓存或注册表。除这一处,核心禁止一切隐藏全局状态。</p>
+</div></div>
+<figure class="am-codeblock"><figcaption class="am-code-head"><span class="am-code-title">context() 用法示意</span><span class="am-code-lang">ts</span><button class="am-code-copy" type="button" data-am="copy-code" data-done="已复制 ✓">复制</button></figcaption><pre class="am-code"><code data-lang="ts"><span class="am-ln">// 正确 —— 读取当前解析的元数据与能力闭包</span><span class="am-ln">const { project, file, record } = context()</span><span class="am-ln">const { publicUrl, width, height } = await context().asset(&#39;./img/hero.png&#39;)</span><span class="am-ln"></span><span class="am-ln">// 错误 —— context() 不是服务定位器,没有可注入服务</span><span class="am-ln">const logger = context().logger // ✗ 不存在</span><span class="am-ln">const fs = context().fs // ✗ 不存在</span></code></pre></figure></div>
+</section>
+<section class="am-panel" id="panel-H">
+<header class="am-panel-head"><span class="am-panel-id">H</span><h2>七、设计红线</h2></header>
+<div class="am-panel-body"><div class="am-md"><div class="am-table-wrap"><table>
+<thead>
+<tr>
+<th>禁止模式</th>
+<th>示例</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><span class="am-status am-status--no"><span class="am-status-icon" aria-hidden="true">✗</span>DI 容器</span></td>
+<td><code>container.resolve(...)</code></td>
+<td>依赖不可见 · 难追踪</td>
+</tr>
+<tr>
+<td><span class="am-status am-status--no"><span class="am-status-icon" aria-hidden="true">✗</span>服务定位器</span></td>
+<td><code>services.user.getUser(...)</code></td>
+<td>依赖隐式化</td>
+</tr>
+<tr>
+<td><span class="am-status am-status--no"><span class="am-status-icon" aria-hidden="true">✗</span>单例模块</span></td>
+<td><code>export const userService = ...</code></td>
+<td>测试与生命周期失控</td>
+</tr>
+<tr>
+<td><span class="am-status am-status--no"><span class="am-status-icon" aria-hidden="true">✗</span>装饰器注入</span></td>
+<td><code>@injectable()</code> / <code>@inject()</code></td>
+<td>依赖运行时元数据 · 隐藏布线</td>
+</tr>
+<tr>
+<td><span class="am-status am-status--no"><span class="am-status-icon" aria-hidden="true">✗</span>运行时自动注册</span></td>
+<td><code>loadModules()</code> / <code>scanDirectory()</code></td>
+<td>依赖隐式化</td>
+</tr>
+<tr>
+<td><span class="am-status am-status--no"><span class="am-status-icon" aria-hidden="true">✗</span>共享工具桶</span></td>
+<td><code>common</code> / <code>shared</code> / <code>utils</code></td>
+<td>无关职责堆积</td>
+</tr>
+<tr>
+<td><span class="am-status am-status--no"><span class="am-status-icon" aria-hidden="true">✗</span>隐藏全局状态</span></td>
+<td><code>globalThis.xxx</code> · 模块级可变状态</td>
+<td>除非有意进程级(context host 是唯一例外)</td>
+</tr>
+<tr>
+<td><span class="am-status am-status--no"><span class="am-status-icon" aria-hidden="true">✗</span>依赖混入</span></td>
+<td><code>execute({ db, logger, userId })</code></td>
+<td>构造依赖与业务输入生命周期不同</td>
+</tr>
+</tbody></table></div>
+</div>
+<div class="am-callout am-callout--ok" role="note"><div class="am-callout-title">判据</div><div class="am-callout-body am-md"><p><strong>必须用 <code>createXxx(deps)</code> 工厂</strong> —— 满足任一即可:</p>
+<ul>
+<li>有依赖:文件系统 / 日志 / 图片 / 模块加载 / 观察器</li>
+<li>有状态:缓存 / 清单 / 引擎态 / 会话态</li>
+<li>有生命周期:dispose / close / 清理</li>
+<li>是组合模块或运行时适配器</li>
+</ul>
+<p><strong>允许直接导出</strong>:纯函数与工具、类型模块、常量、错误类、schema 构建器与恒等助手、公共门面。</p>
+</div></div>
+<div class="am-md"><p>本页为评审层;架构事实以 AGENTS.md、<code>.agents/knowledge/module-architecture.md</code>、<code>.agents/knowledge/schema-context.md</code> 与 <code>adr/0001–0003</code> 为准。</p>
+</div></div>
+</section>
+</div>
+</div>
+</main>
+<div class="am-lightbox" hidden aria-modal="true" role="dialog" aria-label="图表查看" data-expand="展开查看图表">
+<div class="am-lightbox-backdrop"></div>
+<div class="am-lightbox-header">
+<div class="am-lightbox-title">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+<span class="am-lightbox-title-text"></span>
+</div>
+<div class="am-lightbox-actions">
+<button class="am-lightbox-close" data-action="close" title="关闭" aria-label="关闭">✕</button>
+</div>
+</div>
+<div class="am-lightbox-stage">
+<div class="am-lightbox-canvas am-diagram"></div>
+</div>
+</div>
+<footer class="am-colophon">Generated by <a href="https://github.com/QingYunA/answer-me-with-html" target="_blank" rel="noopener">Answer me with HTML</a> 0.4.13 · 2026-10-11 20:56</footer>
+<textarea id="am-source" hidden readonly aria-hidden="true">---
+template: doc
+title: Velite 架构与扩展性设计
+subtitle: 平台无关内核 · 运行时端口 · 显式工厂依赖注入
+---
+
+Velite 把 Markdown / MDX、YAML、JSON 内容源编译成 Zod 校验的类型安全数据层。本页依据根 AGENTS.md、`.agents/knowledge/` 与 `adr/0001–0003`,梳理其架构分层、构建管线、运行时端口、五个扩展点、配置体系与设计红线。
+
+## 结论:先看全景
+
+```callout ok 一句话架构
+Velite 是三层合体:**平台无关的领域层**(`src/core`,纯派生图,零 `node:*` 导入);**一组运行时端口**(`src/runtime`,由 `adapters/node` 提供平台实现);**显式工厂依赖注入**(依赖在组合根可见、可测、可整体替换)。所有扩展点都是有限且显式注册的 API——没有运行时扫描、装饰器注入或隐藏注册表。
+```
+
+```kv cols=2
+* 定位: 把 Markdown / MDX · YAML · JSON 变成 Zod 校验的类型安全数据层
+内核: `src/core` —— 七条派生组成的增量记忆化图
+端口层: `src/runtime` —— FileSystem · ImageProcessor · Logger · ModuleLoader · Watcher
+适配层: `src/runtime/adapters/node` —— 全仓唯一允许 `node:*` 与原生导入的地方
+隔离层: `s` 命名空间 —— `...zod` 全量转发,用户不直接 import zod
+交付物: tsdown(rolldown)打包 · ESM-only · Node ≥ 22.13 · jiti 运行时加载配置
+生态: `packages/next` → @velite/plugin-next · `packages/vite` → @velite/plugin-vite
+```
+
+## 一、分层架构与组合根
+
+依赖组装只发生在**组合根**。最关键的两个:公共门面 `src/index.ts`(安装进程级 Host、绑定全部 Node 适配器)与内部组合根 `createBuilder`(`src/core/builder.ts`,组装配置 + 加载器 + 管线 + 引擎 + 驱动)。
+
+```flow TB
+[CLI velite build / dev] -&gt; (公共门面) : builder · build · watch
+(公共门面) -&gt; [组合根 index.ts] : 安装 SchemaContextHost · 绑定 Node 适配器
+[组合根 index.ts] -&gt; [SchemaContextHost] : 进程内安装一次 · 同一 host 幂等
+[组合根 index.ts] -&gt; [createBuilder] : BuilderDeps 全显式注入
+[createBuilder] -&gt; [Driver + RunContext] : 两遍资产发射 · prepare · 增量补丁
+[createBuilder] -&gt; [Scheduler] : watch 去抖 · 串行重建队列
+[createBuilder] -&gt; [Pipeline 派生图] : 配置在此捕获 · 不进图
+[Pipeline 派生图] -&gt; [Engine 增量图] : 依赖追踪 · in-flight 去重
+[Driver + RunContext] -&gt; [Output 写入] : single / split · hash 跳写 · 清理陈旧
+```
+
+```ts src=src/index.ts lines=51-75 hl=60-63
+```
+
+- 公共门面 `builder()` 同时是 **DI 接缝**:`fs` / `modules` / `logger` / `image` / `watch` 全部在此绑定 Node 实现,测试可以整体替换。
+- watch 模式:文件事件先经 `classify` 路由(config / content / ignore)→ `Scheduler` 去抖串行 → `Driver.applyChanges` 增量补丁。
+- 配置变更 = 新 epoch(全新 Builder / Engine / Pipeline),因此配置与 schema 不需要哈希入图。
+- 独立构建天然隔离;构建期可变状态全部挂在 `RunContext` 上,会话级 schema 存储放 `SessionStore`。
+
+## 二、构建管线:七条派生
+
+`createPipeline`(`src/core/pipeline/index.ts`)把领域计算表达为七条 `Derivation`,由 Engine 按依赖拓扑求值:
+
+```flow LR
+[sources 发现] -&gt; [load 加载] : LoaderRegistry · 自定义优先
+[load 加载] -&gt; [validate 校验] : SchemaRunner + 内容执行模块
+[validate 校验] -&gt; [collect 汇聚]
+[validate 校验] -&gt; [uniqueCheck 唯一性] : 键为 null · 扫描全部集合
+[collect 汇聚] -&gt; [emit 生成]
+[uniqueCheck 唯一性] -&gt; [emit 生成]
+[asset 资产] --&gt; validate 校验 : 惰性 · memo · 按资产键
+```
+
+- **记忆化与陈旧性**:输入未变直接命中缓存,输入变更标记陈旧后重算;`in-flight` 去重保证并发请求同一条派生只执行一次;环与缺输入是确定性 `EngineError`。
+- `validate` 是核心:加载结果 → `SchemaRunner`(为每条记录租用八字段上下文)→ 记录级内容执行模块(Parse / Transform / Emit 按需推进)。
+- `emit` 之后、写入之前,`prepare` 钩子介入(Driver 编排),再由 Output 层 `planWrites`(single / split 布局)落盘,写入时 hash 比对跳过未变更文件并清理陈旧输出。
+
+## 三、运行时端口:平台隔离层
+
+内核永远不触碰平台 API;端口类型定义在 `src/runtime`,实现在 `src/runtime/adapters/node`——这是全仓唯一允许 `node:*` 与原生导入的地方。
+
+```tree
+runtime 端口 ⇄ Node 适配 | 适配器是唯一持有平台依赖的地方
+  FileSystem | node:fs + tinyglobby
+  ImageProcessor | sharp(懒加载)
+  Logger | 控制台 · 分级日志
+  ModuleLoader | jiti · 运行时加载 velite.config.*
+  Watcher | chokidar 文件事件
+  SchemaContextHost | AsyncLocalStorage 载体传播 · 进程级
+  PromiseObserver | 原生 Promise 链沉降观察 · ADR 0003
+```
+
+- 替换能力不需要改内核:换掉 `ImageProcessor` 适配器即可改用别的图片后端,内核与管线毫无感知。
+- 重型原生依赖(sharp)按需懒加载;`jiti`、sharp、zod、@mdx-js/mdx 是运行时依赖(external),其余工具打进 dist。
+- 每个适配器都是普通 `createXxx()` 工厂,在组合根被显式选中——没有反射、注册中心或环境探测。
+
+## 四、扩展点全景
+
+五个用户可触达的扩展缝,全部是**显式注册的有限 API**:
+
+```tree
+扩展点 | 全显式 · 有限 · 无运行时扫描
+  Loader 加载器 | `defineLoader` 自定义,优先于内置 matter / json / yaml
+  Schema 校验器 | `defineSchema` + `s` 命名空间(zod 全量 + 内置扩展)
+  内容方言 | `content.markdown` / `content.mdx` + remark · rehype · recma 插件
+  prepare 钩子 | 输出前处理,返回 false 可抑制默认输出
+  配置层 | `defineConfig` 全局默认,定义局部覆盖
+```
+
+```ts src=src/core/loader/index.ts lines=16-22 hl=18
+```
+
+```ts src=src/core/schema/s.ts lines=5-23 hl=20-23
+```
+
+内容定义的目标用法(ADR 0002,`content` 是独立命名空间,不进 `s`):
+
+```ts src=adr/0002-content-definition-and-anchor-contract.md lines=76-83 hl=78
+```
+
+```callout info 内容执行的共享不变量(ADR 0001 / 0002)
+同一记录校验内「同一定义对象 + 精确选中的输入文本」共享**一次独占执行**;分开创建的定义永远独立。Parse 服务 Source Analysis(excerpt / metadata),完整 Transform 服务 Navigation TOC,Emit 服务 HTML / code;失败不重试,成功的低阶段保留。对外只交付**脱离的语义结果**(TOC 数组、元数据对象每次全新),绝不暴露 AST / VFile / 插件私有状态;关闭是终态且幂等。
+```
+
+## 五、配置体系与优先级
+
+`UserConfig` 是唯一的用户配置面;`defineConfig` / `defineCollection` 只做类型推断,零运行时效果。
+
+| 配置项                 | 默认                       | 说明                                                        |
+| ---------------------- | -------------------------- | ----------------------------------------------------------- |
+| `root`                 | `content/`                 | 内容根目录                                                  |
+| `output.data`          | `.velite/`                 | 生成数据目录                                                 |
+| `output.assets`        | `public/static/`           | 生成资产目录                                                 |
+| `output.base`          | `/static/`                 | 资产公共 URL 前缀                                            |
+| `output.name`          | `[name]-[hash:8].[ext]`    | 资产命名模板(支持 name / hash / hash:N / ext / 子目录嵌套)|
+| `output.format`        | `esm`                      | 数据条目格式(`esm` 或 `cjs`)                               |
+| `collections`          | 必填                       | 集合名即输出键;字段:pattern · exclude · single · typeName · schema |
+| `markdown` / `mdx`     | —                          | 全局方言默认,定义局部覆盖                                    |
+| `prepare`              | —                          | 输出前钩子;返回 `false` 抑制默认文件输出                     |
+
+```callout warn 值解析优先级
+标量按 `定义局部选项 ?? config.markdown / mdx 全局默认 ?? 内置默认` 解析;显式 `false` 覆盖全局 `true`。插件注册:**定义局部在前、全局在后**,保序、不去重、不排序,按 Unified 原生 `.use()` 语义合并。运行期修改插件引用不受支持——变更请走配置重载(epoch 替换)。
+```
+
+- 配置文件 `velite.config.{js,ts,mjs,mts,cjs,cts}` 由 **jiti 在运行时加载**(不打包进 dist),自 cwd 向上最多搜索 3 层父目录。
+- `prepare` 钩子签名:`(collections, { project, diagnostics, addDiagnostic })`;诊断只能走 `addDiagnostic`(钩子沉降后同步关闭,迟到调用是 internal 错);返回 `void`(原地改)、`{ collections }`(整体替换)或 `false`(跳过输出)。
+- 入口选项(API / CLI 层):`cwd` · `config` · `layout`(生产默认 `single`,否则 `split`)· `clean` · `strict`(有 error 级诊断则抛 VeliteError)· `logLevel`。
+
+## 六、context():八字段与唯一例外
+
+`context()`(`src/core/schema/context.ts`)返回当前正在解析记录的八字段 `SchemaContext`——内置与用户自定义 schema 的能力边界完全相同,没有内部专属层:
+
+```kv cols=2
+project: 解析后的配置快照(root · collections · output · 方言选项)
+file: 当前源文件(id · path;mdast/hast 已移除,自定义 schema 自带解析)
+record: 多记录源内的身份(id · key · index)
+store: 会话级 KV 存储;跨重建共享,配置重载时重置;刻意无 set()
+collectEffect: 声明 schema effect(两参声明面)→ 交 uniqueCheck 扫描
+asset: 按内容根相对 POSIX 路径解析资产;memo 化;返回 publicUrl + 可选图片元数据
+readFile: 直接读取资产字节(s.image({ absoluteRoot }) 使用)
+probeImage: 直接探测图片元数据(可加 blur),绕过资产管线
+```
+
+```callout warn 为什么允许这一个隐藏全局状态
+Zod 的 transform 签名 `(value, ctx) =&gt; ...` 无法显式携带环境上下文,因此由进程级 `SchemaContextHost` 经 AsyncLocalStorage 传播 `SchemaRunContext`。同一 host 重复安装幂等;首次安装后再装不同 host 是确定性 `VeliteError(&#39;internal&#39;)`;没有重置 / 替换 / 引用计数。host **只做传播**,不持有 Builder、epoch、内容执行、缓存或注册表。除这一处,核心禁止一切隐藏全局状态。
+```
+
+```ts title=&quot;context() 用法示意&quot;
+// 正确 —— 读取当前解析的元数据与能力闭包
+const { project, file, record } = context()
+const { publicUrl, width, height } = await context().asset(&#39;./img/hero.png&#39;)
+
+// 错误 —— context() 不是服务定位器,没有可注入服务
+const logger = context().logger // ✗ 不存在
+const fs = context().fs // ✗ 不存在
+```
+
+## 七、设计红线
+
+| 禁止模式         | 示例                                | 原因                             |
+| ---------------- | ----------------------------------- | -------------------------------- |
+| no DI 容器       | `container.resolve(...)`             | 依赖不可见 · 难追踪              |
+| no 服务定位器    | `services.user.getUser(...)`        | 依赖隐式化                       |
+| no 单例模块      | `export const userService = ...`    | 测试与生命周期失控               |
+| no 装饰器注入    | `@injectable()` / `@inject()`       | 依赖运行时元数据 · 隐藏布线      |
+| no 运行时自动注册 | `loadModules()` / `scanDirectory()` | 依赖隐式化                       |
+| no 共享工具桶    | `common` / `shared` / `utils`       | 无关职责堆积                     |
+| no 隐藏全局状态  | `globalThis.xxx` · 模块级可变状态  | 除非有意进程级(context host 是唯一例外) |
+| no 依赖混入      | `execute({ db, logger, userId })`   | 构造依赖与业务输入生命周期不同   |
+
+```callout ok 判据
+**必须用 `createXxx(deps)` 工厂** —— 满足任一即可:
+
+- 有依赖:文件系统 / 日志 / 图片 / 模块加载 / 观察器
+- 有状态:缓存 / 清单 / 引擎态 / 会话态
+- 有生命周期:dispose / close / 清理
+- 是组合模块或运行时适配器
+
+**允许直接导出**:纯函数与工具、类型模块、常量、错误类、schema 构建器与恒等助手、公共门面。
+```
+
+本页为评审层;架构事实以 AGENTS.md、`.agents/knowledge/module-architecture.md`、`.agents/knowledge/schema-context.md` 与 `adr/0001–0003` 为准。
+</textarea>
+<script>
+(() => {
+  const root = document.documentElement;
+  // A host that serves this page inside its own document leaves the real root without the page's settings. The toolbar keeps a copy;
+  // set back what the root lacks, before anything below reads the root. A root's own value, even an empty one, is never replaced.
+  const carrier = document.querySelector('.am-toolbar');
+  for (const [attr, key] of [['lang', 'data-am-root-lang'], ['data-theme', 'data-am-root-theme'], ['data-mode', 'data-am-root-mode'], ['data-style', 'data-am-root-style']]) {
+    if (root.getAttribute(attr) === null && carrier?.getAttribute(key) != null) root.setAttribute(attr, carrier.getAttribute(key));
+  }
+  // Each toolbar list sets one root attribute; its options name the values, so the runtime names no theme or mode.
+  for (const [name, attr] of [['theme', 'data-theme'], ['mode', 'data-mode']]) {
+    const select = document.querySelector(`select[data-am="${name}"]`);
+    if (!select) continue;
+    select.value = root.getAttribute(attr);
+    select.addEventListener('change', () => root.setAttribute(attr, select.value));
+  }
+
+  const copyText = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = Object.assign(document.createElement('textarea'), { value: text });
+      document.body.append(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+  };
+  // The button reads its label from data-done for a moment after a copy.
+  const flash = (btn) => {
+    const original = btn.textContent;
+    btn.textContent = btn.dataset.done;
+    setTimeout(() => { btn.textContent = original; }, 1400);
+  };
+
+  const copyBtn = document.querySelector('[data-am="copy"]');
+  copyBtn?.addEventListener('click', async () => {
+    const nodes = document.querySelectorAll('#am-source');
+    await copyText(nodes[nodes.length - 1]?.value ?? '');
+    flash(copyBtn);
+  });
+
+  // Each code block copies its own lines, without the line numbers.
+  for (const btn of document.querySelectorAll('[data-am="copy-code"]')) {
+    btn.addEventListener('click', async () => {
+      const lines = btn.closest('.am-codeblock')?.querySelectorAll('.am-ln') ?? [];
+      await copyText([...lines].map((l) => l.textContent).join('\n'));
+      flash(btn);
+    });
+  }
+
+  // ── Diagram Lightbox & Pan-Zoom Viewer ─────────────
+  const diagrams = document.querySelectorAll('.am-diagram:not(.am-lightbox-canvas)');
+  const lb = document.querySelector('.am-lightbox');
+  if (diagrams.length && lb) {
+    const backdrop = lb.querySelector('.am-lightbox-backdrop');
+    const titleText = lb.querySelector('.am-lightbox-title-text');
+    const stage = lb.querySelector('.am-lightbox-stage');
+    const canvas = lb.querySelector('.am-lightbox-canvas');
+    const closeBtn = lb.querySelector('.am-lightbox-close');
+    const expandLabel = lb.getAttribute('data-expand') || 'Expand diagram';
+
+    let scale = 1, x = 0, y = 0, fitScale = 1, curVw = 800, curVh = 600;
+    let isDragging = false, activePointerId = null, startX = 0, startY = 0, origX = 0, origY = 0;
+    let lastTrigger = null;
+
+    const apply = () => {
+      canvas.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
+    };
+
+    const zoomTo = (newScale, pivotX, pivotY) => {
+      newScale = Math.max(0.2, Math.min(6.0, newScale));
+      if (Math.abs(newScale - scale) < 0.0001) return;
+      const r = newScale / scale;
+      x = pivotX - (pivotX - x) * r;
+      y = pivotY - (pivotY - y) * r;
+      scale = newScale;
+      apply();
+    };
+
+    const open = (diag, trigger) => {
+      const svg = [...diag.children].find((el) => el.tagName.toLowerCase() === 'svg');
+      if (!svg) return;
+      lastTrigger = trigger;
+
+      const panel = diag.closest('.am-panel');
+      const panelTitle = panel?.querySelector('.am-panel-head h2')?.textContent?.trim() || panel?.querySelector('h2')?.textContent?.trim() || lb.getAttribute('aria-label') || 'Diagram viewer';
+      if (titleText) titleText.textContent = panelTitle;
+
+      const clone = svg.cloneNode(true);
+      const defElements = clone.querySelectorAll('[id]');
+      if (defElements.length) {
+        const idMap = new Map();
+        defElements.forEach((el, i) => {
+          const oldId = el.id;
+          const newId = `${oldId}-lb-${i}`;
+          idMap.set(oldId, newId);
+          el.id = newId;
+        });
+        const urlAttrs = ['marker-start', 'marker-mid', 'marker-end', 'fill', 'stroke', 'filter', 'clip-path', 'mask'];
+        clone.querySelectorAll('*').forEach((el) => {
+          for (const attr of urlAttrs) {
+            const val = el.getAttribute(attr);
+            if (val && val.startsWith('url(#')) {
+              const id = val.slice(5, -1);
+              if (idMap.has(id)) el.setAttribute(attr, `url(#${idMap.get(id)})`);
+            }
+          }
+          const href = el.getAttribute('href') || el.getAttribute('xlink:href');
+          if (href && href.startsWith('#')) {
+            const id = href.slice(1);
+            if (idMap.has(id)) {
+              if (el.hasAttribute('href')) el.setAttribute('href', `#${idMap.get(id)}`);
+              if (el.hasAttribute('xlink:href')) el.setAttribute('xlink:href', `#${idMap.get(id)}`);
+            }
+          }
+        });
+      }
+
+      const vb = svg.viewBox?.baseVal;
+      curVw = (vb && vb.width > 0) ? vb.width : (parseFloat(svg.getAttribute('width')) || svg.clientWidth || 800);
+      curVh = (vb && vb.height > 0) ? vb.height : (parseFloat(svg.getAttribute('height')) || svg.clientHeight || 600);
+      clone.style.width = `${curVw}px`;
+      clone.style.height = `${curVh}px`;
+      canvas.innerHTML = '';
+      canvas.append(clone);
+      lb.removeAttribute('hidden');
+      document.body.style.overflow = 'hidden';
+
+      const rect = stage.getBoundingClientRect();
+      const pad = 48;
+      const availW = Math.max(100, rect.width - pad * 2);
+      const availH = Math.max(100, rect.height - pad * 2);
+      fitScale = Math.min(availW / curVw, availH / curVh, 1.0);
+      scale = fitScale;
+      x = (rect.width - curVw * scale) / 2;
+      y = (rect.height - curVh * scale) / 2;
+      apply();
+      closeBtn.focus();
+    };
+
+    const close = () => {
+      if (lb.hasAttribute('hidden')) return;
+      lb.setAttribute('hidden', '');
+      canvas.innerHTML = '';
+      document.body.style.overflow = '';
+      lastTrigger?.focus();
+    };
+
+    stage.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const rect = stage.getBoundingClientRect();
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : (e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY);
+      const factor = Math.exp(-Math.max(-200, Math.min(200, dy)) * 0.0015);
+      zoomTo(scale * factor, e.clientX - rect.left, e.clientY - rect.top);
+    }, { passive: false });
+
+    stage.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || isDragging) return;
+      isDragging = true;
+      activePointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      origX = x;
+      origY = y;
+      stage.setPointerCapture(e.pointerId);
+      stage.classList.add('am-panning');
+    });
+
+    stage.addEventListener('pointermove', (e) => {
+      if (!isDragging || e.pointerId !== activePointerId) return;
+      x = origX + (e.clientX - startX);
+      y = origY + (e.clientY - startY);
+      apply();
+    });
+
+    const endDrag = (e) => {
+      if (!isDragging || e.pointerId !== activePointerId) return;
+      isDragging = false;
+      activePointerId = null;
+      stage.classList.remove('am-panning');
+      try { stage.releasePointerCapture(e.pointerId); } catch {}
+    };
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+
+    stage.addEventListener('dblclick', () => {
+      const rect = stage.getBoundingClientRect();
+      scale = fitScale;
+      x = (rect.width - curVw * scale) / 2;
+      y = (rect.height - curVh * scale) / 2;
+      apply();
+    });
+
+    closeBtn.addEventListener('click', close);
+    backdrop.addEventListener('click', close);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !lb.hasAttribute('hidden')) close();
+    });
+
+    lb.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const focusables = lb.querySelectorAll('button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    const expandSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+    diagrams.forEach((diag) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'am-diagram-expand';
+      btn.title = expandLabel;
+      btn.setAttribute('aria-label', expandLabel);
+      btn.innerHTML = expandSvg;
+      btn.addEventListener('click', () => open(diag, btn));
+      diag.prepend(btn);
+    });
+  }
+})();
+(() => {
+// The reply a reader copies from the page: one Markdown text with the decisions and the panel comments.
+// A plain ES module for tests; the page gets it with its `export` keyword dropped (src/runtime/compose.js).
+// decisions: [{ panel, question, picked: [label], suggested: [label], touched }]; comments: [{ panel, title, text }].
+// Comment text is quoted line by line, so text the reader typed cannot pass as part of the structure.
+function replyText({ title, decisions, comments, ui }) {
+  const out = [`# Re: ${title}`];
+  if (decisions.length) {
+    out.push('', `## ${ui.decisions}`);
+    decisions.forEach((d, i) => {
+      const answer = d.picked.length ? d.picked.map((l) => `**${l}**`).join(', ') : '**—**';
+      const same = d.picked.length === d.suggested.length && d.picked.every((l) => d.suggested.includes(l));
+      const why = same ? (d.touched ? ui.confirmed : ui.untouched) : `${ui.was}: ${d.suggested.join(', ') || '—'}`;
+      out.push(`${i + 1}. [${d.panel}] ${d.question}`, `   → ${answer} _(${why})_`);
+    });
+  }
+  const written = comments.filter((c) => c.text.trim());
+  if (written.length) {
+    out.push('', `## ${ui.comments}`);
+    for (const c of written) {
+      out.push(`- **${c.panel} · ${c.title}**`, ...c.text.trim().split('\n').map((l) => `  > ${l}`));
+    }
+    out.push('', `_${ui.typed}_`);
+  }
+  return `${out.join('\n')}\n`;
+}
+
+// Answer on the page: every panel gets a Comment box, and the Reply button collects the ask answers and the comments
+// into one Markdown reply (replyText) to copy back to the agent. Answers and comments stay in localStorage across reloads.
+const replyBtn = document.querySelector('[data-am="reply"]');
+const COMMENT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
+if (replyBtn) {
+  const ui = JSON.parse(replyBtn.dataset.ui);
+  const storeKey = `am-reply:${location.pathname}`;
+  const panels = [...document.querySelectorAll('.am-panel')];
+  const asks = [...document.querySelectorAll('.am-ask')];
+  // Answers are saved by question text, so they still match after am patch has renumbered the asks.
+  const keyOf = (ask) => ask.querySelector('legend')?.textContent.trim() ?? ask.dataset.ask;
+  const touched = new Set();
+  const boxes = new Map();
+
+  const load = () => {
+    try {
+      return JSON.parse(localStorage.getItem(storeKey)) || {};
+    } catch {
+      return {};
+    }
+  };
+  const save = () => {
+    const state = {
+      asks: Object.fromEntries(asks.map((a) => [keyOf(a), { picked: picked(a), touched: touched.has(a) }])),
+      comments: Object.fromEntries([...boxes].map(([id, box]) => [id, box.value]).filter(([, text]) => text.trim())),
+    };
+    try {
+      localStorage.setItem(storeKey, JSON.stringify(state));
+    } catch {
+      // Storage may be off (private window, file:// policy); answers then last until the page closes.
+    }
+  };
+  const picked = (ask) => [...ask.querySelectorAll('input')].filter((i) => i.checked).map((i) => i.value);
+  const panelOf = (el) => {
+    const panel = el.closest('.am-panel');
+    return { id: panel?.id.replace(/^panel-/, '') ?? '', title: panel?.querySelector('.am-panel-head h2')?.textContent.trim() ?? '' };
+  };
+
+  const saved = load();
+  for (const ask of asks) {
+    const inputs = [...ask.querySelectorAll('input')];
+    const state = saved.asks?.[keyOf(ask)];
+    // A saved answer applies only while every picked option still exists on the page.
+    if (state && state.picked.every((v) => inputs.some((i) => i.value === v))) {
+      for (const input of inputs) input.checked = state.picked.includes(input.value);
+      if (state.touched) touched.add(ask);
+    }
+    // A click counts even on the option that is already picked: the reader confirms the suggestion.
+    const answer = () => {
+      touched.add(ask);
+      save();
+    };
+    ask.addEventListener('change', answer);
+    ask.addEventListener('click', (e) => { if (e.target.matches('input')) answer(); });
+  }
+
+  for (const panel of panels) {
+    const id = panel.id.replace(/^panel-/, '');
+    // An icon only: narrow panels have no room for a word next to the title.
+    const btn = Object.assign(document.createElement('button'), { type: 'button', className: 'am-comment-btn', title: ui.comment, innerHTML: COMMENT_ICON });
+    btn.setAttribute('aria-label', `${ui.comment} ${id}`);
+    btn.setAttribute('aria-expanded', 'false');
+    const wrap = Object.assign(document.createElement('div'), { className: 'am-comment', hidden: true });
+    const box = Object.assign(document.createElement('textarea'), { rows: 3, placeholder: ui.commentHint, value: saved.comments?.[id] ?? '' });
+    box.setAttribute('aria-label', `${ui.comment} ${id}`);
+    wrap.append(box);
+    const show = (open) => {
+      wrap.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+    };
+    btn.addEventListener('click', () => {
+      show(wrap.hidden);
+      if (!wrap.hidden) box.focus();
+    });
+    box.addEventListener('input', () => {
+      btn.classList.toggle('am-comment-btn--on', Boolean(box.value.trim()));
+      save();
+    });
+    btn.classList.toggle('am-comment-btn--on', Boolean(box.value.trim()));
+    if (box.value.trim()) show(true);
+    (panel.querySelector('.am-panel-head') ?? panel).append(btn);
+    panel.append(wrap);
+    boxes.set(id, box);
+  }
+
+  const sheet = document.createElement('dialog');
+  sheet.className = 'am-reply';
+  sheet.setAttribute('aria-label', ui.title);
+  sheet.innerHTML = '<div class="am-reply-head"><strong></strong><span></span></div><textarea readonly rows="14"></textarea><div class="am-reply-actions"><button type="button" class="am-btn" data-act="copy"></button><button type="button" class="am-btn" data-act="close"></button></div>';
+  sheet.querySelector('strong').textContent = ui.title;
+  sheet.querySelector('span').textContent = ui.hint;
+  const text = sheet.querySelector('textarea');
+  const copy = sheet.querySelector('[data-act="copy"]');
+  const close = sheet.querySelector('[data-act="close"]');
+  copy.textContent = ui.copy;
+  close.textContent = ui.close;
+  document.body.append(sheet);
+
+  const compose = () => {
+    const decisions = asks.map((ask) => ({
+      panel: panelOf(ask).id,
+      question: ask.querySelector('legend')?.textContent.trim() ?? '',
+      picked: picked(ask),
+      suggested: [...ask.querySelectorAll('input[data-suggested]')].map((i) => i.value),
+      touched: touched.has(ask),
+    }));
+    const comments = [...boxes].map(([id, box]) => ({ panel: id, title: panelOf(box).title, text: box.value }));
+    const empty = !decisions.length && !comments.some((c) => c.text.trim());
+    const title = document.querySelector('.am-head h1')?.textContent.trim() ?? document.title;
+    return empty ? '' : replyText({ title, decisions, comments, ui });
+  };
+
+  replyBtn.addEventListener('click', () => {
+    const reply = compose();
+    text.value = reply || ui.empty;
+    copy.disabled = !reply;
+    if (sheet.showModal) sheet.showModal();
+    else sheet.setAttribute('open', '');
+    (reply ? copy : close).focus();
+  });
+  close.addEventListener('click', () => (sheet.close ? sheet.close() : sheet.removeAttribute('open')));
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(text.value);
+    } catch {
+      text.select();
+      document.execCommand('copy');
+    }
+    copy.textContent = ui.done;
+    setTimeout(() => { copy.textContent = ui.copy; }, 1400);
+  });
+}
+})();
+(() => {
+// Pure planner for justified ("photo wall") rows on sheet pages. No DOM access.
+//
+// This file must stay inlinable into the page script: top-level declarations only, no imports, and the exports are
+// `planLayout` and the constants the DOM adapter shares (STEP, MAX_SCALE, MIN_SCALE). The page build strips the `export ` keyword,
+// and test/layout-plan.test.js checks that this still works.
+//
+// planLayout({ width, gap, cols, panels }) -> { rows: [{ columns: [{ panels: [index, ...], width }], height }] }
+//
+// Input (all lengths in px):
+//   width   container width
+//   gap     space between columns, and between two panels stacked in one column
+//   cols    most columns in one row (the planner never uses more than MAX_COLUMNS, but spans stay shares of `cols`)
+//   panels  one entry per panel, in reading order:
+//     samples   [{ w, h }] panel height at sampled widths, ascending by w (heights between samples are interpolated)
+//     minWidth  narrowest feasible width (clamped to `width`)
+//     maxWidth  widest useful width; beyond it the panel only gains empty space (default: no limit)
+//     natural   natural diagram width for a diagram-only panel (default: none)
+//     pad       panel width not used by the diagram (padding and border; default 0)
+//     span      the author's width hint in grid columns (default 1); span >= cols keeps the panel alone in its row
+//
+// Output: { rows, maxScale }. Rows are in reading order; a row is a list of columns (at most `cols`); a column holds one panel or two
+// consecutive panels, stacked. For integer inputs the column widths plus the gaps between them equal `width`.
+// Rows are chosen by dynamic programming over break points; widths by a search in STEP px steps. Cost per row:
+//   H = tallest column; waste = sum((H - columnHeight) * columnWidth) + sum over diagrams wider than maxWidth of (w - maxWidth) * h
+//   dev = sum(((w - preferred) / oneColumn)^2) + SCALE_WEIGHT * sum over diagrams of (ln(scale) / ln(MAX_SCALE))^2
+//   cost = waste / 1000 + PREF_WEIGHT * dev * H
+// Scale band: diagrams on one page stay at similar sizes. With the result's `maxScale` as the diagram size limit, a diagram is
+// shown at scale min(maxScale, (width - pad) / natural). The planner tries a few bands [lo, lo * BAND_RATIO] (lo in BAND_LOS) and
+// keeps the cheapest plan in which no diagram is narrower than scale lo and none is shown above the band's top, so the largest and
+// smallest diagram scale on the page differ by at most BAND_RATIO. A panel wider than its diagram's top size keeps the diagram at
+// that size, and the page script must set the diagram's max-width to natural * maxScale. The band starts no higher than the
+// largest scale the page allows the least roomy diagram, so one wide diagram lowers the band for the others.
+// If no band is feasible the plan is made without a band (maxScale = MAX_SCALE); if no plan fits (or the input is unusable) the
+// result is a single column: one panel per row at the full width.
+
+const STEP = 10;
+const MAX_SCALE = 1.25;
+const MIN_SCALE = 0.75; // the narrowest a diagram is shown, as a share of its natural width
+const MAX_COLUMNS = 6; // rows with more columns are unreadable, and the search grows steeply with the column count
+const BAND_RATIO = 1.25; // the largest and smallest diagram scale on a page differ by at most this
+const BAND_LOS = [MIN_SCALE, 0.85, 0.95, 1]; // lower ends tried for the band; lo * BAND_RATIO is the upper end (1.25 means no upper limit)
+const SCALE_WEIGHT = 3;
+const PREF_WEIGHT = 0.15;
+
+function heightAt(samples, w) {
+  const i = samples.findIndex((s) => s.w >= w);
+  if (i === -1) return samples[samples.length - 1].h;
+  if (i === 0) return samples[0].h;
+  const a = samples[i - 1];
+  const b = samples[i];
+  return a.h + ((b.h - a.h) * (w - a.w)) / (b.w - a.w);
+}
+
+// Every way to split `len` consecutive panels into columns of 1 or 2 panels, as lists of column sizes.
+function splits(len) {
+  if (len === 0) return [[]];
+  return [1, 2].filter((k) => k <= len).flatMap((k) => splits(len - k).map((rest) => [k, ...rest]));
+}
+
+function singleColumn(width, panels) {
+  return { rows: panels.map((_, i) => ({ columns: [{ panels: [i], width }], height: 0 })) };
+}
+
+function planLayout({ width, gap = 0, cols = 3, panels }) {
+  const usable = Number.isFinite(width) && width > 0 && panels.every((p) => Array.isArray(p.samples) && p.samples.length > 0);
+  if (!usable) return singleColumn(width, panels);
+
+  // `cols` stays the unit of the author's spans; no row gets more than MAX_COLUMNS columns however large `cols` is.
+  const maxColumns = Math.min(cols, MAX_COLUMNS);
+  const oneColumn = Math.max(1, (width - gap * (cols - 1)) / cols);
+  // Per-panel limits. With a band [lo, lo * BAND_RATIO], a diagram is no narrower than scale lo and shown at most at the top of the
+  // band: a wider panel keeps it at that size and gains empty space, which the cost counts as waste.
+  const prepare = (lo) => panels.map((p) => {
+    const pad = p.pad ?? 0;
+    const diagram = lo > 0 && p.natural > 0;
+    const scaleCap = diagram ? Math.min(MAX_SCALE, lo * BAND_RATIO) : MAX_SCALE;
+    return {
+      ...p,
+      minWidth: Math.min(width, Math.max(Math.ceil(p.minWidth || 0), diagram ? Math.ceil(p.natural * lo + pad) : 0)),
+      maxWidth: Math.min(p.maxWidth ?? Infinity, diagram ? p.natural * scaleCap + pad : Infinity),
+      scaleCap,
+      pad,
+      preferred: Math.min(width, (p.span ?? 1) * oneColumn + ((p.span ?? 1) - 1) * gap),
+      alone: (p.span ?? 1) >= cols,
+    };
+  });
+  let info = prepare(0);
+  // Beyond its maxWidth a panel only gains empty space, so its height stops changing there (matters when a band lowers maxWidth).
+  const heightOf = (p, w) => heightAt(p.samples, Math.min(w, p.maxWidth));
+  const columnHeight = (col, w) => col.reduce((h, k) => h + heightOf(info[k], w), 0) + gap * (col.length - 1);
+
+  function bestColumns(columns) {
+    const avail = width - gap * (columns.length - 1);
+    const mins = columns.map((c) => Math.max(...c.map((k) => info[k].minWidth)));
+    const minsFrom = mins.map((_, n) => mins.slice(n).reduce((s, w) => s + w, 0));
+    if (minsFrom[0] > avail) return null;
+    let best = null;
+    const evaluate = (ws) => {
+      const hs = ws.map((w, n) => columnHeight(columns[n], w));
+      const H = Math.max(...hs);
+      let waste = 0;
+      let dev = 0;
+      ws.forEach((w, n) => {
+        waste += (H - hs[n]) * w;
+        for (const k of columns[n]) {
+          const p = info[k];
+          if (w > p.maxWidth) waste += (w - p.maxWidth) * heightOf(p, w);
+          dev += ((w - p.preferred) / oneColumn) ** 2;
+          if (p.natural > 0) {
+            const scale = Math.min(p.scaleCap, Math.max(w - p.pad, 1) / p.natural);
+            dev += SCALE_WEIGHT * (Math.log(scale) / Math.log(MAX_SCALE)) ** 2;
+          }
+        }
+      });
+      const cost = waste / 1000 + PREF_WEIGHT * dev * H;
+      if (!best || cost < best.cost) best = { cost, ws, height: H, columns };
+    };
+    const choose = (n, used, ws) => {
+      if (n === columns.length - 1) {
+        const w = avail - used;
+        if (w >= mins[n]) evaluate([...ws, w]);
+        return;
+      }
+      for (let w = mins[n]; used + w + minsFrom[n + 1] <= avail; w += STEP) choose(n + 1, used + w, [...ws, w]);
+    };
+    choose(0, 0, []);
+    return best;
+  }
+
+  // Best columns for one row of panels i..j.
+  function bestRow(i, j) {
+    if (j > i && info.slice(i, j + 1).some((p) => p.alone)) return null;
+    let best = null;
+    for (const split of splits(j - i + 1)) {
+      if (split.length > maxColumns) continue;
+      let next = i;
+      const columns = split.map((size) => Array.from({ length: size }, () => next++));
+      const r = bestColumns(columns);
+      if (r && (!best || r.cost < best.cost)) best = r;
+    }
+    return best;
+  }
+
+  // Row breaks in reading order, for the band set up in `info`. A row holds at most 2 * maxColumns panels. Null if nothing fits.
+  function solve() {
+    const n = panels.length;
+    const total = Array(n + 1).fill(Infinity);
+    const from = Array(n + 1).fill(-1);
+    const chosen = Array(n + 1).fill(null);
+    total[0] = 0;
+    for (let j = 1; j <= n; j++) {
+      for (let i = Math.max(0, j - 2 * maxColumns); i < j; i++) {
+        if (total[i] === Infinity) continue;
+        const r = bestRow(i, j - 1);
+        if (r && total[i] + r.cost < total[j]) {
+          total[j] = total[i] + r.cost;
+          from[j] = i;
+          chosen[j] = r;
+        }
+      }
+    }
+    if (total[n] === Infinity) return null;
+    const rows = [];
+    for (let j = n; j > 0; j = from[j]) {
+      const r = chosen[j];
+      rows.unshift({ columns: r.columns.map((panelsInColumn, c) => ({ panels: panelsInColumn, width: r.ws[c] })), height: r.height });
+    }
+    return { rows, cost: total[n] };
+  }
+
+  let best = null;
+  const diagrams = panels.filter((p) => p.natural > 0);
+  if (diagrams.length > 1) {
+    // No diagram can be shown larger than the page allows, so the band cannot start above the smallest of those limits.
+    const reach = Math.min(...diagrams.map((p) => Math.min(MAX_SCALE, Math.max(width - (p.pad ?? 0), 1) / p.natural)));
+    for (const lo of new Set([...BAND_LOS.filter((x) => x < reach), reach])) {
+      info = prepare(lo);
+      const r = solve();
+      if (r && (!best || r.cost < best.cost)) best = { ...r, maxScale: Math.min(MAX_SCALE, lo * BAND_RATIO) };
+    }
+    info = prepare(0);
+  }
+  best ??= solve();
+  return best ? { rows: best.rows, maxScale: best.maxScale ?? MAX_SCALE } : singleColumn(width, panels);
+}
+
+// DOM adapter for the sheet's justified ("photo wall") layout. Not a module: compose.js puts it after src/runtime/layout-plan.js
+// (which defines planLayout and the shared STEP, MAX_SCALE, MIN_SCALE) inside one function scope of the page script.
+//
+// It measures every panel at sampled widths, asks planLayout for rows and column widths, and applies them with flexbox.
+// The rendered HTML keeps the plain CSS grid: with JavaScript off, at the single-column breakpoint, or while printing, the grid is what
+// shows (the planned widths belong to the screen width, so print never gets a mix of the two); after printing the layout comes back.
+
+const grid = document.querySelector('.am-grid');
+const panels = grid ? [...grid.children].filter((el) => el.classList.contains('am-panel')) : [];
+
+if (panels.length > 1) {
+  const SINGLE_COLUMN = '(max-width: 760px)'; // the single-column breakpoint in src/themes/base.css
+  const TWO_COLUMNS = '(max-width: 1100px)'; // below this the CSS grid has two columns
+  const SAMPLE_STEP = 20; // width sampling step, px; the planner interpolates between samples
+  const TEXT_MIN = 260; // text keeps at least about 16 CJK characters per line
+  const TABLE_COL_MIN = 96; // per table column, px
+  const DIAGRAM_MIN = 160;
+  const RESIZE_DELAY = 150;
+  const OVERFLOWING = '.am-table-wrap, .am-diagram, .am-annot-scroll, pre';
+
+  const original = new Map([grid, ...panels, ...grid.querySelectorAll('.am-diagram > svg')].map((el) => [el, el.getAttribute('style')]));
+  const restoreStyle = (el) => (original.get(el) === null ? el.removeAttribute('style') : el.setAttribute('style', original.get(el)));
+
+  // Back to the plain grid markup and styles.
+  const restore = () => {
+    for (const box of grid.querySelectorAll(':scope > .am-col')) box.replaceWith(...box.children);
+    for (const el of original.keys()) restoreStyle(el);
+  };
+
+  // The author's width hint, rendered as data-span only when the author wrote one. The inline grid-column is the no-JavaScript fallback
+  // and may hold spans the server added, so it is never read here.
+  const spanHint = (el) => Number(el.dataset.span) || 1;
+  const diagramOnly = (el) => {
+    const body = el.querySelector(':scope > .am-panel-body');
+    return body && body.children.length === 1 ? body.querySelector(':scope > .am-diagram > svg') : null;
+  };
+  const naturalWidth = (svg) => Number(svg.getAttribute('width')) || 0;
+
+  // Height (and, for panels with tables or code, the narrowest width without sideways scrolling) at sampled widths.
+  // Only one panel is displayed while it is measured, so each width change lays out that panel alone.
+  function measure(width) {
+    grid.style.display = 'block';
+    for (const el of panels) {
+      el.style.display = 'none';
+      el.style.boxSizing = 'border-box';
+      for (const svg of el.querySelectorAll('.am-diagram > svg')) {
+        svg.style.width = '100%';
+        svg.style.maxWidth = `${naturalWidth(svg) * MAX_SCALE}px`;
+      }
+    }
+    const info = panels.map((el) => {
+      const svg = diagramOnly(el);
+      const svgs = [...el.querySelectorAll('.am-diagram > svg')];
+      const scrollers = el.querySelectorAll(OVERFLOWING);
+      const tableCols = Math.max(0, ...[...el.querySelectorAll('table tr:first-child')].map((tr) => tr.children.length));
+      el.style.display = '';
+      el.style.width = `${width}px`;
+      const pad = svg ? el.offsetWidth - svg.parentElement.clientWidth : 0;
+      const natural = svg ? naturalWidth(svg) : 0;
+      const shrunk = Math.max(0, ...svgs.map((s) => naturalWidth(s) * MIN_SCALE)) + (svg ? pad : 34);
+      const floor = svg ? Math.max(DIAGRAM_MIN, natural * MIN_SCALE + pad) : Math.max(TEXT_MIN, shrunk, tableCols * TABLE_COL_MIN + 34);
+      const from = Math.min(width, Math.floor(floor / STEP) * STEP);
+      const samples = [];
+      let fits = null;
+      for (let w = from; ; w += SAMPLE_STEP) {
+        w = Math.min(w, width);
+        el.style.width = `${w}px`;
+        if (fits === null && !svg && scrollers.length && ![...scrollers].some((s) => s.scrollWidth > s.clientWidth + 1)) fits = w;
+        samples.push({ w, h: el.offsetHeight });
+        if (w === width) break;
+      }
+      el.style.display = 'none';
+      return {
+        samples,
+        minWidth: svg ? floor : Math.max(floor, fits ?? (scrollers.length ? width : 0)),
+        maxWidth: svg ? natural * MAX_SCALE + pad : Infinity,
+        natural,
+        pad,
+        span: spanHint(el),
+      };
+    });
+    for (const el of panels) {
+      el.style.display = '';
+      el.style.width = '';
+    }
+    return info;
+  }
+
+  // Each column gets a fixed width. A row adds up to the full width, so flex-wrap breaks rows by itself.
+  // Stacked panels go into a column wrapper whose last panel absorbs the extra height.
+  function apply(plan, gap) {
+    grid.style.display = 'flex';
+    grid.style.flexWrap = 'wrap';
+    grid.style.alignItems = 'stretch';
+    grid.style.gap = `${gap}px`;
+    for (const el of panels) {
+      el.style.gridColumn = '';
+      el.style.gridRow = '';
+      el.style.flex = '0 0 auto';
+    }
+    for (const row of plan.rows) {
+      for (const col of row.columns) {
+        const width = `${col.width}px`;
+        if (col.panels.length === 1) {
+          panels[col.panels[0]].style.width = width;
+          continue;
+        }
+        const box = document.createElement('div');
+        box.className = 'am-col';
+        box.style.cssText = `width:${width};flex:0 0 auto;display:flex;flex-direction:column;gap:${gap}px`;
+        panels[col.panels[0]].before(box);
+        for (const k of col.panels) {
+          panels[k].style.width = '';
+          box.append(panels[k]);
+        }
+        panels[col.panels[col.panels.length - 1]].style.flex = '1 1 auto';
+      }
+    }
+  }
+
+  // Diagram-only panels show their diagram at most at the top of the page's scale band; a wider panel gains empty space instead.
+  function capDiagrams(maxScale) {
+    for (const el of panels) {
+      const svg = diagramOnly(el);
+      if (svg) svg.style.maxWidth = `${naturalWidth(svg) * maxScale}px`;
+    }
+  }
+
+  const containerWidth = () => Math.floor(grid.getBoundingClientRect().width);
+
+  function justify() {
+    if (printing || printQuery.matches) return;
+    try {
+      // A vertical scrollbar can appear or vanish once the rows change height; plan again if the width moved.
+      let planned = -1;
+      for (let pass = 0; pass < 3 && planned !== containerWidth(); pass++) {
+        restore();
+        if (matchMedia(SINGLE_COLUMN).matches) return;
+        planned = containerWidth();
+        const gap = parseFloat(getComputedStyle(grid).columnGap) || 0;
+        const cols = Math.max(1, Number(getComputedStyle(grid).getPropertyValue('--cols')) || 3);
+        const plan = planLayout({ width: planned, gap, cols: matchMedia(TWO_COLUMNS).matches ? Math.min(cols, 2) : cols, panels: measure(planned) });
+        apply(plan, gap);
+        capDiagrams(plan.maxScale);
+      }
+      // The width never settled: columns planned for another width would overflow or leave gaps, so show the plain grid.
+      if (planned !== containerWidth()) restore();
+    } catch {
+      restore();
+    }
+  }
+
+  // Printing: back to the plain grid (spans and all), and the layout again afterwards. Browsers disagree on which of the
+  // `beforeprint` event and the print media query change fires first, or at all, so listen to both; both are idempotent.
+  // While `printing` is set (beforeprint to afterprint) justify() does nothing, so a late resize cannot bring flex widths into the print layout.
+  let printing = false;
+  const printQuery = matchMedia('print');
+  let timer = 0;
+  const later = () => {
+    clearTimeout(timer);
+    timer = setTimeout(justify, RESIZE_DELAY);
+  };
+  const toPrint = () => {
+    clearTimeout(timer);
+    restore();
+  };
+  justify();
+  addEventListener('resize', later);
+  addEventListener('beforeprint', () => {
+    printing = true;
+    toPrint();
+  });
+  addEventListener('afterprint', () => {
+    printing = false;
+    later();
+  });
+  printQuery.addEventListener('change', (e) => (e.matches ? toPrint() : later()));
+  // Late changes to panel heights: web fonts arriving, and images inside the grid finishing their load (load does not bubble, so capture it).
+  document.fonts?.ready.then(later);
+  grid.addEventListener('load', later, true);
+  // Switching theme changes paddings and fonts, hence panel heights.
+  document.querySelector('[data-am="theme"]')?.addEventListener('click', later);
+}
+})();
+</script>
+</body>
+</html>

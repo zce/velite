@@ -14,7 +14,7 @@ hero:
   actions:
     - theme: brand
       text: 快速上手
-      link: ./guide/quick-start.md
+      link: /guide/quick-start
     - theme: alt
       text: 在 GitHub 上查看
       link: https://github.com/zce/velite

@@ -1,6 +1,6 @@
 // Unit tests for the `s.unique` and `s.slug` builtins. These schemas register
 // `UniqueEffect`s via `collectEffect` (they do NOT judge conflicts — that's the
-// uniqueCheck derivation's job). Tests verify effect registration, slug format
+// emit derivation's job). Tests verify effect registration, slug format
 // validation, and reserved-word rejection.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'

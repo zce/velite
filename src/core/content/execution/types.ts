@@ -9,12 +9,14 @@ export interface ContentDefinitionDescriptor {
   readonly options: MdxContentOptions
 }
 
-export interface SemanticContentRequest {
-  readonly definition: ContentDefinitionDescriptor
-  readonly text: string
-  readonly selection: 'excerpt' | 'metadata' | 'html' | 'code' | 'toc'
-  readonly length?: number
-}
+/**
+ * A record-scoped content demand. The `excerpt` selection requires an explicit
+ * `length` — enforced by the type, so the executing record never sees an
+ * excerpt request without one.
+ */
+export type SemanticContentRequest =
+  | { readonly definition: ContentDefinitionDescriptor; readonly text: string; readonly selection: 'excerpt'; readonly length: number }
+  | { readonly definition: ContentDefinitionDescriptor; readonly text: string; readonly selection: 'metadata' | 'html' | 'code' | 'toc' }
 
 /** Opaque stage metadata propagated by the existing host, never a journal or processor. */
 export interface ContentStageScope {

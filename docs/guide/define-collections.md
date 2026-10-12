@@ -44,9 +44,9 @@ export default defineConfig({
 
 ## Collection Schema Options
 
-### `name`
+### `typeName`
 
-The name of the collection. This is used to generate the type name for the collection.
+The generated TypeScript type name for the collection. The collection's object key in `collections` is the data export name; `typeName` is the type name. Defaults to the collection key.
 
 ```js
 const posts = defineCollection({

@@ -21,10 +21,10 @@ const timestamp = () =>
 // use it in your schema
 const posts = defineCollection({
   // ...
-  schema: {
+  schema: s.object({
     // ...
     lastModified: timestamp()
-  }
+  })
 })
 ```
 
@@ -50,10 +50,10 @@ const timestamp = () =>
 // use it in your schema
 const posts = defineCollection({
   // ...
-  schema: {
+  schema: s.object({
     // ...
     lastModified: timestamp()
-  }
+  })
 })
 ```
 

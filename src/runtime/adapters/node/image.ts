@@ -1,12 +1,11 @@
-// Root-level image processor adapter: the ONLY place the core-adjacent code
-// touches `sharp`. The runtime-neutral guard scans only `src/core/`, so this
-// file lives at the root (next to `src/runtime.ts`, `src/fs.ts`, ...). `sharp` is a
-// runtime dependency (an allowed native build in pnpm-workspace.yaml) and stays
-// external — tsdown never bundles it; the dynamic `import('sharp')` keeps it a
-// lazy, runtime-optional capability.
+// Node image processor adapter: the ONLY place velite touches `sharp`. The
+// runtime-neutral guard scans only `src/core/`, so this file lives under
+// `src/runtime/adapters/node/`. `sharp` is a runtime dependency (an allowed
+// native build in pnpm-workspace.yaml) and stays external — tsdown never
+// bundles it; the dynamic `import('sharp')` keeps it a lazy, runtime-optional
+// capability.
 //
-// Ported from the pre-refactor `src/assets/image.ts` `getImageMetadata`. The
-// contract (`ImageProcessor`) splits probe (dimensions + format) from
+// The contract (`ImageProcessor`) splits probe (dimensions + format) from
 // blur-data-url generation so a future runtime could implement either
 // independently; this adapter implements both via sharp. Asset content hashing
 // for filenames lives in the runtime-agnostic core (`src/core/util/hash.ts`),
@@ -59,5 +58,3 @@ export const createSharpImageProcessor = (): ImageProcessor => ({
     return `data:image/webp;base64,${blurImage.toString('base64')}`
   }
 })
-
-export const sharpImageProcessor: ImageProcessor = createSharpImageProcessor()

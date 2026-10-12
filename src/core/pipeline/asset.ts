@@ -99,7 +99,7 @@ const BLUR_WIDTH = 8
  * include `/` separators for sub-directories — `runtime.fs.write` handles the
  * recursive mkdir on the write side.
  */
-export const renderAssetName = (assetKey: string, template: string, bytes?: Uint8Array): string => {
+const renderAssetName = (assetKey: string, template: string, bytes?: Uint8Array): string => {
   const base = assetKey.slice(assetKey.lastIndexOf('/') + 1)
   const ext = extname(assetKey)
   const stem = ext.length > 0 ? base.slice(0, -ext.length) : base

@@ -95,6 +95,6 @@ export const image = ({ absoluteRoot, blur, outputName }: ImageSchemaOptions = {
       }
     } catch (err) {
       addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
-      return null as never
+      return z.NEVER
     }
   })

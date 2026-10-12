@@ -439,23 +439,24 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
     if (assetRefs.has(assetKey)) continue
     assetRefs.set(assetKey, effect.assetPath)
   }
-  await Promise.all(
-    Array.from(assetRefs, async ([assetKey, assetPath]) => {
-      try {
-        const bytes = await runtime.fs.read(assetPath)
-        assetBytes.set(assetKey, bytes)
-        engine.set(assetInput(assetKey), bytes)
-      } catch (err) {
-        assetReadDiagnostics.push(
-          diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${assetPath}`, {
-            stage: 'asset',
-            provenance: { scope: 'source', source: { path: relative(config.root, assetPath) } },
-            cause: err
-          })
-        )
-      }
-    })
-  )
+  // Read asset bytes into `assetBytes`, recording one ASSET_FAILED diagnostic
+  // per unreadable path. `feed` lets the pass-1 caller also set the engine input.
+  const readAssetBytes = async (assetKey: string, assetPath: string, feed?: (bytes: Uint8Array) => void): Promise<void> => {
+    try {
+      const bytes = await runtime.fs.read(assetPath)
+      assetBytes.set(assetKey, bytes)
+      feed?.(bytes)
+    } catch (err) {
+      assetReadDiagnostics.push(
+        diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${assetPath}`, {
+          stage: 'asset',
+          provenance: { scope: 'source', source: { path: relative(config.root, assetPath) } },
+          cause: err
+        })
+      )
+    }
+  }
+  await Promise.all(Array.from(assetRefs, ([assetKey, assetPath]) => readAssetBytes(assetKey, assetPath, bytes => engine.set(assetInput(assetKey), bytes))))
   // Pass 2: re-emit with real asset data (only when at least one asset was fed;
   // if every read failed, pass 2 would reproduce placeholders and the fatal
   // diagnostics below discard the output anyway).
@@ -465,7 +466,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
 
   // Diagnostics known before the prepare hook: schema/unique (from emit) + asset
   // read failures. Asset *write* failures happen during the copy below.
-  const preparedAssetReadDiagnostics = assetReadDiagnostics.length
+  const preparedAssetReadDiagnosticCount = assetReadDiagnostics.length
   let diagnostics = [...emitted.diagnostics, ...assetReadDiagnostics]
 
   // Apply the user-facing `prepare` hook between emit and any writes. The hook
@@ -549,24 +550,8 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
     if (!assetWriteReads.has(assetKey)) assetWriteReads.set(assetKey, effect.assetPath)
   }
 
-  await Promise.all(
-    Array.from(assetWriteReads, async ([assetKey, assetPath]) => {
-      if (assetBytes.has(assetKey)) return
-      try {
-        const bytes = await runtime.fs.read(assetPath)
-        assetBytes.set(assetKey, bytes)
-      } catch (err) {
-        assetReadDiagnostics.push(
-          diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${assetPath}`, {
-            stage: 'asset',
-            provenance: { scope: 'source', source: { path: relative(config.root, assetPath) } },
-            cause: err
-          })
-        )
-      }
-    })
-  )
-  diagnostics.push(...assetReadDiagnostics.slice(preparedAssetReadDiagnostics))
+  await Promise.all(Array.from(assetWriteReads, ([assetKey, assetPath]) => (assetBytes.has(assetKey) ? undefined : readAssetBytes(assetKey, assetPath))))
+  diagnostics.push(...assetReadDiagnostics.slice(preparedAssetReadDiagnosticCount))
 
   const assetWrites: Promise<void>[] = []
   for (const { assetKey, assetPath, dest } of assetsToWrite) {
@@ -664,7 +649,6 @@ const applyChanges = async (context: RunContext, events: FileEvent[]): Promise<A
   let treeChanged = false
 
   const classifyOpts = {
-    cwd: context.cwd,
     configPath: config.configPath,
     configDependencies: config.configDependencies,
     contentRoot: config.root,

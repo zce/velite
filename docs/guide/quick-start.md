@@ -145,10 +145,18 @@ Then you will get the following output:
 ```diff
  root
 +├── .velite
-+│   ├── posts.json                  # posts collection output
-+│   ├── others.json                 # others collection output
++│   ├── records                     # one JSON file per record (split layout)
++│   │   ├── posts
++│   │   │   ├── hello-world.d1a2c3e4.json
++│   │   │   └── other.b5c6d7e8.json
++│   │   └── others
++│   │       └── other.f9a0b1c2.json
++│   ├── collections                 # per-collection ES modules
++│   │   ├── posts.js
++│   │   └── others.js
 +│   ├── index.d.ts                  # typescript dts file
 +│   └── index.js                    # javascript entry file (esm)
++│   └── .manifest.json              # internal state for incremental writes
  ├── content
  │   ├── posts
  │   │   ├── hello-world.md
@@ -164,6 +172,12 @@ Then you will get the following output:
  ├── package.json
  └── velite.config.js
 ```
+
+::: tip
+
+The tree above shows the **split** layout — the default outside production (`NODE_ENV !== 'production'`). Record files are named by record identity (not content hash), so a record's path stays stable while only its content changes. In production (`NODE_ENV=production`, or `layout: 'single'` via the [Node API](../reference/api.md#build)), each collection is emitted as a single `<name>.json` instead.
+
+:::
 
 ::: tip
 
@@ -189,37 +203,29 @@ When the `--watch` flag is used with `velite dev` or `velite`, Velite will watch
 
 ```sh [npm]
 $ npx velite dev
-[VELITE] output entry file in '.velite' in 0.68ms
-[VELITE] output 1 posts, 1 others in 0.47ms
-[VELITE] output 2 assets in 1.38ms
-[VELITE] build finished in 84.49ms
+[VELITE] building...
+[VELITE] build finished
 [VELITE] watching for changes in 'content'
 ```
 
 ```sh [pnpm]
 $ pnpm velite dev
-[VELITE] output entry file in '.velite' in 0.68ms
-[VELITE] output 1 posts, 1 others in 0.47ms
-[VELITE] output 2 assets in 1.38ms
-[VELITE] build finished in 84.49ms
+[VELITE] building...
+[VELITE] build finished
 [VELITE] watching for changes in 'content'
 ```
 
 ```sh [yarn]
 $ yarn velite dev
-[VELITE] output entry file in '.velite' in 0.68ms
-[VELITE] output 1 posts, 1 others in 0.47ms
-[VELITE] output 2 assets in 1.38ms
-[VELITE] build finished in 84.49ms
+[VELITE] building...
+[VELITE] build finished
 [VELITE] watching for changes in 'content'
 ```
 
 ```sh [bun]
 $ bun velite dev
-[VELITE] output entry file in '.velite' in 0.68ms
-[VELITE] output 1 posts, 1 others in 0.47ms
-[VELITE] output 2 assets in 1.38ms
-[VELITE] build finished in 84.49ms
+[VELITE] building...
+[VELITE] build finished
 [VELITE] watching for changes in 'content'
 ```
 

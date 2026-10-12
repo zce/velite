@@ -49,11 +49,12 @@ const isInternalFailure = (error: unknown): boolean => {
   }
 }
 
-const resultSchema = <T>(
-  definition: ContentDefinitionDescriptor,
-  selection: SemanticContentRequest['selection'],
-  length?: number
-): ZodType<T, string | undefined> =>
+/**
+ * Build a result schema for one selection of a content definition. The request
+ * (definition + selection + options) is fixed here; only the `text` is known
+ * at parse time, so the caller supplies a request factory.
+ */
+const resultSchema = <T>(makeRequest: (text: string) => SemanticContentRequest): ZodType<T, string | undefined> =>
   z
     .string()
     .optional()
@@ -63,7 +64,7 @@ const resultSchema = <T>(
         ctx.addIssue({ code: 'custom', message: 'The content is empty' })
         return z.NEVER
       }
-      const demand = contentContext().content({ definition, text, selection, length })
+      const demand = contentContext().content(makeRequest(text))
       return demand.then(
         value => value as T,
         error => {
@@ -85,14 +86,14 @@ const defineContent = (dialect: ContentDefinitionDescriptor['dialect'], options:
     }
   }
   return {
-    primary: () => resultSchema<string>(definition, dialect === 'mdx' ? 'code' : 'html'),
-    toc: () => resultSchema<TocItem[]>(definition, 'toc'),
+    primary: () => resultSchema<string>(text => ({ definition, text, selection: dialect === 'mdx' ? 'code' : 'html' })),
+    toc: () => resultSchema<TocItem[]>(text => ({ definition, text, selection: 'toc' })),
     excerpt(options: ExcerptSchemaOptions = {}) {
       const length = options.length === undefined ? 260 : options.length
       if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0) throw new TypeError('Excerpt length must be a non-negative safe integer')
-      return resultSchema<string>(definition, 'excerpt', length)
+      return resultSchema<string>(text => ({ definition, text, selection: 'excerpt', length }))
     },
-    metadata: () => resultSchema<Metadata>(definition, 'metadata')
+    metadata: () => resultSchema<Metadata>(text => ({ definition, text, selection: 'metadata' }))
   }
 }
 

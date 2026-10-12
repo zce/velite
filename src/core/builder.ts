@@ -44,7 +44,7 @@ export interface Builder {
    * initial {@link BuildResult} so callers don't run a second build for
    * strict-mode handling or logging.
    */
-  watch(options?: WatchOptions, build?: BuildOptions): Promise<WatchHandle>
+  watch(watchOptions?: WatchOptions, buildOptions?: BuildOptions): Promise<WatchHandle>
   /** Apply file events to the engine and return an incremental rebuild (or undefined if the events change nothing). */
   apply(events: FileEvent[]): Promise<BuildResult | undefined>
   /** Remove the configured output directories. Idempotent on missing dirs. */

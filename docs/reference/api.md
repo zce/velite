@@ -175,7 +175,7 @@ Identity helper for a single collection definition. Pairs with `defineConfig` fo
 ```ts
 import { defineCollection } from 'velite'
 
-const defineCollection: <S extends Schema>(def: CollectionDef<S>) => CollectionDef<S>
+const defineCollection: <D extends CollectionDef>(def: D) => D
 ```
 
 ## `defineLoader`

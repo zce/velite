@@ -211,8 +211,13 @@ interface SchemaContext {
   readonly record: ContentRecord
   /** Builder/session-scoped store for advanced custom schemas. */
   readonly store: SessionStore
-  /** Declare a schema effect (unique registration, asset reference, etc.). */
-  readonly collectEffect: (effect: Effect) => void
+  /**
+   * Declare a schema effect. The two-arg form `(declaration, context)` is the
+   * API for custom schemas (see [SchemaEffectDeclaration](#schemeeffectdeclaration)).
+   * The single-arg legacy `Effect` shape is still accepted during the 1.0
+   * migration while built-ins move over — new code must use the two-arg form.
+   */
+  readonly collectEffect: ((declaration: SchemaEffectDeclaration, context: EffectDeclarationContext) => void) & ((effect: Effect) => void)
   /**
    * Resolve an asset by its key (content-root-relative POSIX source path,
    * i.e. relative to `context().project.root`). Returns the memoized
@@ -270,26 +275,74 @@ Returned by `context().asset()`. The first pass through emit sees the placeholde
 
 ## Effect
 
+The committed effect representation Velite produces from schema declarations:
+
 ```ts
 type Effect = UniqueEffect | AssetReferenceEffect
 
 interface UniqueEffect {
   readonly type: 'unique'
-  readonly owner: string
   readonly group: string
   readonly value: string
+  readonly system?: EffectSystemOwner
 }
 
 interface AssetReferenceEffect {
   readonly type: 'asset'
-  readonly owner: string
   readonly assetPath: string
   readonly publicUrl: string
+  readonly resolved: boolean
   readonly isImage: boolean
+  readonly system?: EffectSystemOwner
 }
 ```
 
-Effects are how schemas declare cross-file intent without mutating shared state mid-parse. Built-in schemas like `s.unique()` and `s.image()` emit these; custom schemas can do the same through `context().collectEffect(...)`. The pipeline collects each record's effects and validates them as a set after parse, so concurrent record validation stays deterministic.
+Effects are how schemas declare cross-file intent without mutating shared state mid-parse. Built-in schemas like `s.unique()` and `s.image()` emit these; custom schemas declare the same intent through `context().collectEffect(declaration, context)` (see [SchemaEffectDeclaration](#schemaeffectdeclaration)). The pipeline collects each record's effects and validates them as a set after parse, so concurrent record validation stays deterministic.
+
+## SchemaEffectDeclaration
+
+The declaration a custom schema passes to `context().collectEffect(declaration, context)`:
+
+```ts
+type SchemaEffectDeclaration = UniqueEffectDeclaration | AssetReferenceEffectDeclaration
+
+interface UniqueEffectDeclaration {
+  readonly type: 'unique'
+  readonly group: string
+  readonly value: string
+}
+
+interface AssetReferenceEffectDeclaration {
+  readonly type: 'asset'
+  /** Content-root-relative POSIX source path of the referenced asset. */
+  readonly source: string
+  readonly output: {
+    readonly base: string
+    readonly template: string
+  }
+  readonly metadata: boolean
+  readonly blur?: {
+    readonly width?: number
+    readonly height?: number
+    readonly quality?: number
+  }
+}
+```
+
+## EffectDeclarationContext
+
+Velite supplies the second argument to `collectEffect`:
+
+```ts
+interface EffectDeclarationContext {
+  /** Record-rooted semantic declaration path. */
+  readonly path: readonly (string | number)[]
+  /** Stable declaration ordinal within the record. */
+  readonly declaration: number
+  /** One validated stable occurrence: `singleton`, `source-index`, or `key`. */
+  readonly occurrence: StableOccurrence
+}
+```
 
 ## SessionStore
 
@@ -367,7 +420,7 @@ interface BuildResult {
 type PrepareCollections = Record<string, unknown[] | unknown>
 ```
 
-The friendly view of the build output passed to the [`prepare`](./config.md#prepare) hook: a record keyed by collection name. List collections expose an array of validated records; `single: true` collections expose the single record directly. The hook may mutate values in place, return a `{ collections, diagnostics }` replacement, or return `false` to suppress all default output (Velite reconciles its own previously-written data and asset files to empty in that case — caller-written files are untouched).
+The friendly view of the build output passed to the [`prepare`](./config.md#prepare) hook: a record keyed by collection name. List collections expose an array of validated records; `single: true` collections expose the single record directly. The hook may mutate values in place, return a `{ collections }` replacement, or return `false` to suppress all default output (Velite reconciles its own previously-written data and asset files to empty in that case — caller-written files are untouched).
 
 ## PrepareContext
 
@@ -375,12 +428,27 @@ The friendly view of the build output passed to the [`prepare`](./config.md#prep
 interface PrepareContext {
   /** Stable view of the resolved project. */
   readonly project: ProjectInfo
-  /** Diagnostics from the build run. */
+  /** Diagnostics known when the hook starts (read-only view). */
   readonly diagnostics: readonly Diagnostic[]
+  /**
+   * The sole channel for the hook to add diagnostics. Velite supplies the
+   * `stage`, `origin`, and project provenance; the hook supplies `key`,
+   * `level`, `code`, `message`, and optional `cause`.
+   */
+  readonly addDiagnostic: (diagnostic: PrepareDiagnosticInput) => void
+}
+
+interface PrepareDiagnosticInput {
+  /** Stable key — the same key with a different payload is a conflict. */
+  key: string
+  level: 'error' | 'warn' | 'info'
+  code: string
+  message: string
+  cause?: unknown
 }
 ```
 
-The `prepare` hook receives this context. There are no other lifecycle hooks in 1.0.
+The `prepare` hook receives this context. Diagnostics cannot be returned from the hook — `addDiagnostic` is the only channel, and it closes when the hook settles (later calls throw). There are no other lifecycle hooks in 1.0.
 
 ## MarkdownOptions
 

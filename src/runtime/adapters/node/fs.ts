@@ -29,5 +29,3 @@ export const createNodeFileSystem = (): FileSystem => ({
     await rm(absPath, { force: true, recursive: options?.recursive ?? false })
   }
 })
-
-export const nodeFileSystem: FileSystem = createNodeFileSystem()

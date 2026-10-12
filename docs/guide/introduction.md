@@ -105,7 +105,7 @@ Velite is framework agnostic, and out of the box support for React, Vue, Svelte,
 
 ### Less Runtime Dependencies
 
-- user config bundle by [ESBuild](https://esbuild.github.io)
+- user config loaded with [jiti](https://github.com/unjs/jiti) at runtime (TypeScript, ESM & CommonJS)
 - collection schema validation by [Zod](https://zod.dev)
 - content transform by [Unified](https://unifiedjs.com)
 - image processing by [Sharp](https://sharp.pixelplumbing.com)

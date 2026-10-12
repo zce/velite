@@ -1,6 +1,6 @@
 import { parse } from 'yaml'
 
-import { diagnostic } from '../diagnostic'
+import { loaderFailure } from './result'
 
 import type { Loader, LoaderResult } from './types'
 
@@ -19,16 +19,7 @@ export const matterLoader: Loader = {
     try {
       meta = (parse(match[1]!) as Record<string, unknown>) ?? {}
     } catch (cause) {
-      return {
-        items: [],
-        diagnostics: [
-          diagnostic('error', 'LOADER_FAILED', `invalid frontmatter: ${(cause as Error).message}`, {
-            stage: 'load',
-            provenance: { scope: 'source', source: { path } },
-            cause
-          })
-        ]
-      }
+      return loaderFailure('frontmatter', path, cause)
     }
     const content = match[2] ?? ''
     return { items: [{ key: '', data: { ...meta, content } }] }

@@ -32,7 +32,7 @@ The core library is runtime-agnostic; all I/O and platform APIs live behind port
 | `cli.ts`                 | CLI entry (`velite build` / `velite dev`); delegates to the public facades                                                                                        |
 | `core/builder.ts`        | **Composition root** — `createBuilder(deps)` assembles config + loaders + pipeline + engine + driver into a `Builder`; owns watch state + mutex                   |
 | `core/config.ts`         | Config types, `defineConfig`/`defineCollection`, `resolveConfig` (jiti load, up to 3 parent dirs, defaults)                                                       |
-| `core/diagnostic.ts`     | `Diagnostic`, `VeliteError`, `fail()`, `assert()`, `hasFatalDiagnostic`, `codeFromDiagnostics`                                                                    |
+| `core/diagnostic.ts`     | `Diagnostic`, `VeliteError`, `fail()`, `hasFatalDiagnostic`, `codeFromDiagnostics`                                                                                |
 | `core/driver.ts`         | Build-time orchestration: `RunContext`, two-pass asset emit, `prepare` hook, incremental patching, `applyChanges` (watch)                                         |
 | `core/scheduler.ts`      | Debounced serial rebuild queue for watch mode                                                                                                                     |
 | `core/classify.ts`       | Route a `FileEvent` to `config` / `content` / `ignore`                                                                                                            |

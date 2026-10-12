@@ -1,12 +1,9 @@
 # Asset Handling
 
-> [!TIP]
-> This documentation is still being written. Please check back later.
-
 ## Refer
 
-- [File Schema](velite-schemas.md#s-file)
-- [Image Schema](velite-schemas.md#s-image)
+- [File Schema](velite-schemas.md#s-file-options)
+- [Image Schema](velite-schemas.md#s-image-options)
 - [Markdown Definition](velite-schemas.md#content-markdown-options)
 - [MDX Definition](velite-schemas.md#content-mdx-options)
 
@@ -14,9 +11,7 @@ Content Definitions resolve linked assets during Transform when `copyLinkedFiles
 
 ## Uploading Assets
 
-You can upload assets to your OSS, CDN, or other storage services.
-
-e.g. Upload images on complete hook:
+To serve assets from an external origin, point `output.base` at it — every generated asset URL (from `s.file`, `s.image`, and copied linked files) is prefixed with `output.base`:
 
 ```ts
 import { defineConfig } from 'velite'
@@ -24,12 +19,8 @@ import { defineConfig } from 'velite'
 export default defineConfig({
   output: {
     base: 'https://oss.your.com/static/'
-  },
-  complete: async () => {
-    // TODO: upload images
-    // static => https://oss.your.com/static/
   }
 })
 ```
 
-Currently, we don't provide any built-in uploading plugins, we will provide them in the future.
+The files themselves are still written to the local `output.assets` directory. Velite does not currently ship a post-build upload hook; if you need to push the emitted `output.assets` directory to OSS/CDN, wrap the build in your own script (run `velite build`, then upload the directory) — or consume the build programmatically via the [Node API](../reference/api.md) and upload in your own code after it resolves.

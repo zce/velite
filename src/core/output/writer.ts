@@ -192,10 +192,12 @@ export const writeOutput = async (output: LogicalOutput, deps: WriteDeps, previo
   if (deps.layout === 'split' && deps.changedCollections !== undefined && deps.changedSources !== undefined) {
     const manifest: DataManifest = { files: { ...previous.files } }
     const written: string[] = []
+    // Narrowed to a const so the filter callback below keeps the non-undefined type.
+    const changedSources = deps.changedSources
     for (const collection of deps.collections) {
       if (!deps.changedCollections.has(collection.name)) continue
       const entries = output.collections[collection.name]?.entries ?? []
-      const touched = entries.filter(e => deps.changedSources!.has(e.source))
+      const touched = entries.filter(e => changedSources.has(e.source))
       for (const write of planSplitOutput(collection.name, touched, pretty)) {
         const absPath = await commitWrite(write, deps.dir, previous, manifest, deps.fs)
         if (absPath !== undefined) written.push(absPath)

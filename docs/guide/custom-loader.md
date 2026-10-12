@@ -2,35 +2,28 @@
 
 Built-in loaders are:
 
-- `matter-loader`: parse frontmatter and provide content and data
-- `json-loader`: parse document as json
-- `yaml-loader`: parse document as yaml
+- `matter`: parse frontmatter and provide content and data (`.md`, `.mdx`)
+- `json`: parse document as json (`.json`)
+- `yaml`: parse document as yaml (`.yaml`, `.yml`)
 
-Velite supports custom loaders. A loader is an object with a `match` property (file patterns or matcher function) and a `load` method that receives a `LoaderInput` and returns a `LoaderResult`.
+Velite supports custom loaders. A loader is an object with a `match` property (file extensions or a matcher function) and a synchronous `load` method that receives a `LoaderInput` and returns a `LoaderResult`.
 
-In `velite.config.js`:
+::: warning
+
+In the current 1.0 alpha, custom loaders cannot be registered from the config file — there is no `loaders` field on `defineConfig` and no per-collection `loader` option. The `Loader` / `defineLoader` exports describe the contract; registration is available only through the programmatic builder composition, which is not public API yet. Config-file registration is planned for a future release.
+
+:::
 
 ```js
 import toml from 'toml'
-import { defineConfig, defineLoader, s } from 'velite'
+import { defineLoader } from 'velite'
 
-const tomlLoader = defineLoader({
+export const tomlLoader = defineLoader({
   match: ['.toml'],
   load: input => {
     const data = toml.parse(input.text)
     return { items: [{ key: 0, data }] }
   }
-})
-
-const options = defineCollection({
-  pattern: 'options/*.toml',
-  schema: s.object({ name: s.string() }),
-  loader: tomlLoader
-})
-
-export default defineConfig({
-  root: 'content',
-  collections: { options }
 })
 ```
 
@@ -40,8 +33,8 @@ export default defineConfig({
 interface Loader {
   /** File extensions or a custom matcher function. */
   match: string[] | ((path: string) => boolean)
-  /** Load file content into structured items. */
-  load(input: LoaderInput): LoaderResult | Promise<LoaderResult>
+  /** Load file content into structured items. Synchronous. */
+  load(input: LoaderInput): LoaderResult
 }
 
 interface LoaderInput {
@@ -79,5 +72,6 @@ export const tomlLoader = defineLoader({
 })
 ```
 
-> [!TIP]
-> Loaders are configured per-collection via the `loader` property, not at the top level of `defineConfig`.
+## Precedence
+
+When multiple loaders could match a path, the first match wins. Custom loaders are consulted before the built-ins, so a custom loader with `match: ['.json']` replaces the built-in JSON parser for that path.

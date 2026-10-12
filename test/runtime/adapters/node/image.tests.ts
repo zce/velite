@@ -11,10 +11,11 @@ import { equal, ok } from 'node:assert/strict'
 import { before, test } from 'node:test'
 import sharp from 'sharp'
 
-import { sharpImageProcessor } from '../../../../src/runtime/adapters/node/image'
+import { createSharpImageProcessor } from '../../../../src/runtime/adapters/node/image'
 
 // A real, sharp-encoded PNG so this file does not need to ship a hand-crafted
 // fixture (and risk CRC drift). Generated once per test run.
+const processor = createSharpImageProcessor()
 let PNG_4x2: Uint8Array
 
 before(async () => {
@@ -26,32 +27,32 @@ before(async () => {
   PNG_4x2 = new Uint8Array(buf)
 })
 
-test('sharpImageProcessor.probe: returns real dimensions and format for a real png', async () => {
-  const result = await sharpImageProcessor.probe(PNG_4x2)
+test('image processor probe: returns real dimensions and format for a real png', async () => {
+  const result = await processor.probe(PNG_4x2)
   equal(result.width, 4)
   equal(result.height, 2)
   equal(result.format, 'png')
 })
 
-test('sharpImageProcessor.blurDataURL: produces a webp data url for a real png', async () => {
-  const url = await sharpImageProcessor.blurDataURL(PNG_4x2)
+test('image processor blurDataURL: produces a webp data url for a real png', async () => {
+  const url = await processor.blurDataURL(PNG_4x2)
   ok(url.startsWith('data:image/webp;base64,'), `got: ${url.slice(0, 40)}`)
   ok(url.length > 'data:image/webp;base64,'.length)
 })
 
-test('sharpImageProcessor.blurDataURL: pre-probed metadata short-circuits the internal probe and yields the same output', async () => {
+test('image processor blurDataURL: pre-probed metadata short-circuits the internal probe and yields the same output', async () => {
   // The contract: when the caller supplies dimensions, the adapter must skip
   // its own metadata read. We can't directly observe the elision, but if the
   // short-circuit *misread* the metadata-arg path the output would differ.
   // Equal outputs across the two call shapes pins the optimization.
-  const withoutMeta = await sharpImageProcessor.blurDataURL(PNG_4x2)
-  const withMeta = await sharpImageProcessor.blurDataURL(PNG_4x2, { width: 4, height: 2 })
+  const withoutMeta = await processor.blurDataURL(PNG_4x2)
+  const withMeta = await processor.blurDataURL(PNG_4x2, { width: 4, height: 2 })
   equal(withMeta, withoutMeta)
 })
 
-test('sharpImageProcessor.blurDataURL: dimensionless metadata short-circuits to empty string (no sharp work)', async () => {
+test('image processor blurDataURL: dimensionless metadata short-circuits to empty string (no sharp work)', async () => {
   // A caller passing (0, 0) — e.g. an SVG without intrinsic size that probed
   // to zeros — must not divide by zero or invoke sharp's resize pipeline.
-  const url = await sharpImageProcessor.blurDataURL(PNG_4x2, { width: 0, height: 0 })
+  const url = await processor.blurDataURL(PNG_4x2, { width: 0, height: 0 })
   equal(url, '')
 })

@@ -46,7 +46,7 @@ name: s.unique('taxonomies')
 // 'foo' => 'foo'
 
 // case 2. non-unique value (in all unique by 'taxonomies')
-// 'foo' => issue 'Duplicate 'foo' with '/path/to/existing/file.yml''
+// 'foo' => issue 'duplicate unique value "foo" in group "taxonomies"'
 ```
 
 ### Parameters
@@ -60,7 +60,7 @@ name: s.unique('taxonomies')
 
 `string => string`
 
-Validate a slug string. It checks length, slug format, reserved values, and uniqueness within a named slug group.
+Validate a slug string. It checks length (3–200), slug format (`a-z0-9` segments joined by `-`, case-insensitive), reserved values, and uniqueness within a named slug group.
 
 This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
@@ -70,7 +70,7 @@ slug: s.slug('taxonomies', ['admin', 'login'])
 // 'hello-world' => 'hello-world'
 
 // case 2. non-unique value in the 'taxonomies' slug group
-// 'hello-world' => issue "duplicate value 'hello-world' ..."
+// 'hello-world' => issue 'duplicate unique value "hello-world" in group "slug:taxonomies"'
 
 // case 3. reserved slug value
 // 'admin' => issue 'Reserved slug'
@@ -105,7 +105,7 @@ avatar: s.file()
 // 'avatar.png' => '/static/avatar-34kjfdsi.png'
 
 // case 2. non-exists file
-// 'not-exists.png' => issue 'File not exists'
+// 'not-exists.png' => fatal 'ASSET_FAILED' diagnostic 'failed to read asset: ...'
 
 // case 3. absolute path or full url (if allowed)
 // '/icon.png' => '/icon.png'
@@ -120,6 +120,17 @@ allow non-relative path, if true, the value will be returned directly, if false,
 
 - type: `boolean`
 - default: `true`
+
+##### **options.outputName**:
+
+override the global `output.name` filename template for this specific schema invocation
+
+- type: `string`
+- default: `undefined` (use `output.name`)
+
+```ts
+docs: s.file({ outputName: 'docs/[name]-[hash:8].[ext]' })
+```
 
 ## `s.image(options)`
 
@@ -142,12 +153,14 @@ avatar: s.image()
 // }
 
 // case 2. non-exists file
-// 'not-exists.png' => issue 'File not exists'
-
-// case 3. absolute path or full URL
-// '/icon.png' => { src: '/icon.png', width: 0, height: 0, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
-// 'https://zce.me/logo.png' => { src: 'https://zce.me/logo.png', width: 0, height: 0, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
+// 'not-exists.png' => issue 'failed to read asset: ...'
 ```
+
+::: warning
+
+Unlike `s.file()`, `s.image()` has no `allowNonRelativePath` passthrough. A `/`-prefixed value is only valid together with `options.absoluteRoot` (resolved against that root, read and probed directly, returned as-is); without `absoluteRoot`, a `/`-prefixed or remote-URL value is treated as a relative reference and fails to resolve. Use a custom schema for remote images.
+
+:::
 
 ### Parameters
 
@@ -344,7 +357,7 @@ path: s.path()
 
 #### **options**: flattening options
 
-- type: `PathOptions`
+- type: `PathSchemaOptions`
 
 ##### **options.removeIndex**:
 

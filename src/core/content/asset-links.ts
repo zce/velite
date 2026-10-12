@@ -12,17 +12,11 @@
 
 import { visit } from 'unist-util-visit'
 
+import { isRelativePath } from '../util/path'
+
 import type { Element, Root as Hast } from 'hast'
 import type { Root as Mdast } from 'mdast'
 import type { Plugin } from 'unified'
-
-/** A url is a candidate asset reference iff it is a relative path. */
-const isRelativePath = (value: string): boolean => {
-  if (value.startsWith('#') || value.startsWith('?') || value.startsWith('//')) return false
-  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(value)) return false
-  if (/^(\/[^/\\]|[a-zA-Z]:\\)/.test(value)) return false
-  return true
-}
 
 /** Resolve a relative url to its public url. Return the input unchanged to skip. */
 export type ProcessAsset = (url: string) => Promise<string>

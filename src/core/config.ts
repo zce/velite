@@ -39,8 +39,7 @@ export type PrepareCollections<C extends Record<string, CollectionDef> = Record<
  *
  * The legacy `{ collections, diagnostics? }` shape is removed; the sole prepare
  * diagnostic channel is {@link PrepareContext.addDiagnostic}. Returning a
- * `diagnostics` field is a type error; the sole prepare diagnostic channel is
- * {@link PrepareContext.addDiagnostic}.
+ * `diagnostics` field is a type error.
  */
 export type PrepareResult<C extends Record<string, CollectionDef> = Record<string, CollectionDef>> =
   | void
@@ -122,9 +121,10 @@ export interface UserConfig<C extends Record<string, CollectionDef> = Record<str
     /** Public base url for assets (default '/static/'). */
     base?: string
     /**
-     * Output filename template for assets, evaluated by {@link renderAssetName}.
-     * Supports `[name]`, `[hash]`, `[hash:N]`, `[ext]` placeholders, and the
-     * `/` character to nest the asset under sub-directories of the assets dir.
+     * Output filename template for assets, evaluated by the asset derivation's
+     * `renderAssetName`. Supports `[name]`, `[hash]`, `[hash:N]`, `[ext]`
+     * placeholders, and the `/` character to nest the asset under
+     * sub-directories of the assets dir.
      * @default '[name]-[hash:8].[ext]'
      */
     name?: string

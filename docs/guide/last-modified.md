@@ -30,10 +30,10 @@ Use it in your schema
 ```ts
 const posts = defineCollection({
   // ...
-  schema: {
+  schema: s.object({
     // ...
     lastModified: timestamp()
-  }
+  })
 })
 ```
 
@@ -62,9 +62,9 @@ Use it in your schema
 ```ts
 const posts = defineCollection({
   // ...
-  schema: {
+  schema: s.object({
     // ...
     lastModified: timestamp()
-  }
+  })
 })
 ```

@@ -114,8 +114,8 @@ interface SchemaContext {
   readonly file: ContentFile
   readonly record: ContentRecord
   readonly store: SessionStore
-  /** Emit a schema effect (e.g. asset reference, uniqueness constraint). */
-  readonly collectEffect: (effect: Effect) => void
+  /** Declare a schema effect (e.g. asset reference, uniqueness constraint). */
+  readonly collectEffect: (declaration: SchemaEffectDeclaration, context: EffectDeclarationContext) => void
   /** Demand an asset derivation (copy + hash + optional image metadata). */
   readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
   /** Read a file's raw bytes by absolute path. */

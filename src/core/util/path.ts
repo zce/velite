@@ -69,3 +69,15 @@ export const stripQueryAndHash = (value: string): string => {
   const index = Math.min(queryIdx >= 0 ? queryIdx : Infinity, hashIdx >= 0 ? hashIdx : Infinity)
   return index === Infinity ? value : value.slice(0, index)
 }
+
+/**
+ * A url is a candidate asset reference iff it is a relative path: not a
+ * fragment, query, scheme URL, protocol-relative URL, or absolute path.
+ * Shared by `s.file` / `s.image` and the markdown asset-link plugins.
+ */
+export const isRelativePath = (value: string): boolean => {
+  if (value.startsWith('#') || value.startsWith('?') || value.startsWith('//')) return false
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(value)) return false // scheme://...
+  if (/^(\/[^/\\]|[a-zA-Z]:\\)/.test(value)) return false // absolute path
+  return true
+}

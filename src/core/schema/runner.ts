@@ -41,7 +41,7 @@ export interface SchemaRunInput {
  * The returned object carries no carrier, lease, private capability, or
  * private symbol. Internal — used by the {@link SchemaRunner}.
  */
-export const createPublicSchemaContext = (input: SchemaRunInput): SchemaContext => ({
+const createPublicSchemaContext = (input: SchemaRunInput): SchemaContext => ({
   project: input.project,
   file: input.file,
   record: input.record,

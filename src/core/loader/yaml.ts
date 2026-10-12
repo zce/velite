@@ -1,7 +1,6 @@
 import { parse } from 'yaml'
 
-import { diagnostic } from '../diagnostic'
-import { toItems } from './json'
+import { loaderFailure, toItems } from './result'
 
 import type { Loader, LoaderResult } from './types'
 
@@ -14,16 +13,7 @@ export const yamlLoader: Loader = {
     try {
       parsed = parse(text)
     } catch (cause) {
-      return {
-        items: [],
-        diagnostics: [
-          diagnostic('error', 'LOADER_FAILED', `invalid YAML: ${(cause as Error).message}`, {
-            stage: 'load',
-            provenance: { scope: 'source', source: { path } },
-            cause
-          })
-        ]
-      }
+      return loaderFailure('YAML', path, cause)
     }
     return toItems(parsed)
   }

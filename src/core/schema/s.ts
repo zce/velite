@@ -14,8 +14,8 @@ import * as builtins from './builtins'
  * Content Definitions live separately under `content`. `raw` and `path` read
  * the eight-field schema context wired by the SchemaRunner for each record.
  * Asset builtins (`file` / `image`) resolve content-relative references through
- * the engine's asset derivation (M5). Uniqueness builtins (`unique` / `slug`)
- * register `UniqueEffect`s the pipeline's `uniqueCheck` derivation scans (M6).
+ * the engine's asset derivation. Uniqueness builtins (`unique` / `slug`)
+ * register `UniqueEffect`s that the emit derivation scans for conflicts.
  */
 export const s = {
   ...z,

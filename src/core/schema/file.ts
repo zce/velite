@@ -10,17 +10,8 @@
 import { z } from 'zod'
 
 import { assetKeyOf } from '../pipeline/asset'
-import { dirname, join, stripQueryAndHash } from '../util/path'
+import { dirname, isRelativePath, join, stripQueryAndHash } from '../util/path'
 import { context } from './context'
-
-// A relative path is a candidate asset reference: not a fragment, query, scheme
-// URL, or absolute path. Pure port of `isRelativePath` from `src/assets/process.ts`.
-const isRelativePath = (value: string): boolean => {
-  if (value.startsWith('#') || value.startsWith('?') || value.startsWith('//')) return false
-  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(value)) return false // scheme://...
-  if (/^(\/[^/\\]|[a-zA-Z]:\\)/.test(value)) return false // absolute path
-  return true
-}
 
 /** Options for the {@link file} schema. */
 export interface FileSchemaOptions {
@@ -56,6 +47,6 @@ export const file = ({ allowNonRelativePath = true, outputName }: FileSchemaOpti
       return result.publicUrl
     } catch (err) {
       addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })
-      return null as never
+      return z.NEVER
     }
   })

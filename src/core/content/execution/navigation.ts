@@ -19,7 +19,7 @@ export interface NavigationNode {
 
 const normalize = (fragments: string[]): string => fragments.join(' ').replace(/\s+/gu, ' ').trim()
 
-export const anchorBase = (title: string): string => {
+const anchorBase = (title: string): string => {
   let result = '',
     separator = false
   for (const point of title.normalize('NFC').toLowerCase().normalize('NFC')) {
@@ -102,6 +102,9 @@ export const captureNavigation = (tree: NavigationNode): NavigationSnapshot => {
   }
   visit(tree)
   for (const [id, count] of reserved) if (count > 1) errors.push(`Duplicate explicit content id ${JSON.stringify(id)} (${count} declarations)`)
+  // A plain Error on purpose: invalid/duplicate ids are user-content failures,
+  // so the schema layer surfaces them as validation issues (see `failureMessage`
+  // in schema/content.ts) rather than internal VeliteError('internal') aborts.
   if (errors.length) throw new Error(errors.join('; '))
   const items: TocItem[] = []
   const limitations: string[] = []

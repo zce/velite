@@ -6,7 +6,7 @@ Velite exposes one public lifecycle concept for schema code: the build context. 
 
 Each `build()` call runs one build execution. It loads the config, discovers matching content files, parses records with collection schemas, runs hooks, writes generated data, and copies collected assets.
 
-In watch mode, each rebuild is also a build execution. A rebuild may reuse internal output state so unchanged generated files can be skipped, but schema-visible state is scoped to the active build execution.
+In watch mode, each rebuild reuses the same build session: the session-scoped schema store survives rebuilds and is replaced only when the config reloads, while unchanged generated files can be skipped via internal output state.
 
 ## Build Context
 
@@ -29,7 +29,7 @@ interface SchemaContext {
   readonly file: ContentFile
   readonly record: ContentRecord
   readonly store: SessionStore
-  readonly collectEffect: (effect: Effect) => void
+  readonly collectEffect: (declaration: SchemaEffectDeclaration, context: EffectDeclarationContext) => void
   readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
   readonly readFile: (absPath: string) => Promise<Uint8Array>
   readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
@@ -40,7 +40,7 @@ The context is ambient, similar to request-scoped APIs. It is available only whi
 
 ## Build Store
 
-`context().store` is an advanced API for state shared within the current build execution. It avoids module-level globals and prevents state from leaking across independent builds.
+`context().store` is an advanced API for lazily-initialized state shared across every build and watch rebuild on the same builder. It avoids module-level globals and prevents state from leaking across independent builders; the store is replaced wholesale when the config reloads and dropped when the builder is disposed.
 
 ```ts
 const key = Symbol('my-schema.state')

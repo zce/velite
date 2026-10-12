@@ -152,6 +152,8 @@ export const createContentExecutionsFactory = ({ host, markdown, mdx }: ContentE
       const journal = { open: true, declarations: [] as ContentDeclaration[] }
       journals.set(stage, journal)
       const carrier = { ...host.get(), contentStage: stage }
+      // The promise slot is assigned synchronously right below before any
+      // caller can observe the stage, so the temporary `undefined` is never read.
       const outcome = { state: 'pending' as 'pending' | 'fulfilled' | 'rejected', promise: undefined as unknown as Promise<void> }
       execution.stages[phase] = outcome
       outcome.promise = Promise.resolve().then(async () => {
@@ -247,7 +249,7 @@ export const createContentExecutionsFactory = ({ host, markdown, mdx }: ContentE
         return request.selection === 'html' || request.selection === 'code'
           ? execution.output
           : request.selection === 'excerpt'
-            ? sourceExcerpt(execution.source, request.length!)
+            ? sourceExcerpt(execution.source, request.length)
             : sourceMetadata(execution.source)
       },
       diagnostics() {

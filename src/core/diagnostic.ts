@@ -296,7 +296,7 @@ const rank = (v: DiagnosticValue): number => {
   return 11
 }
 
-const compareNumbers = (a: number, b: number): number => a - b || (Object.is(a, -0) ? 0 : 0)
+const compareNumbers = (a: number, b: number): number => a - b || 0
 
 const compareStrings = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 

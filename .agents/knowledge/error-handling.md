@@ -27,7 +27,7 @@ For content processing, recovery, or effect failure paths, read [ADR 0001](../..
 ## VeliteError API
 
 ```ts
-type VeliteErrorCode = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch' | 'internal' | 'unknown' | (string & {})
+type VeliteErrorCode = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch' | 'internal' | 'unknown'
 
 class VeliteError<T = unknown> extends Error {
   readonly code: VeliteErrorCode
@@ -39,22 +39,19 @@ class VeliteError<T = unknown> extends Error {
 
 `code` aligns with `DiagnosticStage` plus `internal` (invariant violations) and `unknown` (fallback). Reusing pipeline-stage vocabulary keeps thrown errors and diagnostic data in one namespace.
 
-## fail / assert
+## fail
 
 ```ts
 fail('load', { message: `no loader found for '${path}'`, context: { path } })
 fail('internal', 'session missing')
-assert(currentSession != null, 'internal', 'session missing')
-assert(loader != null, () => fail('load', { message: '...', context: { path } }))
 ```
 
 - `fail(code, options?)` throws a `VeliteError` and never returns. Accepts a plain string as a `message` shorthand.
-- `assert(condition, code, options?)` is an `asserts condition` guard with three overloads (string code, options object, or `() => never` thunk).
 
 ## Helpers
 
-- `flattenError(error)` — normalize any thrown value to a string for logging (`VeliteError` → code, `Error` → message, object → JSON, fallback `'unknown'`).
-- `isError` / `isVeliteError` — structural checks robust across bundle/realms.
+- `isVeliteError` — structural check robust across bundle/realms.
+- `hasFatalDiagnostic(diagnostics)` — an `error`-level diagnostic from any stage other than `schema` (schema errors are non-fatal by design).
 - `codeFromDiagnostics(diagnostics)` — derive the thrown build-failure `code` from the first fatal diagnostic's `stage`.
 
 ## Decision tree
@@ -69,4 +66,3 @@ assert(loader != null, () => fail('load', { message: '...', context: { path } })
 - Do not `fail()` a schema validation issue — collect it as a `Diagnostic` so callers see structured data and the build can continue collecting other issues.
 - Do not bypass the diagnostic channel for user content errors; diagnostics are the build's result contract.
 - Do not introduce a parallel error base class. `VeliteError` is the single base for all thrown velite errors.
-- `BuildAborted` (`src/core/pipeline.ts`) is a control-flow signal, not an error — leave it outside the `VeliteError` hierarchy.

@@ -5,7 +5,7 @@ import type { Diagnostic } from '../diagnostic'
 import type { Derivation } from '../engine'
 import type { CollectionResult } from '../model'
 import type { Effect } from '../schema/effects'
-import type { Collected, Emitted, UniqueChecked } from './types'
+import type { Collected, Emitted } from './types'
 
 const ownerKey = (collection: string, owner: string): string => JSON.stringify([collection, owner])
 
@@ -32,7 +32,7 @@ const uniqueCandidates = (config: ResolvedConfig, effects: readonly Effect[], co
       const owner = effect.owner
       const collection = effect.system?.collectionId ?? collectionByOwner.get(owner) ?? ''
       const collectionOrder = config.collections.findIndex(c => c.name === collection)
-      const sourcePath = effect.system?.sourcePath ?? owner.split('#')[0] ?? ''
+      const sourcePath = effect.system?.sourcePath ?? owner.split('#')[0]
       diagnostics.push(
         diagnostic('error', 'SCHEMA_INVALID', `duplicate unique value "${bucket.value}" in group "${bucket.group}"`, {
           stage: 'schema',
@@ -53,14 +53,11 @@ const uniqueCandidates = (config: ResolvedConfig, effects: readonly Effect[], co
  * `emit()` → the complete LogicalOutput across all collections (the build's root
  * derivation). Demanding this drives the whole pipeline. Aggregates effects from
  * every collection; the driver consumes asset-reference effects to feed asset
- * bytes in pass 2. Filters conflicting candidates before applying singleton
- * cardinality and selection on every emit (full and incremental).
+ * bytes in pass 2. Runs the cross-record uniqueness scan (`uniqueCandidates`),
+ * filters conflicting candidates, then applies singleton cardinality and
+ * selection on every emit (full and incremental).
  */
-export const createEmitDerivation = (
-  config: ResolvedConfig,
-  collect: Derivation<string, Collected>,
-  _uniqueCheck: Derivation<null, UniqueChecked>
-): Derivation<null, Emitted> => ({
+export const createEmitDerivation = (config: ResolvedConfig, collect: Derivation<string, Collected>): Derivation<null, Emitted> => ({
   name: 'emit',
   async compute(context) {
     const collections: Record<string, CollectionResult> = {}

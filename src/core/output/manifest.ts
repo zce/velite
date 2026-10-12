@@ -43,7 +43,7 @@ const encoder = new TextEncoder()
  * (`root + '/'`), not as raw substrings, so a sibling directory whose name
  * happens to start with the root (`/proj/.velite-backup/...`) is rejected.
  */
-const withinRoot = (entry: string, root: string): string | null => {
+const withinRoot = (entry: unknown, root: string): string | null => {
   if (typeof entry !== 'string' || entry.length === 0) return null
   const normalizedEntry = normalize(entry)
   const normalizedRoot = normalize(root)
@@ -79,7 +79,7 @@ export const loadManifest = async (fs: FileSystem, absPath: string, dataRoot: st
     const assets: string[] = []
     if (Array.isArray(parsed.assets)) {
       for (const entry of parsed.assets) {
-        const safe = withinRoot(entry as string, assetsRoot)
+        const safe = withinRoot(entry, assetsRoot)
         if (safe !== null) assets.push(safe)
       }
     }

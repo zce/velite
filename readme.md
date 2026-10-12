@@ -69,13 +69,13 @@ You can try Velite directly in your browser on StackBlitz:
 
 The following are the features I want to achieve or are under development:
 
-- [ ] More framework or build tool integration examples.
+- [x] Framework integrations: [`@velite/plugin-next`](https://github.com/zce/velite/tree/main/packages/next) & [`@velite/plugin-vite`](https://github.com/zce/velite/tree/main/packages/vite), plus runnable [examples](examples)
+- [x] Unit & integration tests (600+ cases over the built output)
+- [x] Incremental build with a memoized derivation engine and watch-mode patching
+- [ ] More framework or build tool integration examples
 - [ ] More built-in schemas
-- [ ] Unit & E2E tests?
-- [ ] Scoffolding tool
-- [ ] Incremental build
+- [ ] Scaffolding tool
 - [ ] Turborepo?
-- [ ] Next.js plugin package? It's currently a [snippet](https://velite.js.org/guide/with-nextjs#start-velite-with-next-js-plugin).
 
 See the [open issues](https://github.com/zce/velite/issues) for a list of proposed features (and known issues).
 

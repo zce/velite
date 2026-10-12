@@ -4,7 +4,6 @@ import { createCollectDerivation } from './collect'
 import { createSourcesDerivation } from './discover'
 import { createEmitDerivation } from './emit'
 import { createLoadDerivation } from './load'
-import { createUniqueCheckDerivation } from './unique'
 import { createValidateDerivation } from './validate'
 
 import type { FileSystem, ImageProcessor } from '../../runtime'
@@ -16,15 +15,13 @@ import type { Source } from '../model'
 import type { SchemaRunner } from '../schema/runner'
 import type { Matcher } from '../util/glob'
 import type { AssetKey, AssetResult } from './asset'
-import type { Collected, Emitted, Loaded, UniqueChecked, Validated, ValidateKey } from './types'
+import type { Collected, Emitted, Loaded, Validated, ValidateKey } from './types'
 
 export interface Pipeline {
   sources: Derivation<string, Source[]>
   load: Derivation<string, Loaded>
   validate: Derivation<ValidateKey, Validated>
   collect: Derivation<string, Collected>
-  /** Cross-file uniqueness conflict scan (keyed by `null` — scans all collections). */
-  uniqueCheck: Derivation<null, UniqueChecked>
   emit: Derivation<null, Emitted>
   /** Per-asset derivation: assetKey → public url + image metadata. */
   asset: Derivation<AssetKey, AssetResult>
@@ -55,9 +52,8 @@ export const createPipeline = ({ config, loaders, fs, image, schemaRunner, conte
   const asset = createAssetDerivation(config, image, fs)
   const validate = createValidateDerivation(config, load, asset, { fs, image, schemaRunner, contentExecutionsFactory })
   const collect = createCollectDerivation(config, sources, validate)
-  const uniqueCheck = createUniqueCheckDerivation(config, sources, validate)
-  const emit = createEmitDerivation(config, collect, uniqueCheck)
-  return { sources, load, validate, collect, uniqueCheck, emit, asset }
+  const emit = createEmitDerivation(config, collect)
+  return { sources, load, validate, collect, emit, asset }
 }
 
 export { TREE, fileInput } from './inputs'

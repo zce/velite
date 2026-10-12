@@ -61,4 +61,4 @@ For Content Definitions, source selections, navigation, or plugin processing, fo
 
 ## SessionStore
 
-`store` is a session-scoped `Map`-backed key/value store (`get` / `has` / `getOrCreate`). It is shared across rebuilds inside a watch session, destroyed at the end of a one-shot build, and reset on config reload. There is deliberately no `set()` — built-in cross-file schemas use the effects model (`collectEffect` → `uniqueCheck`) so concurrent validation stays deterministic. Use `store` when a custom schema needs lazily-initialised shared state.
+`store` is a session-scoped `Map`-backed key/value store (`get` / `has` / `getOrCreate`). It is shared across rebuilds inside a watch session, destroyed at the end of a one-shot build, and reset on config reload. There is deliberately no `set()` — built-in cross-file schemas use the effects model (`collectEffect` → emit aggregation) so concurrent validation stays deterministic. Use `store` when a custom schema needs lazily-initialised shared state.

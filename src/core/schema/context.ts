@@ -17,9 +17,9 @@
 import { fail } from '../diagnostic'
 import { schemaContextHost } from './host'
 
+import type { AssetResult, BlurOptions } from '../assets'
 import type { MarkdownOptions, MdxOptions } from '../content/options'
-import type { AssetResult, BlurOptions } from '../pipeline/asset'
-import type { Effect, EffectDeclarationContext, SchemaEffectDeclaration } from './effects'
+import type { EffectDeclarationContext, SchemaEffectDeclaration } from './effects'
 
 /**
  * A content file during schema parsing.
@@ -92,16 +92,12 @@ export interface SchemaContext {
   /** Session-scoped store for advanced custom schemas (shared across rebuilds, reset on config reload). */
   readonly store: SessionStore
   /**
-   * Declare a schema effect. The two-arg form `(effect: SchemaEffectDeclaration,
-   * context: EffectDeclarationContext)` is the final 1.0 surface (Ticket 23).
-   *
-   * During the Phase 1-3 migration, the internal validate bridge also accepts
-   * the legacy single-arg `Effect` shape so the existing `s.file`/`s.image`/
-   * `s.unique`/asset-link builtins keep working; Phase 3 migrates every caller
-   * to the two-arg form and removes the legacy overload. New code MUST use the
-   * two-arg form.
+   * Declare a schema effect. The two-arg form `(declaration, context)` is the
+   * single public surface: Velite supplies the system owner/source provenance
+   * at commit time; the caller supplies the semantic payload plus the
+   * declaration context (path, ordinal, occurrence).
    */
-  readonly collectEffect: ((effect: SchemaEffectDeclaration, context: EffectDeclarationContext) => void) & ((effect: Effect) => void)
+  readonly collectEffect: (declaration: SchemaEffectDeclaration, context: EffectDeclarationContext) => void
   /**
    * Resolve an asset by its key (content-root-relative POSIX source path,
    * i.e. relative to `project.root`). Demands the engine's asset derivation,

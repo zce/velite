@@ -15,7 +15,7 @@ export type {
   UniqueEffectDeclaration
 } from './effects'
 
-export type { AssetResult, BlurOptions } from '../pipeline/asset'
+export type { AssetResult, BlurOptions } from '../assets'
 export type { FileSchemaOptions } from './file'
 export type { ImageData, ImageSchemaOptions } from './image'
 export type { PathSchemaOptions } from './path-schema'

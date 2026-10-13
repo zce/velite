@@ -11,120 +11,28 @@
 // dependency recorded on the placeholder path ensures the asset memo (and every
 // dependent) recomputes when the input arrives.
 //
-// assetKey mapping (chosen for M5, see report): the assetKey is the
-// content-root-relative POSIX source path of the asset (i.e. relative to
-// `config.root`, the configured content root — not the project root). The
-// engine input id is `'asset:' + assetKey`. `s.file` / `s.image` resolve a
-// content-relative `src` to an absolute source path, then derive
-// `assetKey = relative(config.root, absSourcePath)` and demand this derivation.
-// The driver reads the effect's absolute `assetPath`, applies the same
-// `relative(config.root, ...)` to get the assetKey, and sets the matching input.
-//
-// The derivation key is `{assetKey, template, blur?}` — same bytes can be
-// rendered to different filenames (per-schema `outputName`) and produce
-// different blur dimensions; we want each (key, template, blur) tuple to memo
-// independently while the engine input is still keyed by assetKey alone.
+// The assetKey identity, the engine input id, and the template-based output
+// naming live in `../assets` — the neutral seam shared with schemas, the
+// content execution layer, and the driver. The derivation key is
+// `{assetKey, template, blur?}` — same bytes can be rendered to different
+// filenames (per-schema `outputName`) and produce different blur dimensions; we
+// want each (key, template, blur) tuple to memo independently while the engine
+// input is still keyed by assetKey alone.
 
+import { assetInput, publicUrlOf } from '../assets'
 import { EngineError } from '../engine'
-import { hash } from '../util/hash'
-import { extname, join, relative } from '../util/path'
+import { join } from '../util/path'
 
 import type { FileSystem, ImageProcessor } from '../../runtime'
+import type { AssetKey, AssetResult } from '../assets'
 import type { ResolvedConfig } from '../config'
 import type { Derivation } from '../engine'
-
-/** Result of resolving an asset: public url plus image metadata (zeros when unknown). */
-export interface AssetResult {
-  /** Public url of the asset (base + content-hashed name once bytes are known). */
-  publicUrl: string
-  /** Whether the result was derived from real bytes instead of a placeholder. */
-  resolved: boolean
-  /** Image width (0 when no bytes / no processor / probe failed). */
-  width: number
-  /** Image height (0 when no bytes / no processor / probe failed). */
-  height: number
-  /** Image format, e.g. 'png' (empty when no bytes / no processor / probe failed). */
-  format: string
-  /** Blur placeholder data url (empty when no bytes / no processor). */
-  blurDataURL: string
-  /** Blur image width (0 when no bytes / no processor). */
-  blurWidth: number
-  /** Blur image height (0 when no bytes / no processor). */
-  blurHeight: number
-}
-
-/** Blur placeholder options. */
-export interface BlurOptions {
-  /** Blur image width. @default 8 */
-  width?: number
-  /** Blur image height. @default derived from aspect ratio */
-  height?: number
-  /** WebP quality of the blur image (1-100). @default 1 */
-  quality?: number
-}
-
-/**
- * Key for the asset derivation. `assetKey` keys the underlying bytes input;
- * `template` lets the same bytes be rendered to a different filename; `blur`
- * lets schemas request different blur dimensions/quality without colliding.
- */
-export interface AssetKey {
-  assetKey: string
-  template: string
-  blur?: BlurOptions
-  metadata?: boolean
-}
-
-/** Engine input id holding the raw bytes of the asset identified by `assetKey`. */
-export const assetInput = (assetKey: string): string => `asset:${assetKey}`
-
-/**
- * The assetKey for an absolute source path: the content-root-relative POSIX
- * path (relative to `root`, the configured content root — not the project
- * root). This is the stable identity shared by the schema (which demands the
- * derivation) and the driver (which sets the input). Takes the root explicitly
- * so callers with only `project.root` (e.g. schemas) need no `ResolvedConfig`.
- */
-export const assetKeyOf = (absSourcePath: string, root: string): string => relative(root, absSourcePath)
 
 /** Default blur width used when no explicit width is requested. */
 const BLUR_WIDTH = 8
 
-/**
- * Render an asset's output name from a template.
- *
- * Supports `[name]`, `[hash]`, `[hash:N]`, `[ext]`. `[hash]` requires `bytes`
- * (returns the placeholder `name.ext`-style rendering when bytes are unset, so
- * pass 1 of the two-pass driver works without breaking). The template may
- * include `/` separators for sub-directories — `runtime.fs.write` handles the
- * recursive mkdir on the write side.
- */
-const renderAssetName = (assetKey: string, template: string, bytes?: Uint8Array): string => {
-  const base = assetKey.slice(assetKey.lastIndexOf('/') + 1)
-  const ext = extname(assetKey)
-  const stem = ext.length > 0 ? base.slice(0, -ext.length) : base
-  const digest = bytes === undefined ? '' : hash(bytes)
-  return template.replace(/\[(name|hash|ext)(?::(\d+))?\]/g, (substring, key, lenStr) => {
-    const length = lenStr === undefined ? undefined : parseInt(lenStr, 10)
-    switch (key) {
-      case 'name':
-        return length === undefined ? stem : stem.slice(0, length)
-      case 'hash':
-        if (digest === '') return '' // placeholder pass — no hash yet
-        return length === undefined ? digest : digest.slice(0, length)
-      case 'ext':
-        return length === undefined ? ext.slice(1) : ext.slice(1, length + 1)
-    }
-    return substring
-  })
-}
-
-/** The public url for an asset: base + rendered name. */
-export const publicUrlOf = (assetKey: string, template: string, bytes: Uint8Array | undefined, config: ResolvedConfig): string =>
-  config.output.base + renderAssetName(assetKey, template, bytes)
-
 const placeholder = (key: AssetKey, config: ResolvedConfig): AssetResult => ({
-  publicUrl: publicUrlOf(key.assetKey, key.template, undefined, config),
+  publicUrl: publicUrlOf(key.assetKey, key.template, undefined, config.output.base),
   resolved: false,
   width: 0,
   height: 0,
@@ -152,7 +60,7 @@ const placeholder = (key: AssetKey, config: ResolvedConfig): AssetResult => ({
  * is spelled out at the factory edge.
  */
 const resolvedFile = (key: AssetKey, config: ResolvedConfig, bytes: Uint8Array): AssetResult => ({
-  publicUrl: publicUrlOf(key.assetKey, key.template, bytes, config),
+  publicUrl: publicUrlOf(key.assetKey, key.template, bytes, config.output.base),
   resolved: true,
   width: 0,
   height: 0,
@@ -188,7 +96,7 @@ export const createAssetDerivation = (config: ResolvedConfig, image: ImageProces
       }
     }
 
-    const publicUrl = publicUrlOf(key.assetKey, key.template, bytes, config)
+    const publicUrl = publicUrlOf(key.assetKey, key.template, bytes, config.output.base)
     if (key.metadata !== true) return resolvedFile(key, config, bytes)
     // Probe + blur can fail on corrupt / unsupported images (e.g. some SVGs
     // without intrinsic size, truncated downloads). Degrade to zero metadata

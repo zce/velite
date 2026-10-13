@@ -26,7 +26,7 @@ importers:
     devDependencies:
       '@ianvs/prettier-plugin-sort-imports':
         specifier: ^4.7.1
-        version: 4.7.1(prettier@3.8.4)
+        version: 4.7.1(@vue/compiler-sfc@3.5.13)(prettier@3.8.4)
       '@types/hast':
         specifier: ^3.0.4
         version: 3.0.4
@@ -96,6 +96,12 @@ importers:
       unist-util-visit:
         specifier: ^5.1.0
         version: 5.1.0
+      vfile:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vfile-message:
+        specifier: ^4.0.3
+        version: 4.0.3
       yaml:
         specifier: ^3.0.0-1
         version: 3.0.0-1
@@ -3598,7 +3604,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@ianvs/prettier-plugin-sort-imports@4.7.1(prettier@3.8.4)':
+  '@ianvs/prettier-plugin-sort-imports@4.7.1(@vue/compiler-sfc@3.5.13)(prettier@3.8.4)':
     dependencies:
       '@babel/generator': 7.28.5
       '@babel/parser': 7.28.5
@@ -3606,6 +3612,8 @@ snapshots:
       '@babel/types': 7.28.5
       prettier: 3.8.4
       semver: 7.7.3
+    optionalDependencies:
+      '@vue/compiler-sfc': 3.5.13
     transitivePeerDependencies:
       - supports-color
 

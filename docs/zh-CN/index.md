@@ -34,6 +34,12 @@ features:
     details: 内置资源处理，例如相对路径文件解析、图像优化等。
 ---
 
+::: warning 中文文档状态
+
+本站目前只有此落地页完成了中文翻译，完整文档仅提供英文版本。点击上方「快速上手」将进入英文指南；欢迎通过 [GitHub](https://github.com/zce/velite) 提交中文翻译的 PR。
+
+:::
+
 <style>
 :root {
   --vp-home-hero-name-color: transparent;

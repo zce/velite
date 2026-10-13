@@ -9,7 +9,7 @@ import type { Collected, Emitted } from './types'
 
 const ownerKey = (collection: string, owner: string): string => JSON.stringify([collection, owner])
 
-const uniqueCandidates = (config: ResolvedConfig, effects: readonly Effect[], collectionByOwner: ReadonlyMap<string, string>) => {
+const uniqueCandidates = (config: ResolvedConfig, effects: readonly Effect[]): { diagnostics: Diagnostic[]; invalid: Set<string> } => {
   const buckets = new Map<string, { value: string; group: string; owners: Map<string, Effect> }>()
   for (const effect of effects) {
     if (effect.type !== 'unique') continue
@@ -19,8 +19,7 @@ const uniqueCandidates = (config: ResolvedConfig, effects: readonly Effect[], co
       bucket = { group: effect.group, value: effect.value, owners: new Map() }
       buckets.set(key, bucket)
     }
-    const collection = effect.system?.collectionId ?? collectionByOwner.get(effect.owner) ?? ''
-    bucket.owners.set(ownerKey(collection, effect.owner), effect)
+    bucket.owners.set(ownerKey(effect.system.collectionId, effect.system.owner), effect)
   }
 
   const diagnostics: Diagnostic[] = []
@@ -29,18 +28,16 @@ const uniqueCandidates = (config: ResolvedConfig, effects: readonly Effect[], co
     if (bucket.owners.size <= 1) continue
     for (const [key, effect] of bucket.owners) {
       invalid.add(key)
-      const owner = effect.owner
-      const collection = effect.system?.collectionId ?? collectionByOwner.get(owner) ?? ''
+      const collection = effect.system.collectionId
       const collectionOrder = config.collections.findIndex(c => c.name === collection)
-      const sourcePath = effect.system?.sourcePath ?? owner.split('#')[0]
       diagnostics.push(
         diagnostic('error', 'SCHEMA_INVALID', `duplicate unique value "${bucket.value}" in group "${bucket.group}"`, {
           stage: 'schema',
           provenance: {
             scope: 'record',
             collection: { order: collectionOrder, id: collection },
-            source: { path: sourcePath },
-            record: { index: effect.system?.recordIndex ?? 0, id: owner }
+            source: { path: effect.system.sourcePath },
+            record: { index: effect.system.recordIndex, id: effect.system.owner }
           }
         })
       )
@@ -63,15 +60,13 @@ export const createEmitDerivation = (config: ResolvedConfig, collect: Derivation
     const collections: Record<string, CollectionResult> = {}
     const diagnostics: Diagnostic[] = []
     const effects: Effect[] = []
-    const collectionByOwner = new Map<string, string>()
     for (const col of config.collections) {
       const collected = await context.get(collect, col.name)
       collections[col.name] = collected.result
-      for (const entry of collected.result.entries) collectionByOwner.set(entry.id, col.name)
       diagnostics.push(...collected.diagnostics)
       effects.push(...collected.effects)
     }
-    const checked = uniqueCandidates(config, effects, collectionByOwner)
+    const checked = uniqueCandidates(config, effects)
     diagnostics.push(...checked.diagnostics)
     for (const [name, collection] of Object.entries(collections)) {
       const entries = collection.entries.filter(entry => !checked.invalid.has(ownerKey(name, entry.id)))
@@ -98,7 +93,7 @@ export const createEmitDerivation = (config: ResolvedConfig, collect: Derivation
     }
     return {
       output: { collections },
-      effects: effects.filter(effect => !checked.invalid.has(ownerKey(effect.system?.collectionId ?? collectionByOwner.get(effect.owner) ?? '', effect.owner))),
+      effects: effects.filter(effect => !checked.invalid.has(ownerKey(effect.system.collectionId, effect.system.owner))),
       diagnostics
     }
   }

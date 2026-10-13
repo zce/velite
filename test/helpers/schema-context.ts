@@ -4,10 +4,10 @@ import { createContentFile, createSessionStore } from '../../src/core/schema/con
 import { schemaContextHost } from '../../src/core/schema/host'
 import { testSchemaRunner } from './runtime'
 
-import type { AssetResult, BlurOptions } from '../../src/core/pipeline/asset'
+import type { AssetResult, BlurOptions } from '../../src/core/assets'
 import type { ContentRequest } from '../../src/core/schema/capability'
 import type { AssetRequest, ContentFile, ContentRecord, ImageMetadata, ProjectInfo, SchemaContext, SessionStore } from '../../src/core/schema/context'
-import type { Effect, EffectDeclarationContext, SchemaEffectDeclaration } from '../../src/core/schema/effects'
+import type { EffectDeclarationContext, SchemaEffectDeclaration } from '../../src/core/schema/effects'
 import type { SchemaRunInput, SchemaRunner } from '../../src/core/schema/runner'
 
 let testRunner: SchemaRunner | undefined
@@ -21,7 +21,7 @@ export interface RunWithContextInput {
   readonly file: ContentFile
   readonly record: ContentRecord
   readonly store?: SessionStore
-  readonly collectEffect: (effect: Effect | SchemaEffectDeclaration, context?: EffectDeclarationContext) => void
+  readonly collectEffect: (declaration: SchemaEffectDeclaration, context: EffectDeclarationContext) => void
   readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
   readonly readFile: (absPath: string) => Promise<Uint8Array>
   readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
@@ -37,10 +37,7 @@ export const runWithContext = async <R>(input: RunWithContextInput, run: () => R
     record: input.record,
     collection: { order: 0, id: 'test' },
     collectEffects(declarations) {
-      for (const declaration of declarations) {
-        if (declaration.length === 1) input.collectEffect(declaration[0])
-        else input.collectEffect(declaration[0], declaration[1])
-      }
+      for (const [declaration, context] of declarations) input.collectEffect(declaration, context)
     }
   })
   const runInput: SchemaRunInput = {

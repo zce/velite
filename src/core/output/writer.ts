@@ -12,7 +12,7 @@
 import { hash } from '../util/hash'
 import { join, relative } from '../util/path'
 import { collectionDataPath, recordFilePath } from './layout'
-import { planSplitOutput, planWrites } from './plan'
+import { planSplitOutput, planWrites, stringify } from './plan'
 
 import type { FileSystem } from '../../runtime/fs'
 import type { CollectionMeta } from './declaration'
@@ -76,8 +76,6 @@ interface WriteResult {
 }
 
 const EMPTY_PREVIOUS: DataManifest = { files: {} }
-
-const stringify = (data: unknown, pretty: boolean): string => JSON.stringify(data, null, pretty ? 2 : undefined)
 
 /**
  * Commit a planned write: hash, skip if unchanged in `previous`, otherwise

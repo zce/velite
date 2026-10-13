@@ -30,3 +30,6 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Build docs
+        run: pnpm docs:build

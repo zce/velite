@@ -15,6 +15,8 @@
 // StableOccurrence, not accepted by custom collectEffect, not exported, and
 // not treated as a custom selected-input claim.
 
+import type { BlurOptions } from '../assets'
+
 /** A stable occurrence kind for a custom effect declaration. */
 export type StableOccurrence =
   | { readonly kind: 'singleton' }
@@ -41,6 +43,7 @@ export interface UniqueEffectDeclaration {
 /** An asset reference effect produced by `s.file()`/`s.image()`. */
 export interface AssetReferenceEffectDeclaration {
   readonly type: 'asset'
+  /** Absolute source path of the referenced asset. */
   readonly source: string
   readonly output: {
     readonly base: string
@@ -56,6 +59,13 @@ export interface AssetReferenceEffectDeclaration {
 
 /** A custom effect declaration accepted by `SchemaContext.collectEffect`. */
 export type SchemaEffectDeclaration = UniqueEffectDeclaration | AssetReferenceEffectDeclaration
+
+/**
+ * Declaration context used by the built-in schemas (`s.unique` / `s.file` /
+ * `s.image`): they have no field-path knowledge of their own, and their
+ * payloads (`(group, value)` / source paths) disambiguate records.
+ */
+export const builtinDeclarationContext: EffectDeclarationContext = { path: [], declaration: 0, occurrence: { kind: 'singleton' } }
 
 // --- Internal committed effect representation (not public surface) ----------
 //
@@ -97,24 +107,24 @@ export interface EffectRequestProvenance {
 /** A committed unique effect. */
 export interface UniqueEffect {
   readonly type: 'unique'
-  /** @deprecated use system.owner — retained during Phase 1-3 migration. */
-  readonly owner: string
   readonly group: string
   readonly value: string
-  readonly system?: EffectSystemOwner
+  readonly system: EffectSystemOwner
   readonly request?: EffectRequestProvenance
 }
 
 /** A committed asset reference effect. */
 export interface AssetReferenceEffect {
   readonly type: 'asset'
-  /** @deprecated use system.owner — retained during Phase 1-3 migration. */
-  readonly owner: string
-  readonly assetPath: string
-  readonly publicUrl: string
-  readonly resolved: boolean
-  readonly isImage: boolean
-  readonly system?: EffectSystemOwner
+  /** Content-root-relative POSIX identity of the referenced asset. */
+  readonly assetKey: string
+  /** Output name template the reference was declared with. */
+  readonly template: string
+  /** Whether image metadata (probe + blur) was requested. */
+  readonly metadata: boolean
+  /** Blur options the reference was declared with (image assets only). */
+  readonly blur?: BlurOptions
+  readonly system: EffectSystemOwner
   readonly request?: EffectRequestProvenance
 }
 

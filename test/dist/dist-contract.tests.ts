@@ -1,13 +1,16 @@
 // Contract test against the BUILT package entry (dist/index.mjs), not src/.
-// Validates that bundling (tsdown), export maps, externalisation, and shebang
-// injection produce a usable runtime entry — the src-only `api-contract` test
-// cannot catch those.
+// Lives in `test/dist/` — the directory of suites that exercise the built
+// artifact directly (this file, plus the two bench suites whose scripts import
+// `../dist/index.mjs`). Validates that bundling (tsdown), export maps,
+// externalisation, and shebang injection produce a usable runtime entry — the
+// src-only `api-contract` test cannot catch those.
 //
 // This test FAILS LOUDLY when `dist/index.mjs` is absent. The `pnpm test`
 // script always runs `pnpm build` first, so the release-critical published
-// surface cannot pass review silently. The companion `pnpm test:src` script
-// excludes this file (and `test/integration/`) from its run, since they need
-// dist/ on disk and aren't part of the inner-loop unit suite.
+// surface cannot pass review silently. Note that "needs dist" is broader than
+// this directory: config fixtures self-reference `velite` through the jiti
+// alias (`velite → dist/index.mjs`), so most suites under `test/core/` and
+// `test/runtime/` also require a build — there is no src-only test command.
 import { deepEqual, equal, ok } from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
@@ -15,8 +18,8 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-const distEntry = fileURLToPath(new URL('../dist/index.mjs', import.meta.url))
-const repoRoot = fileURLToPath(new URL('..', import.meta.url))
+const distEntry = fileURLToPath(new URL('../../dist/index.mjs', import.meta.url))
+const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
 
 test('dist: package entry is built and exports the public surface', async () => {
   ok(existsSync(distEntry), `dist/index.mjs not found — run \`pnpm build\` before this suite (or use \`pnpm test:src\` for src-only)`)
@@ -40,7 +43,7 @@ test('dist: package entry is built and exports the public surface', async () => 
   equal(velite.original, undefined, 'dist must not export original')
   equal(s.markdown, undefined)
   equal(s.mdx, undefined)
-  const content = velite.content as (typeof import('../src/index'))['content']
+  const content = velite.content as (typeof import('../../src/index'))['content']
   deepEqual(Reflect.ownKeys(content).sort(), ['markdown', 'mdx'])
   for (const definition of [content.markdown(), content.mdx()]) {
     equal((definition as unknown as Record<string, unknown>).safeParseAsync, undefined, 'a definition is not a Zod schema')

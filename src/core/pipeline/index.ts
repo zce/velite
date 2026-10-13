@@ -7,6 +7,7 @@ import { createLoadDerivation } from './load'
 import { createValidateDerivation } from './validate'
 
 import type { FileSystem, ImageProcessor } from '../../runtime'
+import type { AssetKey, AssetResult } from '../assets'
 import type { ResolvedConfig } from '../config'
 import type { ContentExecutionsFactory } from '../content/execution/record'
 import type { Derivation } from '../engine'
@@ -14,7 +15,6 @@ import type { LoaderRegistry } from '../loader'
 import type { Source } from '../model'
 import type { SchemaRunner } from '../schema/runner'
 import type { Matcher } from '../util/glob'
-import type { AssetKey, AssetResult } from './asset'
 import type { Collected, Emitted, Loaded, Validated, ValidateKey } from './types'
 
 export interface Pipeline {
@@ -57,7 +57,6 @@ export const createPipeline = ({ config, loaders, fs, image, schemaRunner, conte
 }
 
 export { TREE, fileInput } from './inputs'
-export { assetInput, assetKeyOf, publicUrlOf } from './asset'
 export { buildProjectInfo } from './validate'
 export type { TreeFile } from './inputs'
-export type { AssetKey, AssetResult, BlurOptions } from './asset'
+export type { AssetKey, AssetResult, BlurOptions } from '../assets'

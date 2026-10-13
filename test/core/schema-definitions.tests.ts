@@ -9,7 +9,7 @@ import { context } from '../../src/core/schema/context'
 import { s } from '../../src/core/schema/s'
 import { runWithContext } from '../helpers/schema-context'
 
-import type { AssetResult } from '../../src/core/pipeline/asset'
+import type { AssetResult } from '../../src/core/assets'
 import type { ContentFile, ProjectInfo } from '../../src/core/schema/context'
 import type { Schema } from '../../src/core/schema/s'
 

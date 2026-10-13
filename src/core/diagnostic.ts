@@ -9,6 +9,10 @@
 // insertion order, Promise order, object identity, host taxonomy, or dedicated
 // Proxy-detection capability participates.
 
+import { compareStrings } from './util/compare'
+
+import type { StableOccurrence } from './schema/effects'
+
 export type DiagnosticLevel = 'error' | 'warn' | 'info'
 
 /** Pipeline stage that produced a diagnostic. Order is the canonical stage rank. */
@@ -44,7 +48,7 @@ export interface DiagnosticRequestProvenance {
   /** Projection name, when applicable. */
   readonly projection?: string
   /** Stable occurrence, when applicable. */
-  readonly occurrence?: import('./schema/effects').StableOccurrence
+  readonly occurrence?: StableOccurrence
 }
 
 export type DiagnosticProvenance =
@@ -257,7 +261,7 @@ export const normalizeDiagnosticValue = (input: unknown, ancestors: ReadonlySet<
         if (descriptor === undefined || 'get' in descriptor || 'set' in descriptor) continue
         entries.push([key, normalizeDiagnosticValue(descriptor.value, nextAncestors)])
       }
-      entries.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+      entries.sort((a, b) => compareStrings(a[0], b[0]))
       return freeze({ type: 'record', entries })
     }
     return { type: 'opaque' }
@@ -297,8 +301,6 @@ const rank = (v: DiagnosticValue): number => {
 }
 
 const compareNumbers = (a: number, b: number): number => a - b || 0
-
-const compareStrings = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 
 /** Compare two normalized DiagnosticValues for canonical ordering. */
 export const compareDiagnosticValue = (a: DiagnosticValue, b: DiagnosticValue): number => {
@@ -394,7 +396,7 @@ export const equalDiagnosticValue = (a: DiagnosticValue, b: DiagnosticValue): bo
 const stageRank = (s: DiagnosticStage): number => ['config', 'discover', 'load', 'schema', 'asset', 'prepare', 'output', 'watch'].indexOf(s)
 const levelRank = (l: DiagnosticLevel): number => ['error', 'warn', 'info'].indexOf(l)
 const originRank = (o: DiagnosticOrigin): number => (o.kind === 'core' ? 0 : o.kind === 'prepare-hook' ? 1 : 2)
-const occurrenceRank = (o: import('./schema/effects').StableOccurrence | undefined): number => {
+const occurrenceRank = (o: StableOccurrence | undefined): number => {
   if (o === undefined) return -1
   if (o.kind === 'singleton') return 0
   if (o.kind === 'source-index') return 1

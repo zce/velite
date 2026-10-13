@@ -5,12 +5,13 @@
 import { equal, match, ok } from 'node:assert/strict'
 import { mock, test } from 'node:test'
 
+import { assetInput, publicUrlOf } from '../../src/core/assets'
 import { createEngine } from '../../src/core/engine'
-import { assetInput, createAssetDerivation, publicUrlOf } from '../../src/core/pipeline/asset'
+import { createAssetDerivation } from '../../src/core/pipeline/asset'
 
+import type { AssetResult } from '../../src/core/assets'
 import type { ResolvedConfig } from '../../src/core/config'
 import type { Derivation } from '../../src/core/engine'
-import type { AssetResult } from '../../src/core/pipeline/asset'
 import type { ImageProcessor } from '../../src/runtime'
 
 const config: ResolvedConfig = {
@@ -172,8 +173,8 @@ test('asset derivation: placeholder dependency is tracked — setting the input 
 })
 
 test('publicUrlOf: placeholder url has no hash; real url is content-hashed', () => {
-  equal(publicUrlOf('a/b.png', DEF_TEMPLATE, undefined, config), '/static/b-.png')
-  const url = publicUrlOf('a/b.png', DEF_TEMPLATE, bytes(4), config)
+  equal(publicUrlOf('a/b.png', DEF_TEMPLATE, undefined, config.output.base), '/static/b-.png')
+  const url = publicUrlOf('a/b.png', DEF_TEMPLATE, bytes(4), config.output.base)
   match(url, /^\/static\/b-[0-9a-f]{8}\.png$/)
 })
 

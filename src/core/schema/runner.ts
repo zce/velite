@@ -14,7 +14,7 @@ import { installSchemaContextHost, schemaContextHost } from './host'
 import type { PromiseObserver } from '../../runtime/promise-observer'
 import type { ContentRequest, RecordContentCapability } from './capability'
 import type { SchemaContext } from './context'
-import type { Effect, EffectDeclarationContext, SchemaEffectDeclaration } from './effects'
+import type { EffectDeclarationContext, SchemaEffectDeclaration } from './effects'
 import type { SchemaContextHost } from './host'
 import type { SchemaRunContext } from './run'
 
@@ -82,12 +82,11 @@ export const createSchemaRunner = ({ host, promiseObserver }: SchemaRunnerDeps):
           return input.contentOperation(request)
         }
       }
-      const collectEffect: SchemaContext['collectEffect'] = (...args: [Effect] | [SchemaEffectDeclaration, EffectDeclarationContext]): void => {
+      const collectEffect: SchemaContext['collectEffect'] = (declaration, context): void => {
         if (!lease.active) {
           fail('internal', 'Schema run lease is inactive — captured collectEffect used after settlement')
         }
-        if (args.length === 1) input.collectEffect(args[0])
-        else input.collectEffect(args[0], args[1])
+        input.collectEffect(declaration, context)
       }
       const publicContext = createPublicSchemaContext({ ...input, collectEffect })
       const carrier: SchemaRunContext = { publicContext, content: leasedCapability, lease }

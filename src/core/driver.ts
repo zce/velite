@@ -1,14 +1,17 @@
-import { classifyEvent } from './classify'
+import { assetInput, assetKeyOf } from './assets'
+import { createEventClassifier } from './classify'
 import { codeFromDiagnostics, diagnostic, equalDiagnosticValue, hasFatalDiagnostic, normalizeDiagnosticValue, VeliteError } from './diagnostic'
 import { loadManifest, MANIFEST_FILENAME, saveManifest } from './output/manifest'
 import { writeOutput } from './output/writer'
-import { assetInput, assetKeyOf, buildProjectInfo, fileInput, TREE } from './pipeline'
+import { buildProjectInfo, fileInput, TREE } from './pipeline'
+import { compareStrings } from './util/compare'
 import { join, relative } from './util/path'
 import { createPool } from './util/pool'
 
 import type { FileSystem } from '../runtime/fs'
 import type { Logger } from '../runtime/logger'
 import type { FileEvent } from '../runtime/watcher'
+import type { AssetKey } from './assets'
 import type { PrepareCollections, PrepareContext, PrepareDiagnosticInput, ResolvedConfig } from './config'
 import type { Diagnostic, DiagnosticLevel, DiagnosticValue } from './diagnostic'
 import type { Engine } from './engine'
@@ -17,6 +20,7 @@ import type { DataManifest, OutputManifest } from './output/manifest'
 import type { EntryJsonCache } from './output/writer'
 import type { Pipeline, TreeFile } from './pipeline'
 import type { Emitted } from './pipeline/types'
+import type { AssetReferenceEffect } from './schema/effects'
 
 /**
  * Runtime capabilities the driver actually touches at build time. Stated
@@ -75,7 +79,7 @@ export interface RunContextDeps {
   cwd: string
 }
 
-const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => compareStrings(a.path, b.path))
 
 // --- Prepare diagnostic sink ------------------------------------------------
 //
@@ -403,9 +407,9 @@ const tryPatchEmitted = async (context: RunContext): Promise<Emitted | undefined
       const removedOwners = new Set<string>(current.entries.filter(entry => entry.source === path).map(entry => entry.id))
       const entries = current.entries.filter(entry => entry.source !== path)
       entries.push(...validated.entries)
-      entries.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      entries.sort((a, b) => compareStrings(a.id, b.id))
       collections[collectionName] = { ...current, entries }
-      effects = effects.filter(effect => (effect.system !== undefined && effect.system.collectionId !== collectionName) || !removedOwners.has(effect.owner))
+      effects = effects.filter(effect => effect.system.collectionId !== collectionName || !removedOwners.has(effect.system.owner))
       effects.push(...validated.effects)
       patchedCollections.add(collectionName)
     }
@@ -415,147 +419,188 @@ const tryPatchEmitted = async (context: RunContext): Promise<Emitted | undefined
   return { output: { collections }, effects, diagnostics }
 }
 
-const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', patched?: Emitted): Promise<BuildResult> => {
-  const { engine, pipeline, config, runtime } = context
+/** Mutable asset-read state shared by the resolve and copy phases of one run. */
+interface AssetReadSession {
+  /** Bytes read so far, by assetKey — reused by the copy phase's writes. */
+  readonly bytes: Map<string, Uint8Array>
+  /** ASSET_FAILED read diagnostics, in read order. */
+  readonly diagnostics: Diagnostic[]
+}
 
-  // Pass 1: discover asset references via the schema parse.
-  let emitted = patched ?? (await engine.get(pipeline.emit, null))
-  for (const [name, collection] of Object.entries(emitted.output.collections)) {
-    runtime.logger.debug(`resolved ${collection.entries.length} ${name}`)
+/** The asset derivation demand an asset effect represents — the exact key the declaring schema used. */
+const demandOf = (effect: AssetReferenceEffect): AssetKey => ({
+  assetKey: effect.assetKey,
+  template: effect.template,
+  ...(effect.blur !== undefined ? { blur: effect.blur } : {}),
+  ...(effect.metadata ? { metadata: true } : {})
+})
+
+/** Read asset bytes into `session`, recording one ASSET_FAILED diagnostic per unreadable path. */
+const readAssetBytes = async (
+  context: RunContext,
+  session: AssetReadSession,
+  assetKey: string,
+  assetPath: string,
+  feed?: (bytes: Uint8Array) => void
+): Promise<void> => {
+  try {
+    const bytes = await context.runtime.fs.read(assetPath)
+    session.bytes.set(assetKey, bytes)
+    feed?.(bytes)
+  } catch (err) {
+    session.diagnostics.push(
+      diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${assetPath}`, {
+        stage: 'asset',
+        provenance: { scope: 'source', source: { path: relative(context.config.root, assetPath) } },
+        cause: err
+      })
+    )
   }
+}
 
-  // Collect unresolved asset references (by assetKey) and feed their bytes.
-  // Resolved assets already have a stable content-hashed URL from the asset
-  // derivation's lazy read path; only placeholders need the second pass.
-  const assetBytes = new Map<string, Uint8Array>()
-  const assetReadDiagnostics: Diagnostic[] = []
-  const assetRefs = new Map<string, string>()
-  let hasUnresolvedAssets = false
+/**
+ * Resolve every distinct asset demand through the asset derivation. For
+ * `s.file` / `s.image` references this is a memo hit on the schema's own
+ * demand; declared-only references trigger the derivation's lazy read here.
+ * An unresolved result means the bytes input is unset — the driver reads the
+ * file and feeds the input so pass 2 can re-emit against real bytes.
+ */
+const resolveAssets = async (context: RunContext, emitted: Emitted): Promise<{ emitted: Emitted; session: AssetReadSession }> => {
+  const { engine, pipeline, config } = context
+  const session: AssetReadSession = { bytes: new Map(), diagnostics: [] }
+  const demanded = new Map<string, AssetKey>()
   for (const effect of emitted.effects) {
     if (effect.type !== 'asset') continue
-    if (!effect.resolved) hasUnresolvedAssets = true
-    const assetKey = assetKeyOf(effect.assetPath, config.root)
-    if (effect.resolved) continue
-    if (assetRefs.has(assetKey)) continue
-    assetRefs.set(assetKey, effect.assetPath)
+    const demand = demandOf(effect)
+    demanded.set(JSON.stringify(demand), demand)
   }
-  // Read asset bytes into `assetBytes`, recording one ASSET_FAILED diagnostic
-  // per unreadable path. `feed` lets the pass-1 caller also set the engine input.
-  const readAssetBytes = async (assetKey: string, assetPath: string, feed?: (bytes: Uint8Array) => void): Promise<void> => {
-    try {
-      const bytes = await runtime.fs.read(assetPath)
-      assetBytes.set(assetKey, bytes)
-      feed?.(bytes)
-    } catch (err) {
-      assetReadDiagnostics.push(
-        diagnostic('error', 'ASSET_FAILED', `failed to read asset: ${assetPath}`, {
-          stage: 'asset',
-          provenance: { scope: 'source', source: { path: relative(config.root, assetPath) } },
-          cause: err
-        })
-      )
-    }
-  }
-  await Promise.all(Array.from(assetRefs, ([assetKey, assetPath]) => readAssetBytes(assetKey, assetPath, bytes => engine.set(assetInput(assetKey), bytes))))
-  // Pass 2: re-emit with real asset data (only when at least one asset was fed;
-  // if every read failed, pass 2 would reproduce placeholders and the fatal
-  // diagnostics below discard the output anyway).
-  if (hasUnresolvedAssets && assetBytes.size > 0) {
-    emitted = await engine.get(pipeline.emit, null)
-  }
+  const unresolved = new Set<string>()
+  await Promise.all(
+    Array.from(demanded.values(), async demand => {
+      const result = await engine.get(pipeline.asset, demand)
+      if (!result.resolved) unresolved.add(demand.assetKey)
+    })
+  )
+  await Promise.all(
+    Array.from(unresolved, assetKey =>
+      readAssetBytes(context, session, assetKey, join(config.root, assetKey), bytes => engine.set(assetInput(assetKey), bytes))
+    )
+  )
+  // Pass 2: re-emit with real asset data (only when at least one asset was
+  // fed; if every read failed, pass 2 would reproduce placeholders and the
+  // fatal gate in emitAndWrite discards the output anyway).
+  return { emitted: session.bytes.size > 0 ? await engine.get(pipeline.emit, null) : emitted, session }
+}
 
-  // Diagnostics known before the prepare hook: schema/unique (from emit) + asset
-  // read failures. Asset *write* failures happen during the copy below.
-  const preparedAssetReadDiagnosticCount = assetReadDiagnostics.length
-  let diagnostics = [...emitted.diagnostics, ...assetReadDiagnostics]
-
-  // Apply the user-facing `prepare` hook between emit and any writes. The hook
-  // sees a friendly `{ collections, diagnostics }` view (name → data array, or
-  // single object) and may mutate in place (void), replace (new collections),
-  // or suppress output (`false`). A `false` return means the caller takes over
-  // output: velite writes nothing new AND reconciles its own previous output
-  // (data + assets) to empty, so a prior successful build's files cannot be
-  // served as current. Only velite-tracked files (the manifests) are removed;
-  // caller-written files are left untouched.
-  //
-  // The sole prepare diagnostic channel is `addDiagnostic`. The legacy
-  // `{ collections, diagnostics? }` return shape is removed; `prepare(false)`
-  // records output suppression only and bypasses no fatal/strict/staging/
-  // publication gate — fatal prepare diagnostics still surface in the returned
-  // BuildResult.
-  let output: LogicalOutput = emitted.output
-  if (config.prepare !== undefined) {
-    const sink = createPrepareSink()
-    const prepareContext: PrepareContext = {
-      project: buildProjectInfo(config),
-      diagnostics,
-      addDiagnostic: sink.addDiagnostic
-    }
-    const view = buildPrepareCollections(output)
-    let prepared: void | false | { readonly collections: PrepareCollections }
-    try {
-      prepared = await config.prepare(view, prepareContext)
-    } finally {
-      // Close the sink synchronously at hook settlement. Any later call to
-      // addDiagnostic throws VeliteError('internal') and appends nothing.
-      sink.close()
-    }
-    // Merge the sink's diagnostics into the build's diagnostics. The sink
-    // is the sole prepare diagnostic channel; the return value no longer
-    // carries `diagnostics`.
-    diagnostics = [...diagnostics, ...sink.diagnostics]
-    if (prepared === false) {
-      runtime.logger.warn(`prevent output by 'prepare' callback`)
-      await reconcileDataToEmpty(context)
-      await reconcileAssetsTo(context, new Set())
-      await persistManifest(context)
-      runtime.logger.report(diagnostics)
-      // `prepare(false)` suppresses output only; it bypasses no fatal gate.
-      // If the prepare hook (or earlier stages) produced a fatal diagnostic,
-      // the build still fails with the appropriate VeliteError code, matching
-      // the normal runBuild path.
-      if (hasFatalDiagnostic(diagnostics)) {
-        throw new VeliteError(codeFromDiagnostics(diagnostics), { diagnostics })
-      }
-      return { output, diagnostics, written: [] }
-    }
-    if (prepared !== undefined) {
-      output = rebuildOutput(output, prepared.collections)
-    } else {
-      output = rebuildOutput(output, view)
-    }
+/**
+ * Apply the user-facing `prepare` hook between emit and any writes. The hook
+ * sees a friendly `{ collections, diagnostics }` view (name → data array, or
+ * single object) and may mutate in place (void), replace (new collections),
+ * or suppress output (`false`). A `false` return means the caller takes over
+ * output: velite writes nothing new AND reconciles its own previous output
+ * (data + assets) to empty, so a prior successful build's files cannot be
+ * served as current. Only velite-tracked files (the manifests) are removed;
+ * caller-written files are left untouched.
+ *
+ * The sole prepare diagnostic channel is `addDiagnostic`. The legacy
+ * `{ collections, diagnostics? }` return shape is removed; `prepare(false)`
+ * records output suppression only and bypasses no fatal/strict/staging/
+ * publication gate — fatal prepare diagnostics still surface in the returned
+ * BuildResult.
+ */
+const runPrepareHook = async (
+  context: RunContext,
+  output: LogicalOutput,
+  diagnostics: Diagnostic[]
+): Promise<{ suppressed: true; result: BuildResult } | { suppressed: false; output: LogicalOutput; diagnostics: Diagnostic[] }> => {
+  const { config, runtime } = context
+  if (config.prepare === undefined) return { suppressed: false, output, diagnostics }
+  const sink = createPrepareSink()
+  const prepareContext: PrepareContext = {
+    project: buildProjectInfo(config),
+    diagnostics,
+    addDiagnostic: sink.addDiagnostic
   }
+  const view = buildPrepareCollections(output)
+  let prepared: void | false | { readonly collections: PrepareCollections }
+  try {
+    prepared = await config.prepare(view, prepareContext)
+  } finally {
+    // Close the sink synchronously at hook settlement. Any later call to
+    // addDiagnostic throws VeliteError('internal') and appends nothing.
+    sink.close()
+  }
+  // Merge the sink's diagnostics into the build's diagnostics. The sink
+  // is the sole prepare diagnostic channel; the return value no longer
+  // carries `diagnostics`.
+  const merged = [...diagnostics, ...sink.diagnostics]
+  if (prepared === false) {
+    runtime.logger.warn(`prevent output by 'prepare' callback`)
+    await reconcileDataToEmpty(context)
+    await reconcileAssetsTo(context, new Set())
+    await persistManifest(context)
+    runtime.logger.report(merged)
+    // `prepare(false)` suppresses output only; it bypasses no fatal gate.
+    // If the prepare hook (or earlier stages) produced a fatal diagnostic,
+    // the build still fails with the appropriate VeliteError code, matching
+    // the normal runBuild path.
+    if (hasFatalDiagnostic(merged)) {
+      throw new VeliteError(codeFromDiagnostics(merged), { diagnostics: merged })
+    }
+    return { suppressed: true, result: { output, diagnostics: merged, written: [] } }
+  }
+  // A void return means the hook mutated the view in place; a collections
+  // return replaces it. Either way the logical output is rebuilt from the
+  // resulting collections.
+  const collections = prepared !== undefined ? prepared.collections : view
+  return { suppressed: false, output: rebuildOutput(output, collections), diagnostics: merged }
+}
 
-  // Copy referenced asset files into the assets output directory. Done before
-  // the fatal gate so a write failure (full disk, permissions) surfaces as a
-  // structured ASSET_FAILED diagnostic instead of a raw fs error — matching the
-  // read-failure handling above. The final (content-hashed) public url is in
-  // pass 2's effects; the output name is the url with the base prefix stripped.
-  // Only assets successfully read are written.
+/**
+ * Copy referenced asset files into the assets output directory. Done before
+ * the fatal gate so a write failure (full disk, permissions) surfaces as a
+ * structured ASSET_FAILED diagnostic instead of a raw fs error — matching the
+ * read-failure handling in resolveAssets. The destination comes from
+ * re-demanding the asset derivation per distinct (assetKey, template) pair —
+ * a memo hit that yields the same content-hashed public url the schemas
+ * produced; the output name is the url with the base prefix stripped. Only
+ * assets successfully read are written.
+ */
+const copyAssets = async (
+  context: RunContext,
+  emitted: Emitted,
+  session: AssetReadSession
+): Promise<{ written: string[]; desiredAssets: Set<string>; writeDiagnostics: Diagnostic[] }> => {
+  const { engine, pipeline, config, runtime } = context
   const written: string[] = []
   const desiredAssets = new Set<string>()
-  const assetWriteDiagnostics: Diagnostic[] = []
-  const assetsToWrite: Array<{ assetKey: string; assetPath: string; dest: string }> = []
-  const assetWriteReads = new Map<string, string>()
+  const writeDiagnostics: Diagnostic[] = []
+  const assetsToWrite: Array<{ assetKey: string; dest: string }> = []
+  const assetWriteReads = new Set<string>()
+  const seenPairs = new Set<string>()
   for (const effect of emitted.effects) {
     if (effect.type !== 'asset') continue
-    const outputName = effect.publicUrl.slice(config.output.base.length)
+    const pair = `${effect.assetKey}\u0000${effect.template}`
+    if (seenPairs.has(pair)) continue
+    seenPairs.add(pair)
+    const result = await engine.get(pipeline.asset, demandOf(effect))
+    const outputName = result.publicUrl.slice(config.output.base.length)
     if (outputName.length === 0) continue
     const dest = join(config.output.assets, outputName)
     if (desiredAssets.has(dest)) continue
     desiredAssets.add(dest)
     if (context.assetManifest.has(dest)) continue
-    const assetKey = assetKeyOf(effect.assetPath, config.root)
-    assetsToWrite.push({ assetKey, assetPath: effect.assetPath, dest })
-    if (!assetWriteReads.has(assetKey)) assetWriteReads.set(assetKey, effect.assetPath)
+    assetsToWrite.push({ assetKey: effect.assetKey, dest })
+    assetWriteReads.add(effect.assetKey)
   }
 
-  await Promise.all(Array.from(assetWriteReads, ([assetKey, assetPath]) => (assetBytes.has(assetKey) ? undefined : readAssetBytes(assetKey, assetPath))))
-  diagnostics.push(...assetReadDiagnostics.slice(preparedAssetReadDiagnosticCount))
+  await Promise.all(
+    Array.from(assetWriteReads, assetKey => (session.bytes.has(assetKey) ? undefined : readAssetBytes(context, session, assetKey, join(config.root, assetKey))))
+  )
 
   const assetWrites: Promise<void>[] = []
-  for (const { assetKey, assetPath, dest } of assetsToWrite) {
-    const bytes = assetBytes.get(assetKey)
+  for (const { assetKey, dest } of assetsToWrite) {
+    const bytes = session.bytes.get(assetKey)
     if (bytes === undefined) continue
     assetWrites.push(
       runtime.fs.write(dest, bytes).then(
@@ -564,10 +609,10 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
         },
         err => {
           desiredAssets.delete(dest)
-          assetWriteDiagnostics.push(
+          writeDiagnostics.push(
             diagnostic('error', 'ASSET_FAILED', `failed to write asset: ${dest}`, {
               stage: 'asset',
-              provenance: { scope: 'source', source: { path: relative(config.root, assetPath) } },
+              provenance: { scope: 'source', source: { path: assetKey } },
               cause: err
             })
           )
@@ -576,8 +621,36 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
     )
   }
   await Promise.all(assetWrites)
+  return { written, desiredAssets, writeDiagnostics }
+}
 
-  const finalDiagnostics = [...diagnostics, ...assetWriteDiagnostics]
+/** Run the emit pipeline, apply the prepare hook, write data + assets, reconcile. */
+const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', patched?: Emitted): Promise<BuildResult> => {
+  const { engine, pipeline, runtime } = context
+
+  // Pass 1: discover asset references via the schema parse, then resolve the
+  // asset demands (feeding unresolved inputs re-emits as pass 2).
+  let emitted = patched ?? (await engine.get(pipeline.emit, null))
+  for (const [name, collection] of Object.entries(emitted.output.collections)) {
+    runtime.logger.debug(`resolved ${collection.entries.length} ${name}`)
+  }
+  const resolved = await resolveAssets(context, emitted)
+  emitted = resolved.emitted
+
+  // Diagnostics known before the prepare hook: schema/unique (from emit) +
+  // asset read failures. Asset *write* failures happen during the copy below.
+  const preparedAssetReadDiagnosticCount = resolved.session.diagnostics.length
+  let diagnostics = [...emitted.diagnostics, ...resolved.session.diagnostics]
+
+  const prepared = await runPrepareHook(context, emitted.output, diagnostics)
+  if (prepared.suppressed) return prepared.result
+  let output = prepared.output
+  diagnostics = prepared.diagnostics
+
+  const copied = await copyAssets(context, emitted, resolved.session)
+  diagnostics = [...diagnostics, ...resolved.session.diagnostics.slice(preparedAssetReadDiagnosticCount), ...copied.writeDiagnostics]
+
+  const finalDiagnostics = diagnostics
   runtime.logger.report(finalDiagnostics)
   // Fatal (non-schema) errors make the output untrustworthy: report and throw,
   // skipping the write. Schema-level errors are non-fatal and returned in the result.
@@ -592,11 +665,11 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
     output,
     {
       fs: runtime.fs,
-      dir: config.output.data,
+      dir: context.config.output.data,
       layout,
-      configPath: config.configPath,
-      collections: config.collections,
-      format: config.output.format,
+      configPath: context.config.configPath,
+      collections: context.config.collections,
+      format: context.config.output.format,
       pretty: layout === 'split',
       changedCollections: patched === undefined ? undefined : context.patchedCollections,
       changedSources: patched === undefined ? undefined : context.changedPaths,
@@ -607,14 +680,14 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
   context.manifest = manifest
   context.entryJsonCache = updatedCache
   rememberEmitted(context, { output, effects: emitted.effects, diagnostics: finalDiagnostics })
-  written.push(...dataWritten)
+  const written = [...copied.written, ...dataWritten]
   const dataFileCount = Object.keys(output.collections).length
   runtime.logger.debug(`output ${dataFileCount} data ${dataFileCount === 1 ? 'file' : 'files'}`)
   runtime.logger.debug(`wrote ${written.length} output ${written.length === 1 ? 'file' : 'files'}`)
 
   // Reconcile asset output after a successful commit: drop orphaned hashed
   // assets from the previous run, then record the current desired set.
-  await reconcileAssetsTo(context, desiredAssets)
+  await reconcileAssetsTo(context, copied.desiredAssets)
   await persistManifest(context)
 
   return { output, diagnostics: finalDiagnostics, written }
@@ -648,16 +721,16 @@ const applyChanges = async (context: RunContext, events: FileEvent[]): Promise<A
   let changedPaths: Set<string> | undefined = new Set()
   let treeChanged = false
 
-  const classifyOpts = {
+  const classify = createEventClassifier({
     configPath: config.configPath,
     configDependencies: config.configDependencies,
     contentRoot: config.root,
     outputDir: config.output.data,
     assetsDir: config.output.assets
-  }
+  })
 
   for (const event of events) {
-    const kind = classifyEvent(event, classifyOpts)
+    const kind = classify(event)
     if (kind === 'ignore') continue
     if (kind === 'config') {
       runtime.logger.info(`config changed: '${event.absPath}', reloading...`)

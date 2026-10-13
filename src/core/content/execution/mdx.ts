@@ -5,6 +5,7 @@ import { remarkCopyLinkedFiles } from '../asset-links'
 import { isMdxCommentExpression } from './mdx-comment'
 import { captureNavigation } from './navigation'
 import { createOwnedProcessor } from './processor'
+import { removeChildrenWhere } from './tree-filter'
 
 import type { Root as Hast } from 'hast'
 import type { PluggableList } from 'unified'
@@ -33,12 +34,8 @@ export const createMdxExecution = ({ options, path, cwd, text, processAsset }: M
       if (options.gfm) remarkPlugins.push(remarkGfm)
       if (options.removeComments)
         remarkPlugins.push(() => (tree: { type: string; children?: unknown[] }) => {
-          const remove = (node: { type?: string; value?: string; children?: unknown[] }): void => {
-            if (!node.children) return
-            node.children = node.children.filter(child => !isMdxCommentExpression(child as { type?: string; value?: string }))
-            for (const child of node.children) remove(child as { type?: string; value?: string; children?: unknown[] })
-          }
-          remove(tree)
+          // mdast: drop MDX expression nodes that are pure comments.
+          removeChildrenWhere(tree, child => isMdxCommentExpression(child as { type?: string; value?: string }))
         })
       remarkPlugins.push(...(options.remarkPlugins ?? []))
       if (processAsset) remarkPlugins.push([remarkCopyLinkedFiles, processAsset])

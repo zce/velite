@@ -19,11 +19,12 @@
 
 import { z } from 'zod'
 
-import { assetKeyOf } from '../pipeline/asset'
+import { assetKeyOf } from '../assets'
 import { dirname, join, stripQueryAndHash } from '../util/path'
 import { context } from './context'
+import { builtinDeclarationContext } from './effects'
 
-import type { BlurOptions } from '../pipeline/asset'
+import type { BlurOptions } from '../assets'
 
 /** Image object with metadata & blur placeholder. */
 export interface ImageData {
@@ -84,7 +85,7 @@ export const image = ({ absoluteRoot, blur, outputName }: ImageSchemaOptions = {
       const assetKey = assetKeyOf(absSourcePath, project.root)
       const template = outputName ?? project.output.name
       const result = await asset(assetKey, { template, blur, metadata: true })
-      collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, resolved: result.resolved, isImage: true })
+      collectEffect({ type: 'asset', source: absSourcePath, output: { base: project.output.base, template }, metadata: true, blur }, builtinDeclarationContext)
       return {
         src: result.publicUrl,
         width: result.width,

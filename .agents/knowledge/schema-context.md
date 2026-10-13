@@ -16,7 +16,7 @@ Zod's async transform callback signature `(value, ctx) => ...` forbids passing a
 | `file`          | `ContentFile`                              | Current source file: id, path, content (mdast/hast/plain removed; custom schemas own their parser)          |
 | `record`        | `ContentRecord`                            | Identity within a multi-record source: id, key, index                                                       |
 | `store`         | `SessionStore`                             | Session-scoped key/value store for advanced custom schemas (shared across rebuilds, reset on config reload) |
-| `collectEffect` | `(effect, context) => void`                | Declare a schema effect; new calls use the two-arg declaration surface                                      |
+| `collectEffect` | `(declaration, context) => void`           | Declare a schema effect — the single two-arg declaration surface (built-ins included)                       |
 | `asset`         | `(key, request?) => Promise<AssetResult>`  | Resolve an asset by content-root-relative POSIX path; memoized; returns publicUrl + optional image metadata |
 | `readFile`      | `(absPath) => Promise<Uint8Array>`         | Read asset bytes directly (used by `s.image({ absoluteRoot })`)                                             |
 | `probeImage`    | `(bytes, blur?) => Promise<ImageMetadata>` | Probe + blur image bytes directly, bypassing the asset pipeline                                             |

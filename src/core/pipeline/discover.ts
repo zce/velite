@@ -1,3 +1,4 @@
+import { compareStrings } from '../util/compare'
 import { TREE } from './inputs'
 
 import type { ResolvedConfig } from '../config'
@@ -19,6 +20,6 @@ export const createSourcesDerivation = (config: ResolvedConfig, matchers: Map<st
     return tree
       .filter(file => matcher(file.path))
       .map(file => ({ path: file.path, absPath: file.absPath, collection, stat: file.stat }))
-      .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+      .sort((a, b) => compareStrings(a.path, b.path))
   }
 })

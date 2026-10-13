@@ -82,12 +82,13 @@ The core library is runtime-agnostic; all I/O and platform APIs live behind port
 ## Testing
 
 ```bash
-pnpm test   # runs: node --import jiti/register --test test/**/*.tests.ts
+pnpm test   # runs: pnpm build && node --import jiti/register --test 'test/**/*.tests.ts'
 ```
 
 - Tests in `test/` use `node:test` + `node:assert`
-- Tests run against the **built** output (`dist/`), so `pnpm build` must run first
-- `test/integration/basic.tests.ts` builds the `examples/basic` fixture and checks generated output content
+- Tests run against the **built** output (`dist/`), so `pnpm build` must run first — config fixtures self-reference `velite` through the jiti alias (`velite → dist/index.mjs`), so even `test/core/` / `test/runtime/` suites need a build; there is no src-only test command
+- `test/dist/` holds the suites that exercise the built artifact directly (package contract + benches); `test/integration/` builds the `examples/*` fixtures end-to-end
+- `test/integration/basic.tests.ts` checks the generated output content of `examples/basic`
 - Tests clean up `.velite` output dirs after running
 
 ## Gotchas

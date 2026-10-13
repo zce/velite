@@ -9,9 +9,9 @@ import { createContentFile } from '../../src/core/schema/context'
 import { s } from '../../src/core/schema/s'
 import { runWithContext } from '../helpers/schema-context'
 
-import type { AssetResult } from '../../src/core/pipeline/asset'
+import type { AssetResult } from '../../src/core/assets'
 import type { ContentFile, ProjectInfo } from '../../src/core/schema/context'
-import type { UniqueEffect } from '../../src/core/schema/effects'
+import type { UniqueEffectDeclaration } from '../../src/core/schema/effects'
 import type { Schema } from '../../src/core/schema/s'
 
 const project: ProjectInfo = {
@@ -37,13 +37,13 @@ const stubReadFile = async (): Promise<Uint8Array> => new Uint8Array()
 const stubProbeImage = async () => ({ width: 0, height: 0, format: '', blurDataURL: '', blurWidth: 0, blurHeight: 0 })
 
 const parseWith = async (schema: Schema, input: unknown, recordId = 'posts/hello.md#') => {
-  const effects: UniqueEffect[] = []
+  const effects: UniqueEffectDeclaration[] = []
   const result = await runWithContext(
     {
       project,
       file: file(),
       record: { id: recordId, index: 0 },
-      collectEffect: e => effects.push(e as UniqueEffect),
+      collectEffect: declaration => effects.push(declaration as UniqueEffectDeclaration),
       asset: stubAsset,
       readFile: stubReadFile,
       probeImage: stubProbeImage
@@ -53,13 +53,12 @@ const parseWith = async (schema: Schema, input: unknown, recordId = 'posts/hello
   return { result, effects }
 }
 
-test('s.unique(): parses a string and registers a UniqueEffect owned by the current record', async () => {
+test('s.unique(): parses a string and registers a unique declaration', async () => {
   const { result, effects } = await parseWith(s.unique(), 'hello-world', 'posts/a.md#')
   assert.ok(result.success)
   assert.equal(result.data, 'hello-world')
   assert.equal(effects.length, 1)
   assert.equal(effects[0]!.type, 'unique')
-  assert.equal(effects[0]!.owner, 'posts/a.md#')
   assert.equal(effects[0]!.group, 'global')
   assert.equal(effects[0]!.value, 'hello-world')
 })
@@ -84,7 +83,6 @@ test('s.slug(): parses a valid slug and registers a UniqueEffect under slug:<gro
   assert.equal(effects[0]!.type, 'unique')
   assert.equal(effects[0]!.group, 'slug:global')
   assert.equal(effects[0]!.value, 'hello-world')
-  assert.equal(effects[0]!.owner, 'posts/a.md#')
 })
 
 test('s.slug(): accepts a custom group name (prefixed with slug:)', async () => {

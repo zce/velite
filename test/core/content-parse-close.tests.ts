@@ -15,8 +15,8 @@ import { s } from '../../src/core/schema/s'
 import { MemoryFileSystem } from '../helpers/memory-fs'
 import { noopImageProcessor, testSchemaRunner } from '../helpers/runtime'
 
+import type { AssetKey, AssetResult } from '../../src/core/assets'
 import type { Derivation } from '../../src/core/engine'
-import type { AssetKey, AssetResult } from '../../src/core/pipeline/asset'
 import type { Loaded } from '../../src/core/pipeline/types'
 import type { SchemaRunInput } from '../../src/core/schema/runner'
 

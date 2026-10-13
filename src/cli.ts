@@ -81,8 +81,9 @@ const runWatch = async (): Promise<void> => {
 const task = values.watch ? runWatch() : runBuild()
 
 task.catch(err => {
-  const message = err instanceof Error ? err.message : String(err)
-  console.error(message)
-  if (values.debug) throw err
+  // Debug mode prints the full stack (the Error's own rendering includes the
+  // message); otherwise keep the single-line summary and exit non-zero.
+  if (values.debug) console.error(err)
+  else console.error(err instanceof Error ? err.message : String(err))
   process.exit(1)
 })

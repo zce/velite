@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { context } from './context'
+import { builtinDeclarationContext } from './effects'
 
 import type { Schema } from './s'
 
@@ -15,8 +16,8 @@ import type { Schema } from './s'
  */
 export const unique = (group: string = 'global'): Schema<string> =>
   z.string().superRefine(value => {
-    const { collectEffect, record } = context()
-    collectEffect({ type: 'unique', owner: record.id, group, value })
+    const { collectEffect } = context()
+    collectEffect({ type: 'unique', group, value }, builtinDeclarationContext)
   })
 
 /**

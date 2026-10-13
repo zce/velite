@@ -212,12 +212,12 @@ interface SchemaContext {
   /** Builder/session-scoped store for advanced custom schemas. */
   readonly store: SessionStore
   /**
-   * Declare a schema effect. The two-arg form `(declaration, context)` is the
-   * API for custom schemas (see [SchemaEffectDeclaration](#schemeeffectdeclaration)).
-   * The single-arg legacy `Effect` shape is still accepted during the 1.0
-   * migration while built-ins move over — new code must use the two-arg form.
+   * Declare a schema effect — the two-arg form `(declaration, context)` is
+   * the API. Velite supplies the system owner/source provenance at commit
+   * time; the schema supplies the semantic payload and the declaration
+   * context (see [SchemaEffectDeclaration](#schemeeffectdeclaration)).
    */
-  readonly collectEffect: ((declaration: SchemaEffectDeclaration, context: EffectDeclarationContext) => void) & ((effect: Effect) => void)
+  readonly collectEffect: (declaration: SchemaEffectDeclaration, context: EffectDeclarationContext) => void
   /**
    * Resolve an asset by its key (content-root-relative POSIX source path,
    * i.e. relative to `context().project.root`). Returns the memoized
@@ -284,16 +284,19 @@ interface UniqueEffect {
   readonly type: 'unique'
   readonly group: string
   readonly value: string
-  readonly system?: EffectSystemOwner
+  readonly system: EffectSystemOwner
 }
 
 interface AssetReferenceEffect {
   readonly type: 'asset'
-  readonly assetPath: string
-  readonly publicUrl: string
-  readonly resolved: boolean
-  readonly isImage: boolean
-  readonly system?: EffectSystemOwner
+  /** Content-root-relative POSIX identity of the referenced asset. */
+  readonly assetKey: string
+  /** Output name template the reference was declared with. */
+  readonly template: string
+  /** Whether image metadata (probe + blur) was requested. */
+  readonly metadata: boolean
+  readonly blur?: { width?: number; height?: number; quality?: number }
+  readonly system: EffectSystemOwner
 }
 ```
 
@@ -301,7 +304,7 @@ Effects are how schemas declare cross-file intent without mutating shared state 
 
 ## SchemaEffectDeclaration
 
-The declaration a custom schema passes to `context().collectEffect(declaration, context)`:
+The declaration a schema passes to `context().collectEffect(declaration, context)`:
 
 ```ts
 type SchemaEffectDeclaration = UniqueEffectDeclaration | AssetReferenceEffectDeclaration
@@ -314,7 +317,7 @@ interface UniqueEffectDeclaration {
 
 interface AssetReferenceEffectDeclaration {
   readonly type: 'asset'
-  /** Content-root-relative POSIX source path of the referenced asset. */
+  /** Absolute source path of the referenced asset. */
   readonly source: string
   readonly output: {
     readonly base: string

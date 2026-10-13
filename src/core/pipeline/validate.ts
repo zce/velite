@@ -1,8 +1,10 @@
+import { assetKeyOf } from '../assets'
 import { diagnostic, fail } from '../diagnostic'
 import { createContentFile, createSessionStore, resolveBody } from '../schema/context'
 import { join } from '../util/path'
 
 import type { FileSystem, ImageProcessor } from '../../runtime'
+import type { AssetKey, AssetResult, BlurOptions } from '../assets'
 import type { ResolvedConfig } from '../config'
 import type { ContentDeclaration, ContentExecutionsFactory } from '../content/execution/record'
 import type { Derivation } from '../engine'
@@ -10,7 +12,6 @@ import type { Entry } from '../model'
 import type { AssetRequest, ImageMetadata, ProjectCollectionInfo, ProjectInfo, SchemaContext } from '../schema/context'
 import type { Effect, EffectSystemOwner } from '../schema/effects'
 import type { SchemaRunInput, SchemaRunner } from '../schema/runner'
-import type { AssetKey, AssetResult, BlurOptions } from './asset'
 import type { Loaded, Validated, ValidateKey } from './types'
 
 /** Build the read-only project snapshot exposed to schemas from the resolved config. */
@@ -120,22 +121,19 @@ export const createValidateDerivation = (
           recordId: raw.id
         }
         const normalizeEffect = (args: ContentDeclaration): Effect => {
-          if (args.length === 1) return { ...args[0], owner: raw.id, system: systemOwner }
           const [effect, ctx] = args
           const request = { kind: 'custom', declaration: ctx.declaration, projection: undefined, occurrence: ctx.occurrence }
           if (effect.type === 'unique') {
-            return { type: 'unique', owner: raw.id, group: effect.group, value: effect.value, system: systemOwner, request }
-          } else {
-            return {
-              type: 'asset',
-              owner: raw.id,
-              assetPath: effect.source,
-              publicUrl: '',
-              resolved: false,
-              isImage: effect.metadata,
-              system: systemOwner,
-              request
-            }
+            return { type: 'unique', group: effect.group, value: effect.value, system: systemOwner, request }
+          }
+          return {
+            type: 'asset',
+            assetKey: assetKeyOf(effect.source, config.root),
+            template: effect.output.template,
+            metadata: effect.metadata,
+            ...(effect.blur !== undefined ? { blur: effect.blur } : {}),
+            system: systemOwner,
+            request
           }
         }
         const collectEffects = (declarations: readonly ContentDeclaration[]): void => {

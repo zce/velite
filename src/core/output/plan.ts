@@ -24,7 +24,8 @@ export interface OutputWrite {
   readonly content: string
 }
 
-const stringify = (data: unknown, pretty: boolean): string => (pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data))
+/** JSON serialization for planned output content: pretty (2-space) or compact. */
+export const stringify = (data: unknown, pretty: boolean): string => JSON.stringify(data, null, pretty ? 2 : undefined)
 
 /**
  * Plan the dev split layout record writes for a single collection's entries.

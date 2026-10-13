@@ -52,7 +52,7 @@ test('content: recovered later failures retain only successful stage effects and
     t,
     `import { content, context, defineConfig, s } from 'velite'
 let transforms=0, emits=0
-const declare=(collect,source)=>collect({type:'asset',owner:context().record.id,assetPath:context().project.root+'/'+source,publicUrl:'/static/'+source,resolved:true,isImage:false})
+const declare=(collect,name)=>{const p=context().project;collect({type:'asset',source:p.root+'/'+name,output:{base:p.output.base,template:p.output.name},metadata:false},{path:[],declaration:0,occurrence:{kind:'singleton'}})}
 function failsTransform() { const collect=context().collectEffect; declare(collect,'parse.txt'); return (_tree,_file,next)=>{ transforms++; Promise.resolve().then(()=>{declare(collect,'failed-transform.txt');next(new Error('transform failure'))}) } }
 function failsEmit() { const collect=context().collectEffect, processor=this; return ()=>{ declare(collect,'transform.txt'); processor.compiler=()=>{ emits++;declare(collect,'failed-emit.txt');throw new Error('emit failure') } } }
 const transform=content.markdown({remarkPlugins:[failsTransform]}), emit=content.markdown({rehypePlugins:[failsEmit]})

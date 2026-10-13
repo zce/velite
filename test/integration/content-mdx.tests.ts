@@ -81,7 +81,7 @@ test('content: MDX recma and real minifier failures are retained, recovered, and
     t,
     `import { content, context, defineConfig, s } from 'velite'
 let recmas=0,emits=0
-const declare=(collect,name)=>collect({type:'asset',owner:context().record.id,assetPath:context().project.root+'/'+name,publicUrl:'/static/'+name,resolved:true,isImage:false})
+const declare=(collect,name)=>{const p=context().project;collect({type:'asset',source:p.root+'/'+name,output:{base:p.output.base,template:p.output.name},metadata:false},{path:[],declaration:0,occurrence:{kind:'singleton'}})}
 function failsRecma(){const collect=context().collectEffect;declare(collect,'parse.txt');return async ()=>{recmas++;await Promise.resolve();declare(collect,'failed-recma.txt');throw new Error('recma failure')}}
 function badCompiler(){const collect=context().collectEffect,processor=this;return ()=>{declare(collect,'transform.txt');processor.compiler=()=>{emits++;declare(collect,'failed-minify.txt');return 'return ('}}}
 const recma=content.mdx({recmaPlugins:[failsRecma]}),minify=content.mdx({recmaPlugins:[badCompiler]})

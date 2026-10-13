@@ -9,9 +9,10 @@
 
 import { z } from 'zod'
 
-import { assetKeyOf } from '../pipeline/asset'
+import { assetKeyOf } from '../assets'
 import { dirname, isRelativePath, join, stripQueryAndHash } from '../util/path'
 import { context } from './context'
+import { builtinDeclarationContext } from './effects'
 
 /** Options for the {@link file} schema. */
 export interface FileSchemaOptions {
@@ -43,7 +44,7 @@ export const file = ({ allowNonRelativePath = true, outputName }: FileSchemaOpti
       const assetKey = assetKeyOf(absSourcePath, project.root)
       const template = outputName ?? project.output.name
       const result = await asset(assetKey, { template })
-      collectEffect({ type: 'asset', owner: record.id, assetPath: absSourcePath, publicUrl: result.publicUrl, resolved: result.resolved, isImage: false })
+      collectEffect({ type: 'asset', source: absSourcePath, output: { base: project.output.base, template }, metadata: false }, builtinDeclarationContext)
       return result.publicUrl
     } catch (err) {
       addIssue({ fatal: true, code: 'custom', message: err instanceof Error ? err.message : String(err) })

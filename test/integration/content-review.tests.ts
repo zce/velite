@@ -59,12 +59,11 @@ test('content: a failed declaration normalization promotes none of that stage jo
       import { content, context, s } from 'velite'
       const doc = content.markdown({ remarkPlugins: [() => async (_tree, file) => {
         if (!String(file).includes('Candidate')) return
-        const { collectEffect, project, record, asset } = context()
+        const { collectEffect, project } = context()
         ${
           kind === 'unique'
             ? `collectEffect({ type: 'unique', group: 'atomic', value: 'shared' }, { path: ['html'], declaration: 0, occurrence: { kind: 'singleton' } })`
-            : `const linked = await asset('journal.txt', { metadata: false })
-        collectEffect({ type: 'asset', owner: record.id, assetPath: project.root + '/journal.txt', publicUrl: linked.publicUrl, resolved: linked.resolved, isImage: false })`
+            : `collectEffect({ type: 'asset', source: project.root + '/journal.txt', output: { base: project.output.base, template: project.output.name }, metadata: false }, { path: ['html'], declaration: 0, occurrence: { kind: 'singleton' } })`
         }
         collectEffect({ type: 'unique', group: 'atomic', get value() { throw new Error('normalization failed') } },
           { path: ['html'], declaration: 1, occurrence: { kind: 'singleton' } })

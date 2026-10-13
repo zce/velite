@@ -12,7 +12,7 @@ Velite — a tool that turns Markdown / MDX, YAML, JSON into a type-safe data la
 | Format code                 | `pnpm format`   |
 | Dev docs site               | `pnpm docs:dev` |
 
-**Required order for verification:** `pnpm build` → `pnpm test` (tests run against built `dist/`).
+**Verification:** `pnpm test` — it runs `pnpm build` first, then the suites against built `dist/`.
 
 ## Architecture
 
@@ -30,10 +30,11 @@ The core library is runtime-agnostic; all I/O and platform APIs live behind port
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `index.ts`               | Public API barrel + `build()`/`watch()`/`builder()` facades (wires default Node adapters via DI)                                                                  |
 | `cli.ts`                 | CLI entry (`velite build` / `velite dev`); delegates to the public facades                                                                                        |
+| `core/assets.ts`         | Shared asset identity + naming contract — the neutral seam between `s.file`/`s.image`, content execution, the driver, and `pipeline/asset.ts`                     |
 | `core/builder.ts`        | **Composition root** — `createBuilder(deps)` assembles config + loaders + pipeline + engine + driver into a `Builder`; owns watch state + mutex                   |
 | `core/config.ts`         | Config types, `defineConfig`/`defineCollection`, `resolveConfig` (jiti load, up to 3 parent dirs, defaults)                                                       |
 | `core/diagnostic.ts`     | `Diagnostic`, `VeliteError`, `fail()`, `hasFatalDiagnostic`, `codeFromDiagnostics`                                                                                |
-| `core/driver.ts`         | Build-time orchestration: `RunContext`, two-pass asset emit, `prepare` hook, incremental patching, `applyChanges` (watch)                                         |
+| `core/driver.ts`         | Build-time orchestration: `RunContext`, named phases `resolveAssets`/`runPrepareHook`/`copyAssets`, incremental patching, `applyChanges` (watch)                  |
 | `core/scheduler.ts`      | Debounced serial rebuild queue for watch mode                                                                                                                     |
 | `core/classify.ts`       | Route a `FileEvent` to `config` / `content` / `ignore`                                                                                                            |
 | `core/model.ts`          | Shared domain vocabulary: `Source`, `Collection`, `Entry`, `RawEntry`, `CollectionResult`                                                                         |
@@ -44,7 +45,7 @@ The core library is runtime-agnostic; all I/O and platform APIs live behind port
 | `core/output/`           | Output planning + writer: `LogicalOutput`, `planWrites` (single/split), `writeOutput` (hash + skip-unchanged + stale cleanup), `OutputManifest`, type declaration |
 | `core/pipeline/`         | Derivation graph (the core computation): `createPipeline` composing `sources`→`load`→`validate`→`collect`→`uniqueCheck`→`emit` + `asset` derivation               |
 | `core/schema/`           | Zod namespace `s`, separate `content` definitions/result schemas, eight-field `context()`, effects; `file`, `image`, `slug`, `path`, `raw`, `isoDate`, `unique`   |
-| `core/util/`             | Pure helpers (no `node:*`): posix `path`, FNV-1a `hash`, `glob` matcher, identity, bounded `pool`                                                                 |
+| `core/util/`             | Pure helpers (no `node:*`): posix `path`, FNV-1a `hash`, `glob` matcher, identity, string `compare`, bounded `pool`                                               |
 | `runtime/`               | Runtime ports: `FileSystem`, `ImageProcessor`, `Logger`, `ModuleLoader`, `Watcher`, `ContextStorage`; `createContext` ambient-value accessor                      |
 | `runtime/adapters/node/` | Node adapters: `node:fs`+tinyglobby, sharp (lazy), jiti modules, chokidar watcher, `AsyncLocalStorage` context — the only place `node:*`/native imports live      |
 
@@ -57,7 +58,6 @@ The core library is runtime-agnostic; all I/O and platform APIs live behind port
 - Default content root: `content/`, default output: `.velite/` (data) + `public/static/` (assets)
 - `defineConfig`, `defineCollection`, `defineLoader`, `defineSchema` are identity helpers for type inference only
 - The `prepare` hook can return `false` to suppress default file output
-- Tests use Node's built-in test runner (`node:test`) with `jiti/register` as the TS loader
 - Bundled with **tsdown** (rolldown/Rust), not tsup (esbuild)
 - Build-scoped mutable state lives on the driver's `RunContext` (`src/core/driver.ts`); `SessionStore` holds the per-build schema-context store. Independent builds are isolated by construction
 - Schema cross-file state uses the effects model (collect → validate → commit via `collectEffect`), not direct mutation

@@ -23,7 +23,7 @@ Everything else — specs, tickets, plans, notes, reports — belongs in `sessio
 ├── knowledge/                         ← stable, long-lived AI conventions (tracked)
 │   └── ...
 └── sessions/                          ← session workspaces (gitignored)
-    ├── .gitignore                     ← ignores session subfolders, tracks AGENTS.md
+    ├── .gitignore                     ← ignores all session subfolders
     └── YYYYMMDD-HHmm-{slug}/         ← one folder per session
         ├── plan.md
         ├── spec.md                    ← the task's scope, when one exists
@@ -76,6 +76,7 @@ All optional. Only create what the task actually needs.
 | `plan.md`    | Goal, constraints, ordered steps, decisions still to make                                                                  |
 | `spec.md`    | The task's scope, when the work has one; carried forward until the work lands                                              |
 | `tickets/`   | One `NN-<slug>.md` file per ticket — the task's work breakdown, each with a single `Status:` line (see `issue-tracker.md`) |
+| `map.md`     | Wayfinder map: Notes / Decisions-so-far / Fog (see `issue-tracker.md`), when the session runs `/wayfinder`                 |
 | `notes.md`   | Findings, snippets, code references (`file:line`), observations                                                            |
 | `report.md`  | Final summary when the task ends — what shipped, what didn't                                                               |
 | `todo.md`    | Outstanding actionable items, with owner if known                                                                          |

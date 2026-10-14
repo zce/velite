@@ -1,7 +1,6 @@
-import type { MarkdownOptions, MdxOptions } from '../options'
+import type { MdxOptions } from '../options'
 import type { NavigationSnapshot } from './navigation'
 
-export type ContentOptions = MarkdownOptions
 export type MdxContentOptions = MdxOptions
 
 export interface ContentDefinitionDescriptor {

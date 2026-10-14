@@ -14,7 +14,6 @@ import { installSchemaContextHost, schemaContextHost } from './host'
 import type { PromiseObserver } from '../../runtime/promise-observer'
 import type { ContentRequest, RecordContentCapability } from './capability'
 import type { SchemaContext } from './context'
-import type { EffectDeclarationContext, SchemaEffectDeclaration } from './effects'
 import type { SchemaContextHost } from './host'
 import type { SchemaRunContext } from './run'
 

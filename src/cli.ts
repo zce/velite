@@ -52,7 +52,7 @@ Options:
   --watch              Watch for changes and rebuild
   --verbose            Print additional information
   --silent             Silent mode (no output)
-  --strict             Throw error and terminate process if any schema validation fails
+  --strict             Throw error and terminate process if the build produces any error-level diagnostic
   --debug              Output full error stack trace
   -h, --help           Display this message
   -v, --version        Display version number
@@ -61,6 +61,12 @@ Options:
 }
 
 values.watch = positionals[0] === 'dev' || values.watch
+
+if (positionals[0] !== undefined && positionals[0] !== 'build' && positionals[0] !== 'dev') {
+  console.error(`Unknown command: ${positionals[0]}`)
+  console.error(`Try 'velite --help' for usage.`)
+  process.exit(1)
+}
 
 const logLevel: LogLevel = values.silent ? 'silent' : values.verbose ? 'debug' : 'info'
 

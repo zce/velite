@@ -6,9 +6,6 @@
 // (read bytes, compute hash, emit copy effect, return public url) is the
 // caller's job, supplied via the callback. This keeps the plugins in
 // runtime-neutral core (no `node:` / `sharp` / `tinyglobby` imports).
-//
-// Ported from the pre-refactor `src/assets.ts` `rehypeCopyLinkedFiles` /
-// `remarkCopyLinkedFiles`, with the I/O extracted to the callback boundary.
 
 import { visit } from 'unist-util-visit'
 
@@ -63,27 +60,28 @@ export const rehypeCopyLinkedFiles: Plugin<[ProcessAsset], Hast> =
 export const remarkCopyLinkedFiles: Plugin<[ProcessAsset], Mdast> =
   processAsset =>
   async (tree: Mdast): Promise<void> => {
-    type WithUrl = { url: string }
-    type MdxAttr = { name: string; value: unknown }
-    type MdxJsx = { attributes: MdxAttr[] }
+    // mdast's link/image/definition nodes carry `url`; MDX JSX elements carry
+    // `attributes`. visit's array tests only narrow to the generic Node, so
+    // both shapes are read through one structural view.
+    interface LinkedNode {
+      url?: unknown
+      attributes?: Array<{ name: string; value: unknown }>
+    }
+    const linked = (node: unknown): LinkedNode => node as LinkedNode
 
-    const links = new Map<string, unknown[]>()
+    const links = new Map<string, LinkedNode[]>()
+    const add = (url: string, node: LinkedNode): void => {
+      const nodes = links.get(url) ?? []
+      nodes.push(node)
+      links.set(url, nodes)
+    }
     visit(tree, ['link', 'image', 'definition'], node => {
-      const withUrl = node as unknown as WithUrl
-      if (typeof withUrl.url === 'string' && isRelativePath(withUrl.url)) {
-        const nodes = links.get(withUrl.url) ?? []
-        nodes.push(node)
-        links.set(withUrl.url, nodes)
-      }
+      const { url } = linked(node)
+      if (typeof url === 'string' && isRelativePath(url)) add(url, linked(node))
     })
     visit(tree, ['mdxJsxFlowElement', 'mdxJsxTextElement'] as never, node => {
-      const jsx = node as unknown as MdxJsx
-      for (const attr of jsx.attributes ?? []) {
-        if (LINKED_PROPERTIES.includes(attr.name) && typeof attr.value === 'string' && isRelativePath(attr.value)) {
-          const nodes = links.get(attr.value) ?? []
-          nodes.push(node)
-          links.set(attr.value, nodes)
-        }
+      for (const attr of linked(node).attributes ?? []) {
+        if (LINKED_PROPERTIES.includes(attr.name) && typeof attr.value === 'string' && isRelativePath(attr.value)) add(attr.value, linked(node))
       }
     })
     await Promise.all(
@@ -91,13 +89,11 @@ export const remarkCopyLinkedFiles: Plugin<[ProcessAsset], Mdast> =
         const publicUrl = await processAsset(url)
         if (publicUrl === url) return
         for (const node of nodes) {
-          const withUrl = node as unknown as WithUrl
-          if (withUrl.url === url) {
-            withUrl.url = publicUrl
+          if (node.url === url) {
+            node.url = publicUrl
             continue
           }
-          const jsx = node as unknown as MdxJsx
-          for (const attr of jsx.attributes ?? []) {
+          for (const attr of node.attributes ?? []) {
             if (LINKED_PROPERTIES.includes(attr.name) && attr.value === url) attr.value = publicUrl
           }
         }

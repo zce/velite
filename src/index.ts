@@ -137,6 +137,8 @@ export type {
   Diagnostic,
   Effect,
   EffectDeclarationContext,
+  EffectRequestProvenance,
+  EffectSystemOwner,
   Entry,
   ExcerptSchemaOptions,
   FileSchemaOptions,

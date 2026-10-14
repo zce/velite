@@ -80,11 +80,19 @@ const EMPTY_PREVIOUS: DataManifest = { files: {} }
 /**
  * Commit a planned write: hash, skip if unchanged in `previous`, otherwise
  * write to disk and stamp the digest in `manifest`. Returns the abs path on
- * write, `undefined` on skip.
+ * write, `undefined` on skip. `digest` overrides the content hash (used by
+ * the single layout, where collection data files are digested from cached
+ * per-entry digests).
  */
-const commitWrite = async (write: OutputWrite, dir: string, previous: DataManifest, manifest: DataManifest, fs: FileSystem): Promise<string | undefined> => {
+const commitWrite = async (
+  write: OutputWrite,
+  dir: string,
+  previous: DataManifest,
+  manifest: DataManifest,
+  fs: FileSystem,
+  digest: string = hash(write.content)
+): Promise<string | undefined> => {
   const absPath = join(dir, write.path)
-  const digest = hash(write.content)
   manifest.files[absPath] = digest
   if (previous.files[absPath] === digest) return undefined
   await fs.write(absPath, encoder.encode(write.content))
@@ -141,6 +149,113 @@ const buildListCollectionJson = (
  */
 const collectionDigest = (entryDigests: string[]): string => hash(entryDigests.join('\0'))
 
+/** Everything the three reconcile strategies share. */
+interface ReconcileInput {
+  deps: WriteDeps
+  output: LogicalOutput
+  previous: DataManifest
+  pretty: boolean
+  entryJsonCache: EntryJsonCache
+}
+
+/**
+ * Incremental single-layout patch: only the named collections' top-level
+ * data files change. Uses the entry JSON cache to avoid re-stringifying
+ * unchanged entries and entry-level digests to avoid re-hashing the full
+ * collection JSON.
+ */
+const patchSingleLayout = async ({ deps, output, previous, pretty, entryJsonCache }: ReconcileInput): Promise<WriteResult> => {
+  const manifest: DataManifest = { files: { ...previous.files } }
+  const written: string[] = []
+  for (const collection of deps.collections) {
+    if (!deps.changedCollections!.has(collection.name)) continue
+    const entries = output.collections[collection.name]?.entries ?? []
+    let content: string
+    let digest: string
+    if (collection.single) {
+      content = stringify(entries[0]?.data ?? null, pretty)
+      digest = hash(content)
+    } else {
+      content = buildListCollectionJson(entries, pretty, collection.name, deps.changedSources, entryJsonCache)
+      digest = collectionDigest(entryJsonCache.digests.get(collection.name) ?? [])
+    }
+    const absPath = join(deps.dir, collectionDataPath(collection.name))
+    manifest.files[absPath] = digest
+    if (previous.files[absPath] === digest) continue
+    await deps.fs.write(absPath, encoder.encode(content))
+    written.push(absPath)
+  }
+  return { written, manifest, entryJsonCache }
+}
+
+/**
+ * Incremental split-layout patch: only entries from `changedSources` need
+ * to be re-stringified. Record paths are derived from record identity, so
+ * unchanged records keep stable paths and contents — the writer copies
+ * their manifest entries through. Collection/index/type modules depend only
+ * on collection metadata, which the patch path doesn't touch.
+ */
+const patchSplitLayout = async ({ deps, output, previous, pretty, entryJsonCache }: ReconcileInput): Promise<WriteResult> => {
+  const manifest: DataManifest = { files: { ...previous.files } }
+  const written: string[] = []
+  // Narrowed to a const so the filter callback below keeps the non-undefined type.
+  const changedSources = deps.changedSources!
+  for (const collection of deps.collections) {
+    if (!deps.changedCollections!.has(collection.name)) continue
+    const entries = output.collections[collection.name]?.entries ?? []
+    const touched = entries.filter(e => changedSources.has(e.source))
+    for (const write of planSplitOutput(collection.name, touched, pretty)) {
+      const absPath = await commitWrite(write, deps.dir, previous, manifest, deps.fs)
+      if (absPath !== undefined) written.push(absPath)
+    }
+    // Reconcile any orphan record files that belong to the patched
+    // collection but no longer correspond to any live entry id.
+    const liveIds = new Set(entries.map(e => join(deps.dir, recordFilePath(collection.name, e.id))))
+    const prefix = join(deps.dir, `records/${collection.name}/`)
+    for (const file of Object.keys(previous.files)) {
+      if (!file.startsWith(prefix) || liveIds.has(file)) continue
+      await deps.fs.remove(file)
+      delete manifest.files[file]
+    }
+  }
+  return { written, manifest, entryJsonCache }
+}
+
+/** Full reconciliation: plan everything, write changes, delete stale. */
+const reconcileFull = async ({ deps, output, previous, pretty, entryJsonCache }: ReconcileInput): Promise<WriteResult> => {
+  const configRelPath = relative(deps.dir, deps.configPath)
+  const writes = planWrites({ output, collections: deps.collections, format: deps.format, configRelPath, pretty }, deps.layout === 'split')
+
+  // Single layout: build the per-entry JSON cache (one pass through every
+  // list entry) BEFORE committing, and digest list-collection data files from
+  // the cached per-entry digests — the same scheme the incremental patch path
+  // uses, so a patch right after a full build never rewrites identical bytes
+  // just because the two paths hashed differently.
+  const listCollectionDigests = new Map<string, string>()
+  if (deps.layout === 'single') {
+    for (const collection of deps.collections) {
+      if (collection.single) continue
+      const entries = output.collections[collection.name]?.entries ?? []
+      buildListCollectionJson(entries, pretty, collection.name, undefined, entryJsonCache)
+      listCollectionDigests.set(collectionDataPath(collection.name), collectionDigest(entryJsonCache.digests.get(collection.name) ?? []))
+    }
+  }
+
+  const manifest: DataManifest = { files: {} }
+  const desired = new Set<string>()
+  const written: string[] = []
+  for (const write of writes) {
+    desired.add(join(deps.dir, write.path))
+    const absPath = await commitWrite(write, deps.dir, previous, manifest, deps.fs, listCollectionDigests.get(write.path))
+    if (absPath !== undefined) written.push(absPath)
+  }
+  for (const file of Object.keys(previous.files)) {
+    if (!desired.has(file)) await deps.fs.remove(file)
+  }
+
+  return { written, manifest, entryJsonCache }
+}
+
 /**
  * Reconcile logical output against the previous manifest: plan the physical
  * writes for the configured layout, write only changed files, and delete
@@ -153,98 +268,9 @@ export const writeOutput = async (output: LogicalOutput, deps: WriteDeps, previo
     jsons: new Map(deps.entryJsonCache?.jsons),
     digests: new Map(deps.entryJsonCache?.digests)
   }
+  const input: ReconcileInput = { deps, output, previous, pretty, entryJsonCache }
 
-  // Incremental single-layout patch: only the named collections' top-level
-  // data files change. Uses entry JSON cache to avoid re-stringifying
-  // unchanged entries and entry-level digests to avoid re-hashing the full
-  // collection JSON.
-  if (deps.layout === 'single' && deps.changedCollections !== undefined) {
-    const manifest: DataManifest = { files: { ...previous.files } }
-    const written: string[] = []
-    for (const collection of deps.collections) {
-      if (!deps.changedCollections.has(collection.name)) continue
-      const entries = output.collections[collection.name]?.entries ?? []
-      let content: string
-      let digest: string
-      if (collection.single) {
-        content = stringify(entries[0]?.data ?? null, pretty)
-        digest = hash(content)
-      } else {
-        content = buildListCollectionJson(entries, pretty, collection.name, deps.changedSources, entryJsonCache)
-        digest = collectionDigest(entryJsonCache.digests.get(collection.name) ?? [])
-      }
-      const absPath = join(deps.dir, collectionDataPath(collection.name))
-      manifest.files[absPath] = digest
-      if (previous.files[absPath] === digest) continue
-      await deps.fs.write(absPath, encoder.encode(content))
-      written.push(absPath)
-    }
-    return { written, manifest, entryJsonCache }
-  }
-
-  // Incremental split-layout patch: only entries from `changedSources` need
-  // to be re-stringified. Record paths are derived from record identity, so
-  // unchanged records keep stable paths and contents — the writer copies
-  // their manifest entries through. Collection/index/type modules depend only
-  // on collection metadata, which the patch path doesn't touch.
-  if (deps.layout === 'split' && deps.changedCollections !== undefined && deps.changedSources !== undefined) {
-    const manifest: DataManifest = { files: { ...previous.files } }
-    const written: string[] = []
-    // Narrowed to a const so the filter callback below keeps the non-undefined type.
-    const changedSources = deps.changedSources
-    for (const collection of deps.collections) {
-      if (!deps.changedCollections.has(collection.name)) continue
-      const entries = output.collections[collection.name]?.entries ?? []
-      const touched = entries.filter(e => changedSources.has(e.source))
-      for (const write of planSplitOutput(collection.name, touched, pretty)) {
-        const absPath = await commitWrite(write, deps.dir, previous, manifest, deps.fs)
-        if (absPath !== undefined) written.push(absPath)
-      }
-      // Reconcile any orphan record files that belong to the patched
-      // collection but no longer correspond to any live entry id.
-      const liveIds = new Set(entries.map(e => join(deps.dir, recordFilePath(collection.name, e.id))))
-      const prefix = join(deps.dir, `records/${collection.name}/`)
-      for (const file of Object.keys(previous.files)) {
-        if (!file.startsWith(prefix) || liveIds.has(file)) continue
-        await deps.fs.remove(file)
-        delete manifest.files[file]
-      }
-    }
-    return { written, manifest, entryJsonCache }
-  }
-
-  // Full reconciliation: plan everything, write changes, delete stale.
-  const configRelPath = deps.configPath === '' ? 'velite.config.ts' : relative(deps.dir, deps.configPath)
-  const writes = planWrites({ output, collections: deps.collections, format: deps.format, configRelPath, pretty }, deps.layout === 'split')
-
-  const manifest: DataManifest = { files: {} }
-  const desired = new Set<string>()
-  const written: string[] = []
-  for (const write of writes) {
-    desired.add(join(deps.dir, write.path))
-    const absPath = await commitWrite(write, deps.dir, previous, manifest, deps.fs)
-    if (absPath !== undefined) written.push(absPath)
-  }
-  for (const file of Object.keys(previous.files)) {
-    if (!desired.has(file)) await deps.fs.remove(file)
-  }
-
-  // Populate entry JSON cache for single layout (for future incremental builds).
-  if (deps.layout === 'single') {
-    for (const collection of deps.collections) {
-      if (collection.single) continue
-      const entries = output.collections[collection.name]?.entries ?? []
-      const jsons: string[] = []
-      const digests: string[] = []
-      for (const entry of entries) {
-        const json = stringify(entry.data, pretty)
-        jsons.push(json)
-        digests.push(hash(json))
-      }
-      entryJsonCache.jsons.set(collection.name, jsons)
-      entryJsonCache.digests.set(collection.name, digests)
-    }
-  }
-
-  return { written, manifest, entryJsonCache }
+  if (deps.layout === 'single' && deps.changedCollections !== undefined) return patchSingleLayout(input)
+  if (deps.layout === 'split' && deps.changedCollections !== undefined && deps.changedSources !== undefined) return patchSplitLayout(input)
+  return reconcileFull(input)
 }

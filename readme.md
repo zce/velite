@@ -46,6 +46,11 @@ Velite is a tool for building type-safe data layer, turns Markdown / MDX, YAML, 
 
 Check out our detailed [Why Velite](https://velite.js.org/guide/introduction#why-velite) to learn more about what makes Velite special. ✨
 
+## Requirements
+
+- Node.js `>=22.13.0`
+- ESM only — Velite ships `"type": "module"`; load it with `import`, not `require`
+
 ## Try Velite Online
 
 You can try Velite directly in your browser on StackBlitz:

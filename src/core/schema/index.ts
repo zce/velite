@@ -9,6 +9,8 @@ export type {
   AssetReferenceEffectDeclaration,
   Effect,
   EffectDeclarationContext,
+  EffectRequestProvenance,
+  EffectSystemOwner,
   SchemaEffectDeclaration,
   StableOccurrence,
   UniqueEffect,

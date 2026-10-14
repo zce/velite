@@ -10,7 +10,7 @@ export const toItems = (parsed: unknown): LoaderResult =>
 export const loaderFailure = (label: string, path: string, cause: unknown): LoaderResult => ({
   items: [],
   diagnostics: [
-    diagnostic('error', 'LOADER_FAILED', `invalid ${label}: ${(cause as Error).message}`, {
+    diagnostic('error', 'LOADER_FAILED', `invalid ${label}: ${cause instanceof Error ? cause.message : String(cause)}`, {
       stage: 'load',
       provenance: { scope: 'source', source: { path } },
       cause

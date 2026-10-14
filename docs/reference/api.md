@@ -134,6 +134,55 @@ interface WatchHandle {
 }
 ```
 
+## `builder`
+
+Create a long-lived builder instance. While `build()` / `watch()` above create a builder, run once, and dispose it, `builder()` hands you the instance directly — the escape hatch for embedding Velite with custom lifecycle control (incremental `apply()` calls, custom watch wiring, multiple layouts per process).
+
+### Usage
+
+```ts
+import { builder } from 'velite'
+```
+
+### Signature
+
+```ts
+const builder: (options?: BuildEntryOptions) => Builder
+```
+
+### Returns
+
+- Type: `Builder`.
+
+```ts
+interface Builder {
+  /** Run a (full or incremental) build. Concurrent calls are serialized. */
+  build(options?: BuildOptions): Promise<BuildResult>
+  /** Run the initial build, then keep watching. */
+  watch(watchOptions?: WatchOptions, buildOptions?: BuildOptions): Promise<WatchHandle>
+  /** Apply file events and return an incremental rebuild (undefined if nothing changed). */
+  apply(events: FileEvent[]): Promise<BuildResult | undefined>
+  /** Remove the output directories. */
+  clean(): Promise<void>
+  /** Close the watcher (if any) and release the session. */
+  dispose(): Promise<void>
+}
+
+interface BuildOptions {
+  /** Output layout override. Sticky: the first build's layout wins for later calls. */
+  layout?: 'split' | 'single'
+}
+
+interface WatchOptions {
+  /** Called after every rebuild with the new result. */
+  onRebuild?(result: BuildResult): void
+  /** Debounce window for merging file events. @default 50 */
+  debounceMs?: number
+}
+```
+
+All mutating calls (`build` / `watch` / `apply` / `clean` / `dispose`) share one mutex, so concurrent calls queue instead of racing on engine state. `apply()` is what the watcher feeds internally — calling it yourself is only useful when you bring your own file-event source. A failed rebuild inside `watch()` is logged and the watcher stays alive; `onRebuild` is only invoked for successful rebuilds.
+
 ## `content`
 
 Create a Markdown or MDX Content Definition, then use its ordinary async Zod result schemas:
@@ -222,7 +271,7 @@ The schema context contains the project info, current file, current record, and 
 
 ## `VeliteError`
 
-The error type thrown by `build()` / `watch()` when a build run fails, and by internal `fail()` / `assert()` calls for invariant violations.
+The error type thrown by `build()` / `watch()` when a build run fails, and by internal `fail()` calls for invariant violations.
 
 ```ts
 type VeliteErrorCode = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch' | 'internal' | 'unknown'

@@ -22,7 +22,7 @@ See [examples](https://github.com/zce/velite/tree/main/examples) for more exampl
 basic
 ├── content                  # content directory
 │   ├── categories
-│   │   ├── journal.jpg
+│   │   ├── journal.webp
 │   │   ├── journal.yml
 │   │   └── etc...
 │   ├── options

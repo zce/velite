@@ -68,7 +68,7 @@ Use [`defineLoader()`](./api.md#defineloader) for the recommended identity helpe
 
 ```ts
 interface ContentFile {
-  /** Stable source id (project-relative, POSIX). */
+  /** Stable source id (content-root-relative POSIX path, relative to the config `root`). */
   readonly id: string
   /** Absolute source file path. */
   readonly path: string
@@ -236,6 +236,8 @@ interface AssetRequest {
   template?: string
   /** Override the global blur dimensions/quality. */
   blur?: BlurOptions
+  /** Probe image metadata. `s.file()` and linked files only need the public URL. */
+  metadata?: boolean
 }
 
 interface ImageMetadata {
@@ -258,6 +260,8 @@ The asset key passed to `context().asset()` is the **content-root-relative POSIX
 interface AssetResult {
   /** Public url of the asset (base + content-hashed name once bytes are known). */
   publicUrl: string
+  /** Whether the result was derived from real bytes instead of a placeholder. */
+  resolved: boolean
   /** Image width (0 when no bytes / no processor / probe failed). */
   width: number
   /** Image height (0 when no bytes / no processor / probe failed). */
@@ -273,6 +277,21 @@ interface AssetResult {
 
 Returned by `context().asset()`. The first pass through emit sees the placeholder shape (zero metadata, key-derived `publicUrl`); the driver then feeds the asset bytes and the second pass recomputes the real values.
 
+## BlurOptions
+
+```ts
+interface BlurOptions {
+  /** Blur image width. @default 8 */
+  width?: number
+  /** Blur image height. @default derived from aspect ratio */
+  height?: number
+  /** WebP quality of the blur image (1-100). @default 1 */
+  quality?: number
+}
+```
+
+Controls the low-resolution blurred placeholder generated alongside image assets. Passed per-schema via `s.image({ blur })` or per-request via `context().asset(key, { blur })`.
+
 ## Effect
 
 The committed effect representation Velite produces from schema declarations:
@@ -285,6 +304,7 @@ interface UniqueEffect {
   readonly group: string
   readonly value: string
   readonly system: EffectSystemOwner
+  readonly request?: EffectRequestProvenance
 }
 
 interface AssetReferenceEffect {
@@ -295,8 +315,38 @@ interface AssetReferenceEffect {
   readonly template: string
   /** Whether image metadata (probe + blur) was requested. */
   readonly metadata: boolean
-  readonly blur?: { width?: number; height?: number; quality?: number }
+  /** Blur options the reference was declared with (image assets only). */
+  readonly blur?: BlurOptions
   readonly system: EffectSystemOwner
+  readonly request?: EffectRequestProvenance
+}
+```
+
+`system` is Velite-supplied provenance (which record declared the effect); `request` records which schema declaration produced it, when applicable.
+
+```ts
+interface EffectSystemOwner {
+  /** Owning record id (`sourceId#key` or `sourceId#index`). */
+  readonly owner: string
+  /** Collection order in the resolved config. */
+  readonly collectionOrder: number
+  /** Collection id. */
+  readonly collectionId: string
+  /** Content-root-relative POSIX source path. */
+  readonly sourcePath: string
+  /** Record source index. */
+  readonly recordIndex: number
+  /** Record id. */
+  readonly recordId: string
+}
+
+interface EffectRequestProvenance {
+  /** Request kind (e.g. 'custom'). */
+  readonly kind: string
+  /** Stable declaration ordinal. */
+  readonly declaration: number
+  readonly projection?: string
+  readonly occurrence?: StableOccurrence
 }
 ```
 
@@ -346,6 +396,12 @@ interface EffectDeclarationContext {
   readonly occurrence: StableOccurrence
 }
 ```
+
+```ts
+type StableOccurrence = { kind: 'singleton' } | { kind: 'source-index'; index: number } | { kind: 'key'; key: string }
+```
+
+How the declaring record is anchored inside its source file: a single record per file, the n-th record, or a loader-provided key. Velite validates and freezes the occurrence before handing it to the schema.
 
 ## SessionStore
 
@@ -397,10 +453,37 @@ The user-facing collection definition handed to [`defineCollection()`](./api.md#
 ## CollectionResult
 
 ```ts
-type CollectionResult<TSchema extends Schema, TSingle extends boolean | undefined> = TSingle extends true ? Infer<TSchema> : Array<Infer<TSchema>>
+interface CollectionResult<T = unknown> {
+  collection: Collection
+  mode: 'list' | 'single'
+  entries: Entry<T>[]
+}
 ```
 
-The validated runtime shape for a single collection — an array for list collections, a single object for `single: true` collections.
+The result of one collection as exposed on [`BuildResult.output`](#buildresult): the collection definition, whether it was declared `single`, and its ordered validated entries.
+
+## LogicalOutput
+
+```ts
+interface LogicalOutput {
+  collections: Record<string, CollectionResult>
+}
+```
+
+The complete, deterministic build result keyed by collection name. Physical layout (single vs split files) is a writer concern — `LogicalOutput` is layout-independent.
+
+## Entry
+
+```ts
+interface Entry<T = unknown> {
+  /** Stable entry identity: `sourcePath#key` (or `sourcePath#index`). */
+  id: `${string}#${string}`
+  /** Content-root-relative POSIX source path. */
+  source: string
+  /** The validated, transformed record data. */
+  data: T
+}
+```
 
 ## BuildResult
 
@@ -415,7 +498,38 @@ interface BuildResult {
 }
 ```
 
-`BuildResult` is the value resolved by [`build()`](./api.md#build) and passed to the `onRebuild` callback of the lower-level `Builder.watch()`. Schema-level errors are non-fatal and surface through `diagnostics`; non-schema fatal errors reject the promise with a [`VeliteError`](./api.md#veliteerror) instead.
+`BuildResult` is the value resolved by [`build()`](./api.md#build) and passed to the `onRebuild` callback of the lower-level [`Builder.watch()`](./api.md#builder). Schema-level errors are non-fatal and surface through `diagnostics`; non-schema fatal errors reject the promise with a [`VeliteError`](./api.md#veliteerror) instead.
+
+## Diagnostic
+
+```ts
+type DiagnosticLevel = 'error' | 'warn' | 'info'
+type DiagnosticStage = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch'
+
+interface Diagnostic {
+  readonly level: DiagnosticLevel
+  readonly code: string
+  readonly message: string
+  readonly stage: DiagnosticStage
+  readonly origin: { kind: 'core' } | { kind: 'prepare-hook'; key: string } | { kind: 'velite' }
+  readonly provenance:
+    | { scope: 'project' }
+    | { scope: 'collection'; collection: { order: number; id: string } }
+    | { scope: 'source'; collection?: { order: number; id: string }; source: { path: string } }
+    | {
+        scope: 'record'
+        collection: { order: number; id: string }
+        source: { path: string }
+        record: { index: number; id: string }
+        path?: readonly (string | number)[]
+      }
+  readonly position?: { start: { line?: number; column?: number; offset?: number }; end?: { line?: number; column?: number; offset?: number } }
+  readonly context?: DiagnosticValue
+  readonly cause?: DiagnosticValue
+}
+```
+
+One surfaced issue from a build run. `provenance` scopes the diagnostic to the project, a collection, a source file, or a specific record (with an optional field `path` into the record). Schema-stage `error` diagnostics are **non-fatal** — the offending record is dropped from the output and the diagnostic is reported; error diagnostics from other stages fail the build with a `VeliteError`. `context`/`cause` values are normalized to a closed `DiagnosticValue` domain (primitives, plain records/arrays, and tagged shapes for exceptional values), so hostile `toString`/getters on user values cannot throw during rendering or comparison.
 
 ## PrepareCollections
 

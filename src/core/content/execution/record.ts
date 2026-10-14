@@ -8,7 +8,7 @@ import { sourceExcerpt, sourceMetadata } from './source'
 
 import type { Diagnostic } from '../../diagnostic'
 import type { ContentFile, ContentRecord, ProjectInfo, SchemaContext } from '../../schema/context'
-import type { Effect, EffectDeclarationContext, SchemaEffectDeclaration } from '../../schema/effects'
+import type { EffectDeclarationContext, SchemaEffectDeclaration } from '../../schema/effects'
 import type { SchemaContextHost } from '../../schema/host'
 import type { NavigationSnapshot } from './navigation'
 import type { ContentDefinitionDescriptor, ContentStageScope, MdxContentOptions, OwnedContent, SemanticContentRequest } from './types'
@@ -119,18 +119,22 @@ const invocationStage = (run: RecordRun): ContentStageScope | undefined => {
   fail('internal', 'Content stage scope is closed')
 }
 
-/** Lease/liveness gate every capability entry point funnels through. */
-const active = (run: RecordRun): void => {
+/** Lease/liveness gate every capability entry point funnels through; returns the open stage scope for effect routing. */
+const activeStage = (run: RecordRun): ContentStageScope | undefined => {
   if (run.closed) fail('internal', 'Content record is closed')
   const carrier = run.host.get()
   if (!carrier.lease.active) fail('internal', 'Content schema run lease is inactive')
-  invocationStage(run)
+  return invocationStage(run)
+}
+
+/** Lease/liveness gate without effect routing. */
+const active = (run: RecordRun): void => {
+  activeStage(run)
 }
 
 /** Route one effect declaration into the open stage journal (or the record transaction). */
 const declareEffect = (run: RecordRun, declaration: SchemaEffectDeclaration, context: EffectDeclarationContext): void => {
-  active(run)
-  const stage = invocationStage(run)
+  const stage = activeStage(run)
   if (stage === undefined) {
     run.scope.collectEffects([[declaration, context]])
     return
@@ -266,7 +270,7 @@ const trackWait = (run: RecordRun, execution: Execution, phase: 'parse' | 'trans
     if (seen.has(token)) return false
     seen.add(token)
     for (const [target, phases] of run.waits.get(token) ?? [])
-      for (const phase of phases.keys()) if (target.stages[phase]?.state === 'pending' && reachesCaller(target.token)) return true
+      for (const waitedPhase of phases.keys()) if (target.stages[waitedPhase]?.state === 'pending' && reachesCaller(target.token)) return true
     return false
   }
   if (reachesCaller(execution.token)) fail('internal', 'Recursive pending content demand')

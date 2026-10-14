@@ -158,7 +158,7 @@ The `context()` function returns:
   file: ContentFile
   record: ContentRecord
   store: SessionStore
-  collectEffect: (effect: Effect) => void
+  collectEffect: (declaration: SchemaEffectDeclaration, context: EffectDeclarationContext) => void
   asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
   readFile: (absPath: string) => Promise<Uint8Array>
   probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>

@@ -50,7 +50,7 @@ export default withVelite({
 })
 ```
 
-The plugin accepts Velite build options except `watch` and `clean` — it controls those based on the Next.js command (`next dev` runs watch mode, `next build` runs a clean production build).
+The plugin accepts Velite build options ([`BuildEntryOptions`](/reference/api#buildentryoptions)) except `clean` — it controls that based on the Next.js command: `next dev` runs watch mode without cleaning, while `next build` / `next typegen` run a one-shot clean production build.
 
 ## Start Velite with Next.js Config
 
@@ -162,7 +162,7 @@ class VeliteWebpackPlugin {
 ESM `import { build } from 'velite'` may be got a `[webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo]` warning generated during the `next build` process, which has little impact,
 refer to https://github.com/webpack/webpack/pull/15688
 
-or [👆](#🎊-start-velite-with-next-js-config-🆕)
+or [👆](#start-velite-with-next-js-config)
 
 :::
 

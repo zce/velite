@@ -1,7 +1,7 @@
 // Type declaration generation.
 //
-// Ported from the planTypes half of src/output/plan.ts. Emits the `index.d.ts`
-// content: for each collection, a `type {TypeName} = Infer<schema>` alias plus a
+// Emits the `index.d.ts` content: for each collection, a
+// `type {TypeName} = Infer<schema>` alias plus a
 // `declare const {key}` whose type is the alias (or an array of it for list
 // collections). The schema is referenced through the user's config module so the
 // emitted declarations track the user's schema without velite having to

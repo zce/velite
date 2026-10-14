@@ -203,30 +203,30 @@ When the `--watch` flag is used with `velite dev` or `velite`, Velite will watch
 
 ```sh [npm]
 $ npx velite dev
+[VELITE] watching for changes in 'content'
 [VELITE] building...
 [VELITE] build finished
-[VELITE] watching for changes in 'content'
 ```
 
 ```sh [pnpm]
 $ pnpm velite dev
+[VELITE] watching for changes in 'content'
 [VELITE] building...
 [VELITE] build finished
-[VELITE] watching for changes in 'content'
 ```
 
 ```sh [yarn]
 $ yarn velite dev
+[VELITE] watching for changes in 'content'
 [VELITE] building...
 [VELITE] build finished
-[VELITE] watching for changes in 'content'
 ```
 
 ```sh [bun]
 $ bun velite dev
+[VELITE] watching for changes in 'content'
 [VELITE] building...
 [VELITE] build finished
-[VELITE] watching for changes in 'content'
 ```
 
 :::

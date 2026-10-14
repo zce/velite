@@ -80,6 +80,34 @@ test('incremental ≡ full: modify/add/delete produce the same output as a clean
   deepEqual(diagSummary(incremental!), diagSummary(clean), 'diagnostic categories must match')
 })
 
+test('incremental patches survive prior schema errors: carry for unchanged sources, drop for re-validated ones', async () => {
+  const { runtime, fs } = setup()
+  // `bad` fails schema validation — a non-fatal schema-stage error that is
+  // reported on the build result and remembered by the emitter.
+  fs.put(file('bad'), JSON.stringify([{ nope: true }]))
+  const builder = newBuilder(runtime)
+  const first = await builder.build({ layout: 'single' })
+  equal(first.diagnostics.filter(d => d.level === 'error').length, 1, 'schema error is non-fatal but reported')
+
+  // Changing an unrelated valid file must still patch incrementally (the
+  // remembered error must not disable patching) and carry `bad`'s error.
+  fs.put(file('a'), body([{ title: 'A2' }]))
+  const second = await builder.apply([{ type: 'change', absPath: file('a') }])
+  ok(second !== undefined, 'apply rebuilt')
+  const carried = second!.diagnostics.filter(d => d.level === 'error')
+  equal(carried.length, 1, "the unrelated source's schema error is carried into the patch result")
+  ok(carried[0]!.provenance.scope === 'record', 'carried error keeps its record provenance')
+  deepEqual(entries(second!), [{ title: 'A2' }, { title: 'B' }, { title: 'C' }], 'invalid entry stays excluded')
+
+  // Fixing `bad` re-validates it: its old error must be dropped, the entry included.
+  fs.put(file('bad'), body([{ title: 'Fixed' }]))
+  const third = await builder.apply([{ type: 'change', absPath: file('bad') }])
+  ok(third !== undefined, 'apply rebuilt')
+  equal(third!.diagnostics.length, 0, "the re-validated source's error is dropped")
+  // Entry order is by entry id, so `bad.json` sorts before `c.json`.
+  deepEqual(entries(third!), [{ title: 'A2' }, { title: 'B' }, { title: 'Fixed' }, { title: 'C' }])
+})
+
 test('incremental ≡ full: rename (unlink + add) keeps output stable', async () => {
   const { runtime, fs } = setup()
   const builder = newBuilder(runtime)

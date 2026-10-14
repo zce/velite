@@ -26,6 +26,9 @@ export default (options = {}) => {
 
     buildStart: async () => {
       if (started) return
+      // Guard against repeated invocations (e.g. `vite build --watch` calls
+      // buildStart on every rollup rebuild pass — one velite build is enough).
+      started = true
 
       // Run build in production
       await build(options)

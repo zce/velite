@@ -7,6 +7,7 @@ import type { FileSystem, ImageProcessor } from '../../runtime'
 import type { AssetKey, AssetResult, BlurOptions } from '../assets'
 import type { ResolvedConfig } from '../config'
 import type { ContentDeclaration, ContentExecutionsFactory } from '../content/execution/record'
+import type { Diagnostic } from '../diagnostic'
 import type { Derivation } from '../engine'
 import type { Entry } from '../model'
 import type { AssetRequest, ImageMetadata, ProjectCollectionInfo, ProjectInfo, SchemaContext } from '../schema/context'
@@ -37,6 +38,73 @@ interface ValidateRuntime {
 }
 
 const DEFAULT_BLUR_WIDTH = 8
+
+/** The provenance anchor every effect declared by one record carries. */
+const effectSystemOwner = (rawId: string, collectionOrder: number, collection: string, path: string, index: number): EffectSystemOwner => ({
+  owner: rawId,
+  collectionOrder,
+  collectionId: collection,
+  sourcePath: path,
+  recordIndex: index,
+  recordId: rawId
+})
+
+/**
+ * One record's effect candidate transaction. Declarations are normalized
+ * completely before being appended, so a throwing declaration getter cannot
+ * leave a promoted prefix; the transaction seals when the record finalizes.
+ */
+const createEffectCollector = (systemOwner: EffectSystemOwner, config: ResolvedConfig) => {
+  const candidates: Effect[] = []
+  let accepting = true
+  const normalizeEffect = (args: ContentDeclaration): Effect => {
+    const [effect, ctx] = args
+    const request = { kind: 'custom', declaration: ctx.declaration, projection: undefined, occurrence: ctx.occurrence }
+    if (effect.type === 'unique') {
+      return { type: 'unique', group: effect.group, value: effect.value, system: systemOwner, request }
+    }
+    return {
+      type: 'asset',
+      assetKey: assetKeyOf(effect.source, config.root),
+      template: effect.output.template,
+      metadata: effect.metadata,
+      ...(effect.blur !== undefined ? { blur: effect.blur } : {}),
+      system: systemOwner,
+      request
+    }
+  }
+  return {
+    candidates,
+    collectEffects(declarations: readonly ContentDeclaration[]): void {
+      if (!accepting) fail('internal', 'Record effect transaction is closed — collectEffect called after finalization')
+      candidates.push(...declarations.map(normalizeEffect))
+    },
+    /** Seal the transaction; later collectEffect calls fail loudly. */
+    seal(): void {
+      accepting = false
+    }
+  }
+}
+
+/** SCHEMA_INVALID diagnostics for a failed Zod parse, one per issue. */
+const schemaInvalidDiagnostics = (
+  issues: readonly { message: string; path: readonly PropertyKey[] }[],
+  collection: { order: number; id: string },
+  source: { path: string },
+  record: { index: number; id: string }
+): Diagnostic[] =>
+  issues.map(issue =>
+    diagnostic('error', 'SCHEMA_INVALID', issue.message, {
+      stage: 'schema',
+      provenance: {
+        scope: 'record',
+        collection,
+        source,
+        record,
+        path: issue.path as (string | number)[]
+      }
+    })
+  )
 
 /**
  * Build the {@link SchemaContext.probeImage} closure from a runtime
@@ -82,23 +150,27 @@ export const createValidateDerivation = (
   // config-reload, when loadSession rebuilds the pipeline). Shared across
   // rebuilds so custom schemas can lazily initialise session-scoped state.
   const store = createSessionStore()
+  // Per-factory invariants: the config is fixed for the derivation's lifetime,
+  // so the project snapshot, the probe closure, and the collection lookup
+  // table are built once instead of per source.
+  const project = buildProjectInfo(config)
+  const probeImage = createProbeImage(runtime.image)
+  const collectionMeta = new Map(config.collections.map((def, order) => [def.name, { def, order }] as const))
   return {
     name: 'validate',
     async compute(context, { collection, path }) {
       const loaded = await context.get(load, path)
-      const col = config.collections.find(c => c.name === collection)
+      const meta = collectionMeta.get(collection)
       const entries: Entry[] = []
       const effects: Effect[] = []
       const diagnostics = [...loaded.diagnostics]
-      if (col === undefined) return { entries, effects, diagnostics }
+      if (meta === undefined) return { entries, effects, diagnostics }
+      const { def: col, order: collectionOrder } = meta
 
-      const project = buildProjectInfo(config)
       const absPath = join(config.root, path)
       const demandAsset = (assetKey: string, request?: AssetRequest): Promise<AssetResult> =>
         context.get(asset, { assetKey, template: request?.template ?? config.output.name, blur: request?.blur, metadata: request?.metadata })
-      const probeImage = createProbeImage(runtime.image)
       const readFile = (p: string): Promise<Uint8Array> => runtime.fs.read(p)
-      const collectionOrder = config.collections.findIndex(c => c.name === collection)
 
       for (let index = 0; index < loaded.entries.length; index++) {
         const raw = loaded.entries[index]!
@@ -110,39 +182,7 @@ export const createValidateDerivation = (
         // Both declaration shapes enter this record's candidate transaction.
         // Only the final native Zod success promotes them to source candidates;
         // downstream cross-record/build checks still decide publication.
-        const candidateEffects: Effect[] = []
-        let acceptingEffects = true
-        const systemOwner: EffectSystemOwner = {
-          owner: raw.id,
-          collectionOrder,
-          collectionId: collection,
-          sourcePath: path,
-          recordIndex: index,
-          recordId: raw.id
-        }
-        const normalizeEffect = (args: ContentDeclaration): Effect => {
-          const [effect, ctx] = args
-          const request = { kind: 'custom', declaration: ctx.declaration, projection: undefined, occurrence: ctx.occurrence }
-          if (effect.type === 'unique') {
-            return { type: 'unique', group: effect.group, value: effect.value, system: systemOwner, request }
-          }
-          return {
-            type: 'asset',
-            assetKey: assetKeyOf(effect.source, config.root),
-            template: effect.output.template,
-            metadata: effect.metadata,
-            ...(effect.blur !== undefined ? { blur: effect.blur } : {}),
-            system: systemOwner,
-            request
-          }
-        }
-        const collectEffects = (declarations: readonly ContentDeclaration[]): void => {
-          if (!acceptingEffects) fail('internal', 'Record effect transaction is closed — collectEffect called after finalization')
-          // Normalize the complete stage before mutating the record candidates.
-          // A throwing declaration getter cannot leave a promoted prefix.
-          const normalized = declarations.map(normalizeEffect)
-          candidateEffects.push(...normalized)
-        }
+        const collector = createEffectCollector(effectSystemOwner(raw.id, collectionOrder, collection, path, index), config)
 
         // One content owner per actual record validation; all outcomes close
         // in the outer finally, including thrown or abandoned operations.
@@ -151,7 +191,7 @@ export const createValidateDerivation = (
           file,
           record,
           collection: { order: collectionOrder, id: collection },
-          collectEffects
+          collectEffects: collector.collectEffects
         })
         const contentOperation = (request: Parameters<SchemaRunInput['contentOperation']>[0]): Promise<unknown> => content.demand(request)
 
@@ -170,30 +210,17 @@ export const createValidateDerivation = (
         try {
           const parsed = await runtime.schemaRunner.run(runInput, () => col.schema.safeParseAsync(raw.data))
           diagnostics.push(...content.diagnostics())
-          acceptingEffects = false
+          collector.seal()
 
           if (parsed.success) {
             entries.push({ id: raw.id, source: path, data: parsed.data })
-            effects.push(...candidateEffects)
+            effects.push(...collector.candidates)
           } else {
-            for (const issue of parsed.error.issues) {
-              diagnostics.push(
-                diagnostic('error', 'SCHEMA_INVALID', issue.message, {
-                  stage: 'schema',
-                  provenance: {
-                    scope: 'record',
-                    collection: { order: collectionOrder, id: collection },
-                    source: { path },
-                    record: { index, id: raw.id },
-                    path: issue.path as (string | number)[]
-                  }
-                })
-              )
-            }
+            diagnostics.push(...schemaInvalidDiagnostics(parsed.error.issues, { order: collectionOrder, id: collection }, { path }, { index, id: raw.id }))
           }
         } finally {
-          acceptingEffects = false
-          candidateEffects.length = 0
+          collector.seal()
+          collector.candidates.length = 0
           content.close()
         }
       }

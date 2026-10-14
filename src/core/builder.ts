@@ -31,7 +31,11 @@ export interface WatchOptions {
 }
 
 export interface WatchHandle {
-  /** Initial build result. The watcher runs exactly one build before subscribing. */
+  /**
+   * Result of the one initial build run before the watcher subscribed. Events
+   * during that initial build are not observed — the subscription starts
+   * after it completes.
+   */
   initial: BuildResult
   close(): Promise<void>
 }
@@ -132,7 +136,9 @@ export const createBuilder = (deps: BuilderDeps): Builder => {
    */
   let runLock: Promise<unknown> = Promise.resolve()
   const serialize = <R>(run: () => Promise<R>): Promise<R> => {
-    const next = runLock.then(run, run)
+    // runLock is always rejection-swallowed below, so a single success
+    // continuation is enough — a second handler would be dead code.
+    const next = runLock.then(run)
     runLock = next.catch(() => {})
     return next
   }
@@ -189,12 +195,27 @@ export const createBuilder = (deps: BuilderDeps): Builder => {
       const current = await ensureSession()
       if (buildOptions?.layout !== undefined) activeLayout = buildOptions.layout
       deps.logger.info(`watching for changes in '${current.config.root}'`)
+      deps.logger.info('building...')
       const initial = await current.driver.runBuild(activeLayout)
+      deps.logger.info('build finished')
+      // NOTE: the watcher subscribes only after the initial build completes,
+      // so file events during that build are not observed. The next change
+      // to any watched file still triggers a rebuild, and unchanged output is
+      // skipped via the manifest, so the practical impact is limited to
+      // edits made during the initial build window.
       const watcher = createWatch([...new Set([current.config.root, current.config.configPath, ...current.config.configDependencies])])
       const scheduler = createScheduler({
+        // The scheduler discards the drain promise, so rebuild failures must be
+        // handled here: a rejected `apply` (e.g. broken content after an edit)
+        // must not become an unhandled rejection that kills the dev process.
+        // Log it and keep watching — the next event starts a fresh rebuild.
         run: async events => {
-          const result = await apply(events)
-          if (result !== undefined) watchOptions.onRebuild?.(result)
+          try {
+            const result = await apply(events)
+            if (result !== undefined) watchOptions.onRebuild?.(result)
+          } catch (err) {
+            deps.logger.error(err instanceof Error ? err.message : String(err))
+          }
         },
         debounceMs: watchOptions.debounceMs
       })
@@ -206,21 +227,29 @@ export const createBuilder = (deps: BuilderDeps): Builder => {
       }
     })
 
-  const dispose = async (): Promise<void> => {
-    closeWatch()
-    session = undefined
-  }
+  const dispose = async (): Promise<void> =>
+    // Serialized: a dispose racing an in-flight watch() setup would close the
+    // (not yet existing) watcher and then let watch() install a fresh one on
+    // an already-disposed builder.
+    serialize(async () => {
+      closeWatch()
+      session = undefined
+    })
 
-  const clean = async (): Promise<void> => {
-    const current = await ensureSession()
-    await fs.remove(current.config.output.data, { recursive: true })
-    await fs.remove(current.config.output.assets, { recursive: true })
-    // Drop the persisted manifest state too — the on-disk file was just
-    // wiped, so the in-memory bookkeeping must match. Otherwise the next
-    // build would try to "reconcile" files that no longer exist.
-    current.context.manifest = { files: {} }
-    current.context.assetManifest = new Set()
-  }
+  const clean = async (): Promise<void> =>
+    // Serialized: clean() resets context.manifest / assetManifest — the exact
+    // state the mutex exists to protect. A clean racing a build would let the
+    // build re-write files the manifest no longer knows about.
+    serialize(async () => {
+      const current = await ensureSession()
+      await fs.remove(current.config.output.data, { recursive: true })
+      await fs.remove(current.config.output.assets, { recursive: true })
+      // Drop the persisted manifest state too — the on-disk file was just
+      // wiped, so the in-memory bookkeeping must match. Otherwise the next
+      // build would try to "reconcile" files that no longer exist.
+      current.context.manifest = { files: {} }
+      current.context.assetManifest = new Set()
+    })
 
   return {
     build,

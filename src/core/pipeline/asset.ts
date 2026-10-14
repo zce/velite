@@ -4,12 +4,14 @@
 //
 // The chicken-and-egg (the driver cannot know which assets are referenced until
 // emit runs, but emit needs asset metadata) is solved with a PLACEHOLDER: when
-// the asset input is not yet set, the derivation returns a zero-metadata
-// placeholder whose `publicUrl` is derivable from the asset key alone (no bytes
-// required). The schema parse completes against placeholders; the driver then
-// reads the referenced asset files, sets the inputs, and re-demands emit. The
-// dependency recorded on the placeholder path ensures the asset memo (and every
-// dependent) recomputes when the input arrives.
+// the asset input is not yet set, the derivation first tries to read the bytes
+// from disk itself (a backstop so standalone builds resolve real urls); if the
+// file cannot be read either, it returns a zero-metadata placeholder whose
+// `publicUrl` is derived from the asset key alone. The schema parse completes
+// against placeholders; the driver then reads the referenced asset files, sets
+// the inputs, and re-demands emit. The dependency recorded on the placeholder
+// path ensures the asset memo (and every dependent) recomputes when the input
+// arrives.
 //
 // The assetKey identity, the engine input id, and the template-based output
 // naming live in `../assets` — the neutral seam shared with schemas, the
@@ -42,25 +44,9 @@ const placeholder = (key: AssetKey, config: ResolvedConfig): AssetResult => ({
   blurHeight: 0
 })
 
-/**
- * `asset({assetKey, template, blur})` → resolved public url + image metadata.
- *
- * Reads the INPUT `asset:<assetKey>` (raw bytes). Two outcomes:
- *  - input UNSET → returns a zero-metadata placeholder (the dependency is still
- *    recorded, so setting the input later invalidates this memo + dependents);
- *  - input SET → compute the real (content-hashed) public url and probe via the
- *    image processor.
- *
- * The try/catch is INSIDE compute on purpose: `context.input()` records the
- * dependency before throwing, so catching the `missing-input` error preserves
- * the tracked dep while letting compute return a placeholder value.
- *
- * Takes only the `ImageProcessor` it needs (not the whole Runtime): asset
- * resolution depends on image processing and nothing else, so the dependency
- * is spelled out at the factory edge.
- */
-const resolvedFile = (key: AssetKey, config: ResolvedConfig, bytes: Uint8Array): AssetResult => ({
-  publicUrl: publicUrlOf(key.assetKey, key.template, bytes, config.output.base),
+/** A resolved non-image asset: real public url, zero image metadata. */
+const resolvedFile = (publicUrl: string): AssetResult => ({
+  publicUrl,
   resolved: true,
   width: 0,
   height: 0,
@@ -70,6 +56,20 @@ const resolvedFile = (key: AssetKey, config: ResolvedConfig, bytes: Uint8Array):
   blurHeight: 0
 })
 
+/**
+ * `asset({assetKey, template, blur})` → resolved public url + image metadata.
+ *
+ * Reads the INPUT `asset:<assetKey>` (raw bytes). Two outcomes:
+ *  - input UNSET → read the file from disk as a backstop; if that fails too,
+ *    return a zero-metadata placeholder (the engine dependency is still
+ *    recorded, so setting the input later invalidates this memo + dependents);
+ *  - input SET → compute the real (content-hashed) public url and probe via the
+ *    image processor when metadata was requested.
+ *
+ * The try/catch is INSIDE compute on purpose: `context.input()` records the
+ * dependency before throwing, so catching the `missing-input` error preserves
+ * the tracked dep while letting compute return a fallback value.
+ */
 export const createAssetDerivation = (config: ResolvedConfig, image: ImageProcessor, fs: FileSystem): Derivation<AssetKey, AssetResult> => ({
   name: 'asset',
   key: k => {
@@ -96,8 +96,9 @@ export const createAssetDerivation = (config: ResolvedConfig, image: ImageProces
       }
     }
 
+    // Hash the bytes once — both the file and image branches reuse this url.
     const publicUrl = publicUrlOf(key.assetKey, key.template, bytes, config.output.base)
-    if (key.metadata !== true) return resolvedFile(key, config, bytes)
+    if (key.metadata !== true) return resolvedFile(publicUrl)
     // Probe + blur can fail on corrupt / unsupported images (e.g. some SVGs
     // without intrinsic size, truncated downloads). Degrade to zero metadata
     // rather than crashing the build — the public url is still valid (it's

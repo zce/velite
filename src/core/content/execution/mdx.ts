@@ -10,7 +10,7 @@ import { removeChildrenWhere } from './tree-filter'
 import type { Root as Hast } from 'hast'
 import type { PluggableList } from 'unified'
 import type { ProcessAsset } from '../asset-links'
-import type { NavigationNode, NavigationSnapshot } from './navigation'
+import type { NavigationSnapshot } from './navigation'
 import type { ContentProcessor } from './processor'
 import type { MdxContentOptions, OwnedContent } from './types'
 
@@ -48,7 +48,7 @@ export const createMdxExecution = ({ options, path, cwd, text, processAsset }: M
           ...(options.rehypePlugins ?? []),
           () => (tree: Hast) => {
             if (closed) fail('internal', 'MDX content is closed')
-            navigation = captureNavigation(tree as NavigationNode)
+            navigation = captureNavigation(tree)
           }
         ],
         recmaPlugins: options.recmaPlugins

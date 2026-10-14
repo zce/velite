@@ -5,7 +5,7 @@
 // TypeScript's built-in `Record<K, V>` utility type across the codebase. The PRD
 // concept "record" maps to this `Entry` type.
 
-/** Posix path relative to the project root. */
+/** Posix path relative to the content root (the config `root`, e.g. `content/`). */
 export type SourcePath = string
 
 /** Stable identity of an entry: its source plus a loader-provided key (or index). */

@@ -1,12 +1,11 @@
 // Output planning: turn the logical build result into a list of physical
 // writes (data, entry module, type declarations).
 //
-// Ported from src/output/plan.ts onto the new arch. Key adaptations:
 // - records come from the LogicalOutput's CollectionResult.entries (each Entry
 //   already carries a stable EntryId and post-prepare data), so there is no
 //   separate `parsedRecords` map or index-alignment dance;
-// - stale-file detection is the writer's job (via the manifest), so the old
-//   SplitState is not needed here — the plan is a pure function of the current
+// - stale-file detection is the writer's job (via the manifest), so no
+//   SplitState is needed here — the plan is a pure function of the current
 //   output;
 // - `pretty` is threaded in instead of reading process.env, keeping this module
 //   runtime-agnostic.

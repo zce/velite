@@ -41,6 +41,14 @@ export const createOwnedProcessor = ({ configure, path, cwd, text }: OwnedProces
   const active = (): void => {
     if (closed) fail('internal', 'Owned content processor is closed')
   }
+  // `transform`/`emit` need the state `parse` installs and `release()` clears
+  // (emit releases, so a second emit lands here too). Both are module-internal
+  // sequencing bugs — surface them as clean internal errors instead of raw
+  // TypeErrors on undefined.
+  const ready = (): void => {
+    active()
+    if (processor === undefined || tree === undefined || file === undefined) fail('internal', 'Owned content processor has no parsed content')
+  }
   const release = (): void => {
     if (file) messages = file.messages.map(message => ({ reason: message.reason, fatal: message.fatal }))
     processor = undefined
@@ -58,7 +66,7 @@ export const createOwnedProcessor = ({ configure, path, cwd, text }: OwnedProces
       source = sourceText(tree)
     },
     transform() {
-      active()
+      ready()
       return new Promise<void>((resolve, reject) => {
         processor!.run(tree!, file!, (error, nextTree, nextFile) => {
           if (error) {
@@ -78,7 +86,7 @@ export const createOwnedProcessor = ({ configure, path, cwd, text }: OwnedProces
       })
     },
     emit() {
-      active()
+      ready()
       const result = processor!.stringify(tree!, file!)
       if (isFileValue(result)) file!.value = result
       else file!.result = result

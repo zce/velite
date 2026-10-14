@@ -39,7 +39,7 @@ export const file = ({ allowNonRelativePath = true, outputName }: FileSchemaOpti
   z.string().transform<string>(async (value, { addIssue }) => {
     if (allowNonRelativePath && !isRelativePath(value)) return value
     try {
-      const { project, file, record, asset, collectEffect } = context()
+      const { project, file, asset, collectEffect } = context()
       const absSourcePath = join(dirname(file.path), stripQueryAndHash(value))
       const assetKey = assetKeyOf(absSourcePath, project.root)
       const template = outputName ?? project.output.name

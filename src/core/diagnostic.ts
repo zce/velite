@@ -13,10 +13,16 @@ import { compareStrings } from './util/compare'
 
 import type { StableOccurrence } from './schema/effects'
 
-export type DiagnosticLevel = 'error' | 'warn' | 'info'
+// Rank sources double as the type-level unions: the array literal IS the
+// canonical order, so a stage added to the type without its rank entry is a
+// compile error rather than a silent -1.
+const STAGES = ['config', 'discover', 'load', 'schema', 'asset', 'prepare', 'output', 'watch'] as const
+const LEVELS = ['error', 'warn', 'info'] as const
 
-/** Pipeline stage that produced a diagnostic. Order is the canonical stage rank. */
-export type DiagnosticStage = 'config' | 'discover' | 'load' | 'schema' | 'asset' | 'prepare' | 'output' | 'watch'
+export type DiagnosticLevel = (typeof LEVELS)[number]
+
+/** Pipeline stage that produced a diagnostic. Array order is the canonical stage rank. */
+export type DiagnosticStage = (typeof STAGES)[number]
 
 /** Origin of a diagnostic. */
 export type DiagnosticOrigin = { readonly kind: 'core' } | { readonly kind: 'prepare-hook'; readonly key: string } | { readonly kind: 'velite' }
@@ -29,7 +35,7 @@ export interface DiagnosticCollectionProvenance {
 }
 
 export interface DiagnosticSourceProvenance {
-  /** Normalized project-relative POSIX source path (non-empty). */
+  /** Normalized content-root-relative POSIX source path (non-empty). */
   readonly path: string
 }
 
@@ -146,25 +152,23 @@ const objectProto = Object.prototype
 const errorProto = Error.prototype
 
 /** Recursively freeze a normalized DiagnosticValue tree (runtime immutability). */
-const freeze = <T>(value: T): T => {
+const freeze = (value: DiagnosticValue): DiagnosticValue => {
   if (typeof value !== 'object' || value === null) return value
   if (Array.isArray(value)) {
     for (const item of value) freeze(item)
     Object.freeze(value)
     return value
   }
-  if ('type' in value && (value as { type: string }).type === 'record') {
-    const rec = value as unknown as { type: 'record'; entries: (readonly [string, unknown])[] }
-    for (const [, v] of rec.entries) freeze(v)
-    Object.freeze(rec.entries)
-    Object.freeze(rec)
+  if ('type' in value && value.type === 'record') {
+    for (const [, v] of value.entries) freeze(v)
+    Object.freeze(value.entries)
+    Object.freeze(value)
     return value
   }
-  if ('type' in value && (value as { type: string }).type === 'error') {
-    const err = value as unknown as { type: 'error'; code?: unknown; cause?: unknown }
-    if (err.code !== undefined) freeze(err.code)
-    if (err.cause !== undefined) freeze(err.cause)
-    Object.freeze(err)
+  if ('type' in value && value.type === 'error') {
+    if (value.code !== undefined) freeze(value.code)
+    if (value.cause !== undefined) freeze(value.cause)
+    Object.freeze(value)
     return value
   }
   Object.freeze(value)
@@ -214,7 +218,14 @@ export const normalizeDiagnosticValue = (input: unknown, ancestors: ReadonlySet<
     } catch {
       return { type: 'opaque' }
     }
-    if (proto === errorProto || (proto !== null && Object.getPrototypeOf(proto) === errorProto) || input instanceof Error) {
+    let protoOfProto: object | null
+    try {
+      protoOfProto = proto === null ? null : Object.getPrototypeOf(proto)
+    } catch {
+      // A revoked proxy prototype throws on reflection — opaque, not fatal.
+      return { type: 'opaque' }
+    }
+    if (proto === errorProto || protoOfProto === errorProto || input instanceof Error) {
       let name = 'Error'
       let p: object | null = input as object
       try {
@@ -393,8 +404,8 @@ export const compareDiagnosticValue = (a: DiagnosticValue, b: DiagnosticValue): 
 /** Structural equality of two normalized DiagnosticValues. */
 export const equalDiagnosticValue = (a: DiagnosticValue, b: DiagnosticValue): boolean => compareDiagnosticValue(a, b) === 0
 
-const stageRank = (s: DiagnosticStage): number => ['config', 'discover', 'load', 'schema', 'asset', 'prepare', 'output', 'watch'].indexOf(s)
-const levelRank = (l: DiagnosticLevel): number => ['error', 'warn', 'info'].indexOf(l)
+const stageRank = (s: DiagnosticStage): number => STAGES.indexOf(s)
+const levelRank = (l: DiagnosticLevel): number => LEVELS.indexOf(l)
 const originRank = (o: DiagnosticOrigin): number => (o.kind === 'core' ? 0 : o.kind === 'prepare-hook' ? 1 : 2)
 const occurrenceRank = (o: StableOccurrence | undefined): number => {
   if (o === undefined) return -1
@@ -567,6 +578,39 @@ interface VeliteErrorOptions<T = unknown> {
   diagnostics?: Diagnostic[]
 }
 
+/**
+ * Render a context/cause value for `VeliteError.toString()`. Rendering must
+ * never throw: hostile `toString`/`toJSON`/getters and circular structures
+ * fall back to the safe normalized shape instead of crashing `String(err)`.
+ */
+const isErrorValue = (value: DiagnosticValue): value is { readonly type: 'error'; readonly name: string; readonly message: string } =>
+  typeof value === 'object' && value !== null && 'type' in value && value.type === 'error'
+
+const isErrorLike = (value: unknown): boolean => {
+  try {
+    return value instanceof Error
+  } catch {
+    // instanceof can trip a revoked proxy's getPrototypeOf trap.
+    return false
+  }
+}
+
+const renderValue = (value: unknown): string => {
+  // Errors render like their own toString, but with name/message extracted
+  // safely — an overridden throwing toString must not break String(err).
+  if (isErrorLike(value)) {
+    const normalized = normalizeDiagnosticValue(value)
+    if (isErrorValue(normalized)) return `${normalized.name}: ${normalized.message}`
+  }
+  try {
+    return JSON.stringify(value) ?? String(value)
+  } catch {
+    // Circular structure or other JSON-hostile value: the normalized shape
+    // is always serializable.
+    return JSON.stringify(normalizeDiagnosticValue(value)) ?? String(value)
+  }
+}
+
 export class VeliteError<T = unknown> extends Error {
   public readonly name = 'VeliteError'
   public readonly code: VeliteErrorCode
@@ -583,8 +627,8 @@ export class VeliteError<T = unknown> extends Error {
   }
 
   toString(): string {
-    const context = this.context ? ` ${JSON.stringify(this.context)}` : ''
-    const cause = this.cause ? ` ${this.cause}` : ''
+    const context = this.context === undefined ? '' : ` ${renderValue(this.context)}`
+    const cause = this.cause === undefined ? '' : ` ${renderValue(this.cause)}`
     return `${this.name}(${this.code}): ${this.message}${context}${cause}`
   }
 
@@ -600,14 +644,16 @@ export class VeliteError<T = unknown> extends Error {
   }
 }
 
+/** The first pipeline-level fatal error diagnostic, if any. Schema-stage errors are non-fatal. */
+export const firstFatalDiagnostic = (diagnostics: readonly Diagnostic[]): Diagnostic | undefined =>
+  diagnostics.find(d => d.level === 'error' && d.stage !== 'schema')
+
 /** Whether a set of diagnostics contains at least one pipeline-level fatal error. */
-export const hasFatalDiagnostic = (diagnostics: readonly Diagnostic[]): boolean => diagnostics.some(d => d.level === 'error' && d.stage !== 'schema')
+export const hasFatalDiagnostic = (diagnostics: readonly Diagnostic[]): boolean => firstFatalDiagnostic(diagnostics) !== undefined
 
 /** Pick the VeliteErrorCode for a thrown build-failure VeliteError. */
-export const codeFromDiagnostics = (diagnostics: readonly Diagnostic[]): VeliteErrorCode => {
-  const fatal = diagnostics.find(d => d.level === 'error' && d.stage !== 'schema')
-  return (fatal?.stage ?? 'unknown') as VeliteErrorCode
-}
+export const codeFromDiagnostics = (diagnostics: readonly Diagnostic[]): VeliteErrorCode =>
+  (firstFatalDiagnostic(diagnostics)?.stage ?? 'unknown') as VeliteErrorCode
 
 /** Throw a VeliteError. Never returns. */
 export function fail(code: VeliteErrorCode, message?: string): never

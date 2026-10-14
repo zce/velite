@@ -47,7 +47,7 @@ export interface PipelineDeps {
  */
 export const createPipeline = ({ config, loaders, fs, image, schemaRunner, contentExecutionsFactory }: PipelineDeps): Pipeline => {
   const matchers = new Map<string, Matcher>(config.collections.map(c => [c.name, createMatcher(c.include, c.exclude)]))
-  const sources = createSourcesDerivation(config, matchers)
+  const sources = createSourcesDerivation(matchers)
   const load = createLoadDerivation(loaders)
   const asset = createAssetDerivation(config, image, fs)
   const validate = createValidateDerivation(config, load, asset, { fs, image, schemaRunner, contentExecutionsFactory })

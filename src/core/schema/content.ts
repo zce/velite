@@ -9,8 +9,11 @@ import type { ContentDefinitionDescriptor, SemanticContentRequest } from '../con
 import type { MarkdownOptions, MdxOptions } from '../content/options'
 import type { ExcerptSchemaOptions, Metadata, TocItem } from '../content/results'
 
-export interface MarkdownDefinitionOptions extends MarkdownOptions {}
-export interface MdxDefinitionOptions extends MdxOptions {}
+// Public option names for the definition factories. Aliases (not separate
+// interfaces): the definition-level and config-level option shapes are the
+// same type by design.
+export type MarkdownDefinitionOptions = MarkdownOptions
+export type MdxDefinitionOptions = MdxOptions
 
 export interface MarkdownDefinition {
   html(): ZodType<string, string | undefined>

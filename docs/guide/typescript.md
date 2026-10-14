@@ -41,7 +41,7 @@ export type Post = Infer<Collections['posts']['schema']>
 export declare const posts: Post[]
 ```
 
-Because the type is inferred from the Zod schema, it stays in sync by construction: change the schema, rebuild, and the app's types change. Optional fields are optional, transforms change output types, and `s.isoDate()` produces a `Date` — validation and typing are the same statement.
+Because the type is inferred from the Zod schema, it stays in sync by construction: change the schema, rebuild, and the app's types change. Optional fields are optional, transforms change output types, and `s.isoDate()` validates and normalizes to an ISO date string — validation and typing are the same statement.
 
 ## Importing in your app
 

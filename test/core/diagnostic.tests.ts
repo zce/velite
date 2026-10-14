@@ -78,6 +78,20 @@ test('VeliteError toString includes name, code, message, context, cause', () => 
   assert.ok(s.includes('Error: root'))
 })
 
+test('VeliteError toString never throws on hostile context/cause values', () => {
+  const circular: Record<string, unknown> = { self: null }
+  circular.self = circular
+  const hostile = {
+    toString() {
+      throw new Error('hostile toString')
+    }
+  }
+  const err = new VeliteError('config', { message: 'boom', context: circular, cause: hostile })
+  const s = err.toString()
+  assert.ok(s.startsWith('VeliteError(config): boom'))
+  assert.ok(s.includes('circular'), 'circular context renders a marker instead of throwing')
+})
+
 test('VeliteError toJSON serializes all fields', () => {
   const err = new VeliteError('output', { message: 'failed' })
   const json = err.toJSON()

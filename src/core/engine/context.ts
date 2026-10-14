@@ -1,4 +1,3 @@
-// src/core/engine/context.ts
 import type { Derivation, InputId } from './engine'
 
 /**

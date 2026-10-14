@@ -1,7 +1,6 @@
 // Physical output layout helpers.
 //
-// Ported from src/output/layout.ts onto the new identity helpers. Paths are
-// posix-relative (joined to the data dir by the writer).
+// Paths are posix-relative (joined to the data dir by the writer).
 //
 // The dev split layout uses record-identity-based file names (not content
 // hashes) so a record's physical path stays stable when only its content

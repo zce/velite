@@ -1,6 +1,6 @@
 import type { FileEvent } from '../runtime/watcher'
 
-/** Merge consecutive events for the same path; the last event wins. */
+/** Deduplicate queued events by path; the last event per path wins. */
 const mergeEvents = (events: FileEvent[]): FileEvent[] => {
   const byPath = new Map<string, FileEvent>()
   for (const event of events) byPath.set(event.absPath, event)
@@ -15,6 +15,11 @@ export interface Scheduler {
 }
 
 export interface SchedulerDeps {
+  /**
+   * Run one rebuild batch. Serial: the scheduler never overlaps runs. Must
+   * handle its own errors — a rejection here escapes as an unhandled
+   * rejection because the scheduler fires and forgets its drains.
+   */
   run(events: FileEvent[]): Promise<void>
   debounceMs?: number
 }
@@ -27,7 +32,7 @@ export const createScheduler = ({ run, debounceMs = 50 }: SchedulerDeps): Schedu
   let queue: FileEvent[] = []
   let running = false
   let timer: ReturnType<typeof setTimeout> | undefined
-  let scheduled = false
+  let microtask = false
   let disposed = false
 
   const drain = async (): Promise<void> => {
@@ -46,19 +51,20 @@ export const createScheduler = ({ run, debounceMs = 50 }: SchedulerDeps): Schedu
   }
 
   const schedule = (): void => {
-    if (disposed || scheduled) return
+    if (disposed) return
     if (debounceMs > 0) {
+      // One pending timer at a time; a later push replaces the timer.
       if (timer !== undefined) clearTimeout(timer)
       timer = setTimeout(() => {
         timer = undefined
-        scheduled = false
         void drain()
       }, debounceMs)
     } else {
       // Zero debounce: use microtask to avoid setTimeout's ~1ms minimum delay.
-      scheduled = true
+      if (microtask) return
+      microtask = true
       void Promise.resolve().then(() => {
-        scheduled = false
+        microtask = false
         void drain()
       })
     }
@@ -73,7 +79,6 @@ export const createScheduler = ({ run, debounceMs = 50 }: SchedulerDeps): Schedu
     dispose() {
       disposed = true
       if (timer !== undefined) clearTimeout(timer)
-      scheduled = false
       queue = []
     }
   }

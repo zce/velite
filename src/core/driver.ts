@@ -1,6 +1,6 @@
 import { assetInput, assetKeyOf } from './assets'
 import { createEventClassifier } from './classify'
-import { codeFromDiagnostics, diagnostic, equalDiagnosticValue, hasFatalDiagnostic, normalizeDiagnosticValue, VeliteError } from './diagnostic'
+import { diagnostic, equalDiagnosticValue, firstFatalDiagnostic, normalizeDiagnosticValue, VeliteError } from './diagnostic'
 import { loadManifest, MANIFEST_FILENAME, saveManifest } from './output/manifest'
 import { writeOutput } from './output/writer'
 import { buildProjectInfo, fileInput, TREE } from './pipeline'
@@ -13,7 +13,7 @@ import type { Logger } from '../runtime/logger'
 import type { FileEvent } from '../runtime/watcher'
 import type { AssetKey } from './assets'
 import type { PrepareCollections, PrepareContext, PrepareDiagnosticInput, ResolvedConfig } from './config'
-import type { Diagnostic, DiagnosticLevel, DiagnosticValue } from './diagnostic'
+import type { Diagnostic, DiagnosticValue, VeliteErrorCode } from './diagnostic'
 import type { Engine } from './engine'
 import type { LogicalOutput } from './output/logical'
 import type { DataManifest, OutputManifest } from './output/manifest'
@@ -294,7 +294,12 @@ const rebuildOutput = (output: LogicalOutput, collections: PrepareCollections): 
   for (const [name, result] of Object.entries(output.collections)) {
     const data = collections[name]
     if (result.mode === 'single') {
-      const entries = data == null ? [] : [{ ...result.entries[0]!, data }]
+      // An empty single collection reports COLLECTION_EMPTY — a schema-stage
+      // error, hence non-fatal — and can still receive data from the prepare
+      // hook. Synthesize the entry the same way the list branch does instead
+      // of spreading `undefined`.
+      const existing = result.entries[0]
+      const entries = data == null ? [] : [existing === undefined ? { id: `${name}#0` as const, source: '' as const, data } : { ...existing, data }]
       next[name] = { collection: name, mode: 'single', entries }
     } else {
       const arr = Array.isArray(data) ? data : []
@@ -345,7 +350,11 @@ const readSources = async (context: RunContext): Promise<void> => {
       )
     }
   }
-  await pool.drain()
+  // Not pool.drain(): drain only waits for settlement — it drops rejections,
+  // turning a failed read (file vanished between walk and read, permission
+  // error) into an unhandled process crash. Promise.all propagates the first
+  // failure while keeping handlers attached to every in-flight task.
+  await Promise.all(tasks)
 }
 
 /**
@@ -380,15 +389,33 @@ const rememberEmitted = (context: RunContext, emitted: Emitted): void => {
 
 const hasUniqueEffect = (emitted: Emitted): boolean => emitted.effects.some(effect => effect.type === 'unique')
 
+/**
+ * Fatal (non-schema) errors make the output untrustworthy: throw a
+ * `VeliteError` carrying the first fatal diagnostic's stage as its code and
+ * its message as the error message, so catchers (CLI, watch) can print
+ * something meaningful even without the diagnostic list.
+ */
+const throwIfFatal = (diagnostics: readonly Diagnostic[]): void => {
+  const fatal = firstFatalDiagnostic(diagnostics)
+  if (fatal !== undefined) {
+    throw new VeliteError(fatal.stage as VeliteErrorCode, { message: fatal.message, diagnostics: [...diagnostics] })
+  }
+}
+
 const tryPatchEmitted = async (context: RunContext): Promise<Emitted | undefined> => {
   const previous = context.lastEmitted
   const changedPaths = context.changedPaths
   if (previous === undefined || changedPaths === undefined || changedPaths.size === 0) return undefined
-  if (context.config.prepare !== undefined || previous.diagnostics.length > 0 || hasUniqueEffect(previous)) return undefined
+  if (context.config.prepare !== undefined || hasUniqueEffect(previous)) return undefined
 
   const collections: Emitted['output']['collections'] = { ...previous.output.collections }
   let effects = previous.effects
-  const diagnostics: Emitted['diagnostics'] = []
+  // previous.diagnostics holds everything the last build reported: warn/info
+  // plus schema-stage error diagnostics — the only error level that doesn't
+  // throw before rememberEmitted records a build. Carry them forward instead
+  // of disabling the patch; diagnostics owned by a patched source are dropped
+  // below when that source is re-validated.
+  const diagnostics: Emitted['diagnostics'] = [...previous.diagnostics]
   const patchedCollections = new Set<string>()
 
   for (const path of changedPaths) {
@@ -401,7 +428,16 @@ const tryPatchEmitted = async (context: RunContext): Promise<Emitted | undefined
       if (current === undefined || current.mode !== 'list') return undefined
 
       const validated = await context.engine.get(context.pipeline.validate, { collection: collectionName, path })
-      if (validated.diagnostics.length > 0 || validated.effects.some(effect => effect.type === 'unique')) return undefined
+      // Error-level validation failures need the full re-emit path (empty
+      // entries, reported diagnostics); warn/info can ride along with the
+      // patch, matching what a full rebuild would report.
+      if (validated.diagnostics.some(d => d.level === 'error') || validated.effects.some(effect => effect.type === 'unique')) return undefined
+      // Drop the diagnostics the previous build attributed to this source —
+      // the fresh validation above replaces them.
+      for (let i = diagnostics.length - 1; i >= 0; i--) {
+        const provenance = diagnostics[i]!.provenance
+        if ((provenance.scope === 'source' || provenance.scope === 'record') && provenance.source.path === path) diagnostics.splice(i, 1)
+      }
       diagnostics.push(...validated.diagnostics)
 
       const removedOwners = new Set<string>(current.entries.filter(entry => entry.source === path).map(entry => entry.id))
@@ -544,9 +580,7 @@ const runPrepareHook = async (
     // If the prepare hook (or earlier stages) produced a fatal diagnostic,
     // the build still fails with the appropriate VeliteError code, matching
     // the normal runBuild path.
-    if (hasFatalDiagnostic(merged)) {
-      throw new VeliteError(codeFromDiagnostics(merged), { diagnostics: merged })
-    }
+    throwIfFatal(merged)
     return { suppressed: true, result: { output, diagnostics: merged, written: [] } }
   }
   // A void return means the hook mutated the view in place; a collections
@@ -654,9 +688,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
   runtime.logger.report(finalDiagnostics)
   // Fatal (non-schema) errors make the output untrustworthy: report and throw,
   // skipping the write. Schema-level errors are non-fatal and returned in the result.
-  if (hasFatalDiagnostic(finalDiagnostics)) {
-    throw new VeliteError(codeFromDiagnostics(finalDiagnostics), { diagnostics: finalDiagnostics })
-  }
+  throwIfFatal(finalDiagnostics)
   const {
     written: dataWritten,
     manifest,
@@ -703,11 +735,15 @@ const runBuild = async (context: RunContext, layout: 'split' | 'single' = 'split
 
 /** Re-emit after inputs were patched (incremental). Skips full tree walk and bulk read. */
 const runIncremental = async (context: RunContext, layout: 'split' | 'single' = 'split'): Promise<BuildResult> => {
-  const patched = await tryPatchEmitted(context)
-  const result = await emitAndWrite(context, layout, patched)
-  context.changedPaths = undefined
-  context.patchedCollections = undefined
-  return result
+  try {
+    const patched = await tryPatchEmitted(context)
+    return await emitAndWrite(context, layout, patched)
+  } finally {
+    // Consume the patch hints even when the run fails: a stale
+    // changedPaths/patchedCollections pair must never steer a later patch.
+    context.changedPaths = undefined
+    context.patchedCollections = undefined
+  }
 }
 
 /**

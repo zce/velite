@@ -2,9 +2,9 @@
 
 ::: warning
 
-🚧 This documentation is not yet complete currently. but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+Velite 1.0 is currently in **alpha** — the API is mostly stable, but breaking changes are still possible between alpha releases. See [Migration to 1.0 Alpha](./migration.md) for what changed.
 
-However, I have provided some [examples](https://github.com/zce/velite/tree/main/examples) for your consideration.
+A few [examples](https://github.com/zce/velite/tree/main/examples) are available for your consideration.
 
 :::
 

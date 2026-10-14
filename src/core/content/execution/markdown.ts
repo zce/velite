@@ -14,12 +14,13 @@ import { removeChildrenWhere } from './tree-filter'
 import type { Root as Hast } from 'hast'
 import type { Root } from 'mdast'
 import type { ProcessAsset } from '../asset-links'
+import type { MarkdownOptions } from '../options'
 import type { NavigationSnapshot } from './navigation'
 import type { ContentProcessor } from './processor'
-import type { ContentOptions, OwnedContent } from './types'
+import type { OwnedContent } from './types'
 
 export interface MarkdownExecutionDeps {
-  options: ContentOptions
+  options: MarkdownOptions
   path: string
   cwd: string
   text: string
@@ -52,6 +53,10 @@ export const createMarkdownExecution = ({ options, path, cwd, text, processAsset
           removeChildrenWhere(tree, child => (child as { type?: string }).type === 'comment')
         })
       configured.use(options.rehypePlugins ?? []).use(rehypeStringify)
+      // Registered after the compiler on purpose: unified runs transformers in
+      // registration order BEFORE the compiler, so this still sees the tree.
+      // (Kept last so linked-file rewriting cannot be reordered away by user
+      // rehype plugins.)
       if (processAsset) configured.use(rehypeCopyLinkedFiles, processAsset)
       configured.use(() => (tree: Hast) => {
         if (closed) fail('internal', 'Markdown content is closed')

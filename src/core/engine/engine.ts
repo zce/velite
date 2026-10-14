@@ -1,4 +1,3 @@
-// src/core/engine/engine.ts
 import { hash } from '../util/hash'
 
 import type { Context } from './context'
@@ -37,9 +36,10 @@ export interface Engine {
 }
 
 /**
- * Thrown by the engine for invariant violations: dependency cycles and reads of
- * unset inputs. M1 leaves this as a native engine error; M2's driver boundary
- * translates it into a `VeliteError`.
+ * Thrown by the engine for invariant violations: dependency cycles and reads
+ * of unset inputs. `missing-input` doubles as the asset derivation's
+ * placeholder signal (caught there); a `cycle` escapes to the caller of
+ * `engine.get` as-is — it indicates derivation wiring bugs, not user content.
  */
 export class EngineError extends Error {
   constructor(

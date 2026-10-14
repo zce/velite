@@ -15,13 +15,19 @@ export const matterLoader: Loader = {
     if (match === null) {
       return { items: [{ key: '', data: { content: text } }] }
     }
-    let meta: Record<string, unknown>
+    let meta: unknown
     try {
-      meta = (parse(match[1]!) as Record<string, unknown>) ?? {}
+      meta = parse(match[1]!) ?? {}
     } catch (cause) {
       return loaderFailure('frontmatter', path, cause)
     }
-    const content = match[2] ?? ''
+    // Frontmatter must be a mapping. A scalar or sequence would otherwise be
+    // spread into numeric-keyed objects downstream and surface as baffling
+    // schema errors instead of a clean loader failure.
+    if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) {
+      return loaderFailure('frontmatter', path, new Error('expected a YAML mapping of fields'))
+    }
+    const content = match[2]!
     return { items: [{ key: '', data: { ...meta, content } }] }
   }
 }

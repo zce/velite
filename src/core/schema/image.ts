@@ -71,7 +71,7 @@ export interface ImageSchemaOptions {
 export const image = ({ absoluteRoot, blur, outputName }: ImageSchemaOptions = {}): z.ZodType<ImageData> =>
   z.string().transform<ImageData>(async (value, { addIssue }) => {
     try {
-      const { project, file, record, asset, collectEffect, readFile, probeImage } = context()
+      const { project, file, asset, collectEffect, readFile, probeImage } = context()
 
       // Absolute-path branch: read directly, probe directly, return value as-is.
       if (absoluteRoot !== undefined && value.startsWith('/')) {

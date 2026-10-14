@@ -4,7 +4,7 @@ outline: deep
 
 # Configuration
 
-When running `velite` from the command line, Velite will automatically try to resolve a config file named `velite.config.js` inside project root (other JS and TS extensions are also supported).
+When running `velite` from the command line, Velite automatically resolves a config file named `velite.config.ts` (falling back to `.js`, `.mjs`, `.mts`, `.cjs`, `.cts` in that order) starting in the working directory and up to 3 parent directories.
 
 ## Velite Config File
 

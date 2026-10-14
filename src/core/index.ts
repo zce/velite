@@ -76,6 +76,8 @@ export type {
   ContentRecord,
   Effect,
   EffectDeclarationContext,
+  EffectRequestProvenance,
+  EffectSystemOwner,
   ExcerptSchemaOptions,
   FileSchemaOptions,
   ImageData,

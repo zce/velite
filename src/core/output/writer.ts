@@ -167,8 +167,10 @@ interface ReconcileInput {
 const patchSingleLayout = async ({ deps, output, previous, pretty, entryJsonCache }: ReconcileInput): Promise<WriteResult> => {
   const manifest: DataManifest = { files: { ...previous.files } }
   const written: string[] = []
+  // Guaranteed by writeOutput's dispatch; narrowed to a const for the loop.
+  const changedCollections = deps.changedCollections!
   for (const collection of deps.collections) {
-    if (!deps.changedCollections!.has(collection.name)) continue
+    if (!changedCollections.has(collection.name)) continue
     const entries = output.collections[collection.name]?.entries ?? []
     let content: string
     let digest: string
@@ -198,10 +200,11 @@ const patchSingleLayout = async ({ deps, output, previous, pretty, entryJsonCach
 const patchSplitLayout = async ({ deps, output, previous, pretty, entryJsonCache }: ReconcileInput): Promise<WriteResult> => {
   const manifest: DataManifest = { files: { ...previous.files } }
   const written: string[] = []
-  // Narrowed to a const so the filter callback below keeps the non-undefined type.
+  // Guaranteed by writeOutput's dispatch; narrowed to consts for the loop.
+  const changedCollections = deps.changedCollections!
   const changedSources = deps.changedSources!
   for (const collection of deps.collections) {
-    if (!deps.changedCollections!.has(collection.name)) continue
+    if (!changedCollections.has(collection.name)) continue
     const entries = output.collections[collection.name]?.entries ?? []
     const touched = entries.filter(e => changedSources.has(e.source))
     for (const write of planSplitOutput(collection.name, touched, pretty)) {

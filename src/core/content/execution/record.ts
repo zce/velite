@@ -90,17 +90,21 @@ interface RecordRun {
 /** Rank used by the pending-demand recursion guard: later phases may not await themselves. */
 const STAGE_RANK = { parse: 0, transform: 1, emit: 2 } as const
 
-/** Resolve a definition's effective options: definition-local ?? global ?? built-in default. */
+/**
+ * Resolve a definition's effective options. Markdown and MDX share the
+ * common fields (`MarkdownOptions`, from the matching global block); the
+ * MDX-only compile fields always read the mdx global.
+ */
 const resolveContentOptions = (project: ProjectInfo, definition: ContentDefinitionDescriptor): MdxContentOptions => {
   const local = definition.options
-  const global = definition.dialect === 'mdx' ? project.mdx : project.markdown
+  const common = definition.dialect === 'mdx' ? project.mdx : project.markdown
   const mdxGlobal = definition.dialect === 'mdx' ? project.mdx : undefined
   return {
-    gfm: local.gfm ?? global?.gfm ?? true,
-    removeComments: local.removeComments ?? global?.removeComments ?? true,
-    copyLinkedFiles: local.copyLinkedFiles ?? global?.copyLinkedFiles ?? true,
-    remarkPlugins: [...(local.remarkPlugins ?? []), ...(global?.remarkPlugins ?? [])],
-    rehypePlugins: [...(local.rehypePlugins ?? []), ...(global?.rehypePlugins ?? [])],
+    gfm: local.gfm ?? common?.gfm ?? true,
+    removeComments: local.removeComments ?? common?.removeComments ?? true,
+    copyLinkedFiles: local.copyLinkedFiles ?? common?.copyLinkedFiles ?? true,
+    remarkPlugins: [...(local.remarkPlugins ?? []), ...(common?.remarkPlugins ?? [])],
+    rehypePlugins: [...(local.rehypePlugins ?? []), ...(common?.rehypePlugins ?? [])],
     minify: local.minify ?? mdxGlobal?.minify ?? true,
     outputFormat: local.outputFormat ?? mdxGlobal?.outputFormat ?? 'function-body',
     development: local.development ?? mdxGlobal?.development ?? false,
@@ -263,7 +267,9 @@ const runStage = (run: RecordRun, execution: Execution, phase: 'parse' | 'transf
  */
 const trackWait = (run: RecordRun, execution: Execution, phase: 'parse' | 'transform' | 'emit'): (() => void) | undefined => {
   const from = run.host.get().contentStage?.execution
-  if (!from || (execution.stages[phase] && execution.stages[phase]!.state !== 'pending')) return
+  if (from === undefined) return
+  const outcome = execution.stages[phase]
+  if (outcome !== undefined && outcome.state !== 'pending') return
   const seen = new Set<symbol>()
   const reachesCaller = (token: symbol): boolean => {
     if (token === from) return true
@@ -289,12 +295,19 @@ const trackWait = (run: RecordRun, execution: Execution, phase: 'parse' | 'trans
   }
 }
 
+/** Map a selection to the phase that produces it. */
+const phaseOf = (selection: SemanticContentRequest['selection']): ContentStageScope['phase'] => {
+  if (selection === 'html' || selection === 'code') return 'emit'
+  if (selection === 'toc') return 'transform'
+  return 'parse' // excerpt / metadata read only the parse-stage source text
+}
+
 /** One semantic content demand: run (or join) the required stage, return the selection. */
 const demandContent = async (run: RecordRun, request: SemanticContentRequest): Promise<unknown> => {
   active(run)
   const execution = obtainExecution(run, request)
   if (request.selection === 'toc') execution.navigationRequested = true
-  const phase = request.selection === 'html' || request.selection === 'code' ? 'emit' : request.selection === 'toc' ? 'transform' : 'parse'
+  const phase = phaseOf(request.selection)
   const releaseWait = trackWait(run, execution, phase)
   try {
     await Promise.race([runStage(run, execution, phase), run.terminal])
@@ -309,11 +322,9 @@ const demandContent = async (run: RecordRun, request: SemanticContentRequest): P
     if (!execution.navigation) fail('internal', 'Completed content transform has no navigation snapshot')
     return execution.navigation.items.map(item => ({ ...item }))
   }
-  return request.selection === 'html' || request.selection === 'code'
-    ? execution.output
-    : request.selection === 'excerpt'
-      ? sourceExcerpt(execution.source, request.length)
-      : sourceMetadata(execution.source)
+  if (request.selection === 'html' || request.selection === 'code') return execution.output
+  if (request.selection === 'excerpt') return sourceExcerpt(execution.source, request.length)
+  return sourceMetadata(execution.source)
 }
 
 /** Collect this record's non-fatal execution warnings as CONTENT_WARNING diagnostics. */

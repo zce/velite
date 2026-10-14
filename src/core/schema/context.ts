@@ -29,7 +29,7 @@ import type { EffectDeclarationContext, SchemaEffectDeclaration } from './effect
  * parser; Velite-owned results use the private record-bound content capability.
  */
 export interface ContentFile {
-  /** Stable source id (project-relative, POSIX). */
+  /** Stable source id (content-root-relative, POSIX). */
   readonly id: string
   /** Absolute source file path. */
   readonly path: string

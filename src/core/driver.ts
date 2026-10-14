@@ -37,8 +37,6 @@ export interface RunContext {
   pipeline: Pipeline
   config: ResolvedConfig
   runtime: DriverRuntime
-  /** Project working directory (where the user runs velite). */
-  cwd: string
   /** Shadow copy of the tree input, kept in sync with the engine. */
   tree: TreeFile[]
   manifest: DataManifest
@@ -76,7 +74,6 @@ export interface RunContextDeps {
   pipeline: Pipeline
   config: ResolvedConfig
   runtime: DriverRuntime
-  cwd: string
 }
 
 const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => compareStrings(a.path, b.path))
@@ -358,18 +355,8 @@ const readSources = async (context: RunContext): Promise<void> => {
 }
 
 /**
- * Two-pass emit + write.
- *
- * Pass 1 demands emit to discover asset references (schema parses complete
- * against placeholder asset urls). The driver then reads each referenced
- * asset's bytes and feeds them as `asset:<key>` inputs. Pass 2 re-demands emit
- * so the asset derivation (and everything downstream) recomputes with real
- * probe results and content-hashed urls. Then diagnostics are reported, the
- * data output is written (unchanged), and referenced asset files are copied
- * into the assets output directory.
- *
- * Asset read failures become fatal `ASSET_FAILED` diagnostics rather than
- * crashing the build.
+ * Remember the last emit on the run context: the incremental-patch seed plus
+ * the source → collections index patches use for routing.
  */
 const rememberEmitted = (context: RunContext, emitted: Emitted): void => {
   context.lastEmitted = emitted
@@ -610,7 +597,6 @@ const copyAssets = async (
   const desiredAssets = new Set<string>()
   const writeDiagnostics: Diagnostic[] = []
   const assetsToWrite: Array<{ assetKey: string; dest: string }> = []
-  const assetWriteReads = new Set<string>()
   const seenPairs = new Set<string>()
   for (const effect of emitted.effects) {
     if (effect.type !== 'asset') continue
@@ -625,11 +611,15 @@ const copyAssets = async (
     desiredAssets.add(dest)
     if (context.assetManifest.has(dest)) continue
     assetsToWrite.push({ assetKey: effect.assetKey, dest })
-    assetWriteReads.add(effect.assetKey)
   }
 
+  // The resolve phase only reads bytes for unresolved assets; ones that
+  // resolved via the derivation's lazy disk read are not in the session yet.
+  // Read those here so every planned write has bytes.
   await Promise.all(
-    Array.from(assetWriteReads, assetKey => (session.bytes.has(assetKey) ? undefined : readAssetBytes(context, session, assetKey, join(config.root, assetKey))))
+    Array.from(new Set(assetsToWrite.map(a => a.assetKey)), assetKey =>
+      session.bytes.has(assetKey) ? undefined : readAssetBytes(context, session, assetKey, join(config.root, assetKey))
+    )
   )
 
   const assetWrites: Promise<void>[] = []
@@ -658,7 +648,18 @@ const copyAssets = async (
   return { written, desiredAssets, writeDiagnostics }
 }
 
-/** Run the emit pipeline, apply the prepare hook, write data + assets, reconcile. */
+/**
+ * Run the emit pipeline, apply the prepare hook, write data + assets, reconcile.
+ *
+ * Two passes: emit is first demanded against placeholder asset urls to
+ * discover asset references; the driver then feeds each referenced asset's
+ * bytes as `asset:<key>` inputs and re-demands emit (pass 2) so the asset
+ * derivation — and everything downstream — recomputes with real probe results
+ * and content-hashed urls. Diagnostics are reported, the data output is
+ * written (unchanged files skipped), and referenced asset files are copied
+ * into the assets output directory. Asset read/write failures become fatal
+ * `ASSET_FAILED` diagnostics rather than crashing the build.
+ */
 const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', patched?: Emitted): Promise<BuildResult> => {
   const { engine, pipeline, runtime } = context
 
@@ -673,7 +674,7 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
 
   // Diagnostics known before the prepare hook: schema/unique (from emit) +
   // asset read failures. Asset *write* failures happen during the copy below.
-  const preparedAssetReadDiagnosticCount = resolved.session.diagnostics.length
+  const assetReadDiagnosticCount = resolved.session.diagnostics.length
   let diagnostics = [...emitted.diagnostics, ...resolved.session.diagnostics]
 
   const prepared = await runPrepareHook(context, emitted.output, diagnostics)
@@ -682,7 +683,10 @@ const emitAndWrite = async (context: RunContext, layout: 'split' | 'single', pat
   diagnostics = prepared.diagnostics
 
   const copied = await copyAssets(context, emitted, resolved.session)
-  diagnostics = [...diagnostics, ...resolved.session.diagnostics.slice(preparedAssetReadDiagnosticCount), ...copied.writeDiagnostics]
+  // copyAssets can append further read failures to the session (bytes it had
+  // to read itself); take only those new entries to avoid duplicating the
+  // ones already merged above.
+  diagnostics = [...diagnostics, ...resolved.session.diagnostics.slice(assetReadDiagnosticCount), ...copied.writeDiagnostics]
 
   const finalDiagnostics = diagnostics
   runtime.logger.report(finalDiagnostics)
@@ -836,14 +840,13 @@ const applyChanges = async (context: RunContext, events: FileEvent[]): Promise<A
  * `output.data` / `output.assets` is dropped, so a corrupted/tampered manifest
  * can never make the next build delete files Velite did not write.
  */
-export const createRunContext = async ({ engine, pipeline, config, runtime, cwd }: RunContextDeps): Promise<RunContext> => {
+export const createRunContext = async ({ engine, pipeline, config, runtime }: RunContextDeps): Promise<RunContext> => {
   const persisted = await loadManifest(runtime.fs, join(config.output.data, MANIFEST_FILENAME), config.output.data, config.output.assets)
   return {
     engine,
     pipeline,
     config,
     runtime,
-    cwd,
     tree: [],
     manifest: { files: persisted.files },
     assetManifest: new Set(persisted.assets),

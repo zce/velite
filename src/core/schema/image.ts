@@ -12,10 +12,10 @@
 //   - `outputName` overrides the global `output.name` filename template for
 //     this specific schema invocation.
 //
-// Ported from the pre-refactor `src/schemas/image.ts`. The no-sharp degradation
-// (runtime without an image processor) is handled inside the asset derivation
-// AND the `probeImage` closure: both return zero metadata so `s.image` produces
-// an `ImageData` with zeros — no crash, no diagnostic.
+// The no-sharp degradation (runtime without an image processor) is handled
+// inside the asset derivation AND the `probeImage` closure: both return zero
+// metadata so `s.image` produces an `ImageData` with zeros — no crash, no
+// diagnostic.
 
 import { z } from 'zod'
 

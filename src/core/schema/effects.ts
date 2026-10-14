@@ -86,7 +86,7 @@ export interface EffectSystemOwner {
   readonly collectionOrder: number
   /** Collection id (non-empty). */
   readonly collectionId: string
-  /** Source path (normalized project-relative POSIX). */
+  /** Source path (normalized content-root-relative POSIX). */
   readonly sourcePath: string
   /** Record source index (non-negative safe integer). */
   readonly recordIndex: number

@@ -15,7 +15,7 @@ export interface PathSchemaOptions {
 }
 
 /**
- * Flattened path schema derived from the current file's project-relative path.
+ * Flattened path schema derived from the current file's content-root-relative path.
  */
 export const path = (options?: PathSchemaOptions): Schema<string> =>
   z

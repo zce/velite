@@ -414,10 +414,13 @@ const occurrenceRank = (o: StableOccurrence | undefined): number => {
   return 2
 }
 
+// Same single-source pattern as STAGES/LEVELS: the array literal IS the
+// canonical scope rank.
+const SCOPES = ['project', 'collection', 'source', 'record'] as const
+
 const compareProvenance = (a: DiagnosticProvenance, b: DiagnosticProvenance): number => {
-  const scopeRank = (s: string): number => ['project', 'collection', 'source', 'record'].indexOf(s)
-  const sa = scopeRank(a.scope)
-  const sb = scopeRank(b.scope)
+  const sa = SCOPES.indexOf(a.scope)
+  const sb = SCOPES.indexOf(b.scope)
   if (sa !== sb) return sa - sb
   if (a.scope === 'project' && b.scope === 'project') return 0
   if (a.scope === 'collection' && b.scope === 'collection') {
@@ -578,11 +581,6 @@ interface VeliteErrorOptions<T = unknown> {
   diagnostics?: Diagnostic[]
 }
 
-/**
- * Render a context/cause value for `VeliteError.toString()`. Rendering must
- * never throw: hostile `toString`/`toJSON`/getters and circular structures
- * fall back to the safe normalized shape instead of crashing `String(err)`.
- */
 const isErrorValue = (value: DiagnosticValue): value is { readonly type: 'error'; readonly name: string; readonly message: string } =>
   typeof value === 'object' && value !== null && 'type' in value && value.type === 'error'
 
@@ -595,6 +593,11 @@ const isErrorLike = (value: unknown): boolean => {
   }
 }
 
+/**
+ * Render a context/cause value for `VeliteError.toString()`. Rendering must
+ * never throw: hostile `toString`/`toJSON`/getters and circular structures
+ * fall back to the safe normalized shape instead of crashing `String(err)`.
+ */
 const renderValue = (value: unknown): string => {
   // Errors render like their own toString, but with name/message extracted
   // safely — an overridden throwing toString must not break String(err).

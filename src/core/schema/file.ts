@@ -2,10 +2,8 @@
 // url, emitting an `AssetReferenceEffect` so the driver copies the file and the
 // two-pass asset flow can resolve its content-hashed url.
 //
-// Ported from the pre-refactor `src/schemas/file.ts`, adapted to the new
-// schema context (`context().asset(assetKey)` + `collectEffect`) and the
-// engine-driven asset derivation. Non-relative paths (absolute paths, URLs,
-// fragments) pass through unchanged when `allowNonRelativePath` is true.
+// Non-relative paths (absolute paths, URLs, fragments) pass through unchanged
+// when `allowNonRelativePath` is true.
 
 import { z } from 'zod'
 

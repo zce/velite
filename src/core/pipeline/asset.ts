@@ -1,6 +1,7 @@
 // Asset derivation: the memoized, backdating-friendly bridge from raw asset
 // bytes to the public-url + image metadata that schemas (`s.image` / `s.file`)
-// consume. This is the core of the two-pass asset model (spec §4/§5/§6).
+// consume. This is the core of the two-pass asset model (see the driver's
+// `emitAndWrite` for the orchestrating flow).
 //
 // The chicken-and-egg (the driver cannot know which assets are referenced until
 // emit runs, but emit needs asset metadata) is solved with a PLACEHOLDER: when

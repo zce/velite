@@ -100,7 +100,7 @@ const loadSession = async (deps: BuilderDeps): Promise<Session> => {
   const loaders = createLoaderRegistry(deps.loaders ?? [])
   const pipeline = createPipeline({ config, loaders, fs, image, schemaRunner, contentExecutionsFactory })
   const engine = createEngine()
-  const context = await createRunContext({ engine, pipeline, config, runtime: { fs, logger }, cwd: deps.cwd })
+  const context = await createRunContext({ engine, pipeline, config, runtime: { fs, logger } })
   const driver = createDriver({ context })
   return { config, engine, pipeline, context, driver }
 }

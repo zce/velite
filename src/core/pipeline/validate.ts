@@ -10,6 +10,7 @@ import type { ContentDeclaration, ContentExecutionsFactory } from '../content/ex
 import type { Diagnostic } from '../diagnostic'
 import type { Derivation } from '../engine'
 import type { Entry } from '../model'
+import type { ContentRequest } from '../schema/capability'
 import type { AssetRequest, ImageMetadata, ProjectCollectionInfo, ProjectInfo, SchemaContext } from '../schema/context'
 import type { Effect, EffectSystemOwner } from '../schema/effects'
 import type { SchemaRunInput, SchemaRunner } from '../schema/runner'
@@ -193,7 +194,7 @@ export const createValidateDerivation = (
           collection: { order: collectionOrder, id: collection },
           collectEffects: collector.collectEffects
         })
-        const contentOperation = (request: Parameters<SchemaRunInput['contentOperation']>[0]): Promise<unknown> => content.demand(request)
+        const contentOperation = (request: ContentRequest): Promise<unknown> => content.demand(request)
 
         const runInput: SchemaRunInput = {
           project,

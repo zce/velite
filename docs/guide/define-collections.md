@@ -44,13 +44,13 @@ export default defineConfig({
 
 ## Collection Schema Options
 
-### `name`
+### `typeName`
 
-The name of the collection. This is used to generate the type name for the collection.
+The generated TypeScript type name for the collection. The collection's object key in `collections` is the data export name; `typeName` is the type name. Defaults to the collection key.
 
 ```js
 const posts = defineCollection({
-  name: 'Post'
+  typeName: 'Post'
 })
 ```
 
@@ -107,29 +107,35 @@ The schema is usually a `ZodObject`, validating the shape of the content item. B
 For more complex schemas, use [Velite extended schemas `s`](velite-schemas.md):
 
 - `s.slug()`: validate slug format, unique in posts collection.
-- `s.isodate()`: format date string to ISO date string.
+- `s.isoDate()`: format date string to ISO date string.
 - `s.unique()`: validate unique value in collection.
 - `s.image()`: input image relpath, output image object with blurImage.
 - `s.file()`: input file relpath, output file public path.
-- `s.metadata()`: extract markdown reading-time, word-count, etc.
-- `s.excerpt()`: excerpt of markdown content
-- `s.markdown()`: transform markdown to html
-- `s.mdx()`: transform mdx to function code.
+
+For Markdown/MDX results, create a [Content Definition](content-executions.md) with `content.markdown()` or `content.mdx()`:
+
+- `.metadata()`: source reading time and weighted word count.
+- `.excerpt()`: normalized static pre-transform source text.
+- `.toc()`: navigation through transformed headings and actual anchor IDs.
+- Markdown `.html()`: generated HTML.
+- MDX `.code()`: compiled JavaScript string.
 
 For example:
 
 ```js
-import { s } from 'velite'
+import { content, defineCollection, s } from 'velite'
+
+const postContent = content.markdown()
 
 const posts = defineCollection({
   schema: s.object({
     slug: s.slug('posts'),
-    date: s.isodate(),
+    date: s.isoDate(),
     cover: s.image(),
     video: s.file().optional(),
-    metadata: s.metadata(),
-    excerpt: s.excerpt(),
-    content: s.markdown()
+    metadata: postContent.metadata(),
+    excerpt: postContent.excerpt(),
+    content: postContent.html()
   })
 })
 ```
@@ -172,7 +178,7 @@ const posts = defineCollection({
         ...data,
         // computed fields
         path: file.path, // or parse to filename based slug
-        basename: file.basename
+        basename: file.path.split(/[\\/]/).pop()
       }
     })
 })
@@ -182,36 +188,21 @@ For more information about accessing file context, see [Custom Schema](custom-sc
 
 ## Content Body
 
-Velite's built-in loader keeps content's raw body in `file.content`, and the plain text body in `file.plain`.
-
-To add them as a field, you can use a custom schema with the `context()` function.
+Velite's frontmatter loader keeps the raw Markdown/MDX body in `context().file.content`. Use `s.raw()` to retain it as a field. There is no `file.plain`, `file.mdast`, or `file.hast` getter; use a dialect-specific definition for source analysis.
 
 ```js
-import { context, s } from 'velite'
+import { defineCollection, s } from 'velite'
 
 const posts = defineCollection({
   schema: s.object({
-    content: s
-      .string()
-      .optional()
-      .transform(() => {
-        const { file } = context()
-        return file.content
-      }),
-    plain: s
-      .string()
-      .optional()
-      .transform(() => {
-        const { file } = context()
-        return file.plain
-      })
+    raw: s.raw()
   })
 })
 ```
 
 ::: tip
 
-This will keep the original document body, In most cases, you should use `s.markdown()` / `s.mdx()` schema to transform the document body.
+This keeps the original document body. To generate HTML or MDX code, use a Content Definition's `.html()` or `.code()` schema instead.
 
 :::
 
@@ -220,9 +211,12 @@ This will keep the original document body, In most cases, you should use `s.mark
 In addition to validating the content items in a collection, Velite can also process the content body using [Unified](https://unifiedjs.com).
 
 ```js
+import { content, defineCollection, s } from 'velite'
+
+const postContent = content.markdown()
 const posts = defineCollection({
   schema: s.object({
-    content: s.markdown() // or s.mdx()
+    content: postContent.html() // for MDX: content.mdx().code()
   })
 })
 ```
@@ -231,37 +225,45 @@ The `content` field will be transformed from markdown to html, and the result wi
 
 #### Reference
 
-- [`s.markdown(options)`](velite-schemas.md#s-markdown-options)
-- [`s.mdx(options)`](velite-schemas.md#s-mdx-options)
+- [`content.markdown(options)`](velite-schemas.md#content-markdown-options)
+- [`content.mdx(options)`](velite-schemas.md#content-mdx-options)
 
 ### Metadata
 
 Velite can extract metadata from content files. This is useful for adding computed fields to the content items in a collection.
 
 ```js
+import { content, defineCollection, s } from 'velite'
+
+const postContent = content.markdown()
 const posts = defineCollection({
   schema: s.object({
-    metadata: s.metadata() // extract markdown reading-time, word-count, etc.
+    metadata: postContent.metadata() // source reading time and weighted word count
   })
 })
 ```
 
 #### Reference
 
-- [`s.metadata()`](velite-schemas.md#s-metadata)
+- [`definition.metadata()`](velite-schemas.md#definition-metadata)
 
 ### Excerpt
 
 Velite can extract excerpt from content files. This is useful for adding computed fields to the content items in a collection.
 
 ```js
+import { content, defineCollection, s } from 'velite'
+
+const postContent = content.markdown()
 const posts = defineCollection({
   schema: s.object({
-    excerpt: s.excerpt({ length: 200 }) // excerpt of the markdown body
+    excerpt: postContent.excerpt({ length: 200 }) // static pre-transform source text
   })
 })
 ```
 
 #### Reference
 
-- [`s.excerpt(options)`](velite-schemas.md#s-excerpt)
+- [`definition.excerpt(options)`](velite-schemas.md#definition-excerpt-options)
+
+Source excerpt and metadata are available without a generated-content field. Reuse the same definition when adding related selections; do not create separate equal-looking definitions expecting shared work. TOC describes transformed headings rather than a source outline. See [Content Definitions](content-executions.md) for input selection, navigation, and native Zod wrapper behavior.

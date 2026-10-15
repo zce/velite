@@ -35,7 +35,7 @@ export default withVelite({
 
 ## Options
 
-Accepts Velite build options except `watch` and `clean`; the plugin controls those based on the Next.js command.
+Accepts Velite build options ([`BuildEntryOptions`](https://velite.js.org/reference/api#buildentryoptions)) except `clean` — the plugin controls that based on the Next.js command (`next dev` watches without cleaning; `next build` / `next typegen` run a clean production build).
 
 ## License
 

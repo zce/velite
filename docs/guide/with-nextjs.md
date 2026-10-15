@@ -4,7 +4,55 @@ Velite is a framework agnostic library, it can be used in any JavaScript framewo
 
 Here are some recipes for help you better integrate Velite with Next.js.
 
-## 🎊 Start Velite with Next.js Config 🆕
+## 🎊 Next.js Plugin (Recommended)
+
+The [`@velite/plugin-next`](https://github.com/zce/velite/tree/main/packages/next) package handles both dev watch and production build for you, and works with Turbopack:
+
+::: code-group
+
+```sh [npm]
+$ npm install -D velite @velite/plugin-next
+```
+
+```sh [pnpm]
+$ pnpm add -D velite @velite/plugin-next
+```
+
+```sh [yarn]
+$ yarn add -D velite @velite/plugin-next
+```
+
+```sh [bun]
+$ bun add -D velite @velite/plugin-next
+```
+
+:::
+
+In your `next.config.ts`:
+
+```ts
+import { withVelite } from '@velite/plugin-next'
+
+export default withVelite({
+  // other next config here...
+})
+```
+
+To pass Velite options, create a configured plugin:
+
+```ts
+import { createNextPlugin } from '@velite/plugin-next'
+
+const withVelite = createNextPlugin({ config: './velite.config.ts' })
+
+export default withVelite({
+  reactStrictMode: true
+})
+```
+
+The plugin accepts Velite build options ([`BuildEntryOptions`](/reference/api#buildentryoptions)) except `clean` — it controls that based on the Next.js command: `next dev` runs watch mode without cleaning, while `next build` / `next typegen` run a one-shot clean production build.
+
+## Start Velite with Next.js Config
 
 Next.js is gradually adopting Turbopack because it is significantly faster. However, Turbopack is not fully compatible with the Webpack ecosystem, which means that the `VeliteWebpackPlugin` does not function correctly when Turbopack is enabled. Here is a completely new solution.
 
@@ -17,7 +65,7 @@ const isDev = process.argv.indexOf('dev') !== -1
 const isBuild = process.argv.indexOf('build') !== -1
 if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
   process.env.VELITE_STARTED = '1'
-  import('velite').then(m => m.build({ watch: isDev, clean: !isDev }))
+  import('velite').then(m => (isDev ? m.watch({ clean: false }) : m.build({ clean: true })))
 }
 
 const nextConfig: NextConfig = {
@@ -32,8 +80,8 @@ const isDev = process.argv.indexOf('dev') !== -1
 const isBuild = process.argv.indexOf('build') !== -1
 if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
   process.env.VELITE_STARTED = '1'
-  const { build } = await import('velite')
-  await build({ watch: isDev, clean: !isDev })
+  const { build, watch } = await import('velite')
+  await (isDev ? watch({ clean: false }) : build({ clean: true }))
 }
 
 /** @type {import('next').NextConfig} */
@@ -73,15 +121,15 @@ class VeliteWebpackPlugin {
       if (VeliteWebpackPlugin.started) return
       VeliteWebpackPlugin.started = true
       const dev = compiler.options.mode === 'development'
-      const { build } = await import('velite')
-      await build({ watch: dev, clean: !dev })
+      const { build, watch } = await import('velite')
+      await (dev ? watch({ clean: false }) : build({ clean: true }))
     })
   }
 }
 ```
 
 ```js [ESM]
-import { build } from 'velite'
+import { build, watch } from 'velite'
 
 /** @type {import('next').NextConfig} */
 export default {
@@ -101,7 +149,7 @@ class VeliteWebpackPlugin {
       if (VeliteWebpackPlugin.started) return
       VeliteWebpackPlugin.started = true
       const dev = compiler.options.mode === 'development'
-      await build({ watch: dev, clean: !dev })
+      await (dev ? watch({ clean: false }) : build({ clean: true }))
     })
   }
 }
@@ -114,7 +162,7 @@ class VeliteWebpackPlugin {
 ESM `import { build } from 'velite'` may be got a `[webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo]` warning generated during the `next build` process, which has little impact,
 refer to https://github.com/webpack/webpack/pull/15688
 
-or [👆](#🎊-start-velite-with-next-js-config-🆕)
+or [👆](#start-velite-with-next-js-config)
 
 :::
 
@@ -155,13 +203,13 @@ e.g.
 import { defineCollection, s } from 'velite'
 
 import type { Route } from 'next'
-import type { VeliteSchema } from 'velite'
+import type { Schema } from 'velite'
 
 const options = defineCollection({
   // ...
   schema: s.object({
     // ...
-    link: s.string() as VeliteSchema<Route<'/posts/${string}'>>
+    link: s.string() as Schema<Route<'/posts/${string}'>>
   })
 })
 ```

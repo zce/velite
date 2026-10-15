@@ -1,0 +1,23 @@
+# Observe scoped schema promises without changing their outcomes
+
+Status: accepted architecture extension, explicitly authorized by the user on 2026-10-02. This decision enables implementation; it is not verification or release approval.
+
+Zod 4.4.3 can abandon native aggregate/field Promise chains when a later synchronous sibling throws or a union branch short-circuits. Content cannot access those references, and observing only its own Promise subclass does not make terminal record settlement harmless. We will explicitly inject a **private schema-scoped Promise observation capability** into the existing runner, implemented behind the runtime boundary, so abandoned native rejections are observed without changing the original Promise outcome, actual waiters, native Zod wrappers, or the eight-field public context.
+
+## Boundaries and consequences
+
+- Preserve the semantic content architecture in ADR 0001/0002 and the immutable parent specification. The observer is not a content cache, scheduler, registry, dependency graph, cancellation service or fallback policy. It does not interpret schemas or override their methods.
+- Construction and injection remain explicit. The runner receives the capability through typed dependencies; Node-specific hooks/async propagation stay in a Node adapter. Internal Builder must not acquire hidden services. No observer, lifecycle method, counter, private carrier field or symbol appears on the public `context()` view or package exports/declarations.
+- Observe only asynchronous work originating in a bound schema scope. Independent scopes/builds remain isolated from unrelated work. Captured capabilities still reject inactive leases; real waiters still receive the same original exceptions/rejections, including internal faults that ordinary Zod `.catch()` cannot recover.
+- Observation can outlive the active lease because descendants may be created after finalization by callbacks already registered in that scope. This does not keep the record open or permit effects/stages to restart. The runtime marker must carry no record, processor, tree, VFile, snapshot, journal or build/generation reference.
+- A lazily created process-lifetime **default Node hook** is permitted at the runtime composition boundary to avoid accumulating one hook per record or Builder. This is the newly authorized platform exception, separate from the ambient host's propagation-only role. It is not a mutable process-wide stage pointer or service locator. Reentrant observation must not recursively observe its own bookkeeping.
+- Observation bookkeeping masks both its own marker and the schema host's carrier through an explicitly injected unbound operation. The host's existing private propagation operation accepts an undefined carrier for this nested scope and restores the original carrier afterward; no host reset, ownership or public context field is added. This avoids creating extra observer async resources that inherit record carriers. Actual schema/plugin work keeps its original context, and observing a pending Promise does not revoke references independently held by that work.
+- Do not install an `unhandledRejection` handler, monkey-patch global Promise/Zod, convert lifecycle faults into issues, change a Promise's rejection into success, leave requests pending forever, or drain blocked plugins. The record owner's terminal gate and cleanup remain responsible for ownership closure.
+- Validate with real external Zod objects/tuples/intersections/unions, strict rejection child processes, late-created chains, error identity, concurrency/isolation, eight-field reflection and packaged consumers. Measure overhead and retained process memory with representative workloads; no universal plugin/memory guarantee or threshold is invented.
+
+## Rejected alternatives and revisit condition
+
+- A content-only Promise subclass cannot reach abandoned native chains. Raw-demand handlers and delayed closure do not repair this gap.
+- A local pnpm patch is not delivered to published consumers. Bundling a patched Zod cannot repair parent schemas constructed by a consumer's external Zod. No verified upstream fixed version is presently available; external publication was not authorized.
+- Swallowing errors, reinterpreting wrappers or indefinite pending work would violate accepted semantics, not fix lifecycle safety.
+- Revisit this capability when dependency/platform support provides an equally effective observation/abandonment seam across supported external consumer schemas. Remove it only after the same strict regression and isolation/cost evidence proves the replacement, not merely because one upstream object loop is repaired.

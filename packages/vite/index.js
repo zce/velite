@@ -2,7 +2,7 @@ import { build, watch } from 'velite'
 
 /**
  * Velite Vite plugin
- * @param {Omit<import('velite').BuildOptions, 'watch'>} options - Velite options
+ * @param {import('velite').BuildEntryOptions} options - Velite options
  * @returns {import('vite').Plugin} Vite plugin
  */
 export default (options = {}) => {
@@ -26,9 +26,12 @@ export default (options = {}) => {
 
     buildStart: async () => {
       if (started) return
+      // Guard against repeated invocations (e.g. `vite build --watch` calls
+      // buildStart on every rollup rebuild pass — one velite build is enough).
+      started = true
 
       // Run build in production
-      await build({ ...options, watch: false })
+      await build(options)
     }
   }
 }

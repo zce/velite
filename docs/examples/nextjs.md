@@ -44,13 +44,13 @@ nextjs
 │   │   ├── about
 │   │   │   └── index.mdx
 │   │   └── contact
-|   |       ├── img.png and more...
+│   │       ├── img.png and more...
 │   │       └── index.mdx
 │   ├── posts
 │   │   ├── 1970-01-01-style-guide
 │   │   │   ├── cover.jpg and more...
 │   │   │   └── index.md
-│   │   └── 1992-02-25-hello-world
+│   │   └── 2024-05-08-hello-world
 │   │       ├── cover.jpg and more...
 │   │       └── index.md
 │   └── tags

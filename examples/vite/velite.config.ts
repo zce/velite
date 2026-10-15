@@ -1,7 +1,10 @@
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 import rehypePrettyCode from 'rehype-pretty-code'
-import { context, defineCollection, defineConfig, s } from 'velite'
+import { content, context, defineCollection, defineConfig, s } from 'velite'
+
+const postContent = content.markdown()
+const pageContent = content.mdx()
 
 const slugify = (input: string) =>
   input
@@ -33,7 +36,7 @@ const timestamp = () =>
     })
 
 const options = defineCollection({
-  name: 'Options',
+  typeName: 'Options',
   pattern: 'options/index.yml',
   single: true,
   schema: s.object({
@@ -48,7 +51,7 @@ const options = defineCollection({
 })
 
 const categories = defineCollection({
-  name: 'Category',
+  typeName: 'Category',
   pattern: 'categories/*.yml',
   schema: s
     .object({
@@ -62,7 +65,7 @@ const categories = defineCollection({
 })
 
 const tags = defineCollection({
-  name: 'Tag',
+  typeName: 'Tag',
   pattern: 'tags/index.yml',
   schema: s
     .object({
@@ -76,25 +79,25 @@ const tags = defineCollection({
 })
 
 const pages = defineCollection({
-  name: 'Page',
+  typeName: 'Page',
   pattern: 'pages/**/*.mdx',
   schema: s
     .object({
       title: s.string().max(99),
       slug: s.slug('global', ['admin', 'login']),
-      body: s.mdx()
+      body: pageContent.code()
     })
     .transform(data => ({ ...data, permalink: `/${data.slug}` }))
 })
 
 const posts = defineCollection({
-  name: 'Post',
+  typeName: 'Post',
   pattern: 'posts/**/*.md',
   schema: s
     .object({
       title: s.string().max(99),
       slug: s.slug('post'),
-      date: s.isodate(),
+      date: s.isoDate(),
       updated: timestamp(),
       cover: s.image().optional(),
       video: s.file().optional(),
@@ -104,10 +107,10 @@ const posts = defineCollection({
       categories: s.array(s.string()).default(['Journal']),
       tags: s.array(s.string()).default([]),
       meta: meta,
-      toc: s.toc(),
-      metadata: s.metadata(),
-      excerpt: s.excerpt(),
-      content: s.markdown()
+      toc: postContent.toc(),
+      metadata: postContent.metadata(),
+      excerpt: postContent.excerpt(),
+      content: postContent.html()
     })
     .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
 })
@@ -117,9 +120,7 @@ export default defineConfig({
   output: {
     data: '.velite',
     assets: 'public/static',
-    base: '/static/',
-    name: '[name]-[hash:6].[ext]',
-    clean: true
+    base: '/static/'
   },
   collections: { options, categories, tags, pages, posts },
   markdown: { rehypePlugins: [rehypePrettyCode] },

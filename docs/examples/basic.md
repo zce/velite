@@ -12,7 +12,7 @@ Velite is a framework agnostic library, it can be used in any JavaScript framewo
 
 ## Source code
 
-👉 https://stackblitz.com/github/zce/velite/tree/main/examples/nextjs
+👉 https://stackblitz.com/github/zce/velite/tree/main/examples/basic
 
 See [examples](https://github.com/zce/velite/tree/main/examples) for more examples.
 
@@ -22,7 +22,7 @@ See [examples](https://github.com/zce/velite/tree/main/examples) for more exampl
 basic
 ├── content                  # content directory
 │   ├── categories
-│   │   ├── journal.jpg
+│   │   ├── journal.webp
 │   │   ├── journal.yml
 │   │   └── etc...
 │   ├── options
@@ -37,7 +37,7 @@ basic
 │   │   ├── 1970-01-01-style-guide
 │   │   │   ├── cover.jpg and more...
 │   │   │   └── index.md
-│   │   └── 1992-02-25-hello-world
+│   │   └── 2024-05-08-hello-world
 │   │       ├── cover.jpg and more...
 │   │       └── index.md
 │   └── tags

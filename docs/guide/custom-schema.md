@@ -4,33 +4,32 @@
 >
 > Refer to [Velite Schemas](velite-schemas.md) for more information about built-in schema.
 
-Velite supports custom schema. A schema is a JavaScript function that returns a [Zod](https://zod.dev) schema object.
+Velite supports custom schema. A schema is a plain JavaScript function that returns a [Zod](https://zod.dev) schema object. Use `defineSchema` as an identity helper for type inference when defining reusable custom schemas.
 
 Generally, I divide the schema into two categories: one for data validation and the other for data transformation.
 
 ## Define a Validation Schema
 
 ```ts
-import { defineSchema, s } from 'velite'
+import { s } from 'velite'
 
 // `s` is extended from Zod with some custom schemas,
 // `s` also includes all members of zod, so you can use `s` as `z`
 
 // for validating title
-export const title = defineSchema(() => s.string().min(1).max(100))
+export const title = () => s.string().min(1).max(100)
 
 // for validating email
-export const email = defineSchema(() => s.string().email({ message: 'Invalid email address' }))
+export const email = () => s.string().email({ message: 'Invalid email address' })
 
 // custom validation logic
-export const hello = defineSchema(() =>
+export const hello = () =>
   s.string().refine(value => {
     if (value !== 'hello') {
       return 'Value must be "hello"'
     }
     return true
   })
-)
 ```
 
 Refer to [Zod documentation](https://zod.dev) for more information about Zod.
@@ -38,12 +37,22 @@ Refer to [Zod documentation](https://zod.dev) for more information about Zod.
 ## Define a Transformation Schema
 
 ```ts
-import { defineSchema, s } from 'velite'
+import { s } from 'velite'
 
 // for transforming title
-export const title = defineSchema(() => s.string().transform(value => value.toUpperCase()))
+export const title = () => s.string().transform(value => value.toUpperCase())
 
 // ...
+```
+
+When you need an explicit output type, use the `Schema` helper type:
+
+```ts
+import { s } from 'velite'
+
+import type { Schema } from 'velite'
+
+export const readingTime = (): Schema<number> => s.string().transform(value => computeReadingTime(value))
 ```
 
 ### Example
@@ -51,20 +60,23 @@ export const title = defineSchema(() => s.string().transform(value => value.toUp
 #### Remote Image with BlurDataURL Schema
 
 ```ts
-import { getImageMetadata, s } from 'velite'
+import { s } from 'velite'
 
-import type { VeliteImage } from 'velite'
+import type { ImageData } from 'velite'
 
 /**
- * Remote Image with metadata schema
+ * Remote Image with metadata schema.
+ *
+ * `getImageMetadata` is an internal helper; for remote images you can call
+ * your own metadata extractor and shape the result into `ImageData`.
  */
 export const remoteImage = () =>
-  s.string().transform<VeliteImage>(async (value, ctx) => {
+  s.string().transform<ImageData>(async (value, ctx) => {
     try {
       const response = await fetch(value)
       const blob = await response.blob()
-      const buffer = await blob.arrayBuffer()
-      const metadata = await getImageMetadata(Buffer.from(buffer))
+      const buffer = Buffer.from(await blob.arrayBuffer())
+      const metadata = await extractMetadata(buffer)
       if (metadata == null) throw new Error(`Failed to get image metadata: ${value}`)
       return { src: value, ...metadata }
     } catch (err) {
@@ -78,13 +90,13 @@ export const remoteImage = () =>
 ## Schema Context
 
 > [!TIP]
-> Custom schemas often need to read the current file or resolved config. Use `context()` to access the current build context.
+> Custom schemas often need to read the current file or project info. Use `context()` to access the current schema context.
 
 ```ts
-import { context, defineSchema, s } from 'velite'
+import { context, s } from 'velite'
 
-// convert a nonexistent field
-export const path = defineSchema(() =>
+// derive a field from the current file path
+export const path = () =>
   s
     .string()
     .optional()
@@ -92,54 +104,76 @@ export const path = defineSchema(() =>
       if (value != null) return value
       return context().file.path
     })
-)
 ```
 
-`context()` must be called while Velite is parsing a schema, such as inside `.transform()`, `.refine()`, or `.superRefine()`. It returns the current build context:
+`context()` must be called while Velite is parsing a schema, such as inside `.transform()`, `.refine()`, or `.superRefine()`. It returns the current schema context:
 
 ```ts
-interface BuildContext {
-  readonly config: ResolvedConfig
+interface SchemaContext {
+  readonly project: ProjectInfo
   readonly file: ContentFile
-  readonly store: BuildStore
+  readonly record: ContentRecord
+  readonly store: SessionStore
+  /** Declare a schema effect (e.g. asset reference, uniqueness constraint). */
+  readonly collectEffect: (declaration: SchemaEffectDeclaration, context: EffectDeclarationContext) => void
+  /** Demand an asset derivation (copy + hash + optional image metadata). */
+  readonly asset: (assetKey: string, request?: AssetRequest) => Promise<AssetResult>
+  /** Read a file's raw bytes by absolute path. */
+  readonly readFile: (absPath: string) => Promise<Uint8Array>
+  /** Probe image metadata (dimensions, format, blur placeholder). */
+  readonly probeImage: (bytes: Uint8Array, blur?: BlurOptions) => Promise<ImageMetadata>
 }
 ```
 
-`BuildStore` is an advanced API for sharing state within the current build or watch rebuild:
+`SessionStore` is an advanced, session-scoped store for sharing state across records within the same build or watch session. It only exposes `get`, `has` and `getOrCreate` — there is no `set()`, so concurrent schema validation stays deterministic:
 
 ```ts
 const key = Symbol('my-schema.state')
 
-export const counted = defineSchema(() =>
+export const counted = () =>
   s.string().transform(value => {
     const state = context().store.getOrCreate(key, () => ({ count: 0 }))
     state.count += 1
     return value
   })
-)
 ```
 
 When a custom schema derives a missing object field from `context()`, make the schema optional before the transform. Zod 4 only sends missing object keys into transforms when the field schema is optional:
 
 ```ts
-export const rawBody = defineSchema(() =>
+export const rawBody = () =>
   s
     .custom<string>(value => typeof value === 'string')
     .optional()
     .transform(value => value ?? context().file.content ?? '')
-)
 ```
 
-Built-in file-derived schemas such as `s.path()`, `s.raw()`, `s.markdown()`, `s.mdx()`, `s.excerpt()`, `s.metadata()`, and `s.toc()` include this optional wrapper. Value-required schemas such as `s.file()`, `s.image()`, `s.slug()`, `s.unique()`, and `s.isodate()` do not.
+Built-in `s.path()` and `s.raw()` accept missing fields. Content Definition result schemas accept `string | undefined` and select the file body for absent input without needing an added wrapper. Value-required schemas such as `s.file()`, `s.image()`, `s.slug()`, `s.unique()`, and `s.isoDate()` do not.
+
+### Compose Content Results
+
+Use Content Definition methods as ordinary async Zod schemas. Custom schemas can transform their detached results without gaining access to Velite's processor, AST, VFile, cache, or lifecycle internals:
+
+```ts
+import { content, defineSchema } from 'velite'
+
+const article = content.markdown()
+export const shortExcerpt = defineSchema(article.excerpt({ length: 160 }).transform(text => text.toUpperCase()))
+export const headingCount = defineSchema(article.toc().transform(items => items.length))
+```
+
+Both selections reuse the same definition and exact input within a record. A custom schema that invokes its own parser remains independent; there is no generic shared-AST/projection protocol.
+
+Keep native wrapper behavior in mind: `.optional()` does not guarantee no inner content work, and `.catch()` recovers ordinary issues without retrying failed stages or swallowing internal faults. Conditional body processing needs explicit input selection, such as preprocessing to `null` with a `.nullable()` guard. See [native wrappers and conditional derivation](content-executions.md#native-wrappers-and-conditional-derivation).
 
 ### Error Handling in Transforms
 
 In Zod 4, schema callbacks receive a context object that provides `addIssue()` for reporting validation errors.
 
 ```ts
-import { defineSchema, s } from 'velite'
+import { s } from 'velite'
 
-export const safeTransform = defineSchema(() =>
+export const safeTransform = () =>
   s.string().transform(async (value, ctx) => {
     try {
       const result = await processValue(value)
@@ -153,12 +187,11 @@ export const safeTransform = defineSchema(() =>
       return null as never
     }
   })
-)
 ```
 
 ### Reference
 
-- `context()` returns `{ config: ResolvedConfig, file: ContentFile, store: BuildStore }`.
+- `context()` returns `{ project: ProjectInfo, file: ContentFile, record: ContentRecord, store: SessionStore, collectEffect, asset, readFile, probeImage }`.
 - `ctx.addIssue()` accepts `{ fatal?: boolean, code: string, message: string }`.
 - See [`ContentFile`](../reference/types.md#contentfile) for file metadata structure.
-- See [Lifecycle](./lifecycle.md) for build context and store lifetime details.
+- See [Lifecycle](./lifecycle.md) for schema context and session store lifetime details.

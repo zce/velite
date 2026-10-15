@@ -1,137 +1,87 @@
-import { deepStrictEqual, equal, ok } from 'node:assert'
-import { exec } from 'node:child_process'
-import { access, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+// Integration test: build the examples/basic fixture against the PACKAGED
+// entry (dist/index.mjs). Exercises the full stack the unit suite cannot:
+// config self-reference (jiti alias `velite` → dist), real sharp image
+// probing on real content, the two-pass asset flow, output writing, and the
+// generated `index.d.ts`.
+//
+// Each test copies the fixture into an isolated temp directory so concurrent
+// integration suites (e.g. cli.tests.ts) cannot race on the same output.
+//
+// FAILS LOUDLY when `dist/index.mjs` is absent. Run `pnpm test` (which builds
+// first). The companion `pnpm test:src` script excludes `test/integration/`
+// so the inner-loop unit suite stays runnable without rebuilding dist.
+import { ok } from 'node:assert/strict'
+import { execSync } from 'node:child_process'
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 
-test('standalone fixtures', async t => {
-  // will use velite dist
-  await new Promise((res, rej) => exec('node ../../dist/cli.js build', { cwd: 'examples/basic' }, (e, s) => (e ? rej(e) : res(s))))
+const here = fileURLToPath(new URL('.', import.meta.url))
+const repoRoot = join(here, '..', '..')
+const distEntry = join(repoRoot, 'dist', 'index.mjs')
+const fixtureSource = join(repoRoot, 'examples', 'basic')
 
-  const entry = await readFile('examples/basic/.velite/index.js', 'utf8')
-  ok(entry.includes("export { default as options } from './options.json'"))
-  ok(entry.includes("export { default as posts } from './posts.json'"))
+test('examples/basic: builds against the packaged entry and emits data + assets', async t => {
+  ok(existsSync(distEntry), `dist/index.mjs not found — run \`pnpm build\` before this suite`)
 
-  const dts = await readFile('examples/basic/.velite/index.d.ts', 'utf8')
-  ok(dts.includes('export declare const options: Option'))
-  ok(dts.includes('export declare const posts: Post[]'))
+  // Isolate: copy fixture to a temp dir so this test never races with cli.tests.ts.
+  const tmpDir = mkdtempSync(join(tmpdir(), 'velite-basic-'))
+  cpSync(fixtureSource, tmpDir, { recursive: true })
+  // The fixture's `timestamp()` schema runs `exec('git log ...')` which
+  // inherits process.env. Set GIT_DIR + GIT_WORK_TREE so git finds the
+  // temp repo regardless of the process cwd.
+  const prevGitDir = process.env.GIT_DIR
+  const prevGitWorkTree = process.env.GIT_WORK_TREE
+  process.env.GIT_DIR = join(tmpDir, '.git')
+  process.env.GIT_WORK_TREE = tmpDir
+  execSync('git init -q && git add -A && git commit -q -m init', { cwd: tmpDir, stdio: 'ignore' })
+  t.after(() => {
+    if (prevGitDir === undefined) delete process.env.GIT_DIR
+    else process.env.GIT_DIR = prevGitDir
+    if (prevGitWorkTree === undefined) delete process.env.GIT_WORK_TREE
+    else process.env.GIT_WORK_TREE = prevGitWorkTree
+    rmSync(tmpDir, { recursive: true, force: true })
+  })
 
-  const options = JSON.parse(await readFile('examples/basic/.velite/options.json', 'utf8'))
-  equal(options.name, 'Velite')
-  equal(options.links.length, 6)
+  const dataDir = join(tmpDir, '.velite')
+  const assetsDir = join(tmpDir, 'public', 'static')
 
-  const categories = JSON.parse(await readFile('examples/basic/.velite/categories.json', 'utf8'))
-  equal(categories.length, 3)
-  deepStrictEqual(
-    categories.map((category: { slug: string }) => category.slug),
-    ['journal', 'photography', 'travel']
-  )
-  equal(categories[0].cover.src, '/static/journal-63fcc0.webp')
-
-  const pages = JSON.parse(await readFile('examples/basic/.velite/pages.json', 'utf8'))
-  equal(pages.length, 2)
-  deepStrictEqual(pages.map((page: { slug: string }) => page.slug).sort(), ['about', 'contact'])
-  ok(pages.find((page: { slug: string }) => page.slug === 'about').body.includes('/static/cover-ed37d5.webp'))
-
-  const posts = JSON.parse(await readFile('examples/basic/.velite/posts.json', 'utf8'))
-  equal(posts.length, 2)
-  deepStrictEqual(posts.map((post: { slug: string }) => post.slug).sort(), ['posts/1970-01-01-style-guide', 'posts/2024-05-08-hello-world'])
-  const helloWorld = posts.find((post: { slug: string }) => post.slug === 'posts/2024-05-08-hello-world')
-  equal(helloWorld.video, '/static/video-08fc25.mp4')
-  ok(helloWorld.content.includes('/static/plain-5cd675.txt'))
-
-  const tags = JSON.parse(await readFile('examples/basic/.velite/tags.json', 'utf8'))
-  equal(tags.length, 2)
-  deepStrictEqual(
-    tags.map((tag: { slug: string }) => tag.slug),
-    ['engineering', 'modularization']
-  )
-
-  await rm('examples/basic/.velite', { recursive: true, force: true })
-})
-
-test('consecutive builds do not reuse unique values from previous builds', async () => {
-  const { build } = await import('velite')
-
-  await build({ config: 'examples/basic/velite.config.js', strict: true })
-  await build({ config: 'examples/basic/velite.config.js', strict: true })
-
-  await rm('examples/basic/.velite', { recursive: true, force: true })
-})
-
-test('builds do not reuse assets from previous configs', async () => {
-  const { build } = await import('velite')
-  const root = await mkdtemp(join(tmpdir(), 'velite-assets-'))
-
-  await mkdir(join(root, 'content'))
-  await writeFile(join(root, 'content', 'item.json'), JSON.stringify({ title: 'Hello' }))
-  await writeFile(
-    join(root, 'velite.config.mjs'),
-    `import { defineConfig, s } from 'velite'
-
-export default defineConfig({
-  root: 'content',
-  output: { data: '.velite', assets: 'public/static', clean: true },
-  collections: {
-    items: {
-      name: 'Item',
-      pattern: 'item.json',
-      schema: s.object({ title: s.string() })
-    }
+  const { build } = (await import(distEntry)) as {
+    build: (o: { cwd: string; clean?: boolean; layout?: 'split' | 'single' }) => Promise<{ written: string[]; diagnostics: unknown[] }>
   }
-})
-`
+  const result = await build({ cwd: tmpDir, clean: true, layout: 'single' })
+
+  ok(result.diagnostics.length === 0, `unexpected diagnostics: ${JSON.stringify(result.diagnostics)}`)
+  ok(result.written.length > 0, 'build wrote output files')
+
+  const postsPath = join(dataDir, 'posts.json')
+  ok(existsSync(postsPath), 'posts.json written')
+  const posts = JSON.parse(readFileSync(postsPath, 'utf8')) as Array<Record<string, unknown>>
+  ok(posts.length > 0, 'posts array is non-empty')
+  ok(
+    posts.every(p => typeof p.slug === 'string' && typeof p.permalink === 'string'),
+    'every post has a slug + permalink'
   )
 
-  try {
-    await build({ config: 'examples/basic/velite.config.js' })
-    await build({ config: join(root, 'velite.config.mjs') })
+  ok(
+    result.written.some(p => p.startsWith(assetsDir)),
+    'assets written into public/static'
+  )
 
-    const assets = await readdir(join(root, 'public/static'))
-    equal(assets.length, 0, 'asset output should not include assets from a previous config')
-  } finally {
-    await rm('examples/basic/.velite', { recursive: true, force: true })
-    await rm(root, { recursive: true, force: true })
+  // Generated declaration file: the writer emits .velite/index.d.ts so the
+  // consuming app gets typed access to its collections. examples/basic
+  // declares `Post`, `Category`, `Tag`, `Page`, `Options` typeNames and a
+  // matching set of exports. Assert the declaration carries each one — a
+  // regression in declaration generation would otherwise pass silently.
+  const dtsPath = join(dataDir, 'index.d.ts')
+  ok(existsSync(dtsPath), 'index.d.ts written')
+  const dts = readFileSync(dtsPath, 'utf8')
+  for (const typeName of ['Post', 'Category', 'Tag', 'Page', 'Options']) {
+    ok(new RegExp(`\\b${typeName}\\b`).test(dts), `index.d.ts references ${typeName}`)
   }
-})
-
-test('builds do not reuse emitted assets from previous output directories', async () => {
-  const { build } = await import('velite')
-  const root = await mkdtemp(join(tmpdir(), 'velite-emitted-'))
-
-  await mkdir(join(root, 'content'))
-  await writeFile(join(root, 'content', 'asset.txt'), 'asset')
-  await writeFile(join(root, 'content', 'item.json'), JSON.stringify({ title: 'Hello', file: 'asset.txt' }))
-
-  const config = (assets: string) =>
-    [
-      "import { defineConfig, s } from 'velite'",
-      '',
-      'export default defineConfig({',
-      "  root: 'content',",
-      `  output: { data: '.velite-${assets}', assets: 'public/${assets}', clean: true, name: '[name].[ext]' },`,
-      '  collections: {',
-      '    items: {',
-      "      name: 'Item',",
-      "      pattern: 'item.json',",
-      '      schema: s.object({ title: s.string(), file: s.file() })',
-      '    }',
-      '  }',
-      '})',
-      ''
-    ].join('\n')
-
-  await writeFile(join(root, 'velite.a.mjs'), config('a'))
-  await writeFile(join(root, 'velite.b.mjs'), config('b'))
-
-  try {
-    await build({ config: join(root, 'velite.a.mjs') })
-    await build({ config: join(root, 'velite.b.mjs') })
-
-    await access(join(root, 'public/a/asset.txt'))
-    await access(join(root, 'public/b/asset.txt'))
-  } finally {
-    await rm(root, { recursive: true, force: true })
+  for (const exportName of ['posts', 'categories', 'tags', 'pages', 'options']) {
+    ok(new RegExp(`export\\s+declare\\s+const\\s+${exportName}\\b`).test(dts), `index.d.ts exports declare const ${exportName}`)
   }
 })

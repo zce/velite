@@ -55,6 +55,7 @@ export default defineConfig({
           { text: 'Migration to 1.0 Alpha', link: 'migration' },
           { text: 'Define Collections', link: 'define-collections' },
           { text: 'Using Collections', link: 'using-collections' },
+          { text: 'Content Definitions', link: 'content-executions' },
           { text: 'Velite Schemas', link: 'velite-schemas' }
         ]
       },

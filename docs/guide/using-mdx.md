@@ -1,6 +1,6 @@
 # MDX Support
 
-Velite supports MDX out of the box. You can use MDX to write your content, and Velite will automatically render it for you.
+Velite supports MDX out of the box. It compiles your content at build time; your application renders the generated code at runtime.
 
 > [!TIP] Some examples that may help you:
 >
@@ -39,19 +39,21 @@ flood conditions in many of the nearby rivers.
 <Chart year={year} color="#fcb32c" />
 ```
 
-Use the `s.mdx()` schema to add the compiled MDX code to your content collection.
+Create an MDX definition and use its `.code()` result schema to add compiled MDX code to your collection.
 
-```js {10}
-import { defineConfig, s } from 'velite'
+```js
+import { content, defineConfig, s } from 'velite'
+
+const postContent = content.mdx()
 
 export default defineConfig({
   collections: {
     posts: {
-      name: 'Post',
+      typeName: 'Post',
       pattern: 'posts/*.mdx',
       schema: s.object({
         title: s.string(),
-        code: s.mdx()
+        code: postContent.code()
       })
     }
   }
@@ -65,7 +67,7 @@ Run `velite build` and you will get the following data structure:
   "posts": [
     {
       "title": "Hello world",
-      "code": "const{Fragment:n,jsx:e,jsxs:t}=arguments[0],o=2023;function _createMdxContent(r){const a={h1:\"h1\",p:\"p\",...r.components},{Chart:c}=a;return c||function(n,e){throw new Error(\"Expected \"+(e?\"component\":\"object\")+\" `\"+n+\"` to be defined: you likely forgot to import, pass, or provide it.\")}(\"Chart\",!0),t(n,{children:[e(a.h1,{children:\"Last year’s snowfall\"}),\"\\n\",t(a.p,{children:[\"In \",o,\", the snowfall was above average.\\nIt was followed by a warm spring which caused\\nflood conditions in many of the nearby rivers.\"]}),\"\\n\",e(c,{year:o,color:\"#fcb32c\"})]})}return{year:o,default:function(n={}){const{wrapper:t}=n.components||{};return t?e(t,{...n,children:e(_createMdxContent,{...n})}):_createMdxContent(n)}};"
+      "code": "const{Fragment:n,jsx:e,jsxs:t}=arguments[0],o=2023;function _createMdxContent(r){const a={h1:\"h1\",p:\"p\",...r.components},{Chart:c}=a;return c||function(n,e){throw new Error(\"Expected \"+(e?\"component\":\"object\")+\" `\"+n+\"` to be defined: you likely forgot to import, pass, or provide it.\")}(\"Chart\",!0),t(n,{children:[e(a.h1,{id:\"last-years-snowfall\",children:\"Last year’s snowfall\"}),\"\\n\",t(a.p,{children:[\"In \",o,\", the snowfall was above average.\\nIt was followed by a warm spring which caused\\nflood conditions in many of the nearby rivers.\"]}),\"\\n\",e(c,{year:o,color:\"#fcb32c\"})]})}return{year:o,default:function(n={}){const{wrapper:t}=n.components||{};return t?e(t,{...n,children:e(_createMdxContent,{...n})}):_createMdxContent(n)}};"
     }
   ]
 }
@@ -73,9 +75,21 @@ Run `velite build` and you will get the following data structure:
 
 By default, Velite will compile the MDX content into a function-body string, which can be used to render the content in your application.
 
+The generated-code example is representative; compiler/minifier formatting and variable names may vary. Heading IDs are assigned during transformation even for code-only output.
+
+## Navigation and Source Analysis
+
+Reuse `postContent.toc()`, `.excerpt()`, and `.metadata()` alongside `.code()` when those fields describe the same selected input. Source analysis uses static pre-transform text and never counts expressions, imports/exports, attributes, or component names as prose. TOC instead follows transformed static headings and actual `{ depth, title, id }` targets.
+
+Literal intrinsic headings such as `<h2 id="details">Details</h2>` participate. Dynamic titles, expression-valued IDs, and spread-bearing targets are omitted with warnings only when TOC is requested. Unknown components such as `<Heading>` are not inferred as headings. Velite never evaluates expressions, imports, generated JavaScript, or components to derive these values.
+
+TOC requires the complete MDX transform, including recma and code-tree construction. A late recma failure withholds navigation even if content-phase capture succeeded. TOC-only skips serialization/minification, but can still resolve linked assets and perform plugin I/O. Later code plugins must preserve the captured heading/anchor semantics; runtime replacements for intrinsic headings must forward `id` to the actual DOM heading. See [Content Definitions](content-executions.md) for the full contract and an ID-forwarding example.
+
 ## Rendering MDX Content
 
 First, you can create a generic component for rendering the compiled mdx code. It should accept the code and a list of components that are used in the MDX content.
+
+The `new Function` below executes compiled code in your application, not during Velite's source/navigation analysis. Only render trusted MDX; this runtime helper is not a sandbox for untrusted content.
 
 `./components/mdx-content.tsx`:
 
@@ -128,7 +142,7 @@ export default function Post({ params: { slug } }) {
 
 ### How to import components in MDX?
 
-You don't need to, since Velite's `s.mdx()` schema does not bundle those components at build time. There is no need to construct a import tree. This can help reduce output size for your contents.
+You don't need to, since a Content Definition's `.code()` schema does not bundle those components at build time. There is no need to construct an import tree. This can help reduce output size for your contents.
 
 For example, suppose you extract a common component for multiple MDXs and import the component in these MDXs.
 
@@ -314,17 +328,17 @@ const compileMdx = async (source: string, path: string, options: CompileOptions)
 
 export const mdxBundle = (options: MdxOptions = {}) =>
   s.custom<string>().transform<string>(async (value, ctx) => {
-    const { file, config } = context()
+    const { file, project } = context()
     value = value ?? file.content
     if (value == null) {
       ctx.addIssue({ fatal: true, code: 'custom', message: 'The content is empty' })
       return null as never
     }
 
-    const enableGfm = options.gfm ?? config.mdx?.gfm ?? true
-    const enableMinify = options.minify ?? config.mdx?.minify ?? true
-    const removeComments = options.removeComments ?? config.mdx?.removeComments ?? true
-    const outputFormat = options.outputFormat ?? config.mdx?.outputFormat ?? 'function-body'
+    const enableGfm = options.gfm ?? project.mdx?.gfm ?? true
+    const enableMinify = options.minify ?? project.mdx?.minify ?? true
+    const removeComments = options.removeComments ?? project.mdx?.removeComments ?? true
+    const outputFormat = options.outputFormat ?? project.mdx?.outputFormat ?? 'function-body'
 
     const remarkPlugins = [] as PluggableList
     const rehypePlugins = [] as PluggableList
@@ -333,10 +347,10 @@ export const mdxBundle = (options: MdxOptions = {}) =>
     if (removeComments) remarkPlugins.push(remarkRemoveComments) // remove html comments
     if (options.remarkPlugins != null) remarkPlugins.push(...options.remarkPlugins) // apply remark plugins
     if (options.rehypePlugins != null) rehypePlugins.push(...options.rehypePlugins) // apply rehype plugins
-    if (config.mdx?.remarkPlugins != null) remarkPlugins.push(...config.mdx.remarkPlugins) // apply global remark plugins
-    if (config.mdx?.rehypePlugins != null) rehypePlugins.push(...config.mdx.rehypePlugins) // apply global rehype plugins
+    if (project.mdx?.remarkPlugins != null) remarkPlugins.push(...project.mdx.remarkPlugins) // apply global remark plugins
+    if (project.mdx?.rehypePlugins != null) rehypePlugins.push(...project.mdx.rehypePlugins) // apply global rehype plugins
 
-    const compilerOptions = { ...config.mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
+    const compilerOptions = { ...project.mdx, ...options, outputFormat, remarkPlugins, rehypePlugins }
 
     try {
       return await compileMdx(value, file.path, compilerOptions)
@@ -347,7 +361,7 @@ export const mdxBundle = (options: MdxOptions = {}) =>
   })
 ```
 
-This example does not copy relative assets referenced from MDX. Use the built-in `s.mdx()` schema if you need Velite-managed linked-file copying, or add your own public remark/rehype plugin that returns URLs managed by your application.
+This custom schema owns an independent bundling pipeline; it does not share processing or navigation with Content Definition selections. It also does not copy relative assets referenced from MDX. Use `content.mdx(options).code()` if you need Velite-managed linked-file copying, or add your own public remark/rehype plugin that returns URLs managed by your application.
 
 Then, you can use the custom schema in your `velite.config.js`:
 
@@ -359,7 +373,7 @@ import { mdxBundle } from './mdx'
 export default defineConfig({
   collections: {
     posts: {
-      name: 'Post',
+      typeName: 'Post',
       pattern: 'posts/*.mdx',
       schema: s.object({
         title: s.string(),

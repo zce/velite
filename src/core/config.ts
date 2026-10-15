@@ -168,6 +168,13 @@ export interface ResolvedConfig {
   prepare?: PrepareHook
 }
 
+/** Look up one resolved collection by name, or undefined when absent. */
+export const findCollection = (config: ResolvedConfig, name: string): ResolvedCollection | undefined =>
+  config.collections.find(collection => collection.name === name)
+
+/** The resolved collection's config order, or -1 when the name is unknown. */
+export const collectionOrder = (config: ResolvedConfig, name: string): number => config.collections.findIndex(c => c.name === name)
+
 /** Identity helper for type inference and editor support. No runtime effect. */
 export const defineConfig = <C extends Record<string, CollectionDef>>(config: UserConfig<C>): UserConfig<C> => config
 

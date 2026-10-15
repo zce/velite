@@ -23,8 +23,6 @@ export interface Derivation<K, V> {
 }
 
 export interface Engine {
-  /** The current global revision. Bumps whenever an input value changes. */
-  readonly revision: Revision
   /** Set an external input. No-op if the value is unchanged. */
   set<V>(id: InputId, value: V): void
   /** Remove an external input. Invalidates anything that depended on it. */
@@ -244,9 +242,6 @@ export const createEngine = (): Engine => {
   }
 
   return {
-    get revision() {
-      return revision
-    },
     set,
     remove,
     get: <K, V>(derivation: Derivation<K, V>, key: K) => demand(derivation as Derivation<unknown, unknown>, key, new Set()) as Promise<V>,

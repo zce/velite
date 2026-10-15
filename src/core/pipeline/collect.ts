@@ -1,3 +1,4 @@
+import { findCollection } from '../config'
 import { compareStrings } from '../util/compare'
 
 import type { ResolvedConfig } from '../config'
@@ -32,7 +33,7 @@ export const createCollectDerivation = (
     }
     entries.sort((a, b) => compareStrings(a.id, b.id))
 
-    const single = config.collections.find(c => c.name === name)?.single ?? false
+    const single = findCollection(config, name)?.single ?? false
     return { result: { collection: name, mode: single ? 'single' : 'list', entries }, effects, diagnostics }
   }
 })

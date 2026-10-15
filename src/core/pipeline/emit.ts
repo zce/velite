@@ -1,3 +1,4 @@
+import { collectionOrder } from '../config'
 import { compareDiagnostic, diagnostic } from '../diagnostic'
 
 import type { ResolvedConfig } from '../config'
@@ -29,13 +30,12 @@ const uniqueCandidates = (config: ResolvedConfig, effects: readonly Effect[]): {
     for (const [key, effect] of bucket.owners) {
       invalid.add(key)
       const collection = effect.system.collectionId
-      const collectionOrder = config.collections.findIndex(c => c.name === collection)
       diagnostics.push(
         diagnostic('error', 'SCHEMA_INVALID', `duplicate unique value "${bucket.value}" in group "${bucket.group}"`, {
           stage: 'schema',
           provenance: {
             scope: 'record',
-            collection: { order: collectionOrder, id: collection },
+            collection: { order: collectionOrder(config, collection), id: collection },
             source: { path: effect.system.sourcePath },
             record: { index: effect.system.recordIndex, id: effect.system.owner }
           }
@@ -72,19 +72,19 @@ export const createEmitDerivation = (config: ResolvedConfig, collect: Derivation
       const entries = collection.entries.filter(entry => !checked.invalid.has(ownerKey(name, entry.id)))
       const single = collection.mode === 'single'
       if (single) {
-        const collectionOrder = config.collections.findIndex(c => c.name === name)
+        const order = collectionOrder(config, name)
         if (entries.length === 0) {
           diagnostics.push(
             diagnostic('error', 'COLLECTION_EMPTY', `single collection "${name}" matched no valid entry`, {
               stage: 'schema',
-              provenance: { scope: 'collection', collection: { order: collectionOrder, id: name } }
+              provenance: { scope: 'collection', collection: { order, id: name } }
             })
           )
         } else if (entries.length > 1) {
           diagnostics.push(
             diagnostic('warn', 'COLLECTION_MULTIPLE', `single collection "${name}" matched ${entries.length} entries; using the first`, {
               stage: 'schema',
-              provenance: { scope: 'collection', collection: { order: collectionOrder, id: name } }
+              provenance: { scope: 'collection', collection: { order, id: name } }
             })
           )
         }

@@ -338,8 +338,7 @@ test('T1.5: addDiagnostic normalizes the cause before snapshot (mutation after c
   equal(xEntry![1], 1, 'cause snapshotted before mutation')
 })
 
-test('T1.5: addDiagnostic rejects malformed inputs (unknown field, symbol key, accessor, inherited, invalid level, empty key/code, non-ordinary proto)', async () => {
-  const captured: string[] = []
+test('T1.5: addDiagnostic records a fatal diagnostic for malformed inputs (unknown field, symbol key, accessor, invalid level, empty key/code, non-ordinary proto) and appends nothing of them', async () => {
   const sym = Symbol('x')
   const runtime: TestRuntime = {
     schemaRunner: testSchemaRunner(),
@@ -378,13 +377,7 @@ test('T1.5: addDiagnostic rejects malformed inputs (unknown field, symbol key, a
               },
               { label: 'non-ordinary proto (Array)', input: ['x'] }
             ]
-            for (const c of cases) {
-              try {
-                ctx.addDiagnostic(c.input as never)
-              } catch (err) {
-                captured.push(`${c.label}: ${(err as Error).message}`)
-              }
-            }
+            for (const c of cases) ctx.addDiagnostic(c.input as never)
           }
         },
         dependencies: []
@@ -394,29 +387,17 @@ test('T1.5: addDiagnostic rejects malformed inputs (unknown field, symbol key, a
     image: noopImageProcessor,
     watch: noopWatch
   }
-  await build(runtime)
-  // Every malformed case must be rejected synchronously.
-  equal(captured.length, 8, `expected 8 rejections, got ${captured.length}: ${JSON.stringify(captured, null, 2)}`)
-  ok(
-    captured.some(s => s.startsWith('unknown field')),
-    'unknown field rejected'
-  )
-  ok(
-    captured.some(s => s.startsWith('symbol key')),
-    'symbol key rejected'
-  )
-  ok(
-    captured.some(s => s.startsWith('accessor')),
-    'accessor rejected'
-  )
-  ok(
-    captured.some(s => s.startsWith('non-ordinary proto (class instance)')),
-    'class instance rejected'
-  )
-  ok(
-    captured.some(s => s.startsWith('non-ordinary proto (Array)')),
-    'array rejected'
-  )
+  // Every malformed case is rejected without throwing: each call appends one
+  // Velite-authored fatal PREPARE_INVALID_INPUT diagnostic, and the build
+  // then fails through the ordinary fatal gate (not an internal fault).
+  const captured = await captureRejection(build(runtime))
+  ok(captured instanceof VeliteError, 'build must throw VeliteError on malformed addDiagnostic inputs')
+  const diags = (captured as VeliteError).diagnostics
+  const invalidDiags = diags.filter(d => d.stage === 'prepare' && d.code === 'PREPARE_INVALID_INPUT' && d.origin.kind === 'velite')
+  equal(invalidDiags.length, 8, `expected 8 PREPARE_INVALID_INPUT diagnostics, got ${invalidDiags.length}`)
+  // The malformed inputs themselves appended nothing of their own content.
+  const userPrepareDiags = diags.filter(d => d.stage === 'prepare' && d.origin.kind === 'prepare-hook')
+  equal(userPrepareDiags.length, 0, 'no user-authored diagnostic from a malformed declaration')
 })
 
 test('T1.5: addDiagnostic accepts a null-prototype record (ordinary null-proto is valid)', async () => {

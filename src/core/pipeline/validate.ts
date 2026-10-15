@@ -1,4 +1,5 @@
 import { assetKeyOf } from '../assets'
+import { collectionOrder, findCollection } from '../config'
 import { diagnostic, fail } from '../diagnostic'
 import { createContentFile, createSessionStore, resolveBody } from '../schema/context'
 import { join } from '../util/path'
@@ -152,21 +153,20 @@ export const createValidateDerivation = (
   // rebuilds so custom schemas can lazily initialise session-scoped state.
   const store = createSessionStore()
   // Per-factory invariants: the config is fixed for the derivation's lifetime,
-  // so the project snapshot, the probe closure, and the collection lookup
-  // table are built once instead of per source.
+  // so the project snapshot and the probe closure are built once instead of
+  // per source. Collection lookup goes through the shared config helpers.
   const project = buildProjectInfo(config)
   const probeImage = createProbeImage(runtime.image)
-  const collectionMeta = new Map(config.collections.map((def, order) => [def.name, { def, order }] as const))
   return {
     name: 'validate',
     async compute(context, { collection, path }) {
       const loaded = await context.get(load, path)
-      const meta = collectionMeta.get(collection)
+      const col = findCollection(config, collection)
       const entries: Entry[] = []
       const effects: Effect[] = []
       const diagnostics = [...loaded.diagnostics]
-      if (meta === undefined) return { entries, effects, diagnostics }
-      const { def: col, order: collectionOrder } = meta
+      if (col === undefined) return { entries, effects, diagnostics }
+      const order = collectionOrder(config, collection)
 
       const absPath = join(config.root, path)
       const demandAsset = (assetKey: string, request?: AssetRequest): Promise<AssetResult> =>
@@ -183,7 +183,7 @@ export const createValidateDerivation = (
         // Both declaration shapes enter this record's candidate transaction.
         // Only the final native Zod success promotes them to source candidates;
         // downstream cross-record/build checks still decide publication.
-        const collector = createEffectCollector(effectSystemOwner(raw.id, collectionOrder, collection, path, index), config)
+        const collector = createEffectCollector(effectSystemOwner(raw.id, order, collection, path, index), config)
 
         // One content owner per actual record validation; all outcomes close
         // in the outer finally, including thrown or abandoned operations.
@@ -191,7 +191,7 @@ export const createValidateDerivation = (
           project,
           file,
           record,
-          collection: { order: collectionOrder, id: collection },
+          collection: { order, id: collection },
           collectEffects: collector.collectEffects
         })
         const contentOperation = (request: ContentRequest): Promise<unknown> => content.demand(request)
@@ -217,7 +217,7 @@ export const createValidateDerivation = (
             entries.push({ id: raw.id, source: path, data: parsed.data })
             effects.push(...collector.candidates)
           } else {
-            diagnostics.push(...schemaInvalidDiagnostics(parsed.error.issues, { order: collectionOrder, id: collection }, { path }, { index, id: raw.id }))
+            diagnostics.push(...schemaInvalidDiagnostics(parsed.error.issues, { order, id: collection }, { path }, { index, id: raw.id }))
           }
         } finally {
           collector.seal()

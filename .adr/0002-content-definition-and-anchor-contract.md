@@ -2,6 +2,8 @@
 
 Status: accepted implementation contract for Velite 1.0, 2026-10-01. The user approved the `content.markdown` / `content.mdx` API baseline and Unicode anchor baseline; this decision completes their concrete types, options, and value rules. It does not claim these exports or methods exist in the current runtime, or approve an intermediate implementation for release. (Implemented since: the Content Definitions contract landed with commit 11ec942.)
 
+Implementation note (2026-10-15): `MarkdownDefinitionOptions` and `MdxDefinitionOptions` are exported as type aliases of `MarkdownOptions` / `MdxOptions` rather than standalone interfaces. The definition-level and config-level option shapes are the same type by design, so separate identical interfaces would be duplication without a boundary; the names exist only so the public declaration surface matches this contract.
+
 [ADR 0001](0001-share-semantic-content-results.md) chooses exclusively owned content executions and detached semantic results. This decision fixes the public contract that implements that architecture, rather than approving the earlier hybrid schema roots or profile-equivalence broker. Domain terms come from [`CONTEXT.md`](../CONTEXT.md); the parent spec that scoped implementation was session-process material, removed once the work landed (git history retains it). Read this decision before implementing or reviewing content APIs, input selection, source values, or heading navigation.
 
 ## Public API (target, not an implemented example)

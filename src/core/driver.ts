@@ -1,9 +1,10 @@
 import { assetInput, assetKeyOf } from './assets'
 import { createEventClassifier } from './classify'
-import { diagnostic, equalDiagnosticValue, firstFatalDiagnostic, normalizeDiagnosticValue, VeliteError } from './diagnostic'
+import { diagnostic, firstFatalDiagnostic, VeliteError } from './diagnostic'
 import { loadManifest, MANIFEST_FILENAME, saveManifest } from './output/manifest'
 import { writeOutput } from './output/writer'
 import { buildProjectInfo, fileInput, TREE } from './pipeline'
+import { createPrepareSink } from './prepare'
 import { compareStrings } from './util/compare'
 import { join, relative } from './util/path'
 import { createPool } from './util/pool'
@@ -12,8 +13,8 @@ import type { FileSystem } from '../runtime/fs'
 import type { Logger } from '../runtime/logger'
 import type { FileEvent } from '../runtime/watcher'
 import type { AssetKey } from './assets'
-import type { PrepareCollections, PrepareContext, PrepareDiagnosticInput, ResolvedConfig } from './config'
-import type { Diagnostic, DiagnosticValue, VeliteErrorCode } from './diagnostic'
+import type { PrepareCollections, PrepareContext, ResolvedConfig } from './config'
+import type { Diagnostic, VeliteErrorCode } from './diagnostic'
 import type { Engine } from './engine'
 import type { LogicalOutput } from './output/logical'
 import type { DataManifest, OutputManifest } from './output/manifest'
@@ -77,169 +78,6 @@ export interface RunContextDeps {
 }
 
 const sortTree = (tree: TreeFile[]): TreeFile[] => tree.sort((a, b) => compareStrings(a.path, b.path))
-
-// --- Prepare diagnostic sink ------------------------------------------------
-//
-// Sole append-only prepare diagnostic channel. `addDiagnostic` synchronously
-// normalizes and snapshots `cause`, appends a `prepare`-stage diagnostic with
-// `origin = { kind: 'prepare-hook', key }` and project provenance, then closes
-// at hook settlement. Late calls throw `VeliteError('internal')` and append
-// nothing. Exact same-key declarations collapse. Reusing a key with a
-// different normalized payload yields one Velite-authored fatal prepare
-// conflict diagnostic and selects no winner. Reversing call or completion
-// order yields the same set and order.
-//
-// A hook declaration is accepted only when ordinary reflection reports an
-// Object-prototype or null-prototype record containing exactly own data
-// properties `key`, `level`, `code`, `message`, and optional `cause`. Unknown
-// string keys, symbol keys, accessors, inherited fields, invalid levels, or
-// empty key/code are malformed; reflection failure is malformed. No Proxy
-// detector is used.
-
-/** Internal sink entry. `conflict === true` marks a same-key payload clash. */
-interface SinkEntry {
-  readonly input: PrepareDiagnosticInput
-  readonly normalizedCause: DiagnosticValue | undefined
-  readonly conflict?: true
-}
-
-interface PrepareSink {
-  /** Snapshot of the diagnostics appended so far. */
-  readonly diagnostics: readonly Diagnostic[]
-  /** The sink's `addDiagnostic` closure, bound to this sink. */
-  readonly addDiagnostic: PrepareContext['addDiagnostic']
-  /** Close the sink at hook settlement. Idempotent. */
-  readonly close: () => void
-}
-
-/** Build a Velite-authored prepare-conflict diagnostic for a same-key clash. */
-const prepareConflictDiagnostic = (key: string): Diagnostic =>
-  diagnostic('error', 'PREPARE_CONFLICT', `prepare hook declared diagnostic key '${key}' with conflicting payloads`, {
-    stage: 'prepare',
-    origin: { kind: 'velite' },
-    provenance: { scope: 'project' },
-    context: { key }
-  })
-
-const VALID_LEVELS: ReadonlySet<string> = new Set(['error', 'warn', 'info'])
-const ALLOWED_FIELDS: ReadonlySet<string> = new Set(['key', 'level', 'code', 'message', 'cause'])
-
-/**
- * Validate a `PrepareDiagnosticInput` against the sole-prepare-sink shape
- * contract. Accepted when ordinary reflection reports an Object-prototype or
- * null-prototype record containing exactly own data properties `key`, `level`,
- * `code`, `message`, and optional `cause`. Unknown string keys, symbol keys,
- * accessors, inherited fields, invalid levels, or empty key/code are
- * malformed. Reflection failure is malformed. No Proxy detector is used.
- */
-const validatePrepareInput = (input: PrepareDiagnosticInput): void => {
-  if (typeof input !== 'object' || input === null) throw new VeliteError('internal', { message: 'PrepareDiagnosticInput must be an object' })
-  let proto: object | null
-  try {
-    proto = Object.getPrototypeOf(input)
-  } catch {
-    throw new VeliteError('internal', { message: 'PrepareDiagnosticInput reflection failed' })
-  }
-  if (proto !== null && proto !== Object.prototype) {
-    throw new VeliteError('internal', { message: 'PrepareDiagnosticInput must be an ordinary Object-prototype or null-prototype record' })
-  }
-  let ownKeys: (string | symbol)[]
-  try {
-    ownKeys = Reflect.ownKeys(input)
-  } catch {
-    throw new VeliteError('internal', { message: 'PrepareDiagnosticInput reflection failed' })
-  }
-  for (const k of ownKeys) {
-    if (typeof k === 'symbol') throw new VeliteError('internal', { message: 'PrepareDiagnosticInput must not carry symbol keys' })
-    if (!ALLOWED_FIELDS.has(k)) throw new VeliteError('internal', { message: `PrepareDiagnosticInput has unknown field '${k}'` })
-    const desc = Object.getOwnPropertyDescriptor(input, k)
-    if (desc === undefined || 'get' in desc || 'set' in desc) {
-      throw new VeliteError('internal', { message: `PrepareDiagnosticInput field '${k}' must be a data property, not an accessor` })
-    }
-  }
-  const key = (input as { key?: unknown }).key
-  if (typeof key !== 'string' || key.length === 0) throw new VeliteError('internal', { message: 'PrepareDiagnosticInput.key must be a non-empty string' })
-  const level = (input as { level?: unknown }).level
-  if (typeof level !== 'string' || !VALID_LEVELS.has(level)) {
-    throw new VeliteError('internal', { message: `PrepareDiagnosticInput.level must be 'error' | 'warn' | 'info' (got '${String(level)}')` })
-  }
-  const code = (input as { code?: unknown }).code
-  if (typeof code !== 'string' || code.length === 0) throw new VeliteError('internal', { message: 'PrepareDiagnosticInput.code must be a non-empty string' })
-  const message = (input as { message?: unknown }).message
-  if (typeof message !== 'string') throw new VeliteError('internal', { message: 'PrepareDiagnosticInput.message must be a string' })
-}
-
-/**
- * Create a fresh append-only prepare diagnostic sink. The sink is single-use:
- * `close()` is called once at hook settlement, after which `addDiagnostic`
- * throws `VeliteError('internal')` and appends nothing.
- */
-const createPrepareSink = (): PrepareSink => {
-  const entries = new Map<string, SinkEntry>()
-  let closed = false
-  const sameCause = (a: DiagnosticValue | undefined, b: DiagnosticValue | undefined): boolean => {
-    if (a === undefined && b === undefined) return true
-    if (a === undefined || b === undefined) return false
-    return equalDiagnosticValue(a, b)
-  }
-  const addDiagnostic = (raw: PrepareDiagnosticInput): void => {
-    if (closed) throw new VeliteError('internal', { message: 'Prepare sink is closed — addDiagnostic called after hook settlement' })
-    validatePrepareInput(raw)
-    const normalizedCause = raw.cause !== undefined ? normalizeDiagnosticValue(raw.cause) : undefined
-    const existing = entries.get(raw.key)
-    if (existing !== undefined) {
-      // Exact-duplicate collapse: same level, code, message, and normalized cause.
-      const samePayload =
-        existing.input.level === raw.level &&
-        existing.input.code === raw.code &&
-        existing.input.message === raw.message &&
-        sameCause(existing.normalizedCause, normalizedCause)
-      if (samePayload) return
-      // Same key, different normalized payload: drop both siblings and record
-      // exactly one Velite-authored fatal prepare-conflict diagnostic.
-      entries.delete(raw.key)
-      entries.set(`__conflict__${raw.key}`, {
-        input: { key: raw.key, level: 'error', code: 'PREPARE_CONFLICT', message: '' },
-        normalizedCause: undefined,
-        conflict: true
-      })
-      return
-    }
-    entries.set(raw.key, { input: raw, normalizedCause })
-  }
-  const diagnostics = (): readonly Diagnostic[] => {
-    const out: Diagnostic[] = []
-    for (const [, entry] of entries) {
-      if (entry.conflict === true) {
-        out.push(prepareConflictDiagnostic(entry.input.key))
-        continue
-      }
-      // Construct the Diagnostic directly so the already-normalized cause is
-      // not re-normalized (which would wrap the record in another record).
-      const d: Diagnostic = {
-        level: entry.input.level,
-        code: entry.input.code,
-        message: entry.input.message,
-        stage: 'prepare',
-        origin: { kind: 'prepare-hook', key: entry.input.key },
-        provenance: { scope: 'project' },
-        ...(entry.normalizedCause !== undefined ? { cause: entry.normalizedCause } : {})
-      }
-      out.push(d)
-    }
-    return out
-  }
-  const close = (): void => {
-    closed = true
-  }
-  return {
-    get diagnostics() {
-      return diagnostics()
-    },
-    addDiagnostic,
-    close
-  }
-}
 
 /** Absolute path of the velite-owned manifest under the data output directory. */
 const manifestPath = (config: ResolvedConfig): string => join(config.output.data, MANIFEST_FILENAME)
@@ -747,6 +585,13 @@ const runIncremental = async (context: RunContext, layout: 'split' | 'single' = 
     // changedPaths/patchedCollections pair must never steer a later patch.
     context.changedPaths = undefined
     context.patchedCollections = undefined
+    // Collect memos orphaned by removed/renamed sources: every live derivation
+    // is re-demanded during a rebuild, so anything not demanded within the
+    // grace window belongs to a source that no longer exists (its memo would
+    // otherwise be retained for the engine's lifetime). One revision of grace
+    // absorbs delete→re-add races at the cost of a recompute. Dropping a memo
+    // is always safe — the next demand simply recomputes it.
+    context.engine.gc(1)
   }
 }
 

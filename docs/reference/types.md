@@ -565,7 +565,7 @@ interface PrepareDiagnosticInput {
 }
 ```
 
-The `prepare` hook receives this context. Diagnostics cannot be returned from the hook — `addDiagnostic` is the only channel, and it closes when the hook settles (later calls throw). There are no other lifecycle hooks in 1.0.
+The `prepare` hook receives this context. Diagnostics cannot be returned from the hook — `addDiagnostic` is the only channel, and it closes when the hook settles (later calls throw). A declaration that does not match the `PrepareDiagnosticInput` shape is ignored: nothing of it is recorded, and velite appends a fatal `PREPARE_INVALID_INPUT` diagnostic instead, so the build fails with a structured error rather than an internal fault. There are no other lifecycle hooks in 1.0.
 
 ## MarkdownOptions
 

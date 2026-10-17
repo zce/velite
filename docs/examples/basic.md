@@ -10,9 +10,12 @@ Velite is a framework agnostic library, it can be used in any JavaScript framewo
 
 <iframe class="stackblitz" src="https://stackblitz.com/edit/velite-basic?embed=1&view=editor" />
 
+> [!NOTE]
+> The sandbox may not always track the latest Velite version. The source below is the source of truth.
+
 ## Source code
 
-👉 https://stackblitz.com/github/zce/velite/tree/main/examples/basic
+👉 https://github.com/zce/velite/tree/main/examples/basic
 
 See [examples](https://github.com/zce/velite/tree/main/examples) for more examples.
 

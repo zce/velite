@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 .velite
+
+# velite generated files
+/.velite
+/public/static

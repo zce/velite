@@ -8,8 +8,7 @@
 // integration suites (e.g. cli.tests.ts) cannot race on the same output.
 //
 // FAILS LOUDLY when `dist/index.mjs` is absent. Run `pnpm test` (which builds
-// first). The companion `pnpm test:src` script excludes `test/integration/`
-// so the inner-loop unit suite stays runnable without rebuilding dist.
+// first).
 import { ok } from 'node:assert/strict'
 import { execSync } from 'node:child_process'
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'

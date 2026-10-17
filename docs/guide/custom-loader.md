@@ -10,7 +10,7 @@ Velite supports custom loaders. A loader is an object with a `match` property (f
 
 ::: warning
 
-In the current 1.0 alpha, custom loaders cannot be registered from the config file — there is no `loaders` field on `defineConfig` and no per-collection `loader` option. The `Loader` / `defineLoader` exports describe the contract; registration is available only through the programmatic builder composition, which is not public API yet. Config-file registration is planned for a future release.
+Custom loaders cannot currently be registered from the config file — there is no `loaders` field on `defineConfig` and no per-collection `loader` option. The `Loader` / `defineLoader` exports describe the contract; registration is available only through the programmatic builder composition, which is not public API yet. Config-file registration is planned for a future release — see the [roadmap](../other/roadmap.md).
 
 :::
 

@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22.13.0, 24]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -19,7 +23,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22.13.0
+          node-version: ${{ matrix.node }}
           cache: pnpm
 
       - name: Install dependencies

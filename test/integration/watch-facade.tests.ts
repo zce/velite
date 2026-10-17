@@ -5,8 +5,7 @@
 // `instance.watch()` would double-call the user's `prepare` hook on startup.
 //
 // Needs the built dist (`pnpm build`) because the node adapter's module loader
-// jiti-aliases `'velite'` to dist for the user config's self-imports. Excluded
-// from `test:src` along with the rest of test/integration/.
+// jiti-aliases `'velite'` to dist for the user config's self-imports.
 import { equal, ok } from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

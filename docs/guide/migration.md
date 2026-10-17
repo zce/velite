@@ -1,15 +1,15 @@
-# Migration to 1.0 Alpha
+# Migration to 1.0
 
-Velite 1.0 alpha modernizes the parser pipeline around Zod 4, separates Content Definitions from result schemas, and introduces framework plugins for app integrations. This guide covers the changes you should apply when upgrading from `0.3.x` or an earlier `1.0.0-alpha` build.
+Velite 1.0 modernizes the parser pipeline around Zod 4, separates Content Definitions from result schemas, and introduces framework plugins for app integrations. This guide covers the changes you should apply when upgrading from `0.3.x` or an earlier `1.0.0-alpha` build.
 
-The content sections describe the migrated 1.0 implementation. Older published alpha builds may not contain the `content` export; use a package build containing this migration, not compatibility aliases. This guide does not announce release acceptance.
+The content sections describe the migrated 1.0 implementation. Older published alpha builds may not contain the `content` export; use a package build containing this migration, not compatibility aliases.
 
 ## Upgrade Packages
 
-Install the alpha release and update your package manager lockfile:
+Install the latest 1.0 release and update your package manager lockfile:
 
 ```bash
-pnpm add -D velite@1.0.0-alpha.3
+pnpm add -D velite@latest
 ```
 
 If you use the framework plugins, install the matching package:
@@ -292,7 +292,7 @@ Content types are `ContentNamespace`, `MarkdownDefinition`, `MdxDefinition`, `Ma
 ## Recommended Upgrade Checklist
 
 - Update Node.js to `>=22.13.0` in local development and CI.
-- Upgrade `velite` to `1.0.0-alpha.3`.
+- Upgrade `velite` to the latest 1.0 release.
 - Replace `import { z } from 'velite'` with `import { s } from 'velite'`.
 - Replace legacy content roots and standalone selections with one reused Content Definition per related input.
 - Update TOC links to actual `id` values and forward those IDs through runtime heading components.

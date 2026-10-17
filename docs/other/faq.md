@@ -30,7 +30,7 @@ The generated data layer: per-record JSON (or per-collection JSON in production)
 
 ## Can I write custom schemas and loaders?
 
-Yes. Custom schemas are ordinary Zod schemas; `context()` gives them the current file, record, and project during parsing, plus asset resolution and effect declaration (see [Custom Schema](../guide/custom-schema.md)). Custom loaders describe a `match` + synchronous `load` contract (see [Custom Loader](../guide/custom-loader.md)) — note that in the current 1.0 alpha, loader registration is programmatic-only.
+Yes. Custom schemas are ordinary Zod schemas; `context()` gives them the current file, record, and project during parsing, plus asset resolution and effect declaration (see [Custom Schema](../guide/custom-schema.md)). Custom loaders describe a `match` + synchronous `load` contract (see [Custom Loader](../guide/custom-loader.md)) — note that custom loader registration from the config file is not available yet; it is on the [roadmap](roadmap.md).
 
 ## Why did my build fail with `ASSET_FAILED`?
 
@@ -46,4 +46,4 @@ The build is a graph of memoized derivations (sources → load → validate → 
 
 ## Is it production ready?
 
-Velite is at `1.0.0-alpha`. The architecture (incremental engine, diagnostics, plugins) is settled and covered by 600+ tests, but the public API may still change before 1.0 final. Pin your version and read the [migration notes](../guide/migration.md) when upgrading alphas.
+Velite's 1.0 architecture (incremental engine, diagnostics, plugins) is settled and covered by 600+ tests. Check the version you are installing and read the [migration notes](../guide/migration.md) — the guide tells you what changed between releases and what to update when upgrading.

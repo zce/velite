@@ -84,13 +84,15 @@ interface Session {
 }
 
 /**
- * The watch subsystem's state. Lives only when a watch is active; both fields
- * are created together and torn down together, so they are grouped so the
- * tear-down path can't leak one without the other.
+ * The watch subsystem's state. Lives only when a watch is active; the three
+ * fields are created together and torn down together, so they are grouped so
+ * the tear-down path can't leak one without the others.
  */
 interface WatchState {
   scheduler: Scheduler
   unsubscribe: () => void
+  /** Kept so a config reload can extend the watched path set. */
+  watcher: Watcher
 }
 
 const loadSession = async (deps: BuilderDeps): Promise<Session> => {
@@ -174,6 +176,15 @@ export const createBuilder = (deps: BuilderDeps): Builder => {
         const reloaded = await ensureSession(true)
         const rebuilt = await reloaded.driver.runBuild(activeLayout)
         deps.logger.info('build finished')
+        // A config reload can change the content root or the config's local
+        // dependencies. The original watcher subscription only covers the
+        // previous session's paths — extend it with anything new, or edits to
+        // newly-introduced files silently never trigger a rebuild. Removal of
+        // stale paths is not attempted: watchers keep observing them, but
+        // events from paths outside the new config classify as 'ignore'.
+        if (watchState !== undefined) {
+          watchState.watcher.add([...new Set([reloaded.config.root, reloaded.config.configPath, ...reloaded.config.configDependencies])])
+        }
         return rebuilt
       }
       if (result === 'content') {
@@ -220,7 +231,7 @@ export const createBuilder = (deps: BuilderDeps): Builder => {
         debounceMs: watchOptions.debounceMs
       })
       const unsubscribe = watcher.subscribe(event => scheduler.push([event]))
-      watchState = { scheduler, unsubscribe }
+      watchState = { scheduler, unsubscribe, watcher }
       return {
         initial,
         close: async () => closeWatch()

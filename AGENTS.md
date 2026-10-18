@@ -47,8 +47,8 @@ The core library is runtime-agnostic; all I/O and platform APIs live behind port
 | `core/pipeline/`         | Derivation graph (the core computation): `createPipeline` composing `sources`→`load`→`validate`→`collect`→`uniqueCheck`→`emit` + `asset` derivation                              |
 | `core/schema/`           | Zod namespace `s`, separate `content` definitions/result schemas, eight-field `context()`, effects; `file`, `image`, `slug`, `path`, `raw`, `isoDate`, `unique`                  |
 | `core/util/`             | Pure helpers (no `node:*`): posix `path`, FNV-1a `hash`, `glob` matcher, identity, string `compare`, bounded `pool`                                                              |
-| `runtime/`               | Runtime ports: `FileSystem`, `ImageProcessor`, `Logger`, `ModuleLoader`, `Watcher`, `ContextStorage`; `createContext` ambient-value accessor                                     |
-| `runtime/adapters/node/` | Node adapters: `node:fs`+tinyglobby, sharp (lazy), jiti modules, chokidar watcher, `AsyncLocalStorage` context — the only place `node:*`/native imports live                     |
+| `runtime/`               | Runtime ports: `FileSystem`, `ImageProcessor`, `Logger`, `ModuleLoader`, `Watcher`                                                                                               |
+| `runtime/adapters/node/` | Node adapters: `node:fs`+tinyglobby, sharp (lazy), jiti modules, chokidar watcher, `AsyncLocalStorage`-based schema host — the only place `node:*`/native imports live           |
 
 ## Key patterns
 

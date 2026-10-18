@@ -94,7 +94,8 @@ test('Builder: concurrent watch() invocations are serialized, no watcher leak', 
       return {
         subscribe: () => () => {
           unsubscribed.push(id)
-        }
+        },
+        add: () => {}
       }
     }
   }

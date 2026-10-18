@@ -45,7 +45,7 @@ name: s.unique('taxonomies')
 // case 1. unique value
 // 'foo' => 'foo'
 
-// case 2. non-unique value (in all unique by 'taxonomies')
+// case 2. non-unique value (when another record also registers 'foo' in 'taxonomies')
 // 'foo' => issue 'duplicate unique value "foo" in group "taxonomies"'
 ```
 

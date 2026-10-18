@@ -66,4 +66,4 @@ Writes are hash-compared against a manifest of the previous run — unchanged fi
 
 ## 9. Watch mode
 
-In watch mode, file events are classified as **config** (full reload), **content** (incremental), or **ignore** (output dirs, unrelated paths). A content event patches exactly the affected engine inputs — one file's bytes, one asset's bytes, or the tree — and the memoized derivation graph recomputes only what actually depended on them. This is why changing one Markdown file re-validates one source, not the whole project.
+In watch mode, file events are classified as **config** (full reload), **content** (incremental), or **ignore** (output dirs, unrelated paths). A content event patches exactly the affected engine inputs — one file's bytes, one asset's bytes, or the tree — and the memoized derivation graph recomputes only what actually depended on them. This is why changing one Markdown file re-validates one source, not the whole project. A config reload rebuilds the whole session with the new config and extends the watcher's path set with any newly introduced content root or config dependency.

@@ -124,7 +124,7 @@ Options for the initial build and watcher. Accepts the same options as [`build`]
 
 - Type: `Promise<WatchHandle>`.
 
-The watcher handle. The single initial build runs before `watch()` resolves, and its result is exposed on `handle.initial` so callers don't trigger a second build. Closing the handle disposes the underlying builder.
+The watcher handle. The single initial build runs before `watch()` resolves, and its result is exposed on `handle.initial` so callers don't trigger a second build. Closing the handle disposes the underlying builder. If a config reload changes the content root or the config's local dependencies, the watcher's path set is extended accordingly.
 
 ```ts
 interface WatchHandle {
@@ -181,7 +181,7 @@ interface WatchOptions {
 }
 ```
 
-All mutating calls (`build` / `watch` / `apply` / `clean` / `dispose`) share one mutex, so concurrent calls queue instead of racing on engine state. `apply()` is what the watcher feeds internally — calling it yourself is only useful when you bring your own file-event source. A failed rebuild inside `watch()` is logged and the watcher stays alive; `onRebuild` is only invoked for successful rebuilds.
+All mutating calls (`build` / `watch` / `apply` / `clean` / `dispose`) share one mutex, so concurrent calls queue instead of racing on engine state. `apply()` is what the watcher feeds internally — calling it yourself is only useful when you bring your own file-event source. A failed rebuild inside `watch()` is logged and the watcher stays alive; `onRebuild` is only invoked for successful rebuilds. When `apply()` processes a config reload, the active watcher's path set is extended with the reloaded session's content root and config dependencies, so newly introduced local imports keep triggering rebuilds.
 
 ## `content`
 

@@ -45,7 +45,8 @@ test('watch: a failed rebuild is logged and the watcher keeps rebuilding', async
     subscribe: fn => {
       push = fn
       return () => {}
-    }
+    },
+    add: () => {}
   })
   const { logger, logs } = createCapturedLogger()
   const runtime: TestRuntime = {

@@ -40,7 +40,8 @@ export const noopImageProcessor: ImageProcessor = {
 }
 
 export const noopWatch = (): Watcher => ({
-  subscribe: () => () => {}
+  subscribe: () => () => {},
+  add: () => {}
 })
 
 export interface CapturedLog {

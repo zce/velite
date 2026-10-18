@@ -42,7 +42,7 @@ test('Builder.watch(): runs the initial build exactly once and exposes its resul
     modules: { load: async () => ({ exports: config, dependencies: [] }) },
     logger: silentLogger,
     image: noopImageProcessor,
-    watch: () => ({ subscribe: () => () => {} })
+    watch: () => ({ subscribe: () => () => {}, add: () => {} })
   }
   const builder = createBuilder({ ...runtime, cwd: CWD, configPath: join(CWD, 'velite.config.ts') })
   const handle = await builder.watch({}, { layout: 'single' })
@@ -84,7 +84,7 @@ test('Builder.watch(): watches config dependencies and classifies their events a
     image: noopImageProcessor,
     watch: paths => {
       subscribedPaths = paths
-      return { subscribe: () => () => {} }
+      return { subscribe: () => () => {}, add: () => {} }
     }
   }
 
@@ -98,6 +98,65 @@ test('Builder.watch(): watches config dependencies and classifies their events a
   const result = await builder.apply([{ type: 'change', absPath: configDependency }])
   ok(result !== undefined, 'config dependency change triggers a rebuild')
   equal(loadCalls, 2, 'config dependency change reloads the config session')
+
+  await handle.close()
+  await builder.dispose()
+})
+
+test('Builder.watch(): config reload extends the watched path set with new roots and dependencies', async () => {
+  const CWD = '/proj'
+  const configPath = join(CWD, 'velite.config.ts')
+  const firstDependency = join(CWD, 'velite.shared.ts')
+  const secondDependency = join(CWD, 'velite.extra.ts')
+  const config: UserConfig = {
+    root: 'content',
+    collections: { posts: { pattern: 'posts/*.json', schema: s.object({ title: s.string() }) } }
+  }
+  const fs = new MemoryFileSystem()
+  fs.put(join(CWD, 'content/posts/a.json'), JSON.stringify([{ title: 'A' }]))
+  fs.put(configPath, '// config')
+  let loadCalls = 0
+  const addedPaths: string[][] = []
+  let subscribedPaths: string[] = []
+  const runtime: TestRuntime = {
+    schemaRunner: testSchemaRunner(),
+    contentExecutionsFactory: testContentExecutionsFactory(),
+    fs,
+    modules: {
+      // First load reports one dependency; the reload reports a different
+      // one — simulating an edit that makes the config import a new local file.
+      load: async () => {
+        loadCalls++
+        return { exports: config, dependencies: loadCalls === 1 ? [configPath, firstDependency] : [configPath, secondDependency] }
+      }
+    },
+    logger: silentLogger,
+    image: noopImageProcessor,
+    watch: paths => {
+      subscribedPaths = paths
+      return {
+        subscribe: () => () => {},
+        add: newPaths => addedPaths.push(newPaths)
+      }
+    }
+  }
+
+  const builder = createBuilder({ ...runtime, cwd: CWD, configPath })
+  const handle = await builder.watch({}, { layout: 'single' })
+  ok(subscribedPaths.includes(firstDependency), 'first config dependency is watched on startup')
+  equal(addedPaths.length, 0, 'nothing extended before a reload')
+
+  // Trigger the config reload — the reloaded session's dependency set differs.
+  await builder.apply([{ type: 'change', absPath: configPath }])
+  equal(loadCalls, 2, 'config change reloaded the config session')
+
+  // The watcher was extended with the reloaded session's paths, including
+  // the dependency that the original subscription never knew about. Without
+  // this, edits to the new dependency would silently never trigger a rebuild.
+  equal(addedPaths.length, 1, 'config reload extended the watched paths exactly once')
+  ok(addedPaths[0]!.includes(secondDependency), 'the new config dependency is now watched')
+  ok(addedPaths[0]!.includes(join(CWD, 'content')), 'the content root is re-asserted')
+  ok(addedPaths[0]!.includes(configPath), 'the config file is re-asserted')
 
   await handle.close()
   await builder.dispose()
@@ -124,7 +183,7 @@ test('Builder.apply(): logs content rebuilds separately from config reloads', as
     modules: { load: async () => ({ exports: config, dependencies: [configPath, configDependency] }) },
     logger,
     image: noopImageProcessor,
-    watch: () => ({ subscribe: () => () => {} })
+    watch: () => ({ subscribe: () => () => {}, add: () => {} })
   }
 
   const builder = createBuilder({ ...runtime, cwd: CWD, configPath })

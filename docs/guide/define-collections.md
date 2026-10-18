@@ -106,9 +106,9 @@ The schema is usually a `ZodObject`, validating the shape of the content item. B
 
 For more complex schemas, use [Velite extended schemas `s`](velite-schemas.md):
 
-- `s.slug()`: validate slug format, unique in posts collection.
+- `s.slug()`: validate slug format, unique within a named slug group across records.
 - `s.isoDate()`: format date string to ISO date string.
-- `s.unique()`: validate unique value in collection.
+- `s.unique()`: validate a value unique within a named group across all records.
 - `s.image()`: input image relpath, output image object with blurImage.
 - `s.file()`: input file relpath, output file public path.
 

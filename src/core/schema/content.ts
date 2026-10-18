@@ -1,0 +1,112 @@
+import { z } from 'zod'
+
+import { isVeliteError } from '../diagnostic'
+import { contentContext } from './content-context'
+import { context } from './context'
+
+import type { ZodType } from 'zod'
+import type { ContentDefinitionDescriptor, SemanticContentRequest } from '../content/execution/types'
+import type { MarkdownOptions, MdxOptions } from '../content/options'
+import type { ExcerptSchemaOptions, Metadata, TocItem } from '../content/results'
+
+// Public option names for the definition factories. Aliases (not separate
+// interfaces): the definition-level and config-level option shapes are the
+// same type by design.
+export type MarkdownDefinitionOptions = MarkdownOptions
+export type MdxDefinitionOptions = MdxOptions
+
+export interface MarkdownDefinition {
+  html(): ZodType<string, string | undefined>
+  toc(): ZodType<TocItem[], string | undefined>
+  excerpt(options?: ExcerptSchemaOptions): ZodType<string, string | undefined>
+  metadata(): ZodType<Metadata, string | undefined>
+}
+
+export interface ContentNamespace {
+  readonly markdown: (options?: MarkdownDefinitionOptions) => MarkdownDefinition
+  readonly mdx: (options?: MdxDefinitionOptions) => MdxDefinition
+}
+
+export interface MdxDefinition {
+  code(): ZodType<string, string | undefined>
+  toc(): ZodType<TocItem[], string | undefined>
+  excerpt(options?: ExcerptSchemaOptions): ZodType<string, string | undefined>
+  metadata(): ZodType<Metadata, string | undefined>
+}
+
+const failureMessage = (error: unknown): string => {
+  try {
+    return error instanceof Error ? String(error.message) : String(error)
+  } catch {
+    return 'Content processing failed'
+  }
+}
+
+const isInternalFailure = (error: unknown): boolean => {
+  try {
+    return isVeliteError(error) && error.code === 'internal'
+  } catch {
+    // A plugin may throw a revoked proxy or an Error with hostile accessors.
+    // Inspecting that ordinary failure must not create a new invariant fault.
+    return false
+  }
+}
+
+/**
+ * Build a result schema for one selection of a content definition. The request
+ * (definition + selection + options) is fixed here; only the `text` is known
+ * at parse time, so the caller supplies a request factory.
+ */
+const resultSchema = <T>(makeRequest: (text: string) => SemanticContentRequest): ZodType<T, string | undefined> =>
+  z
+    .string()
+    .optional()
+    .transform<T>((value, ctx) => {
+      const text = value ?? context().file.content
+      if (text === undefined || text === '') {
+        ctx.addIssue({ code: 'custom', message: 'The content is empty' })
+        return z.NEVER
+      }
+      const demand = contentContext().content(makeRequest(text))
+      return demand.then(
+        value => value as T,
+        error => {
+          if (isInternalFailure(error)) throw error
+          ctx.addIssue({ code: 'custom', message: failureMessage(error) })
+          return z.NEVER
+        }
+      )
+    })
+
+const defineContent = (dialect: ContentDefinitionDescriptor['dialect'], options: MdxOptions) => {
+  const definition: ContentDefinitionDescriptor = {
+    dialect,
+    options: {
+      ...options,
+      remarkPlugins: [...(options.remarkPlugins ?? [])],
+      rehypePlugins: [...(options.rehypePlugins ?? [])],
+      recmaPlugins: [...(options.recmaPlugins ?? [])]
+    }
+  }
+  return {
+    primary: () => resultSchema<string>(text => ({ definition, text, selection: dialect === 'mdx' ? 'code' : 'html' })),
+    toc: () => resultSchema<TocItem[]>(text => ({ definition, text, selection: 'toc' })),
+    excerpt(options: ExcerptSchemaOptions = {}) {
+      const length = options.length === undefined ? 260 : options.length
+      if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0) throw new TypeError('Excerpt length must be a non-negative safe integer')
+      return resultSchema<string>(text => ({ definition, text, selection: 'excerpt', length }))
+    },
+    metadata: () => resultSchema<Metadata>(text => ({ definition, text, selection: 'metadata' }))
+  }
+}
+
+export const content: ContentNamespace = {
+  markdown(options = {}) {
+    const { primary, ...source } = defineContent('markdown', options)
+    return { html: primary, ...source }
+  },
+  mdx(options = {}) {
+    const { primary, ...source } = defineContent('mdx', options)
+    return { code: primary, ...source }
+  }
+}

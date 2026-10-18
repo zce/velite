@@ -303,57 +303,6 @@ export default defineConfig({
 
 Refer to [examples](https://github.com/zce/velite/blob/main/examples/nextjs/velite.config.ts) for more details.
 
-## @shikijs/rehype
-
-::: code-group
-
-```sh [npm]
-$ npm install @shikijs/rehype
-```
-
-```sh [pnpm]
-$ pnpm add @shikijs/rehype
-```
-
-```sh [yarn]
-$ yarn add @shikijs/rehype
-```
-
-:::
-
-In your `velite.config.js`:
-
-```js
-import rehypeShiki from '@shikijs/rehype'
-import { defineConfig } from 'velite'
-
-export default defineConfig({
-  // `mdx` if you use mdx
-  markdown: {
-    rehypePlugins: [[rehypeShiki, { theme: 'nord' }]]
-  }
-})
-```
-
-::: tip
-
-Velite packages most types of third-party modules, this leads to incompatible type declarations for `@shikijs/rehype`, but you can use it with confidence
-
-In your `velite.config.ts`:
-
-```js
-import rehypeShiki from '@shikijs/rehype'
-import { defineConfig } from 'velite'
-
-  markdown: {// `mdx` if you use mdx
-export default defineConfig({
-    rehypePlugins: [[rehypeShiki as any, { theme: 'nord' }]]
-  }
-})
-```
-
-:::
-
 ## rehype-highlight
 
 > syntax highlighting to code with [lowlight](https://github.com/wooorm/lowlight).
@@ -390,12 +339,12 @@ export default defineConfig({
 
 ## Client-side
 
-You can use [prismjs](https://prismjs.com) or [shiki](https://shiki.matsu.io) to highlight code on the client side. Client-side highlighting does not add build overhead to Velite.
+You can use [prismjs](https://prismjs.com) or [shiki](https://shiki.style) to highlight code on the client side. Client-side highlighting does not add build overhead to Velite.
 
 For example:
 
 ```js
-import { codeToHtml } from 'https://esm.sh/shikiji'
+import { codeToHtml } from 'shiki'
 
 Array.from(document.querySelectorAll('pre code[class*="language-"]')).map(async block => {
   block.parentElement.outerHTML = await codeToHtml(block.textContent, { lang: block.className.slice(9), theme: 'nord' })

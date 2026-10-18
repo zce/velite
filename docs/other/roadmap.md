@@ -2,13 +2,14 @@
 
 The following are the features I want to achieve or are under development:
 
-- [ ] Incremental build
-- [ ] Full documentation
+- [x] Incremental build (memoized derivation engine + watch-mode patching)
+- [x] Next.js & Vite plugin packages ([`@velite/plugin-next`](https://github.com/zce/velite/tree/main/packages/next), [`@velite/plugin-vite`](https://github.com/zce/velite/tree/main/packages/vite))
+- [x] Unit & integration tests
+- [x] Full documentation
+- [ ] Config-file custom loader registration
 - [ ] More built-in schemas
-- [ ] Unit & E2E tests?
+- [ ] Scaffolding tool
 - [ ] Turborepo?
-- [ ] Scoffolding tool
-- [ ] Next.js plugin package
 - [ ] More examples
 
 See the [open issues](https://github.com/zce/velite/issues) for a list of proposed features (and known issues).

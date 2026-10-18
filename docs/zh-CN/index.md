@@ -14,7 +14,7 @@ hero:
   actions:
     - theme: brand
       text: 快速上手
-      link: ./guide/quick-start.md
+      link: /guide/quick-start
     - theme: alt
       text: 在 GitHub 上查看
       link: https://github.com/zce/velite
@@ -33,6 +33,12 @@ features:
     title: 资源处理
     details: 内置资源处理，例如相对路径文件解析、图像优化等。
 ---
+
+::: warning 中文文档状态
+
+本站目前只有此落地页完成了中文翻译，完整文档仅提供英文版本。点击上方「快速上手」将进入英文指南；欢迎通过 [GitHub](https://github.com/zce/velite) 提交中文翻译的 PR。
+
+:::
 
 <style>
 :root {

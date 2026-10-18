@@ -16,9 +16,12 @@ This example shows how to use Velite with Next.js.
 
 <iframe class="stackblitz" src="https://stackblitz.com/edit/velite-nextjs?embed=1&view=editor" />
 
+> [!NOTE]
+> The sandbox may not always track the latest Velite version. The source below is the source of truth.
+
 ## Source code
 
-👉 https://stackblitz.com/github/zce/velite/tree/main/examples/nextjs
+👉 https://github.com/zce/velite/tree/main/examples/nextjs
 
 See [examples](https://github.com/zce/velite/tree/main/examples) for more examples.
 
@@ -44,13 +47,13 @@ nextjs
 │   │   ├── about
 │   │   │   └── index.mdx
 │   │   └── contact
-|   |       ├── img.png and more...
+│   │       ├── img.png and more...
 │   │       └── index.mdx
 │   ├── posts
 │   │   ├── 1970-01-01-style-guide
 │   │   │   ├── cover.jpg and more...
 │   │   │   └── index.md
-│   │   └── 1992-02-25-hello-world
+│   │   └── 2024-05-08-hello-world
 │   │       ├── cover.jpg and more...
 │   │       └── index.md
 │   └── tags

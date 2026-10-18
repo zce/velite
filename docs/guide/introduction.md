@@ -2,9 +2,9 @@
 
 ::: warning
 
-🚧 This documentation is not yet complete currently. but the functionality is mostly stable, although there is still a possibility of significant changes being made.
+Velite 1.0 is nearing stable release. The API is mostly stable — read [Migration to 1.0](./migration.md) for what changed since `0.x`, and pin your version until you have verified an upgrade.
 
-However, I have provided some [examples](https://github.com/zce/velite/tree/main/examples) for your consideration.
+A few [examples](https://github.com/zce/velite/tree/main/examples) are available for your consideration.
 
 :::
 
@@ -39,6 +39,9 @@ You can try Velite directly in your browser on StackBlitz, It runs Velite direct
 
 - https://stackblitz.com/edit/velite-basic
 - https://stackblitz.com/edit/velite-nextjs
+
+> [!NOTE]
+> The StackBlitz sandboxes may not always track the latest Velite version. For up-to-date code, use the runnable [examples](https://github.com/zce/velite/tree/main/examples).
 
 ## Who's using Velite?
 
@@ -105,7 +108,7 @@ Velite is framework agnostic, and out of the box support for React, Vue, Svelte,
 
 ### Less Runtime Dependencies
 
-- user config bundle by [ESBuild](https://esbuild.github.io)
+- user config loaded with [jiti](https://github.com/unjs/jiti) at runtime (TypeScript, ESM & CommonJS)
 - collection schema validation by [Zod](https://zod.dev)
 - content transform by [Unified](https://unifiedjs.com)
 - image processing by [Sharp](https://sharp.pixelplumbing.com)

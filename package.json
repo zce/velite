@@ -17,38 +17,34 @@
   "author": "zce <w@zce.me> (https://zce.me)",
   "type": "module",
   "bin": {
-    "velite": "./dist/cli.js"
+    "velite": "./dist/cli.mjs"
   },
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
     "./package.json": "./package.json",
-    ".": "./dist/index.js"
+    ".": "./dist/index.mjs"
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc && tsup",
-    "test": "node --import tsx --test test/**/*.tests.ts",
-    "bench:incremental": "node benchmark/incremental-rebuild.mjs",
+    "build": "tsc && tsdown",
+    "test": "pnpm build && node --import jiti/register --test 'test/**/*.tests.ts'",
+    "bench:large": "pnpm build && node --import jiti/register scripts/bench-large.ts",
     "docs:dev": "cd docs && pnpm dev",
     "docs:build": "cd docs && pnpm build",
     "format": "prettier . --write"
   },
-  "tsup": {
+  "tsdown": {
     "entry": [
       "src/index.ts",
       "src/cli.ts"
     ],
-    "format": "esm",
-    "platform": "node",
-    "target": "node22",
-    "dts": {
-      "resolve": true
+    "deps": {
+      "onlyBundle": false
     },
-    "treeshake": true,
-    "clean": true
+    "hash": false
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged"
@@ -58,7 +54,7 @@
   },
   "dependencies": {
     "@mdx-js/mdx": "^3.1.1",
-    "esbuild": "^0.28.0",
+    "jiti": "^2.7.0",
     "sharp": "^0.34.5",
     "terser": "^5.44.1",
     "zod": "^4.4.3"
@@ -75,7 +71,6 @@
     "lint-staged": "^17.0.7",
     "mdast-util-from-markdown": "^2.0.3",
     "mdast-util-to-hast": "^13.2.1",
-    "mdast-util-toc": "^7.1.0",
     "picomatch": "^4.0.4",
     "prettier": "^3.8.4",
     "rehype-raw": "^7.0.0",
@@ -85,13 +80,12 @@
     "remark-rehype": "^11.1.2",
     "simple-git-hooks": "^2.13.1",
     "tinyglobby": "^0.2.17",
-    "tsup": "^8.5.1",
-    "tsx": "^4.22.4",
+    "tsdown": "^0.22.3",
     "typescript": "^6.0.3",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0",
     "vfile": "^6.0.3",
-    "vfile-reporter": "^8.1.1",
+    "vfile-message": "^4.0.3",
     "yaml": "^3.0.0-1"
   },
   "packageManager": "pnpm@11.1.2",

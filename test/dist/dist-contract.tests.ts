@@ -1,0 +1,192 @@
+// Contract test against the BUILT package entry (dist/index.mjs), not src/.
+// Lives in `test/dist/` — the directory of suites that exercise the built
+// artifact directly (this file, plus the two bench suites whose scripts import
+// `../dist/index.mjs`). Validates that bundling (tsdown), export maps,
+// externalisation, and shebang injection produce a usable runtime entry — the
+// src-only `api-contract` test cannot catch those.
+//
+// This test FAILS LOUDLY when `dist/index.mjs` is absent. The `pnpm test`
+// script always runs `pnpm build` first, so the release-critical published
+// surface cannot pass review silently. Note that "needs dist" is broader than
+// this directory: config fixtures self-reference `velite` through the jiti
+// alias (`velite → dist/index.mjs`), so most suites under `test/core/` and
+// `test/runtime/` also require a build — there is no src-only test command.
+import { deepEqual, equal, ok } from 'node:assert/strict'
+import { spawn } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
+
+const distEntry = fileURLToPath(new URL('../../dist/index.mjs', import.meta.url))
+const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
+
+test('dist: package entry is built and exports the public surface', async () => {
+  ok(existsSync(distEntry), `dist/index.mjs not found — run \`pnpm build\` before this suite`)
+  const velite = (await import(distEntry)) as Record<string, unknown>
+  const values = ['build', 'watch', 'builder', 's', 'content', 'defineConfig', 'defineCollection', 'defineLoader', 'defineSchema', 'context', 'VeliteError']
+  for (const name of values) {
+    ok(typeof velite[name] !== 'undefined', `dist missing value export: ${name}`)
+  }
+  // createBuilder must NOT be present in dist (Ticket 21).
+  equal(velite.createBuilder, undefined, 'dist must not export createBuilder')
+  ok(typeof velite.build === 'function', 'build is a function')
+  ok(typeof velite.watch === 'function', 'watch is a function')
+  ok(typeof velite.s === 'object' && velite.s !== null, 's is an object')
+  ok(typeof (velite.s as Record<string, unknown>).string === 'function', 's.string is a function')
+  // One definition/result family; neither hybrid roots nor standalone projections.
+  const s = velite.s as Record<string, unknown>
+  equal(s.toc, undefined, 'dist s.toc must be removed')
+  equal(s.excerpt, undefined, 'dist s.excerpt must be removed')
+  equal(s.metadata, undefined, 'dist s.metadata must be removed')
+  equal(velite.TocOptions, undefined, 'dist must not export TocOptions')
+  equal(velite.original, undefined, 'dist must not export original')
+  equal(s.markdown, undefined)
+  equal(s.mdx, undefined)
+  const content = velite.content as (typeof import('../../src/index'))['content']
+  deepEqual(Reflect.ownKeys(content).sort(), ['markdown', 'mdx'])
+  for (const definition of [content.markdown(), content.mdx()]) {
+    equal((definition as unknown as Record<string, unknown>).safeParseAsync, undefined, 'a definition is not a Zod schema')
+    for (const name of ['toc', 'excerpt', 'metadata'] as const) ok(typeof definition[name]().safeParseAsync === 'function')
+  }
+  deepEqual(Reflect.ownKeys(content.markdown()).sort(), ['excerpt', 'html', 'metadata', 'toc'])
+  deepEqual(Reflect.ownKeys(content.mdx()).sort(), ['code', 'excerpt', 'metadata', 'toc'])
+  // T2.3: record-scoped content derivation internal types must NOT be exported.
+  const internalTypes = [
+    'PristineArtifact',
+    'VFileSeed',
+    'ParseMessageSeed',
+    'ContentDialectAdapter',
+    'ContentBranch',
+    'RecordBroker',
+    'ContentArtifactsFactory',
+    'UnsupportedSeedValueError',
+    'ParseIdentity',
+    'ProfileIdentity',
+    'OpaquePristineTree',
+    'OpaqueBranchTree',
+    'RecordScope',
+    'DialectAdapterPair',
+    'BrokerFactoryDeps',
+    'ContentDefinitionDescriptor',
+    'OwnedContent',
+    'ContentExecutionsFactory',
+    'ContentProcessor',
+    'NavigationSnapshot',
+    'ContentStageScope',
+    'ContentPromise',
+    'PromiseObserver',
+    'NodePromiseObserver',
+    'NodePromiseObserverDeps',
+    'SchemaRunnerDeps',
+    'createNodePromiseObserver'
+  ]
+  for (const name of internalTypes) {
+    equal(velite[name], undefined, `dist must not export internal derivation type: ${name}`)
+  }
+})
+
+test('dist: generated declarations expose finite types and no content ownership machinery or legacy roots', () => {
+  const dts = readFileSync(join(repoRoot, 'dist/index.d.mts'), 'utf8')
+  for (const name of [
+    'ContentNamespace',
+    'MarkdownDefinition',
+    'MarkdownDefinitionOptions',
+    'MdxDefinition',
+    'MdxDefinitionOptions',
+    'TocItem',
+    'Metadata',
+    'ExcerptSchemaOptions'
+  ])
+    ok(new RegExp(`\\b${name}\\b`).test(dts), `missing public type ${name}`)
+  for (const name of [
+    'MarkdownRoot',
+    'MdxRoot',
+    'MarkdownSchemaOptions',
+    'MdxSchemaOptions',
+    'PristineArtifact',
+    'VFileSeed',
+    'RecordBroker',
+    'ContentArtifactsFactory',
+    'ProfileIdentity',
+    'ContentDefinitionDescriptor',
+    'OwnedContent',
+    'ContentExecutionsFactory',
+    'ContentProcessor',
+    'NavigationSnapshot',
+    'ContentStageScope',
+    'ContentPromise',
+    'ContentOptions',
+    'MdxContentOptions',
+    'SchemaContextHost',
+    'SchemaRunContext',
+    'PromiseObserver',
+    'NodePromiseObserver',
+    'NodePromiseObserverDeps',
+    'SchemaRunnerDeps',
+    'createNodePromiseObserver'
+  ])
+    ok(!new RegExp(`(?:interface|type|class|const|function)\\s+${name}\\b`).test(dts), `leaked internal/legacy declaration ${name}`)
+})
+
+test('dist: package.json exports map, module, and types all resolve to existing dist files', () => {
+  // What npm and the TypeScript resolver actually read at install time — a
+  // regression in any of these fields (or in the corresponding tsdown emit)
+  // would ship a package whose direct `import 'velite'` works but whose
+  // tooling-resolved entry / types path does not.
+  const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')) as {
+    exports?: Record<string, string | Record<string, string>>
+    module?: string
+    main?: string
+    types?: string
+    bin?: string | Record<string, string>
+  }
+
+  // `module` and `types` (TS path) must point at real dist files.
+  ok(typeof pkg.module === 'string', 'package.json#module is a string')
+  ok(existsSync(join(repoRoot, pkg.module!)), `package.json#module target missing: ${pkg.module}`)
+  ok(typeof pkg.types === 'string', 'package.json#types is a string')
+  ok(existsSync(join(repoRoot, pkg.types!)), `package.json#types target missing: ${pkg.types}`)
+
+  // `exports['.']` must resolve to an existing file (either a string or a
+  // conditional record with at least `import` / `default`).
+  ok(pkg.exports != null && typeof pkg.exports === 'object', 'package.json#exports is an object')
+  const rootEntry = pkg.exports!['.']
+  ok(rootEntry !== undefined, 'package.json#exports["."] is defined')
+  const resolveCandidate = typeof rootEntry === 'string' ? rootEntry : (rootEntry.import ?? rootEntry.default ?? rootEntry.node)
+  ok(typeof resolveCandidate === 'string', `package.json#exports["."] does not resolve to a path: ${JSON.stringify(rootEntry)}`)
+  ok(existsSync(join(repoRoot, resolveCandidate!)), `package.json#exports["."] target missing: ${resolveCandidate}`)
+
+  // `exports["./package.json"]` is conventional — npm tooling expects to read
+  // the package.json through the export map when one is declared.
+  ok(pkg.exports!['./package.json'] !== undefined, 'package.json#exports["./package.json"] is declared')
+
+  // `module` must match the export map's `.` entry so both consumers and
+  // bundlers land on the same file.
+  equal(pkg.module, resolveCandidate, '`module` and `exports["."]` must point at the same dist file')
+})
+
+test('dist: TypeScript resolves `velite` types through the export map', async () => {
+  // A tsc --noEmit consumer fixture catches regressions where the runtime
+  // import works but TS cannot resolve the types (e.g. missing .d.mts under
+  // exports conditions, or types field pointing at a non-existent file).
+  const tscBin = join(repoRoot, 'node_modules', '.bin', 'tsc')
+  ok(existsSync(tscBin), 'tsc binary not found — run pnpm install first')
+
+  const fixtureDir = join(repoRoot, 'test', 'fixtures', 'ts-consumer')
+  ok(existsSync(join(fixtureDir, 'consumer.ts')), 'ts-consumer fixture missing')
+
+  const result = await new Promise<{ code: number | null; stdout: string; stderr: string }>(resolve => {
+    const child = spawn(tscBin, ['--noEmit', '--project', join(fixtureDir, 'tsconfig.json')], {
+      cwd: repoRoot,
+      stdio: 'pipe'
+    })
+    let stdout = ''
+    let stderr = ''
+    child.stdout.on('data', chunk => (stdout += String(chunk)))
+    child.stderr.on('data', chunk => (stderr += String(chunk)))
+    child.on('close', code => resolve({ code, stdout, stderr }))
+  })
+
+  equal(result.code, 0, `tsc --noEmit failed (TS cannot resolve velite types):\nstdout: ${result.stdout}\nstderr: ${result.stderr}`)
+})

@@ -2,7 +2,10 @@
 
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
-import { context, defineConfig, s } from 'velite'
+import { content, context, defineConfig, s } from 'velite'
+
+const postContent = content.markdown()
+const pageContent = content.mdx()
 
 const slugify = (/** @type {string} */ input) =>
   input
@@ -36,13 +39,11 @@ export default defineConfig({
   output: {
     data: '.velite',
     assets: 'public/static',
-    base: '/static/',
-    name: '[name]-[hash:6].[ext]',
-    clean: true
+    base: '/static/'
   },
   collections: {
     options: {
-      name: 'Options',
+      typeName: 'Options',
       pattern: 'options/index.yml',
       single: true,
       schema: s.object({
@@ -56,7 +57,7 @@ export default defineConfig({
       })
     },
     categories: {
-      name: 'Category',
+      typeName: 'Category',
       pattern: 'categories/*.yml',
       schema: s
         .object({
@@ -69,7 +70,7 @@ export default defineConfig({
         .transform(data => ({ ...data, permalink: `/${data.slug}` }))
     },
     tags: {
-      name: 'Tag',
+      typeName: 'Tag',
       pattern: 'tags/index.yml',
       schema: s
         .object({
@@ -82,25 +83,25 @@ export default defineConfig({
         .transform(data => ({ ...data, permalink: `/${data.slug}` }))
     },
     pages: {
-      name: 'Page',
+      typeName: 'Page',
       pattern: ['pages/**/*.mdx', '!pages/ignored/**'],
       schema: s
         .object({
           title: s.string().max(99),
           slug: s.slug(),
-          body: s.mdx(),
+          body: pageContent.code(),
           raw: s.raw()
         })
-        .transform(data => ({ ...data, permalink: `/${data.slug}`, basename: context().file.basename }))
+        .transform(data => ({ ...data, permalink: `/${data.slug}`, basename: context().file.path.split(/[\\/]/).pop() }))
     },
     posts: {
-      name: 'Post',
+      typeName: 'Post',
       pattern: 'posts/**/*.md',
       schema: s
         .object({
           title: s.string().max(99),
           slug: s.path(),
-          date: s.isodate(),
+          date: s.isoDate(),
           updated: timestamp(),
           cover: s.image().optional(),
           video: s.file().optional(),
@@ -110,10 +111,10 @@ export default defineConfig({
           categories: s.array(s.string()).default(['Journal']),
           tags: s.array(s.string()).default([]),
           meta: meta,
-          toc: s.toc(),
-          metadata: s.metadata(),
-          excerpt: s.excerpt(),
-          content: s.markdown()
+          toc: postContent.toc(),
+          metadata: postContent.metadata(),
+          excerpt: postContent.excerpt(),
+          content: postContent.html()
         })
         .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
     }

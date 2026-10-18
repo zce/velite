@@ -38,27 +38,27 @@ Don't use `require()` to import it, and make sure your nearest `package.json` co
 Create a `velite.config.js` file in the root directory of your project to define collections config:
 
 ```js
-import { defineConfig, s } from 'velite'
+import { content, defineConfig, s } from 'velite'
 
-// `s` is extended from Zod with some custom schemas,
-// you can also import re-exported `z` from `velite` if you don't need these extension schemas.
+// Reuse this definition for related results from the same selected body.
+const postContent = content.markdown()
 
 export default defineConfig({
   collections: {
     posts: {
-      name: 'Post', // collection type name
+      typeName: 'Post', // collection type name
       pattern: 'posts/**/*.md', // content files glob pattern
       schema: s
         .object({
           title: s.string().max(99), // Zod primitive type
           slug: s.slug('posts'), // validate format, unique in posts collection
           // slug: s.path(), // auto generate slug from file path
-          date: s.isodate(), // input Date-like string, output ISO Date string.
+          date: s.isoDate(), // input Date-like string, output ISO Date string.
           cover: s.image(), // input image relative path, output image object with blurImage.
           video: s.file().optional(), // input file relative path, output file public path.
-          metadata: s.metadata(), // extract markdown reading-time, word-count, etc.
-          excerpt: s.excerpt(), // excerpt of markdown content
-          content: s.markdown() // transform markdown to html
+          metadata: postContent.metadata(), // source reading time and weighted word count
+          excerpt: postContent.excerpt(), // static pre-transform source text
+          content: postContent.html() // transform markdown to html
         })
         // more additional fields (computed fields)
         .transform(data => ({ ...data, permalink: `/blog/${data.slug}` }))
@@ -71,6 +71,8 @@ export default defineConfig({
 ```
 
 For more information about Velite extended field schemas, see [Velite Schemas](velite-schemas.md).
+
+`content.markdown()` creates a definition, not a schema. Its methods return ordinary Zod schemas. Reusing the same definition and selected text within one record shares processing; equal-looking separate definitions do not. For MDX, use `content.mdx()` and its `.code()` method. See [Content Definitions](content-executions.md).
 
 ::: tip
 
@@ -143,10 +145,18 @@ Then you will get the following output:
 ```diff
  root
 +├── .velite
-+│   ├── posts.json                  # posts collection output
-+│   ├── others.json                 # others collection output
++│   ├── records                     # one JSON file per record (split layout)
++│   │   ├── posts
++│   │   │   ├── hello-world.d1a2c3e4.json
++│   │   │   └── other.b5c6d7e8.json
++│   │   └── others
++│   │       └── other.f9a0b1c2.json
++│   ├── collections                 # per-collection ES modules
++│   │   ├── posts.js
++│   │   └── others.js
 +│   ├── index.d.ts                  # typescript dts file
 +│   └── index.js                    # javascript entry file (esm)
++│   └── .manifest.json              # internal state for incremental writes
  ├── content
  │   ├── posts
  │   │   ├── hello-world.md
@@ -162,6 +172,12 @@ Then you will get the following output:
  ├── package.json
  └── velite.config.js
 ```
+
+::: tip
+
+The tree above shows the **split** layout — the default outside production (`NODE_ENV !== 'production'`). Record files are named by record identity (not content hash), so a record's path stays stable while only its content changes. In production (`NODE_ENV=production`, or `layout: 'single'` via the [Node API](../reference/api.md#build)), each collection is emitted as a single `<name>.json` instead.
+
+:::
 
 ::: tip
 
@@ -187,38 +203,30 @@ When the `--watch` flag is used with `velite dev` or `velite`, Velite will watch
 
 ```sh [npm]
 $ npx velite dev
-[VELITE] output entry file in '.velite' in 0.68ms
-[VELITE] output 1 posts, 1 others in 0.47ms
-[VELITE] output 2 assets in 1.38ms
-[VELITE] build finished in 84.49ms
 [VELITE] watching for changes in 'content'
+[VELITE] building...
+[VELITE] build finished
 ```
 
 ```sh [pnpm]
 $ pnpm velite dev
-[VELITE] output entry file in '.velite' in 0.68ms
-[VELITE] output 1 posts, 1 others in 0.47ms
-[VELITE] output 2 assets in 1.38ms
-[VELITE] build finished in 84.49ms
 [VELITE] watching for changes in 'content'
+[VELITE] building...
+[VELITE] build finished
 ```
 
 ```sh [yarn]
 $ yarn velite dev
-[VELITE] output entry file in '.velite' in 0.68ms
-[VELITE] output 1 posts, 1 others in 0.47ms
-[VELITE] output 2 assets in 1.38ms
-[VELITE] build finished in 84.49ms
 [VELITE] watching for changes in 'content'
+[VELITE] building...
+[VELITE] build finished
 ```
 
 ```sh [bun]
 $ bun velite dev
-[VELITE] output entry file in '.velite' in 0.68ms
-[VELITE] output 1 posts, 1 others in 0.47ms
-[VELITE] output 2 assets in 1.38ms
-[VELITE] build finished in 84.49ms
 [VELITE] watching for changes in 'content'
+[VELITE] building...
+[VELITE] build finished
 ```
 
 :::

@@ -1,0 +1,18 @@
+*.pem
+.DS_Store
+node_modules
+dist
+
+# generated build artifacts of local examples / docs site
+**/.velite
+**/public/static
+**/.next
+**/.turbo
+**/next-env.d.ts
+
+# package-manager / lockfile noise for the formatter
+pnpm-lock.yaml
+
+# session workspace + generated HTML knowledge artifacts (not source-formatted)
+.agents/sessions
+.agents/knowledge/*.html

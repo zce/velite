@@ -11,7 +11,7 @@
     <a href="https://github.com/zce/velite/blob/master/license"><img src="https://img.shields.io/github/license/zce/velite" alt="License"></a>
     <a href="https://npm.im/velite"><img src="https://img.shields.io/npm/v/velite" alt="NPM Version"></a>
     <a href="https://npm.im/velite"><img src="https://img.shields.io/node/v/velite" alt="Node Version"></a>
-    <a href="https://standardjs.com"><img src="https://img.shields.io/badge/code_style-standard-brightgreen" alt="Code Style"></a>
+    <a href="https://npm.im/velite"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4" alt="Code Style"></a>
     <br>
     <a href="https://npm.im/velite"><img src="https://img.shields.io/npm/dm/velite" alt="NPM Downloads"></a>
     <a href="https://packagephobia.com/result?p=velite"><img src="https://packagephobia.com/badge?p=velite" alt="Install Size"></a>
@@ -46,6 +46,11 @@ Velite is a tool for building type-safe data layer, turns Markdown / MDX, YAML, 
 
 Check out our detailed [Why Velite](https://velite.js.org/guide/introduction#why-velite) to learn more about what makes Velite special. ✨
 
+## Requirements
+
+- Node.js `>=22.13.0`
+- ESM only — Velite ships `"type": "module"`; load it with `import`, not `require`
+
 ## Try Velite Online
 
 You can try Velite directly in your browser on StackBlitz:
@@ -54,8 +59,10 @@ You can try Velite directly in your browser on StackBlitz:
 - https://stackblitz.com/edit/velite-nextjs
 
 > [!NOTE]
+> The StackBlitz sandboxes are community playgrounds that may not always track the latest Velite version. For up-to-date code, use the runnable [examples](https://github.com/zce/velite/tree/main/examples) — [basic](https://github.com/zce/velite/tree/main/examples/basic) and [nextjs](https://github.com/zce/velite/tree/main/examples/nextjs) work out of the box and StackBlitz can open them directly from GitHub.
+>
 > You may need a real-world project to start Velite quickly.
-> I have forked the [shadcn-ui/taxonomy](https://tx.shadcn.com) project as an example, you can try it out.
+> I have forked the [shadcn-ui/taxonomy](https://tx.shadcn.com) project as an example (built on an earlier Velite release), you can try it out.
 > https://github.com/zce/taxonomy
 
 ## Who's using Velite?
@@ -69,13 +76,14 @@ You can try Velite directly in your browser on StackBlitz:
 
 The following are the features I want to achieve or are under development:
 
-- [ ] More framework or build tool integration examples.
+- [x] Framework integrations: [`@velite/plugin-next`](https://github.com/zce/velite/tree/main/packages/next) & [`@velite/plugin-vite`](https://github.com/zce/velite/tree/main/packages/vite), plus runnable [examples](examples)
+- [x] Unit & integration tests (600+ cases over the built output)
+- [x] Incremental build with a memoized derivation engine and watch-mode patching
+- [ ] Config-file custom loader registration
+- [ ] More framework or build tool integration examples
 - [ ] More built-in schemas
-- [ ] Unit & E2E tests?
-- [ ] Scoffolding tool
-- [ ] Incremental build
+- [ ] Scaffolding tool
 - [ ] Turborepo?
-- [ ] Next.js plugin package? It's currently a [snippet](https://velite.js.org/guide/with-nextjs#start-velite-with-next-js-plugin).
 
 See the [open issues](https://github.com/zce/velite/issues) for a list of proposed features (and known issues).
 

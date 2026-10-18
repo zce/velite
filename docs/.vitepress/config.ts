@@ -52,9 +52,10 @@ export default defineConfig({
         items: [
           { text: 'Introduction', link: 'introduction' },
           { text: 'Quick Start', link: 'quick-start' },
-          { text: 'Migration to 1.0 Alpha', link: 'migration' },
+          { text: 'Migration to 1.0', link: 'migration' },
           { text: 'Define Collections', link: 'define-collections' },
           { text: 'Using Collections', link: 'using-collections' },
+          { text: 'Content Definitions', link: 'content-executions' },
           { text: 'Velite Schemas', link: 'velite-schemas' }
         ]
       },
@@ -89,7 +90,8 @@ export default defineConfig({
         base: '/examples/',
         items: [
           { text: 'Basic', link: 'basic' },
-          { text: 'Next.js', link: 'nextjs' }
+          { text: 'Next.js', link: 'nextjs' },
+          { text: 'Vite', link: 'vite' }
         ]
       },
       {

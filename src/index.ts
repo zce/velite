@@ -1,57 +1,181 @@
-import { createEngine } from './app/engine'
-import { createWatcher } from './app/watch'
+import { VeliteError } from './core'
+import { createBuilder } from './core/builder'
+import { createDefaultContentExecutionsFactory } from './core/content/execution/record'
+import { createSchemaRunner, ensureHostInstalled } from './core/schema/runner'
+import { join } from './core/util/path'
+import {
+  createChokidarWatcher,
+  createJitiModuleLoader,
+  createLogger,
+  createNodeFileSystem,
+  createNodePromiseObserver,
+  createNodeSchemaContextHost,
+  createSharpImageProcessor
+} from './runtime/adapters/node'
 
-import type { BuildOptions } from './app/engine'
-import type { Watcher } from './app/watch'
-import type { BuildResult, Collections } from './collections'
+import type { Builder, BuildResult, WatchHandle } from './core'
+import type { LogLevel } from './runtime'
+import type { PromiseObserver } from './runtime/promise-observer'
 
-export type { BuildOptions } from './app/engine'
-export type { Watcher } from './app/watch'
-export type { BlurOptions, VeliteImage } from './assets'
-export type { BuildResult, Collection, Collections, CollectionType } from './collections'
-export type { HookContext, PluginConfig, ResolvedConfig, UserConfig } from './config'
-export type { VeliteLoader } from './loaders/types'
-export type { VeliteOutput } from './output'
-export type { BuildContext, ContentFile } from './runtime/context'
-export type { LogLevel } from './runtime/logger'
-export type { BuildStore, StoreKey } from './runtime/store'
-export type { infer, VeliteSchema } from './schemas'
-export type { MarkdownOptions } from './schemas/markdown'
-export type { MdxOptions } from './schemas/mdx'
+// One lazy, process-lifetime Node observer, not one hook per Builder/record.
+// It carries only an async-scope marker; ownership stays with record validation.
+let defaultPromiseObserver: PromiseObserver | undefined
 
-export { getImageMetadata } from './assets'
-export { defineCollection } from './collections'
-export { defineConfig } from './config'
-export { defineLoader } from './loaders'
-export { context } from './runtime/context'
-export { defineSchema, s } from './schemas'
+export interface BuildEntryOptions {
+  /** Project directory (default: process.cwd()). */
+  cwd?: string
+  /** Config path (relative to cwd or absolute). Default: auto-detect velite.config.*. */
+  config?: string
+  /** Output layout (default: `single` in production, `split` otherwise). */
+  layout?: 'split' | 'single'
+  /** Remove the output directories before the (first) build. */
+  clean?: boolean
+  /** Throw a {@link VeliteError} when the build produces any error-level diagnostic. */
+  strict?: boolean
+  /** Console logger verbosity. */
+  logLevel?: LogLevel
+}
+
+const resolveConfigOption = (cwd: string, explicit: string | undefined): string | undefined => {
+  if (explicit === undefined) return undefined
+  if (explicit.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(explicit)) return explicit
+  return join(cwd, explicit)
+}
+
+const enforceStrict = (result: BuildResult, strict: boolean | undefined): void => {
+  if (strict !== true) return
+  if (!result.diagnostics.some(d => d.level === 'error')) return
+  throw new VeliteError('schema', { message: 'build produced error diagnostics in strict mode', diagnostics: result.diagnostics })
+}
+
+/** Create a durable Node builder. Advanced/stateful entry; also the DI seam. */
+export const builder = (options: BuildEntryOptions = {}): Builder => {
+  const cwd = options.cwd ?? process.cwd()
+  // Install or obtain the one process-wide SchemaContextHost. The default
+  // Node runtime composition owns it for the process lifetime; installing the
+  // identical host is idempotent, and installing a different host after the
+  // first is a deterministic internal configuration failure. The host only
+  // propagates the current SchemaRunContext — it owns no Builder/epoch/broker/
+  // generation/publication/cache/registry/lifecycle state.
+  const host = ensureHostInstalled(createNodeSchemaContextHost)
+  const promiseObserver = (defaultPromiseObserver ??= createNodePromiseObserver({ runUnbound: operation => host.run(undefined, operation) }))
+  const schemaRunner = createSchemaRunner({ host, promiseObserver })
+  const contentExecutionsFactory = createDefaultContentExecutionsFactory(host)
+  return createBuilder({
+    cwd,
+    configPath: resolveConfigOption(cwd, options.config),
+    fs: createNodeFileSystem(),
+    modules: createJitiModuleLoader({}),
+    schemaRunner,
+    contentExecutionsFactory,
+    logger: createLogger({ level: options.logLevel ?? 'info' }),
+    image: createSharpImageProcessor(),
+    watch: createChokidarWatcher
+  })
+}
 
 /**
- * Build all collections defined in the user config.
- *
- * Each call creates a fresh build engine and (for `watch: true`) a watch
- * controller. Pass a collections type parameter when the caller wants a typed
- * `BuildResult`.
+ * One-shot build with the default Node runtime. Resolves once the build
+ * completes (no watcher); use {@link watch} to keep listening for changes.
  */
-export const build = async <T extends Collections = Collections>(options: BuildOptions = {}): Promise<BuildResult<T>> => {
-  const engine = createEngine<T>()
-  const result = await engine.build(options)
-  if (options.watch === true) {
-    const controller = createWatcher()
-    await controller.start(engine, options)
+export const build = async (options: BuildEntryOptions = {}): Promise<BuildResult> => {
+  const layout = options.layout ?? (process.env.NODE_ENV === 'production' ? 'single' : 'split')
+  const instance = builder(options)
+  try {
+    if (options.clean === true) await instance.clean()
+    const result = await instance.build({ layout })
+    enforceStrict(result, options.strict)
+    return result
+  } finally {
+    await instance.dispose()
   }
-  return result
 }
 
 /**
- * Build once and keep watching for future changes.
- *
- * Unlike `build({ watch: true })`, this programmatic API returns a watcher
- * handle so callers can close it when they are done.
+ * Watch mode: run an initial build, then keep a long-lived builder reacting to
+ * file events. The returned {@link WatchHandle} owns the watcher; closing it
+ * also disposes the builder.
  */
-export const watch = async <T extends Collections = Collections>(options: BuildOptions = {}): Promise<Watcher> => {
-  const engine = createEngine<T>()
-  await engine.build({ ...options, watch: false })
-  const controller = createWatcher()
-  return await controller.start(engine, options)
+export const watch = async (options: BuildEntryOptions = {}): Promise<WatchHandle> => {
+  const layout = options.layout ?? (process.env.NODE_ENV === 'production' ? 'single' : 'split')
+  const instance = builder(options)
+  try {
+    if (options.clean === true) await instance.clean()
+    // Builder.watch() performs the single initial build and returns its
+    // BuildResult on the handle — we use it for strict-mode handling here
+    // instead of running a second build through the public facade.
+    const inner = await instance.watch({}, { layout })
+    enforceStrict(inner.initial, options.strict)
+    return {
+      initial: inner.initial,
+      close: async () => {
+        await inner.close()
+        await instance.dispose()
+      }
+    }
+  } catch (err) {
+    await instance.dispose()
+    throw err
+  }
 }
+
+export { context, defineCollection, defineConfig, defineLoader, defineSchema, s, VeliteError } from './core'
+export { content } from './core/schema/content'
+export type { ContentNamespace, MarkdownDefinition, MarkdownDefinitionOptions, MdxDefinition, MdxDefinitionOptions } from './core/schema/content'
+export type {
+  AssetReferenceEffect,
+  AssetRequest,
+  AssetResult,
+  BlurOptions,
+  Builder,
+  BuildOptions,
+  BuildResult,
+  CollectionDef,
+  CollectionResult,
+  ContentFile,
+  ContentRecord,
+  Diagnostic,
+  Effect,
+  EffectDeclarationContext,
+  EffectRequestProvenance,
+  EffectSystemOwner,
+  Entry,
+  ExcerptSchemaOptions,
+  FileSchemaOptions,
+  ImageData,
+  ImageMetadata,
+  ImageSchemaOptions,
+  Infer,
+  LoadedItem,
+  Loader,
+  LoaderInput,
+  LoaderResult,
+  LogicalOutput,
+  MarkdownOptions,
+  MdxOptions,
+  Metadata,
+  PathSchemaOptions,
+  PrepareCollections,
+  PrepareContext,
+  PrepareDiagnosticInput,
+  PrepareHook,
+  PrepareResult,
+  ProjectCollectionInfo,
+  ProjectInfo,
+  ResolvedConfig,
+  Schema,
+  SchemaContext,
+  SchemaEffectDeclaration,
+  SchemaNamespace,
+  SessionStore,
+  StableOccurrence,
+  UniqueEffect,
+  UserConfig,
+  VeliteErrorCode,
+  WatchHandle,
+  WatchOptions
+} from './core'
+// Runtime port types — sourced directly from src/runtime (core re-exports are
+// gone; the port types are provided by the runtime layer, not the core layer).
+export type { FileEvent, FileSystem, ImageProcessor, Logger, LogLevel, ModuleLoader, Watcher } from './runtime'
+export type { TocItem } from './core/content/results'

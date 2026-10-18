@@ -4,13 +4,15 @@ To use Zod in Velite, import the `s` utility from `'velite'`. It includes all Zo
 
 See [Zod's Docs](https://zod.dev) for complete documentation on how Zod works and what features are available.
 
+Use the separate `content` namespace for Markdown/MDX definitions. Their finite methods return ordinary Zod result schemas; they are not members of `s`. See [Content Definitions](content-executions.md) for sharing, input selection, navigation, recovery, and effect boundaries.
+
 ```js
 import { s } from 'velite'
 
 // `s` includes Zod helpers and Velite custom schemas.
 ```
 
-## `s.isodate()`
+## `s.isoDate()`
 
 `string => string`
 
@@ -19,7 +21,7 @@ Format date string to ISO date string.
 This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
 ```ts
-date: s.isodate()
+date: s.isoDate()
 // case 1. valid date string
 // '2017-01-01' => '2017-01-01T00:00:00.000Z'
 
@@ -43,8 +45,8 @@ name: s.unique('taxonomies')
 // case 1. unique value
 // 'foo' => 'foo'
 
-// case 2. non-unique value (in all unique by 'taxonomies')
-// 'foo' => issue 'Duplicate 'foo' with '/path/to/existing/file.yml''
+// case 2. non-unique value (when another record also registers 'foo' in 'taxonomies')
+// 'foo' => issue 'duplicate unique value "foo" in group "taxonomies"'
 ```
 
 ### Parameters
@@ -58,7 +60,7 @@ name: s.unique('taxonomies')
 
 `string => string`
 
-Validate a slug string. It checks length, slug format, reserved values, and uniqueness within a named slug group.
+Validate a slug string. It checks length (3–200), slug format (`a-z0-9` segments joined by `-`, case-insensitive), reserved values, and uniqueness within a named slug group.
 
 This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
@@ -68,7 +70,7 @@ slug: s.slug('taxonomies', ['admin', 'login'])
 // 'hello-world' => 'hello-world'
 
 // case 2. non-unique value in the 'taxonomies' slug group
-// 'hello-world' => issue "duplicate value 'hello-world' ..."
+// 'hello-world' => issue 'duplicate unique value "hello-world" in group "slug:taxonomies"'
 
 // case 3. reserved slug value
 // 'admin' => issue 'Reserved slug'
@@ -103,7 +105,7 @@ avatar: s.file()
 // 'avatar.png' => '/static/avatar-34kjfdsi.png'
 
 // case 2. non-exists file
-// 'not-exists.png' => issue 'File not exists'
+// 'not-exists.png' => fatal 'ASSET_FAILED' diagnostic 'failed to read asset: ...'
 
 // case 3. absolute path or full url (if allowed)
 // '/icon.png' => '/icon.png'
@@ -119,11 +121,22 @@ allow non-relative path, if true, the value will be returned directly, if false,
 - type: `boolean`
 - default: `true`
 
+##### **options.outputName**:
+
+override the global `output.name` filename template for this specific schema invocation
+
+- type: `string`
+- default: `undefined` (use `output.name`)
+
+```ts
+docs: s.file({ outputName: 'docs/[name]-[hash:8].[ext]' })
+```
+
 ## `s.image(options)`
 
-`string => VeliteImage`
+`string => ImageData`
 
-Image path relative to the current file, like `s.file()`. Relative images are copied to `config.output.assets` and returned as [VeliteImage](#types) objects.
+Image path relative to the current file, like `s.file()`. Relative images are copied to `config.output.assets` and returned as [ImageData](#types) objects.
 
 This schema requires an input value. Add `.optional()` in your collection schema if the field itself is optional.
 
@@ -140,12 +153,14 @@ avatar: s.image()
 // }
 
 // case 2. non-exists file
-// 'not-exists.png' => issue 'File not exists'
-
-// case 3. absolute path or full URL
-// '/icon.png' => { src: '/icon.png', width: 0, height: 0, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
-// 'https://zce.me/logo.png' => { src: 'https://zce.me/logo.png', width: 0, height: 0, blurDataURL: '', blurWidth: 0, blurHeight: 0 }
+// 'not-exists.png' => issue 'failed to read asset: ...'
 ```
+
+::: warning
+
+Unlike `s.file()`, `s.image()` has no `allowNonRelativePath` passthrough. A `/`-prefixed value is only valid together with `options.absoluteRoot` (resolved against that root, read and probed directly, returned as-is); without `absoluteRoot`, a `/`-prefixed or remote-URL value is treated as a relative reference and fails to resolve. Use a custom schema for remote images.
+
+:::
 
 ### Parameters
 
@@ -177,7 +192,7 @@ avatar: s.image({ blur: { width: 16, quality: 30 } })
 /**
  * Image object with metadata & blur image
  */
-interface VeliteImage {
+interface ImageData {
   /**
    * public url of the image
    */
@@ -205,102 +220,112 @@ interface VeliteImage {
 }
 ```
 
-## `s.metadata()`
+## `content.markdown(options)`
 
-`string => Metadata`
-
-parse input or document body as markdown content and return [Metadata](#types-1).
-
-When the field is missing, this schema derives metadata from the current file's plain text.
-
-currently only support `readingTime` & `wordCount`.
+Create a Markdown definition, then call `.html()`, `.toc()`, `.excerpt(options?)`, or `.metadata()` to construct result schemas. A definition is not a Zod schema.
 
 ```ts
-metadata: s.metadata()
-// document body => { readingTime: 2, wordCount: 100 }
+import { content, s } from 'velite'
+
+const article = content.markdown()
+const schema = s.object({
+  html: article.html(),
+  toc: article.toc(),
+  excerpt: article.excerpt(),
+  metadata: article.metadata()
+})
 ```
 
-### Types
+All four fields intentionally reuse one definition. Their schemas accept an explicit primitive string or derive from the file body when the field is absent. Exactly empty or missing selected content produces `The content is empty`; an explicit empty string never falls back. Processing uses asynchronous Zod parsing in the active record context.
+
+### Definition options
+
+- Type: [`MarkdownDefinitionOptions`](../reference/types.md#content-definition-options).
+- Defaults: `gfm`, `removeComments`, and `copyLinkedFiles` are `true`; plugin lists are empty.
+- Scalar precedence: definition option, then global `markdown` option, then built-in default.
+- User plugins: definition-local registrations before global registrations within each phase.
+
+See [Markdown Support](using-markdown.md) and [configuration ownership](content-executions.md#configuration).
+
+## `content.mdx(options)`
+
+Create an MDX definition with `.code()`, `.toc()`, `.excerpt(options?)`, and `.metadata()`.
 
 ```ts
-/**
- * Document metadata.
- */
+import { content, s } from 'velite'
+
+const article = content.mdx({ minify: false })
+const schema = s.object({
+  code: article.code(),
+  toc: article.toc(),
+  excerpt: article.excerpt(),
+  metadata: article.metadata()
+})
+```
+
+`.code()` returns compiled JavaScript as a string, not a rendered component. The default `outputFormat` is `'function-body'`; `'program'` is also supported. Input selection and sharing follow the same explicit-definition contract as Markdown, using MDX syntax regardless of filename extension.
+
+### Definition options
+
+- Type: [`MdxDefinitionOptions`](../reference/types.md#content-definition-options).
+- Inherits the Markdown option defaults; `minify` defaults to `true`, `development` to `false`, and `recmaPlugins` to `[]`.
+- Scalar precedence uses the global `mdx` options. Local plugins precede global plugins, including recma.
+- Only the documented fields are supported, not arbitrary MDX compiler-option passthrough.
+
+See [MDX Support](using-mdx.md).
+
+## `definition.html()` / `definition.code()`
+
+`string | undefined => string`
+
+Markdown `.html()` transforms and serializes the selected source to HTML. MDX `.code()` completes compilation and configured minification. Both assign automatic heading IDs during transformation even without a TOC field. A Markdown definition has no `.code()` method; an MDX definition has no `.html()` method.
+
+## `definition.toc()`
+
+`string | undefined => TocItem[]`
+
+Return flat navigation through statically known **transformed** headings in document order. Each item contains its actual output `id`, not a title slug:
+
+```ts
+interface TocItem {
+  depth: number
+  title: string
+  id: string
+}
+```
+
+TOC needs complete transformation, including MDX recma, but skips serialization/minification. It can resolve linked assets and perform plugin I/O. There are no TOC options or `original` mode. See [actual heading targets](content-executions.md#actual-heading-targets) for ID validity, dynamic MDX limitations, and runtime ID forwarding.
+
+## `definition.excerpt(options)`
+
+`string | undefined => string`
+
+Extract normalized static **pre-transform source text**, not rendered output. `options.length` defaults to `260` Unicode code points and must be a non-negative safe integer; invalid values throw `TypeError` during schema construction. Truncation trims trailing whitespace and appends `…` outside the requested length. Different lengths reuse one execution under the same definition and input.
+
+```ts
+const article = content.markdown()
+const schema = s.object({
+  excerpt: article.excerpt({ length: 160 }),
+  longExcerpt: article.excerpt({ length: 300 })
+})
+```
+
+## `definition.metadata()`
+
+`string | undefined => Metadata`
+
+Analyze complete normalized static **pre-transform source text**, independent of excerpt length or processing plugins. This selection takes no options.
+
+```ts
 interface Metadata {
-  /**
-   * Reading time in minutes.
-   */
+  /** Reading time in minutes, rounded and at least one. */
   readingTime: number
-  /**
-   * Word count.
-   */
+  /** Latin word count plus the fixed CJK character count weighted by 0.56. */
   wordCount: number
 }
 ```
 
-## `s.excerpt(options)`
-
-`string => string`
-
-parse input or document body as markdown content and return excerpt text.
-
-When the field is missing, this schema derives the excerpt from the current file's plain text.
-
-```ts
-excerpt: s.excerpt()
-// document body => excerpt text
-```
-
-### Parameters
-
-#### **options**: excerpt options
-
-##### **options.length**:
-
-excerpt length.
-
-- type: `number`
-- default: `260`
-
-## `s.markdown(options)`
-
-`string => string`
-
-parse input or document body as markdown content and return html content. refer to [Markdown Support](using-markdown.md) for more information.
-
-When the field is missing, this schema compiles the current file body.
-
-```ts
-content: s.markdown()
-// => html content
-```
-
-### Parameters
-
-#### **options**: markdown options
-
-- type: `MarkdownOptions`, See [MarkdownOptions](../reference/types.md#markdownoptions)
-- default: `{ gfm: true, removeComments: true, copyLinkedFiles: true }`
-
-## `s.mdx(options)`
-
-`string => string`
-
-parse input or document body as mdx content and return component function-body. refer to [MDX Support](using-mdx.md) for more information.
-
-When the field is missing, this schema compiles the current file body.
-
-```ts
-code: s.mdx()
-// => function-body
-```
-
-### Parameters
-
-#### **options**: mdx options
-
-- type: `MdxOptions`, See [MdxOptions](../reference/types.md#mdxoptions)
-- default: `{ gfm: true, removeComments: true, copyLinkedFiles: true }`
+Excerpt and metadata require Parse only; initialization can run plugin attachers, but returned transformers and emission are skipped. Non-empty source without visible text yields `''` and `{ readingTime: 1, wordCount: 0 }`. See [Source Analysis](content-executions.md#source-analysis-versus-navigation) for value rules.
 
 ## `s.raw()`
 
@@ -314,78 +339,6 @@ When the field is missing, this schema returns the current file body.
 code: s.raw()
 // => raw document body
 ```
-
-## `s.toc(options)`
-
-`string => TocEntry[] | TocTree`
-
-parse input or document body as markdown content and return the [table of contents](#types-2).
-
-When the field is missing, this schema derives the table of contents from the current file body.
-
-```ts
-toc: s.toc()
-// document body => table of contents
-```
-
-### Parameters
-
-#### **options**: toc options
-
-- type: `TocOptions`, See [Options](https://github.com/syntax-tree/mdast-util-toc?tab=readme-ov-file#options)
-
-##### **options.original**:
-
-keep the original table of contents.
-
-- type: `boolean`
-- default: `false`
-
-### Types
-
-```ts
-interface TocEntry {
-  /**
-   * Title of the entry
-   */
-  title: string
-  /**
-   * URL that can be used to reach
-   * the content
-   */
-  url: string
-  /**
-   * Nested items
-   */
-  items: TocEntry[]
-}
-
-/**
- * Tree for table of contents
- */
-export interface TocTree {
-  /**
-   *  Index of the node right after the table of contents heading, `-1` if no
-   *  heading was found, `undefined` if no `heading` was given.
-   */
-  index?: number
-  /**
-   *  Index of the first node after `heading` that is not part of its section,
-   *  `-1` if no heading was found, `undefined` if no `heading` was given, same
-   *  as `index` if there are no nodes between `heading` and the first heading
-   *  in the table of contents.
-   */
-  endIndex?: number
-  /**
-   *  List representing the generated table of contents, `undefined` if no table
-   *  of contents could be created, either because no heading was found or
-   *  because no following headings were found.
-   */
-  map?: List
-}
-```
-
-Refer to [mdast-util-toc](https://github.com/syntax-tree/mdast-util-toc) for more information about `Result` and `Options`.
 
 ## `s.path(options)`
 
@@ -404,7 +357,7 @@ path: s.path()
 
 #### **options**: flattening options
 
-- type: `PathOptions`
+- type: `PathSchemaOptions`
 
 ##### **options.removeIndex**:
 

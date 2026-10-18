@@ -1,0 +1,159 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+
+import { codeFromDiagnostics, diagnostic, fail, hasFatalDiagnostic, isVeliteError, VeliteError } from '../../src/core/diagnostic'
+
+test('diagnostic() factory builds a diagnostic with level/code/message and extra fields', () => {
+  const d = diagnostic('error', 'LOADER_FAILED', 'invalid JSON', {
+    stage: 'load',
+    origin: { kind: 'core' },
+    provenance: { scope: 'source', source: { path: 'a.json' } },
+    cause: new Error('x')
+  })
+  assert.equal(d.level, 'error')
+  assert.equal(d.code, 'LOADER_FAILED')
+  assert.equal(d.message, 'invalid JSON')
+  assert.equal(d.stage, 'load')
+  assert.equal(d.origin.kind, 'core')
+  assert.equal(d.provenance.scope, 'source')
+  assert.equal((d.provenance as { source: { path: string } }).source.path, 'a.json')
+  assert.deepEqual(d.cause, { type: 'error', name: 'Error', message: 'x' })
+})
+
+test('diagnostic() extra is optional (defaults: stage schema, origin core, provenance project)', () => {
+  const d = diagnostic('warn', 'CONFIG_INVALID', 'oops')
+  assert.equal(d.level, 'warn')
+  assert.equal(d.code, 'CONFIG_INVALID')
+  assert.equal(d.message, 'oops')
+  assert.equal(d.stage, 'schema')
+  assert.equal(d.origin.kind, 'core')
+  assert.equal(d.provenance.scope, 'project')
+  assert.equal(d.position, undefined)
+  assert.equal(d.context, undefined)
+  assert.equal(d.cause, undefined)
+})
+
+test('VeliteError is a real Error (instanceof, stack captured)', () => {
+  const err = new VeliteError('internal', { message: 'boom' })
+  assert.ok(err instanceof Error)
+  assert.ok(err instanceof VeliteError)
+  assert.ok(typeof err.stack === 'string')
+})
+
+test('VeliteError carries code, context, cause, diagnostics', () => {
+  const err = new VeliteError<{ path: string }>('load', {
+    message: 'no loader',
+    context: { path: '/x.md' },
+    cause: new Error('boom'),
+    diagnostics: [diagnostic('error', 'LOADER_FAILED', 'm')]
+  })
+  assert.equal(err.code, 'load')
+  assert.equal(err.name, 'VeliteError')
+  assert.deepEqual(err.context, { path: '/x.md' })
+  assert.equal((err.cause as Error).message, 'boom')
+  assert.equal(err.diagnostics.length, 1)
+  assert.equal(err.message, 'no loader')
+})
+
+test('VeliteError defaults diagnostics to empty array and optional message', () => {
+  const err = new VeliteError('internal')
+  assert.deepEqual([...err.diagnostics], [])
+  assert.equal(err.message, '')
+})
+
+test('VeliteError diagnostics array is frozen (runtime immutability)', () => {
+  const err = new VeliteError('internal', { diagnostics: [diagnostic('error', 'X', 'm')] })
+  assert.ok(Object.isFrozen(err.diagnostics))
+})
+
+test('VeliteError toString includes name, code, message, context, cause', () => {
+  const err = new VeliteError<{ k: string }>('config', {
+    message: 'bad',
+    context: { k: 'v' },
+    cause: new Error('root')
+  })
+  const s = err.toString()
+  assert.ok(s.startsWith('VeliteError(config): bad'))
+  assert.ok(s.includes('"k":"v"'))
+  assert.ok(s.includes('Error: root'))
+})
+
+test('VeliteError toString never throws on hostile context/cause values', () => {
+  const circular: Record<string, unknown> = { self: null }
+  circular.self = circular
+  const hostile = {
+    toString() {
+      throw new Error('hostile toString')
+    }
+  }
+  const err = new VeliteError('config', { message: 'boom', context: circular, cause: hostile })
+  const s = err.toString()
+  assert.ok(s.startsWith('VeliteError(config): boom'))
+  assert.ok(s.includes('circular'), 'circular context renders a marker instead of throwing')
+})
+
+test('VeliteError toJSON serializes all fields', () => {
+  const err = new VeliteError('output', { message: 'failed' })
+  const json = err.toJSON()
+  assert.equal(json.name, 'VeliteError')
+  assert.equal(json.code, 'output')
+  assert.equal(json.message, 'failed')
+  assert.deepEqual(json.diagnostics, [])
+})
+
+test('fail throws a VeliteError with the given code', () => {
+  assert.throws(
+    () => fail('internal', 'session missing'),
+    (err: unknown) => err instanceof VeliteError && err.code === 'internal' && err.message === 'session missing'
+  )
+})
+
+test('fail accepts an options object', () => {
+  assert.throws(
+    () => fail('load', { message: 'no loader', context: { path: '/x' } }),
+    (err: unknown) => err instanceof VeliteError && (err as VeliteError).context?.path === '/x'
+  )
+})
+
+test('hasFatalDiagnostic is true for error-level non-schema diagnostics', () => {
+  const diags = [diagnostic('warn', 'CONFIG_INVALID', 'w', { stage: 'config' }), diagnostic('error', 'ASSET_FAILED', 'e', { stage: 'asset' })]
+  assert.equal(hasFatalDiagnostic(diags), true)
+})
+
+test('hasFatalDiagnostic is false for schema-level errors', () => {
+  const diags = [diagnostic('error', 'SCHEMA_INVALID', 'e', { stage: 'schema' })]
+  assert.equal(hasFatalDiagnostic(diags), false)
+})
+
+test('hasFatalDiagnostic is false for warn-level diagnostics', () => {
+  const diags = [diagnostic('warn', 'ASSET_FAILED', 'w', { stage: 'asset' })]
+  assert.equal(hasFatalDiagnostic(diags), false)
+})
+
+test('hasFatalDiagnostic is false for empty diagnostics', () => {
+  assert.equal(hasFatalDiagnostic([]), false)
+})
+
+test('codeFromDiagnostics returns the fatal stage', () => {
+  const diags = [diagnostic('warn', 'CONFIG_INVALID', 'w', { stage: 'schema' }), diagnostic('error', 'ASSET_FAILED', 'e', { stage: 'asset' })]
+  assert.equal(codeFromDiagnostics(diags), 'asset')
+})
+
+test('codeFromDiagnostics skips schema-only errors (non-fatal)', () => {
+  const diags = [diagnostic('error', 'SCHEMA_INVALID', 'e', { stage: 'schema' })]
+  assert.equal(codeFromDiagnostics(diags), 'unknown')
+})
+
+test('codeFromDiagnostics falls back to unknown on empty', () => {
+  assert.equal(codeFromDiagnostics([]), 'unknown')
+})
+
+test('isVeliteError classifies VeliteError vs plain Error', () => {
+  assert.equal(isVeliteError(new VeliteError('internal')), true)
+  assert.equal(isVeliteError(new Error('plain')), false)
+})
+
+test('isVeliteError rejects Node-style system errors (code + message but not VeliteError)', () => {
+  const sysErr = Object.assign(new Error('not found'), { code: 'ENOENT' })
+  assert.equal(isVeliteError(sysErr), false)
+})

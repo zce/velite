@@ -59,7 +59,7 @@
   "dependencies": {
     "@mdx-js/mdx": "^3.1.1",
     "esbuild": "^0.25.12",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.0",
     "terser": "^5.44.1"
   },
   "devDependencies": {
